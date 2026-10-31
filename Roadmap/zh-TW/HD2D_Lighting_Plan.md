@@ -1,6 +1,6 @@
 # HD-2D 光源、柔影與選擇性 Bloom 施工計畫
 
-> 基準：Nexora `8c4aa989`；Beads 主工單 `nexora-m6m`。工程 **1/7（14%）**；實機 **NOT_RUN**。
+> 基準：Nexora `8c4aa989`；Beads 主工單 `nexora-m6m`。工程 **2/7（29%）**；實機 **NOT_RUN**。
 
 ## 目標與界線
 
@@ -13,9 +13,9 @@ Beads 是任務狀態來源；本表為審閱用快照。工程以已驗收子�
 | ID | Beads | 交付 | 相依 | 狀態／證據 |
 | --- | --- | --- | --- | --- |
 | ✅ HD2D-01 | `nexora-m6m.1` | 公開契約與 Zig bindings | — | 契約／快照已交付；[Linux 證據](../../Engine/TwoD/evidence/HD2D-01-Linux-2026-10-31.md) |
-| HD2D-02 | `nexora-m6m.2` | 三後端線性 RGBA16F 管線 | 01 | IN_PROGRESS — 三個原生實作；Linux 軟體 Vulkan 像素證據，Windows／Metal CI 待驗 |
-| HD2D-03 | `nexora-m6m.3` | 動態局部點光源 | 02 | NOT_RUN |
-| HD2D-04 | `nexora-m6m.4` | 動態遮擋與柔影 | 03 | NOT_RUN |
+| ✅ HD2D-02 | `nexora-m6m.2` | 三後端線性 RGBA16F 管線 | 01 | 已驗收 [PR #735](https://github.com/jimlee1972/Nexora/pull/735)，squash `ed0e51e4`；41 項 CI 與三後端原生證據 |
+| HD2D-03 | `nexora-m6m.3` | 動態局部點光源 | 02 | IN_PROGRESS — 原生點光源、穩定 Zig 識別與完整 Linux 證據；原生 CI 待驗 |
+| HD2D-04 | `nexora-m6m.4` | 動態遮擋與柔影 | 03 | IN_PROGRESS — 相依 GPU／CPU 參考值施工，尚未驗收 |
 | HD2D-05 | `nexora-m6m.5` | 選擇性發光與 bloom | 02 | NOT_RUN |
 | HD2D-06 | `nexora-m6m.6` | Zig 診斷與原生驗證 | 03, 04, 05 | NOT_RUN |
 | HD2D-07 | `nexora-m6m.7` | SDK 0.2.0 與遊戲接入 | 06 | NOT_RUN |
@@ -48,3 +48,7 @@ HD2D-01 僅交付可協商契約、Zig 封裝與 owning snapshots；預設原生
 HD2D-01：[PR #734](https://github.com/jimlee1972/Nexora/pull/734)，squash `3628a62e`，當前提交 41 項檢查全數通過。保留既有 Windows VM 逾時失敗，未修改斷言，重試通過。HD2D-02 在原生後端 gate 通過前不增加已驗收完成度。
 
 HD2D-02: [Linux 證據](../../Engine/TwoD/evidence/HD2D-02-Linux-2026-10-31.md).
+
+HD2D-03: [本地證據](../../Engine/TwoD/evidence/HD2D-03-Linux-2026-10-31.md); IN_PROGRESS.
+
+進度快照：雙語已驗收工程皆為 2/7；柔影部分本地施工不計驗收完成。

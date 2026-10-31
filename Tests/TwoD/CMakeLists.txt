@@ -281,3 +281,8 @@ if(NEXORA_ZIG_EXECUTABLE)
     "-Mroot=${CMAKE_CURRENT_SOURCE_DIR}/GameplayEffectsLayout.zig"
     "-Mnx=${PROJECT_SOURCE_DIR}/Bindings/Zig/nexora.zig" -lc)
 endif()
+
+add_executable(NexoraLightingRenderingTests LightingRenderingTests.cpp)
+target_link_libraries(NexoraLightingRenderingTests PRIVATE Nexora::TwoD)
+nexora_apply_defaults(NexoraLightingRenderingTests)
+add_test(NAME twod.lighting_rendering COMMAND NexoraLightingRenderingTests)

@@ -79,3 +79,48 @@ copy/retention/publication, invalid polygons, duplicates and capacity. Zig tests
 alignment and offsets with canonical C, and probe old/absent hosts. Native effects, content tools,
 Zig diagnostic and SDK publication remain later gates in the
 [paired roadmap](../../Roadmap/en/HD2D_Lighting_Plan.md).
+
+## Lighting host and full pool identities (HD2D-03)
+
+The generic native 2D Player registers the service with LIGHTING only when its surface supports
+the optional linear 2D path. Headless hosts advertise zero native features; enabled requests
+remain Unsupported. Old modules that never enable effects keep the original rendering path.
+The Player activates pending effects before game updates and retains that snapshot through one
+camera/asset extraction and presentation. A submission during update applies at the next boundary.
+Sprite styles are resolved against live identities after update, copied into extraction inputs,
+then carried through sorting. Only adjacent Atlas **and style** matches batch together; no
+sorted-array index is used as an identity. Stale/deleted objects receive no old override.
+
+The original effects table prefix ends at `submit_frame`. An optional appended `pool_identity`
+callback accepts the **complete existing pool handle** (owner, index, generation) and returns an
+opaque 64-bit token for `Sprite.kind=POOL`. Do not pack or truncate the 128-bit pool handle into
+`Sprite.handle`. Full pool ownership and generation are revalidated both at submission and during
+render extraction. Entity styles continue to use the existing World entity ID. Neither kind's
+runtime identity is a persistent save-game identifier.
+
+The negotiated effects getter copies only complete original/new prefixes. An old module's
+three-callback table works with the new host. New Zig bindings retain the original operations
+on an old effects host and return Unsupported only when the appended identity callback is needed.
+Other services and the original Sprite wire are unchanged. The independent lighting suffix baseline
+protects the new callback's placement; C/Zig tests cover every field offset and old/new prefix.
+
+Identity lookup follows the service owner thread. Repeated requests for one live full handle return
+the same token. Process-wide monotonic tokens never repeat, including across service instances;
+exhaustion fails explicitly. The registry owns no World/instance storage, caps entries at 100,000,
+prunes dead handles at frame boundaries or capacity pressure, and releases on service destruction.
+Failed lookup preserves output and does not advance effect revisions. Resolver callbacks must not
+mutate/reenter. Active snapshots retain only value tokens; deleting/reusing a pool slot cannot
+retarget an old snapshot to the replacement instance.
+
+Flat point lights use linear RGB times intensity and smooth attenuation `(1 - (d/r)^2)^2` for
+`d < r`, zero outside. Environment light is independent of decorative strength; strength scales
+point contributions once. Sprite receiving flags and group-mask intersection select illumination.
+The CPU preparation validates all supplied render values before culling (including offscreen data),
+then removes radius/frame-disjoint, group-zero and zero-intensity lights without reordering.
+The inverse rotated orthographic camera includes the safe-frame pixel offset; DPI/UI scale is
+not applied again. No normal map, height shadow or emissive-light inference is involved.
+
+The 32-light/8-shadow capacity contract remains; shadowed requests and nonzero bloom still return
+Unsupported until their corresponding native feature is implemented. Capacity is not a target
+60FPS guarantee. GPU frame constants/styles are copied into completed-frame-owned uploads;
+old input arrays and effect snapshots never serve as GPU pointers.

@@ -1220,6 +1220,15 @@
       "threading": "Serialized host owner thread only. Accepted batches publish at the next host frame boundary.",
       "errors": "0 success; -1 invalid argument, stale identity/dependency or excess capacity; -2 unsupported version/service/native feature; -3 wrong thread or allocation/lifecycle failure. Failed calls preserve outputs and snapshots.",
       "determinism": "Complete copied batches and monotonic revisions; no native work or input consumption. Rendering, timing and feature availability remain host-specific."
+    },
+    {
+      "name": "NexoraGameplayTwoDEffectsApiV1.pool_identity",
+      "since": "ABI 3 optional TwoD Effects V1 negotiated tail",
+      "ownership": "Copies an opaque service-local effects token for a validated full pool owner/index/generation identity; no instance ownership transfers. Tokens are not persistent.",
+      "nullability": "Context and identity output required. Owner and generation must be nonzero; index is checked against the registered host pool.",
+      "threading": "Serialized host owner thread only; no reentry.",
+      "errors": "0 success; -1 invalid/stale/foreign pool handle or capacity; -2 missing negotiated tail or pool resolver; -3 wrong thread, token exhaustion or allocation failure. Failure leaves output unchanged.",
+      "determinism": "Same live full handle returns the same service token. Tokens never repeat within the process; stale entries are pruned at frame boundaries/capacity pressure. No rendering or snapshot revision change."
     }
   ]
 }

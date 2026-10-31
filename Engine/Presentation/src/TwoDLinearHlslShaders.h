@@ -19,16 +19,17 @@ inline constexpr char twod_linear_hlsl_vert[] = R"NEXORA_TWOD(
 struct TwoDTransform_0
 {
     float4 clip_0;
+    uint4 style_0;
 };
 
 
-#line 7
+#line 20
 cbuffer transform_0 : register(b0)
 {
     TwoDTransform_0 transform_0;
 }
 
-#line 10
+#line 23
 struct TwoDVertex_0
 {
     float4 position_0 : SV_Position;
@@ -37,7 +38,7 @@ struct TwoDVertex_0
 };
 
 
-#line 16
+#line 29
 TwoDVertex_0 twoDVertexMain(float2 position_1 : POSITION, float2 uv_1 : TEXCOORD0, float4 color_1 : COLOR0)
 {
 
@@ -66,19 +67,20 @@ inline constexpr char twod_linear_hlsl_instance[] = R"NEXORA_TWOD(
 struct TwoDTransform_0
 {
     float4 clip_0;
+    uint4 style_0;
 };
 
 
-#line 7
+#line 20
 cbuffer transform_0 : register(b0)
 {
     TwoDTransform_0 transform_0;
 }
 
-#line 38
+#line 51
 static const float2  corners_0[int(6)] = { float2(0.0f, 0.0f), float2(1.0f, 0.0f), float2(1.0f, 1.0f), float2(0.0f, 0.0f), float2(1.0f, 1.0f), float2(0.0f, 1.0f) };
 
-#line 10
+#line 23
 struct TwoDVertex_0
 {
     float4 position_0 : SV_Position;
@@ -87,11 +89,11 @@ struct TwoDVertex_0
 };
 
 
-#line 27
+#line 40
 TwoDVertex_0 twoDInstanceMain(float2 origin_0 : POSITION, float2 axisX_0 : TEXCOORD0, float2 axisY_0 : TEXCOORD1, float4 uv_1 : TEXCOORD2, float4 color_1 : COLOR0, uint vertexID_0 : SV_VertexID)
 {
 
-#line 44
+#line 57
     TwoDVertex_0 output_0;
     output_0.position_0 = float4((origin_0 + axisX_0 * corners_0[vertexID_0].x + axisY_0 * corners_0[vertexID_0].y) * transform_0.clip_0.xy + transform_0.clip_0.zw, 0.0f, 1.0f);
     output_0.uv_0 = lerp(uv_1.xy, uv_1.zw, corners_0[vertexID_0]);
@@ -120,7 +122,47 @@ Texture2D<float4 > colorTexture_texture_0 : register(t0);
 SamplerState colorTexture_sampler_0 : register(s0);
 
 
-#line 50 "Engine/Presentation/shaders/twod_linear.slang"
+#line 3 "Engine/Presentation/shaders/twod_linear.slang"
+struct TwoDTransform_0
+{
+    float4 clip_0;
+    uint4 style_0;
+};
+
+
+#line 20
+cbuffer transform_0 : register(b0)
+{
+    TwoDTransform_0 transform_0;
+}
+
+#line 4
+struct TwoDPointLight_0
+{
+    float4 positionRadiusIntensity_0;
+    float4 color_0;
+    uint4 masks_0;
+};
+
+
+#line 9
+struct TwoDLightingUniform_0
+{
+    float4 worldX_0;
+    float4 worldY_0;
+    float4 ambientStrength_0;
+    uint4 counts_0;
+    TwoDPointLight_0  lights_0[int(32)];
+};
+
+
+#line 16
+cbuffer lighting_0 : register(b1)
+{
+    TwoDLightingUniform_0 lighting_0;
+}
+
+#line 63
 struct TwoDFragment_0
 {
     float4 scene_0 : SV_Target0;
@@ -128,32 +170,139 @@ struct TwoDFragment_0
 };
 
 
-#line 10
+#line 23
 struct TwoDVertex_0
 {
     float4 position_0 : SV_Position;
     float2 uv_0 : TEXCOORD0;
-    float4 color_0 : COLOR0;
+    float4 color_1 : COLOR0;
 };
 
 
-#line 55
+#line 68
 TwoDFragment_0 twoDFragmentMain(TwoDVertex_0 input_0)
 {
 
-#line 55
+#line 68
     float2 _S1 = input_0.uv_0;
     ;
 
-#line 56
-    float4 color_1 = colorTexture_texture_0.Sample(colorTexture_sampler_0, _S1) * input_0.color_0;
+#line 69
+    float4 color_2 = colorTexture_texture_0.Sample(colorTexture_sampler_0, _S1) * input_0.color_1;
     TwoDFragment_0 output_0;
-    float _S2 = saturate(color_1.w);
+    float3 _S2 = float3((int3)int(1));
 
-#line 58
-    output_0.scene_0 = float4(clamp(color_1.xyz, float3((int3)int(0)), float3((int3)int(65504))), _S2);
+#line 71
+    float3 illumination_0;
+    if((transform_0.style_0.y) != 0U)
+    {
 
-    output_0.emission_0 = float4(0.0f, 0.0f, 0.0f, _S2);
+#line 73
+        float2 _S3 = float2(dot(input_0.position_0.xy, lighting_0.worldX_0.xy) + lighting_0.worldX_0.z, dot(input_0.position_0.xy, lighting_0.worldY_0.xy) + lighting_0.worldY_0.z);
+
+        float3 _S4 = lighting_0.ambientStrength_0.xyz;
+
+#line 75
+        uint i_0 = 0U;
+
+#line 75
+        illumination_0 = _S4;
+        for(;;)
+        {
+
+#line 76
+            if(i_0 < (lighting_0.counts_0.x))
+            {
+            }
+            else
+            {
+
+#line 76
+                break;
+            }
+
+#line 77
+            TwoDPointLight_0 light_0 = lighting_0.lights_0[i_0];
+            if(((lighting_0.lights_0[i_0].masks_0.x) & (transform_0.style_0.x)) == 0U)
+            {
+
+#line 78
+                i_0 = i_0 + 1U;
+
+#line 76
+                continue;
+            }
+
+            float distanceToLight_0 = length(_S3 - light_0.positionRadiusIntensity_0.xy);
+            float radius_0 = light_0.positionRadiusIntensity_0.z;
+
+#line 80
+            float attenuation_0;
+
+
+            if(distanceToLight_0 == 0.0f)
+            {
+
+#line 83
+                attenuation_0 = 1.0f;
+
+#line 83
+            }
+            else
+            {
+
+#line 84
+                if(distanceToLight_0 < radius_0)
+                {
+
+#line 85
+                    float q_0 = distanceToLight_0 / radius_0;
+                    float smooth_0 = 1.0f - q_0 * q_0;
+
+#line 86
+                    attenuation_0 = smooth_0 * smooth_0;
+
+#line 84
+                }
+                else
+                {
+
+#line 84
+                    attenuation_0 = 0.0f;
+
+#line 84
+                }
+
+#line 83
+            }
+
+#line 83
+            illumination_0 = illumination_0 + light_0.color_0.xyz * (light_0.positionRadiusIntensity_0.w * attenuation_0 * lighting_0.ambientStrength_0.w);
+
+#line 76
+            i_0 = i_0 + 1U;
+
+#line 76
+        }
+
+#line 72
+    }
+    else
+    {
+
+#line 72
+        illumination_0 = _S2;
+
+#line 72
+    }
+
+#line 92
+    float _S5 = saturate(color_2.w);
+
+#line 92
+    output_0.scene_0 = float4(clamp(color_2.xyz * illumination_0, float3((int3)int(0)), float3((int3)int(65504))), _S5);
+
+    output_0.emission_0 = float4(0.0f, 0.0f, 0.0f, _S5);
     return output_0;
 }
 
@@ -186,7 +335,7 @@ float3 NexoraAcesApproximate_0(float3 hdrColor_0)
 }
 
 
-#line 10 "Engine/Presentation/shaders/twod_linear.slang"
+#line 23 "Engine/Presentation/shaders/twod_linear.slang"
 struct TwoDVertex_0
 {
     float4 position_0 : SV_Position;
@@ -195,11 +344,11 @@ struct TwoDVertex_0
 };
 
 
-#line 64
+#line 98
 float4 twoDCompositeMain(TwoDVertex_0 input_0) : SV_TARGET
 {
 
-#line 64
+#line 98
     float2 _S1 = input_0.uv_0;
     ;
 

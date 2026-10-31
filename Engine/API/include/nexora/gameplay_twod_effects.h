@@ -67,6 +67,10 @@ typedef struct NexoraGameplayTwoDEffectsApiV1 {
   int32_t (*get_capabilities)(void *, NexoraTwoDEffectsCapabilitiesV1 *);
   int32_t (*get_state)(void *, NexoraTwoDEffectsStateV1 *);
   int32_t (*submit_frame)(void *, const NexoraTwoDEffectsFrameV1 *);
+  /* Optional tail: resolve a complete existing pool handle to an opaque effects identity.
+     Tokens belong to this service; never pack/truncate or persist pool handles into handle. */
+  int32_t (*pool_identity)(void *, uint64_t owner, uint32_t index, uint32_t generation,
+                           uint64_t *identity);
 } NexoraGameplayTwoDEffectsApiV1;
 #ifdef __cplusplus
 }

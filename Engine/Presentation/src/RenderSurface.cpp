@@ -131,7 +131,8 @@ bool RenderSurface::SupportsTwoDLinear() const noexcept {
 }
 SurfaceStatus RenderSurface::DrawSpritesLinear(const UiDrawData &sprites, const UiDrawData &overlay,
                                                bool instanceQuads, std::uint32_t background,
-                                               const std::array<std::uint32_t, 4> &viewport) {
+                                               const std::array<std::uint32_t, 4> &viewport,
+                                               const TwoDLighting *lighting) {
   if (!state_ || state_->destroyed)
     return SurfaceStatus::SurfaceLost;
   if (!state_->surface->SupportsTwoDLinear())
@@ -140,7 +141,7 @@ SurfaceStatus RenderSurface::DrawSpritesLinear(const UiDrawData &sprites, const 
                                      instanceQuads, background);
   if (!prepared)
     return SurfaceStatus::InvalidDescriptor;
-  const TwoDLinearDrawData data{prepared->View(), overlay, viewport};
+  const TwoDLinearDrawData data{prepared->View(), overlay, viewport, lighting};
   if (!ValidateTwoDLinearDraws(data, state_->frame.width, state_->frame.height))
     return SurfaceStatus::InvalidDescriptor;
   return state_->surface->DrawTwoDLinear(data);

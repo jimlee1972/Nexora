@@ -8,6 +8,7 @@
 #include "Nexora/Runtime/GameplayModuleHost.h"
 #include "Nexora/Runtime/GameplayServices.h"
 #include "Nexora/Runtime/GameplayStorage.h"
+#include "Nexora/TwoD/EffectsRendering.h"
 #include "Nexora/TwoD/GameplayAssets.h"
 #include "Nexora/TwoD/GameplayBridge.h"
 #include "Nexora/TwoD/GameplayContent.h"
@@ -28,6 +29,7 @@
 #include <stdexcept>
 #include <string_view>
 #include <thread>
+#include <unordered_map>
 
 namespace {
 using namespace nexora;
@@ -508,6 +510,17 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
       if (!surface)
         throw std::runtime_error("native 2D surface: " + surface.reason);
     }
+    twod::GameplayEffects effects(
+        native && surface.surface->SupportsTwoDLinear() ? NEXORA_TWOD_EFFECTS_LIGHTING : 0,
+        [&](uint32_t kind, uint64_t handle) {
+          return kind == NEXORA_TWOD_EFFECTS_ENTITY && world.FindEntity(handle) &&
+                 scene.Find(handle);
+        },
+        {},
+        [&](twod::EffectsPoolIdentity h) {
+          return pool.Find({h.owner, h.index, h.generation}) != nullptr;
+        });
+    services.twod_effects = effects.Api();
     twod::GameplayDisplay display([&](const NexoraDisplayWindowV1 &request) -> int32_t {
       if (!native)
         return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
@@ -574,6 +587,7 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
     nexora::player::UiInputGate uiGate;
     uint32_t previousGamepadMask{};
     for (unsigned frame = 0; !frames || frame < frames; ++frame) {
+      const auto effectsState = effects.BeginFrame();
       assets.Tick();
       const auto retiredContent = content.CollectRetiredTextures();
       if (native && !retiredContent.empty())
@@ -813,12 +827,38 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
       std::vector<twod::SpriteInstance> instances;
       auto poses = world.SceneWorldPoses(sceneId);
       Check(bool(poses), "World poses");
+      std::unordered_map<const twod::Sprite *, Nexora::Presentation::TwoDLightingStyle>
+          effectStyles;
+      if (effectsState->enabled) {
+        effectStyles.reserve(effectsState->sprites.size());
+        for (const auto &style : effectsState->sprites) {
+          const twod::Sprite *sprite{};
+          if (style.kind == NEXORA_TWOD_EFFECTS_ENTITY) {
+            if (world.FindEntity(style.handle))
+              sprite = scene.Find(style.handle);
+          } else if (const auto handle = effects.ResolvePoolIdentity(style.handle)) {
+            if (const auto *instance =
+                    pool.Find({handle->owner, handle->index, handle->generation}))
+              sprite = &instance->sprite;
+          }
+          if (sprite)
+            effectStyles.emplace(
+                sprite, Nexora::Presentation::TwoDLightingStyle{style.groups, style.receive_light,
+                                                                style.receive_shadow, 0});
+        }
+      }
+      const auto lightingStyle = [&](const twod::Sprite *sprite) {
+        const auto found = effectStyles.find(sprite);
+        return found == effectStyles.end() ? Nexora::Presentation::TwoDLightingStyle{}
+                                           : found->second;
+      };
       uint64_t identity{};
       for (const auto &pose : *poses)
         if (const auto *v = scene.Find(pose.id))
-          instances.push_back({++identity, *v, pose.matrix});
+          instances.push_back({++identity, *v, pose.matrix, {}, lightingStyle(v)});
       pool.ForEach([&](auto &v) {
-        instances.push_back({++identity, v.sprite, runtime::ToMatrix(v.transform)});
+        instances.push_back(
+            {++identity, v.sprite, runtime::ToMatrix(v.transform), {}, lightingStyle(&v.sprite)});
       });
       if (hasTiles) {
         auto tileInputs = tiles.Collect(camera);
@@ -841,11 +881,22 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
       if (project && !overlay.commands.empty())
         ++uiFrames;
       if (native) {
-        Check(extracted->Draw(*surface.surface, overlay.DrawData(),
-                              viewport.width != width || viewport.height != height
-                                  ? 0xFF000000
-                                  : 0xFF29140A) == Nexora::Presentation::SurfaceStatus::Ready,
-              "native Sprite draw");
+        const auto background =
+            viewport.width != width || viewport.height != height ? 0xFF000000 : 0xFF29140A;
+        auto drawStatus = Nexora::Presentation::SurfaceStatus::Unsupported;
+        if (effectsState->enabled) {
+          const auto lighting = twod::PrepareLighting(*effectsState, camera, uint32_t(viewport.x),
+                                                      uint32_t(viewport.y));
+          Check(bool(lighting), "frozen lighting preparation");
+          drawStatus =
+              extracted->DrawLinear(*surface.surface, lighting->uniforms, overlay.DrawData(),
+                                    {uint32_t(viewport.x), uint32_t(viewport.y),
+                                     uint32_t(viewport.width), uint32_t(viewport.height)},
+                                    background);
+        } else {
+          drawStatus = extracted->Draw(*surface.surface, overlay.DrawData(), background);
+        }
+        Check(drawStatus == Nexora::Presentation::SurfaceStatus::Ready, "native Sprite draw");
         const auto presented = surface.surface->EndFrame();
         // A window request during module update can invalidate the acquired image. The next
         // BeginFrame consumes its new extent; never count an unpresented frame as delivered.

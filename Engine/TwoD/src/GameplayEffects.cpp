@@ -1,14 +1,26 @@
 #include "Nexora/TwoD/GameplayEffects.h"
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstring>
 #include <limits>
+#include <map>
 #include <stdexcept>
 #include <thread>
+#include <tuple>
 #include <unordered_set>
 
 namespace nexora::twod {
 namespace {
+std::atomic<std::uint64_t> nextPoolIdentity{1};
+std::uint64_t PoolToken() {
+  auto next = nextPoolIdentity.load(std::memory_order_relaxed);
+  while (next != UINT64_MAX) {
+    if (nextPoolIdentity.compare_exchange_weak(next, next + 1, std::memory_order_relaxed))
+      return next;
+  }
+  return 0;
+}
 bool Positive(float v) { return std::isfinite(v) && v >= 0 && v <= 1e6F; }
 bool Position(NexoraTwoDEffectsPointV1 p) {
   return std::isfinite(p.x) && std::isfinite(p.y) && std::abs(p.x) <= 1e6F && std::abs(p.y) <= 1e6F;
@@ -61,6 +73,52 @@ struct GameplayEffects::State final {
   uint32_t features{};
   SpriteResolver sprite;
   MaskResolver mask;
+  PoolResolver pool;
+  using PoolKey = std::tuple<uint64_t, uint32_t, uint32_t>;
+  std::map<PoolKey, uint64_t> poolTokens;
+  std::map<uint64_t, EffectsPoolIdentity> poolHandles;
+  void PrunePoolIdentities() {
+    if (!pool)
+      return;
+    for (auto it = poolHandles.begin(); it != poolHandles.end();) {
+      const auto &h = it->second;
+      if (!pool(h)) {
+        poolTokens.erase(PoolKey{h.owner, h.index, h.generation});
+        it = poolHandles.erase(it);
+      } else
+        ++it;
+    }
+  }
+  int32_t PoolIdentity(uint64_t ownerId, uint32_t index, uint32_t generation, uint64_t *output) {
+    if (!output || !ownerId || !generation)
+      return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+    if (!pool)
+      return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+    const EffectsPoolIdentity handle{ownerId, index, generation};
+    if (!pool(handle))
+      return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+    const PoolKey key{ownerId, index, generation};
+    if (const auto it = poolTokens.find(key); it != poolTokens.end()) {
+      *output = it->second;
+      return NEXORA_GAMEPLAY_OK;
+    }
+    if (poolHandles.size() >= NEXORA_TWOD_EFFECTS_MAX_SPRITES)
+      PrunePoolIdentities();
+    if (poolHandles.size() >= NEXORA_TWOD_EFFECTS_MAX_SPRITES)
+      return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+    const auto token = PoolToken();
+    if (!token)
+      return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
+    const auto inserted = poolTokens.emplace(key, token);
+    try {
+      poolHandles.emplace(token, handle);
+    } catch (...) {
+      poolTokens.erase(inserted.first);
+      throw;
+    }
+    *output = token;
+    return NEXORA_GAMEPLAY_OK;
+  }
   std::shared_ptr<const EffectsSnapshot> active = std::make_shared<EffectsSnapshot>();
   std::shared_ptr<const EffectsSnapshot> pending;
   uint64_t accepted{};
@@ -115,10 +173,16 @@ struct GameplayEffects::State final {
           !Positive(s.emission_intensity) ||
           !(s.kind == NEXORA_TWOD_EFFECTS_ENTITY ? entities : instances).insert(s.handle).second)
         return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
-      if (!sprite)
-        return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
-      if (!sprite(s.kind, s.handle))
-        return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+      if (s.kind == NEXORA_TWOD_EFFECTS_POOL && pool) {
+        const auto found = poolHandles.find(s.handle);
+        if (found == poolHandles.end() || !pool(found->second))
+          return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+      } else {
+        if (!sprite)
+          return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+        if (!sprite(s.kind, s.handle))
+          return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+      }
       const bool atlas = s.emission_atlas_high || s.emission_atlas_low;
       if (!atlas && (s.emission_region || s.emission_intensity > 0))
         return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
@@ -160,21 +224,32 @@ struct GameplayEffects::State final {
     }
   }
 };
-GameplayEffects::GameplayEffects(uint32_t features, SpriteResolver sprite, MaskResolver mask)
+GameplayEffects::GameplayEffects(uint32_t features, SpriteResolver sprite, MaskResolver mask,
+                                 PoolResolver pool)
     : state_(std::make_unique<State>()) {
   if ((features & ~7u) || ((features & 6u) && !(features & 1u)))
     throw std::invalid_argument("invalid 2D effects feature combination");
   state_->features = features;
   state_->sprite = std::move(sprite);
   state_->mask = std::move(mask);
+  state_->pool = std::move(pool);
 }
 GameplayEffects::~GameplayEffects() = default;
 std::shared_ptr<const EffectsSnapshot> GameplayEffects::BeginFrame() {
   if (state_->owner != std::this_thread::get_id())
     throw std::logic_error("2D effects requires owner thread");
+  state_->PrunePoolIdentities();
   if (state_->pending)
     state_->active = std::move(state_->pending);
   return state_->active;
+}
+std::optional<EffectsPoolIdentity> GameplayEffects::ResolvePoolIdentity(uint64_t token) const {
+  if (state_->owner != std::this_thread::get_id())
+    throw std::logic_error("2D effects requires owner thread");
+  const auto found = state_->poolHandles.find(token);
+  if (found == state_->poolHandles.end() || !state_->pool || !state_->pool(found->second))
+    return std::nullopt;
+  return found->second;
 }
 NexoraGameplayTwoDEffectsApiV1 GameplayEffects::Api() noexcept {
   return {sizeof(NexoraGameplayTwoDEffectsApiV1),
@@ -210,6 +285,10 @@ NexoraGameplayTwoDEffectsApiV1 GameplayEffects::Api() noexcept {
           },
           [](void *p, const NexoraTwoDEffectsFrameV1 *v) {
             return State::Call(p, [&](auto &s) { return s.Submit(v); });
+          },
+          [](void *p, uint64_t ownerId, uint32_t index, uint32_t generation, uint64_t *output) {
+            return State::Call(
+                p, [&](auto &s) { return s.PoolIdentity(ownerId, index, generation, output); });
           }};
 }
 } // namespace nexora::twod

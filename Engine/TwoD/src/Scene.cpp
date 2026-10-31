@@ -266,13 +266,15 @@ std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instan
     runtime::TransformMatrix matrix;
     double y;
     std::optional<SpriteLocalQuad> localQuad;
+    Nexora::Presentation::TwoDLightingStyle lighting;
   };
   std::vector<Item> items;
   items.reserve(instances.size());
   std::vector<std::uint64_t> ids;
   ids.reserve(instances.size());
   for (const auto &instance : instances) {
-    if (!instance.id || !ValidateSprite(instance.sprite))
+    if (!instance.id || !ValidateSprite(instance.sprite) || instance.lighting.receiveLight > 1 ||
+        instance.lighting.receiveShadow > 1 || instance.lighting.reserved)
       return std::nullopt;
     ids.push_back(instance.id);
     if (instance.matrix[3] != 0 || instance.matrix[7] != 0 || instance.matrix[11] != 0 ||
@@ -294,7 +296,8 @@ std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instan
     const auto &sprite = instance.sprite;
     if (sprite.visible && sprite.color[3] > 0)
       items.push_back({instance.id, sprite, instance.matrix,
-                       sprite.sortY ? -instance.matrix[13] : 0, instance.localQuad});
+                       sprite.sortY ? -instance.matrix[13] : 0, instance.localQuad,
+                       instance.lighting});
   }
   if (!std::is_sorted(ids.begin(), ids.end()))
     std::sort(ids.begin(), ids.end());
@@ -442,12 +445,14 @@ std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instan
     frame.vertices.insert(frame.vertices.end(), vertices.begin(), vertices.end());
     for (const auto index : {0U, 1U, 2U, 0U, 2U, 3U})
       frame.indices.push_back(base + index);
-    if (!frame.batches.empty() && frame.batches.back().textureId == binding.texture)
+    if (!frame.batches.empty() && frame.batches.back().textureId == binding.texture &&
+        frame.lightingStyles.back() == item->lighting)
       frame.batches.back().elementCount += 6;
     else {
       if (frame.batches.size() >= 65536)
         return std::nullopt;
       frame.batches.push_back({0, 0, camera.width, camera.height, binding.texture, 6, offset, 0});
+      frame.lightingStyles.push_back(item->lighting);
     }
     ++frame.statistics.visible;
     frame.statistics.coveredPixels +=
@@ -484,6 +489,25 @@ SpriteFrame::Draw(Nexora::Presentation::RenderSurface &surface,
   auto uploads = Uploads();
   return surface.DrawSprites({vertices, std::as_bytes(std::span(indices)), batches, uploads, true},
                              overlay, true, background);
+}
+Nexora::Presentation::SurfaceStatus
+SpriteFrame::DrawLinear(Nexora::Presentation::RenderSurface &surface,
+                        const Nexora::Presentation::TwoDLightingUniform &uniforms,
+                        const Nexora::Presentation::UiDrawData &overlay,
+                        const std::array<std::uint32_t, 4> &viewport,
+                        std::uint32_t background) const {
+  using namespace Nexora::Presentation;
+  if (!lightingStyles.empty() && lightingStyles.size() != batches.size())
+    return SurfaceStatus::InvalidDescriptor;
+  std::vector<TwoDLightingStyle> styles(batches.size() + 1);
+  styles[0] = {UINT32_MAX, 0, 0, 0};
+  if (!lightingStyles.empty())
+    std::copy(lightingStyles.begin(), lightingStyles.end(), styles.begin() + 1);
+  const TwoDLighting lighting{uniforms, styles};
+  auto uploads = Uploads();
+  return surface.DrawSpritesLinear(
+      {vertices, std::as_bytes(std::span(indices)), batches, uploads, true}, overlay, true,
+      background, viewport, &lighting);
 }
 std::optional<Bytes> SpriteScene::Snapshot() const {
   auto world = world_->SaveScene(scene_, 16 * 1024 * 1024);

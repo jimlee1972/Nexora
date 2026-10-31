@@ -5,7 +5,7 @@ struct TwoDLinearFrame {
   std::array<VkDeviceMemory, 2> memory{};
   std::array<VkImageView, 2> views{};
   VkFramebuffer worldFramebuffer{}, compositeFramebuffer{};
-  VkDescriptorSet descriptor{};
+  VkDescriptorSet descriptor{}, lightingDescriptor{};
   VkBuffer uiUpload{};
   VkDeviceMemory uiMemory{};
   VkDeviceSize uiCapacity{}, allocationBytes{};
@@ -14,6 +14,9 @@ struct TwoDLinearFrame {
 };
 std::array<TwoDLinearFrame, 3> twoDLinearFrames_{};
 VkRenderPass twoDLinearPass_{};
+VkDescriptorSetLayout twoDLightingLayout_{};
+VkDescriptorPool twoDLightingPool_{};
+VkPipelineLayout twoDLinearLayout_{};
 VkPipeline twoDLinearPipeline_{}, twoDLinearInstancePipeline_{}, twoDLinearCompositePipeline_{};
 bool CreateTwoDLinearProgram(bool instanced, bool composite, VkPipeline &output) {
   const auto makeShader = [&](const std::uint32_t *code, std::size_t bytes, VkShaderModule &out) {
@@ -112,7 +115,7 @@ bool CreateTwoDLinearProgram(bool instanced, bool composite, VkPipeline &output)
   pipeline.pMultisampleState = &multisample;
   pipeline.pColorBlendState = &blending;
   pipeline.pDynamicState = &dynamic;
-  pipeline.layout = uiPipelineLayout_;
+  pipeline.layout = twoDLinearLayout_;
   pipeline.renderPass = composite ? uiRenderPass_ : twoDLinearPass_;
   const auto result =
       vkCreateGraphicsPipelines(device_, VK_NULL_HANDLE, 1, &pipeline, nullptr, &output);
@@ -125,6 +128,8 @@ void DestroyTwoDLinearFrame(TwoDLinearFrame &f) {
     vkDestroyFramebuffer(device_, f.compositeFramebuffer, nullptr);
   if (f.worldFramebuffer)
     vkDestroyFramebuffer(device_, f.worldFramebuffer, nullptr);
+  if (f.lightingDescriptor)
+    vkFreeDescriptorSets(device_, twoDLightingPool_, 1, &f.lightingDescriptor);
   if (f.descriptor)
     vkFreeDescriptorSets(device_, uiDescriptorPool_, 1, &f.descriptor);
   for (unsigned i = 0; i < 2; ++i) {
@@ -153,10 +158,46 @@ void DestroyTwoDLinear() {
     vkDestroyRenderPass(device_, twoDLinearPass_, nullptr);
   twoDLinearPipeline_ = twoDLinearInstancePipeline_ = twoDLinearCompositePipeline_ = VK_NULL_HANDLE;
   twoDLinearPass_ = VK_NULL_HANDLE;
+  if (twoDLinearLayout_)
+    vkDestroyPipelineLayout(device_, twoDLinearLayout_, nullptr);
+  if (twoDLightingPool_)
+    vkDestroyDescriptorPool(device_, twoDLightingPool_, nullptr);
+  if (twoDLightingLayout_)
+    vkDestroyDescriptorSetLayout(device_, twoDLightingLayout_, nullptr);
+  twoDLinearLayout_ = VK_NULL_HANDLE;
+  twoDLightingPool_ = VK_NULL_HANDLE;
+  twoDLightingLayout_ = VK_NULL_HANDLE;
 }
 bool CreateTwoDLinearPipelines() {
   if (twoDLinearPipeline_ && twoDLinearInstancePipeline_ && twoDLinearCompositePipeline_)
     return true;
+  const VkDescriptorSetLayoutBinding binding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
+                                             VK_SHADER_STAGE_FRAGMENT_BIT, nullptr};
+  const VkDescriptorSetLayoutCreateInfo setCreate{
+      VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0, 1, &binding};
+  const VkDescriptorPoolSize size{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3};
+  const VkDescriptorPoolCreateInfo poolCreate{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+                                              nullptr,
+                                              VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+                                              3,
+                                              1,
+                                              &size};
+  const VkDescriptorSetLayout layouts[]{uiDescriptorLayout_, VK_NULL_HANDLE};
+  if (vkCreateDescriptorSetLayout(device_, &setCreate, nullptr, &twoDLightingLayout_) !=
+          VK_SUCCESS ||
+      vkCreateDescriptorPool(device_, &poolCreate, nullptr, &twoDLightingPool_) != VK_SUCCESS) {
+    DestroyTwoDLinear();
+    return false;
+  }
+  const VkDescriptorSetLayout allLayouts[]{layouts[0], twoDLightingLayout_};
+  const VkPushConstantRange push{VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                                 sizeof(TwoDShaderConstants)};
+  const VkPipelineLayoutCreateInfo layoutCreate{
+      VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, nullptr, 0, 2, allLayouts, 1, &push};
+  if (vkCreatePipelineLayout(device_, &layoutCreate, nullptr, &twoDLinearLayout_) != VK_SUCCESS) {
+    DestroyTwoDLinear();
+    return false;
+  }
   std::array<VkAttachmentDescription, 2> attachments{};
   for (auto &a : attachments) {
     a.format = VK_FORMAT_R16G16B16A16_SFLOAT;
@@ -177,8 +218,10 @@ bool CreateTwoDLinearPipelines() {
   pass.pAttachments = attachments.data();
   pass.subpassCount = 1;
   pass.pSubpasses = &sub;
-  if (vkCreateRenderPass(device_, &pass, nullptr, &twoDLinearPass_) != VK_SUCCESS)
+  if (vkCreateRenderPass(device_, &pass, nullptr, &twoDLinearPass_) != VK_SUCCESS) {
+    DestroyTwoDLinear();
     return false;
+  }
   if (CreateTwoDLinearProgram(false, false, twoDLinearPipeline_) &&
       CreateTwoDLinearProgram(true, false, twoDLinearInstancePipeline_) &&
       CreateTwoDLinearProgram(false, true, twoDLinearCompositePipeline_))
@@ -187,7 +230,8 @@ bool CreateTwoDLinearPipelines() {
   return false;
 }
 bool CreateTwoDLinearTargets(TwoDLinearFrame &f) {
-  if (f.width == width_ && f.height == height_ && f.worldFramebuffer && f.descriptor)
+  if (f.width == width_ && f.height == height_ && f.worldFramebuffer && f.descriptor &&
+      f.lightingDescriptor)
     return true;
   DestroyTwoDLinearFrame(f); // protecting slot fence was consumed by Acquire
   f.width = width_;
@@ -249,6 +293,11 @@ bool CreateTwoDLinearTargets(TwoDLinearFrame &f) {
   write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
   write.pImageInfo = &info;
   vkUpdateDescriptorSets(device_, 1, &write, 0, nullptr);
+  const VkDescriptorSetAllocateInfo uniformAllocate{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+                                                    nullptr, twoDLightingPool_, 1,
+                                                    &twoDLightingLayout_};
+  if (vkAllocateDescriptorSets(device_, &uniformAllocate, &f.lightingDescriptor) != VK_SUCCESS)
+    return false;
   ++diagnostics_.twoDLinearTargetAllocations;
   return true;
 }
@@ -311,7 +360,13 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
                            {{float(width_), float(height_)}, {1, 1}, 0xffffffff},
                            {{0, float(height_)}, {0, 1}, 0xffffffff}};
   const std::uint32_t indices[] = {0, 1, 2, 0, 2, 3};
-  const auto required = quadOffset + sizeof(quad) + sizeof(indices);
+  VkPhysicalDeviceProperties properties{};
+  vkGetPhysicalDeviceProperties(physical_, &properties);
+  const auto alignment =
+      std::max<VkDeviceSize>(16, properties.limits.minUniformBufferOffsetAlignment);
+  const auto uniformOffset =
+      (quadOffset + sizeof(quad) + sizeof(indices) + alignment - 1) & ~(alignment - 1);
+  const auto required = uniformOffset + sizeof(TwoDLightingUniform);
   if (!EnsureUiUpload(f, required))
     return SurfaceStatus::DeviceLost;
   void *mapped{};
@@ -324,7 +379,18 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
     std::memcpy(bytes + instanceOffset, instances.data(), instances.size());
   std::memcpy(bytes + quadOffset, quad, sizeof(quad));
   std::memcpy(bytes + quadOffset + sizeof(quad), indices, sizeof(indices));
+  const TwoDLightingUniform fallback{};
+  std::memcpy(bytes + uniformOffset, data.lighting ? &data.lighting->uniforms : &fallback,
+              sizeof(fallback));
   vkUnmapMemory(device_, f.uiMemory);
+  const VkDescriptorBufferInfo uniform{f.uiUpload, uniformOffset, sizeof(TwoDLightingUniform)};
+  VkWriteDescriptorSet write{};
+  write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+  write.dstSet = f.lightingDescriptor;
+  write.descriptorCount = 1;
+  write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  write.pBufferInfo = &uniform;
+  vkUpdateDescriptorSets(device_, 1, &write, 0, nullptr);
   std::array<VkImageMemoryBarrier, 2> barriers{};
   for (unsigned i = 0; i < 2; ++i) {
     auto &b = barriers[i];
@@ -356,17 +422,27 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
   vkCmdBeginRenderPass(frame.commands, &begin, VK_SUBPASS_CONTENTS_INLINE);
   const VkViewport viewport{0, 0, float(width_), float(height_), 0, 1};
   vkCmdSetViewport(frame.commands, 0, 1, &viewport);
-  const float transform[] = {2.F / width_, 2.F / height_, -1, -1};
-  vkCmdPushConstants(frame.commands, uiPipelineLayout_, VK_SHADER_STAGE_VERTEX_BIT, 0,
-                     sizeof(transform), transform);
+  TwoDShaderConstants transform{{2.F / width_, 2.F / height_, -1, -1}};
+  vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, twoDLinearLayout_, 1, 1,
+                          &f.lightingDescriptor, 0, nullptr);
+  vkCmdPushConstants(frame.commands, twoDLinearLayout_,
+                     VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                     sizeof(transform), &transform);
   vkCmdBindIndexBuffer(frame.commands, f.uiUpload, vertices.size(),
                        data.world.indices32Bit ? VK_INDEX_TYPE_UINT32 : VK_INDEX_TYPE_UINT16);
+  std::size_t commandIndex{};
   for (const auto &c : data.world.commands) {
+    transform.style = data.lighting ? data.lighting->styles[commandIndex]
+                                    : TwoDLightingStyle{UINT32_MAX, 0, 0, 0};
+    ++commandIndex;
+    vkCmdPushConstants(frame.commands, twoDLinearLayout_,
+                       VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                       sizeof(transform), &transform);
     const auto clipped = TwoDLinearClip(c, data.viewport, width_, height_);
     if (!clipped[2] || !clipped[3])
       continue;
     const auto &texture = uiTextures_.at(c.textureId);
-    vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, uiPipelineLayout_, 0,
+    vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, twoDLinearLayout_, 0,
                             1, &texture.descriptor, 0, nullptr);
     const VkRect2D clip{{std::int32_t(clipped[0]), std::int32_t(clipped[1])},
                         {clipped[2], clipped[3]}};
@@ -414,7 +490,7 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
   const VkClearRect full{{{0, 0}, {width_, height_}}, 0, 1};
   vkCmdClearAttachments(frame.commands, 1, &black, 1, &full);
   vkCmdBindPipeline(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, twoDLinearCompositePipeline_);
-  vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, uiPipelineLayout_, 0, 1,
+  vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, twoDLinearLayout_, 0, 1,
                           &f.descriptor, 0, nullptr);
   const auto &v = data.viewport;
   const VkRect2D clip = v == std::array<std::uint32_t, 4>{}

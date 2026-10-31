@@ -42,6 +42,7 @@ struct NEXORA_2D_API SpriteFrame final {
   std::vector<std::uint32_t> indices;
   std::vector<Nexora::Presentation::UiDrawCommand> batches;
   std::vector<AtlasBinding> retainedAtlases;
+  std::vector<Nexora::Presentation::TwoDLightingStyle> lightingStyles;
   FrameStatistics statistics;
   [[nodiscard]] std::vector<Nexora::Presentation::UiTextureUpload> Uploads() const;
   void OffsetViewport(std::uint32_t x, std::uint32_t y);
@@ -49,6 +50,12 @@ struct NEXORA_2D_API SpriteFrame final {
   Draw(Nexora::Presentation::RenderSurface &surface,
        const Nexora::Presentation::UiDrawData &overlay = {},
        std::uint32_t background = 0xFF29140A) const;
+  [[nodiscard]] Nexora::Presentation::SurfaceStatus
+  DrawLinear(Nexora::Presentation::RenderSurface &,
+             const Nexora::Presentation::TwoDLightingUniform &,
+             const Nexora::Presentation::UiDrawData &overlay = {},
+             const std::array<std::uint32_t, 4> &viewport = {},
+             std::uint32_t background = 0xFF000000) const;
 };
 struct Collider final {
   ShapeKind kind{ShapeKind::Circle};
@@ -67,6 +74,8 @@ struct SpriteInstance final {
   // Optional pivot-relative geometry. Existing instances keep their historical size/pivot
   // behavior. World matrix and Y-sort anchor remain unchanged by source trimming.
   std::optional<SpriteLocalQuad> localQuad{};
+  // Associated before sorting; never resolved through the resulting batch/array index.
+  Nexora::Presentation::TwoDLightingStyle lighting{};
 };
 // Copies a styled instance, replaces Atlas/region/size and supplies source-derived geometry.
 // Flip mirrors source geometry around the original Pivot and also uses existing UV flips.

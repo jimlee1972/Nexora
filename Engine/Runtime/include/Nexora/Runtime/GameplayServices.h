@@ -68,14 +68,31 @@ public:
           return Copy(p, v, &GameplayServices::lifecycle);
         },
         [](void *p, NexoraGameplaySceneApiV1 *v) { return Copy(p, v, &GameplayServices::scene); },
-        [](void *p, NexoraGameplayTwoDEffectsApiV1 *v) {
-          return Copy(p, v, &GameplayServices::twod_effects);
-        }};
+        [](void *p, NexoraGameplayTwoDEffectsApiV1 *v) { return CopyEffects(p, v); }};
     std::memcpy(output, &negotiated_table, bytes);
     return NEXORA_GAMEPLAY_OK;
   }
 
 private:
+  static int32_t CopyEffects(void *p, NexoraGameplayTwoDEffectsApiV1 *output) noexcept {
+    if (!p || !output)
+      return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+    const auto &self = *static_cast<GameplayServices *>(p);
+    if (std::this_thread::get_id() != self.owner_)
+      return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
+    constexpr auto prefix = offsetof(NexoraGameplayTwoDEffectsApiV1, pool_identity);
+    const auto &registered = self.twod_effects;
+    if (registered.struct_size < prefix || registered.abi_version != 1 ||
+        output->struct_size < prefix || output->abi_version != 1)
+      return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+    const auto bytes =
+        registered.struct_size >= sizeof(registered) && output->struct_size >= sizeof(registered)
+            ? sizeof(registered)
+            : prefix;
+    std::memcpy(output, &registered, bytes);
+    output->struct_size = static_cast<uint32_t>(bytes);
+    return NEXORA_GAMEPLAY_OK;
+  }
   template <class T> static int32_t Copy(void *p, T *output, T GameplayServices::*member) noexcept {
     if (!p || !output)
       return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
