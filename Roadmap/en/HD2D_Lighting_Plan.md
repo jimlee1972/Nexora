@@ -1,6 +1,6 @@
 # HD-2D Lighting, Soft Shadows and Selective Bloom Plan
 
-> Baseline: Nexora `8c4aa989`; Beads epic `nexora-m6m`. Engineering **3/7 (43%)**; physical acceptance **NOT_RUN**.
+> Baseline: Nexora `8c4aa989`; Beads epic `nexora-m6m`. Engineering **4/7 (57%)**; physical acceptance **NOT_RUN**.
 
 ## Goal and boundaries
 
@@ -15,7 +15,7 @@ Beads is the task source of truth; this table is a review snapshot. Engineering 
 | ✅ HD2D-01 | `nexora-m6m.1` | Public contract and Zig bindings | — | Contract/snapshots delivered; [Linux evidence](../../Engine/TwoD/evidence/HD2D-01-Linux-2026-10-31.md) |
 | ✅ HD2D-02 | `nexora-m6m.2` | Linear RGBA16F pipeline on three backends | 01 | Accepted [PR #735](https://github.com/jimlee1972/Nexora/pull/735), squash `ed0e51e4`; 41 CI checks and three-backend native evidence |
 | ✅ HD2D-03 | `nexora-m6m.3` | Dynamic local point lights | 02 | Accepted PR #736, squash `40c96072`; current-head native DX12/Metal and Linux gates passed |
-| HD2D-04 | `nexora-m6m.4` | Dynamic occlusion and soft shadows | 03 | IN_PROGRESS — dependent GPU/CPU-reference preparation; not accepted |
+| ✅ HD2D-04 | `nexora-m6m.4` | Dynamic occlusion and soft shadows | 03 | Accepted PR #737 / `0845c078`; final-head native DX12/Metal and full Linux CI passed |
 | HD2D-05 | `nexora-m6m.5` | Selective emission and bloom | 02 | IN_PROGRESS — explicit mask/bloom, tool/residency/native local validation; CI pending |
 | HD2D-06 | `nexora-m6m.6` | Zig diagnostic and native validation | 03, 04, 05 | NOT_RUN |
 | HD2D-07 | `nexora-m6m.7` | SDK 0.2.0 and game integration | 06 | NOT_RUN |
@@ -57,3 +57,5 @@ HD2D-05: [local evidence](../../Engine/TwoD/evidence/HD2D-05-Linux-2026-10-31.md
 
 HD2D-03 accepted: PR #736 / `40c96072`; current-head Windows job `124365092041` and macOS job `124365092312` passed actual native pixels and full desktop CTest. HD2D-04 PR #737 and this dependent stage still require their own native CI. Engineering 3/7; physical PC NOT_RUN.
 HD2D-05 follow-up fixes pipeline-off retirement: completed-slot legacy frames release offscreen owners; appended HUD stays protected and re-enable recreates targets. Local/native gate evidence remains linked; no acceptance credit before CI.
+
+HD2D-04 accepted: PR #737 / `0845c078`, tested `dd256588`. Windows52 native frames/425 CTests, Metal52/400, Linux483; all34 final-head checks completed (10 legitimate documentation-push skips). HD2D-05 preliminary head9e2323ce passed41 checks and native53-frame DX12/Metal readbacks. Its dependency-only rebase preserves the runtime tree; final rebased-head CI remains required. Engineering4/7; physical PC NOT_RUN.
