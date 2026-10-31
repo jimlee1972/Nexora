@@ -294,7 +294,10 @@ def run(args):
                         client.call(['guestcontrol', args.vm, 'copyto', *credentials, str(source.resolve()), root + '\\' + name])
                 entry = ("$ProgressPreference='SilentlyContinue';$ErrorActionPreference='Stop';"
                          "$p='" + root + "\\guest.ps1';"
-                         "if((Get-FileHash -LiteralPath $p).Hash.ToLowerInvariant() -ne '" + script_sha + "'){throw 'script hash'};"
+                         "$s=[IO.File]::OpenRead($p);$h=[Security.Cryptography.SHA256]::Create();"
+                         "try{$actual=[BitConverter]::ToString($h.ComputeHash($s)).Replace('-','').ToLowerInvariant()}"
+                         "finally{$h.Dispose();$s.Dispose()};"
+                         "if($actual -cne '" + script_sha + "'){throw 'script hash'};"
                          "& ([scriptblock]::Create([IO.File]::ReadAllText($p,[Text.UTF8Encoding]::new($false,$true))))"
                          " -Root '" + root + "' -Cycle " + str(cycle) + " -ExpectedZipSha '" + zip_sha + "' -ScheduleInteractive")
                 encoded = base64.b64encode(entry.encode('utf-16-le')).decode('ascii')

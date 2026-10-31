@@ -1,0 +1,22 @@
+{
+  "source": "67db45d23e631b0e05b42c23716245a34ae996d5",
+  "scope": "Original M7 fixtures; new HD2D features and M6 are not accepted here",
+  "fixtures": {
+    "UI-Shipping": {
+      "files": 11,
+      "inventory_sha256": "7457c467faa74ba797ddd915014ab7499af36667a8171bb0cbb0b5937cc04b5c"
+    },
+    "ZigGame-Shipping-Fixture": {
+      "files": 14,
+      "inventory_sha256": "a56ba956e416b925d45e652f7e915ad325cecc91e23b462d8ad03af15f2b8e90"
+    },
+    "Host-Shipping": {
+      "files": 14,
+      "inventory_sha256": "0a28e45eddbfb30ba6227a06a7c7a5f04635dfd926fd3a2887f5fefe73a9ca12"
+    }
+  },
+  "status": "PASS",
+  "distribution_zip": "Nexora-M7-Shipping-20261031.zip",
+  "bytes": 3926599,
+  "distribution_zip_sha256": "fb2b89428dc9a8a584344e01d5dac2977cacea93e58814d8db3b7bb17260d10a"
+}

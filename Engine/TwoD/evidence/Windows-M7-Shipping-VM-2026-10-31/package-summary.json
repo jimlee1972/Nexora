@@ -1,0 +1,8 @@
+{
+  "source": "67db45d23e631b0e05b42c23716245a34ae996d5",
+  "status": "PASS",
+  "zip_sha256": "4b4b02be67f145f1a470d7e903a4f9d35c3e1e85e5a479797718a29aaafddcbd",
+  "loader_sha256": "843de97fad335ceaf2f22c689aa5f68f01050e765b2de230b0be9bcff3c339ce",
+  "player_sha256": "09055710e6cf4e0e3c1d30079cade0555b9228712070b05e6101ef1d179e0b50",
+  "scope": "Newly built dual-backend Monolithic Shipping; host and Zig headless contracts; target gates separate"
+}

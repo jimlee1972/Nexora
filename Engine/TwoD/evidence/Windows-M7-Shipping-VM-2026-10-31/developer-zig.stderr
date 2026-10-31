@@ -1,0 +1,1 @@
+native_gamepad slot=0 backend=DirectInput vid=054c pid=09cc dualshock4=1

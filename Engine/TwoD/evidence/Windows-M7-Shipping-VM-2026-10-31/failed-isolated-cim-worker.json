@@ -1,0 +1,5 @@
+{
+    "status":  "FAILED",
+    "cycle":  1,
+    "error":  "Get-ScheduledTask : 系統找不到指定的檔案。\r\n\r\n位於 線路:252 字元:25\r\n+                 $task = Get-ScheduledTask -TaskName $taskName\r\n+                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : ObjectNotFound: (MSFT_ScheduledTask:Root/Microsoft/...T_ScheduledTask) [Get-ScheduledTas \r\n   k], CimException\r\n    + FullyQualifiedErrorId : HRESULT 0x80070002,Get-ScheduledTask\r\n \r\n"
+}

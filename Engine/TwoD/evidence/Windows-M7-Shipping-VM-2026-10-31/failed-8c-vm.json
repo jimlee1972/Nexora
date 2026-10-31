@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "run_id": "run-deaf835b09a241349cda4ced02a2d18c",
+  "vm_uuid": "86f280ed-50e8-4926-a761-2ce1659fcc74",
+  "package_zip_sha256": "ce851da3474562115460c0cff2da6984a08f031a3fed8f0516b96929a28546a5",
+  "guest_script_sha256": "92d04c9b05519bdacf52915466273cdaee60b8fcded4a7522470c68a972285c3",
+  "cycles": [],
+  "status": "FAILED",
+  "physical_devices": "NOT VERIFIED",
+  "frontend": "headless",
+  "vm_memory_mib": 3072,
+  "host_available_mib_before_boot": [
+    4299
+  ],
+  "final_vm_state": "unknown",
+  "cleanup_error": "[Errno 28] No space left on device"
+}

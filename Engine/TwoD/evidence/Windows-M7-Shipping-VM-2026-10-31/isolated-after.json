@@ -1,0 +1,37 @@
+{
+  "saves": {
+    "vm/run-28e2141c5e4f4170bbf96d4ae640e146/negative-save-2/visits.nxsav": {
+      "sha256": "d7eded4214dcd9be5652cf29ec806a2e21d3c677065f1109fd1040b997e9e831",
+      "length": 50
+    },
+    "vm/run-28e2141c5e4f4170bbf96d4ae640e146/negative-save-1/visits.nxsav": {
+      "sha256": "a7c6b5f876c5793b4905b036aab87edb1ce037c30d710736981437723e3b58e9",
+      "length": 50
+    },
+    "vm/run-28e2141c5e4f4170bbf96d4ae640e146/durable-saves/visits.nxsav": {
+      "sha256": "c2f0b1d2b3dc0c98ad7bbaf9057f763089f9bb7af9040140b893d5fd576d06a0",
+      "length": 50
+    },
+    "input/run-287c2efb48194908b7036ed282b965e4/test-saves/host.nxsav": {
+      "sha256": "de912b24321f89756210581a322c53848bba033cda2452845512874a955e94d9",
+      "length": 78
+    },
+    "vm/run-28e2141c5e4f4170bbf96d4ae640e146/\u4e2d\u6587\u9032\u5ea6-1/visits.nxsav": {
+      "sha256": "ad828b58532036500568222a93945a75a9fea6c78a3b1ba76511c6d53982a4ea",
+      "length": 50
+    },
+    "vm/run-28e2141c5e4f4170bbf96d4ae640e146/close-saves-2/visits.nxsav": {
+      "sha256": "ad828b58532036500568222a93945a75a9fea6c78a3b1ba76511c6d53982a4ea",
+      "length": 50
+    },
+    "vm/run-28e2141c5e4f4170bbf96d4ae640e146/close-saves-1/visits.nxsav": {
+      "sha256": "ad828b58532036500568222a93945a75a9fea6c78a3b1ba76511c6d53982a4ea",
+      "length": 50
+    },
+    "vm/run-28e2141c5e4f4170bbf96d4ae640e146/\u4e2d\u6587\u9032\u5ea6-2/visits.nxsav": {
+      "sha256": "ad828b58532036500568222a93945a75a9fea6c78a3b1ba76511c6d53982a4ea",
+      "length": 50
+    }
+  },
+  "system_vulkan_loader": false
+}

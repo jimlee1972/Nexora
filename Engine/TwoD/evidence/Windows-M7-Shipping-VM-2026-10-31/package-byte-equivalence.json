@@ -1,0 +1,12 @@
+{
+  "UI-and-Zig": {
+    "transport_sha256": "4b4b02be67f145f1a470d7e903a4f9d35c3e1e85e5a479797718a29aaafddcbd",
+    "members": 25,
+    "all_member_bytes_match_full_distribution": true
+  },
+  "Host": {
+    "transport_sha256": "eead5908a1ad972289809716ed7364e75af2073d4a798ed7357aa69925729d98",
+    "members": 14,
+    "all_member_bytes_match_full_distribution": true
+  }
+}

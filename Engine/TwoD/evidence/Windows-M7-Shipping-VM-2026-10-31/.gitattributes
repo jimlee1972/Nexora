@@ -1,0 +1,4 @@
+# Keep raw Windows receipts and their SHA-256 manifest byte-identical on every host.
+* -text -whitespace
+*.md whitespace
+.gitattributes whitespace

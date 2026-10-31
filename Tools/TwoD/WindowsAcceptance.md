@@ -62,6 +62,15 @@ Guest Control 本身在 Session 0 執行，因此透過本輪唯一的 Interacti
 面板的 linear RGB `(34,102,221)` 經 Player 的 sRGB surface 編碼後，畫面探針須辨識
 `(102,170,239)`；原始未編碼色、無效像素或不相干背景不算通過。
 
+隱藏 worker 在第一次雜湊前先設定非互動錯誤／進度行為，SHA-256 使用 .NET 串流實作，
+不依賴 `Get-FileHash` 的模組自動載入。每輪保存不可覆寫的 `worker-*-started.txt`、
+`hash-verified.txt`、`script-parsed.txt` 階段紀錄；這些只用於定位啟動失敗，不能替代
+原生案例、完整退出碼、雜湊與正常關機的驗收報告。300 秒 guest 與 4 分鐘 task 期限不變。
+工作註冊／查詢使用 Windows 原生 Task Scheduler COM 介面，避免 CIM 在 worker 啟動前
+回傳 `0x80070002`。只建立新工作（不覆寫同名項目），使用現有使用者的 InteractiveToken
+與 Limited 權限，不保存密碼；另存註冊設定與真實 task 退出碼。仍在排隊／執行的工作會保留，
+只有已停止的本輪工作才刪除。
+
 啟動前須有「VM 設定 RAM + 預留 1024 MiB」的可用主機 RAM。工具不會替使用者改 VM 配置
 或關閉其他應用程式；資源不足時應先正常關機再調整。timeout／RPC 失敗後保留原始診斷，
 不自動重試結果不明的 guest 操作；清理僅嘗試 ACPI，失敗時需人工確認狀態後再開新一輪。

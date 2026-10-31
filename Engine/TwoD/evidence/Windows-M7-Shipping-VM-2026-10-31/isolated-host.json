@@ -1,0 +1,167 @@
+{
+  "status": "PASS",
+  "vm_uuid": "8ddd045c-7f0d-4103-a888-b26455504d33",
+  "guest_root": "C:\\NexoraM7Input\\run-287c2efb48194908b7036ed282b965e4",
+  "host_zip_sha256": "eead5908a1ad972289809716ed7364e75af2073d4a798ed7357aa69925729d98",
+  "script_sha256": "db59039a8917c8458b604cb0d844fbd1a8c9f887ef89da8ff0eca8c5c212ceb8",
+  "raw": "G:\\proj\\Nexora\\build\\m7-20261031\\isolated\\host-vm-1fb9d986d30d45248e74c89ae30a9752",
+  "result": {
+    "inventory_verified": true,
+    "preservation": {
+      "saves": {
+        "vm/run-28e2141c5e4f4170bbf96d4ae640e146/negative-save-2/visits.nxsav": {
+          "sha256": "d7eded4214dcd9be5652cf29ec806a2e21d3c677065f1109fd1040b997e9e831",
+          "length": 50
+        },
+        "vm/run-28e2141c5e4f4170bbf96d4ae640e146/negative-save-1/visits.nxsav": {
+          "sha256": "a7c6b5f876c5793b4905b036aab87edb1ce037c30d710736981437723e3b58e9",
+          "length": 50
+        },
+        "vm/run-28e2141c5e4f4170bbf96d4ae640e146/durable-saves/visits.nxsav": {
+          "sha256": "c2f0b1d2b3dc0c98ad7bbaf9057f763089f9bb7af9040140b893d5fd576d06a0",
+          "length": 50
+        },
+        "input/run-287c2efb48194908b7036ed282b965e4/test-saves/host.nxsav": {
+          "sha256": "de912b24321f89756210581a322c53848bba033cda2452845512874a955e94d9",
+          "length": 78
+        },
+        "vm/run-28e2141c5e4f4170bbf96d4ae640e146/\u4e2d\u6587\u9032\u5ea6-1/visits.nxsav": {
+          "sha256": "ad828b58532036500568222a93945a75a9fea6c78a3b1ba76511c6d53982a4ea",
+          "length": 50
+        },
+        "vm/run-28e2141c5e4f4170bbf96d4ae640e146/close-saves-2/visits.nxsav": {
+          "sha256": "ad828b58532036500568222a93945a75a9fea6c78a3b1ba76511c6d53982a4ea",
+          "length": 50
+        },
+        "vm/run-28e2141c5e4f4170bbf96d4ae640e146/close-saves-1/visits.nxsav": {
+          "sha256": "ad828b58532036500568222a93945a75a9fea6c78a3b1ba76511c6d53982a4ea",
+          "length": 50
+        },
+        "vm/run-28e2141c5e4f4170bbf96d4ae640e146/\u4e2d\u6587\u9032\u5ea6-2/visits.nxsav": {
+          "sha256": "ad828b58532036500568222a93945a75a9fea6c78a3b1ba76511c6d53982a4ea",
+          "length": 50
+        }
+      },
+      "system_vulkan_loader": false
+    },
+    "launcher_exit": 0,
+    "fixture": {
+      "position": 1.979274,
+      "rebound": 0,
+      "saves": 1,
+      "opens": 1,
+      "keyboard_movement_frames": 26,
+      "gamepad_movement_frames": 0,
+      "buttons_seen": 0,
+      "bus_changes": 0,
+      "plays": 0,
+      "pauses": 0,
+      "stops": 0,
+      "cancels": 0,
+      "final_save_ok": true,
+      "axes_min": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "axes_max": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "report": {
+      "status": "PASS",
+      "module_abi": 3,
+      "project_mode": true,
+      "api": 1,
+      "native_frames": 205,
+      "movement_frames": 26,
+      "entity_x": 0.0,
+      "final_width": 640,
+      "final_height": 480,
+      "viewport_x": 0.0,
+      "viewport_y": 0.0,
+      "viewport_width": 640.0,
+      "viewport_height": 480.0,
+      "native_ui_draws": 47355,
+      "effects_completed_frame": 0,
+      "effects_revision": 0,
+      "effects_timing_mask": 0,
+      "effects_timing_source": 0,
+      "effects_timing_status": 0,
+      "effects_shadow_ms": null,
+      "effects_world_ms": null,
+      "effects_bloom_ms": null,
+      "effects_composite_ms": null,
+      "effects_scene_bytes": 0,
+      "effects_shadow_bytes": 0,
+      "effects_bloom_bytes": 0,
+      "effects_upload_capacity_bytes": 0,
+      "effects_peak_bytes": 0,
+      "effects_peak_textures": 3,
+      "native_ui_texture_uploads": 3,
+      "resize_generations": 1,
+      "surface_backend_requested": "auto",
+      "render_device_ids_available": true,
+      "render_vendor_id": 5140,
+      "render_device_id": 140,
+      "initial_dpi_scale": 1.0,
+      "minimum_dpi_scale": 1.0,
+      "maximum_dpi_scale": 1.0,
+      "focus_lost_events": 0,
+      "focus_gained_events": 1,
+      "key_press_events": 1,
+      "mouse_press_events": 2,
+      "wheel_events": 0,
+      "unfocused_movement_frames": 0,
+      "sprite_instanced_draws": 0,
+      "sprite_gpu_instances": 0,
+      "sprite_instance_upload_bytes": 0,
+      "asset_active_bytes": 0,
+      "asset_retired_bytes": 0,
+      "asset_staging_bytes": 0,
+      "asset_peak_content_bytes": 0,
+      "audio_active_bytes": 384000,
+      "audio_retired_bytes": 0,
+      "audio_peak_live_bytes": 384000,
+      "pool_capacity": 1024,
+      "visible": 0,
+      "reloaded": false,
+      "validation_package": false,
+      "resumed": false,
+      "initial_x": 0.0,
+      "ui_frames": 205,
+      "ui_saves": 0,
+      "ui_opens": 0,
+      "cooked_reloads": 0,
+      "audio_submitted_frames": 0,
+      "audio_open_attempts": 16,
+      "audio_open_successes": 0,
+      "audio_pump_failures": 0,
+      "save_reopened": false,
+      "audible_acceptance": "NOT VERIFIED",
+      "allocations_balanced": true,
+      "physical_windows": "NOT RUN"
+    },
+    "residual_players": 0,
+    "scope": "Existing VM, automated native keyboard/mouse; not physical input or audible acceptance",
+    "desktop_session": 1,
+    "resumed": true,
+    "launcher_system_path_only": true,
+    "status": "PASS",
+    "unrelated_unicode_cwd": true
+  },
+  "preservation": {
+    "existing_saves_unchanged": 0,
+    "new_scope_saves": 8,
+    "system_vulkan_loader_after": false
+  },
+  "final_vm_state": "poweroff"
+}

@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "run_id": "run-306ae97886ff459fb8c56081d11b2e1c",
+  "vm_uuid": "86f280ed-50e8-4926-a761-2ce1659fcc74",
+  "package_zip_sha256": "4b4b02be67f145f1a470d7e903a4f9d35c3e1e85e5a479797718a29aaafddcbd",
+  "guest_script_sha256": "7d45d57ebaa693394a44671cf9432e6c1bbfe482e35af7f6535b7f6140729cb0",
+  "cycles": [],
+  "status": "FAILED",
+  "physical_devices": "NOT VERIFIED",
+  "frontend": "gui",
+  "vm_memory_mib": 3072,
+  "host_available_mib_before_boot": [
+    5201
+  ],
+  "final_vm_state": "poweroff",
+  "last_observed_vm_state": "running"
+}
