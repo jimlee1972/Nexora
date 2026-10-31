@@ -1,6 +1,6 @@
 # HD-2D 光源、柔影與選擇性 Bloom 施工計畫
 
-> 基準：Nexora `8c4aa989`；Beads 主工單 `nexora-m6m`。工程 **5/7（71%）**；實機 **NOT_RUN**。
+> 基準：Nexora `8c4aa989`；Beads 主工單 `nexora-m6m`。工程 **6/7（86%）**；實機 **NOT_RUN**。
 
 ## 目標與界線
 
@@ -17,7 +17,7 @@ Beads 是任務狀態來源；本表為審閱用快照。工程以已驗收子�
 | ✅ HD2D-03 | `nexora-m6m.3` | 動態局部點光源 | 02 | 已驗收 PR #736，squash `40c96072`；目前提交的原生 DX12／Metal 與 Linux gate 通過 |
 | ✅ HD2D-04 | `nexora-m6m.4` | 動態遮擋與柔影 | 03 | 已驗收 PR #737／`0845c078`；最終提交的原生 DX12／Metal 與完整 Linux CI 通過 |
 | ✅ HD2D-05 | `nexora-m6m.5` | 選擇性發光與 bloom | 02 | 已驗收 PR #738／`a28f1001`；最終34 項檢查及 DX12／Vulkan／Metal53 畫面 CPU 讀回通過 |
-| HD2D-06 | `nexora-m6m.6` | Zig 診斷與原生驗證 | 03, 04, 05 | IN_PROGRESS — 實際 Zig 四尺寸原生診斷、GPU 時間與陰影圖檢視；完整／原生 CI 待驗 |
+| ✅ HD2D-06 | `nexora-m6m.6` | Zig 診斷與原生驗證 | 03, 04, 05 | 已驗收 PR #739／`67db45d2`；最終41 項 CI、實際四尺寸 Zig 與三後端55 畫面 CPU 像素通過 |
 | HD2D-07 | `nexora-m6m.7` | SDK 0.2.0 與遊戲接入 | 06 | IN_PROGRESS — 獨立0.2.0 候選／consumer 與同遊戲 Zig 施工；不可覆寫發布／遊戲 lock 待完成 |
 | HD2D-PC | `nexora-m6m.8` | Windows 實機驗收 | 07 | NOT_RUN |
 
@@ -83,3 +83,29 @@ HD2D-06 保留相依 macOS mimalloc job124435568972 的 fixture 失敗：暫存 
 HD2D-06 fixture 根路徑正規化通過完整 Linux298／290 通過／八項略過／零失敗106.22 秒及 Shipping；仍須實際 Mac 重試。
 
 HD2D-05 已驗收 PR #738／`a28f1001`，受測0cd1f27a 與 squash tree 相同：Windows 原生53／完整426 項、Metal53／401、Linux53／484；最終34 項檢查成功完成（10 項為文件 push 正常略過）。HD2D-06 相依 rebase 保留執行程式內容，仍需最終提交原生／完整 CI 與 Mac fixture 重試。工程5/7；實機 PC NOT_RUN。
+
+HD2D-07 施工將明確 mask 工具與具授權 Zig 診斷納入 0.2.0 候選。無來源碼獨立 consumer 建置／執行實際 headless／原生 DX12 診斷並離線重建。遊戲預設 NX00 hash 不變；本地同一產品 Vulkan 兩輪 F9 證據通過。仍需候選原生 CI、相依驗收、實際發布摘要及遊戲 lock；不增加已驗收完成度或宣稱發布。
+
+HD2D-07 發布來源補強：獨立 consumer 收據綁定實際候選 ZIP SHA-256、來源提交、原生 DX12 診斷與離線重建。CI 清理只限本交付四個明確自有分支的過期 Build；保留目前提交的 push／PR、main、其他操作者與相近名稱分支。47 項清理防護測試通過。
+
+HD2D-07 [本地準備證據](../../Tools/SDK/evidence/HD2D-07-Linux-2026-10-31.md)：最終完整 Linux gate 登錄 297／通過 289／略過八項／零失敗，Shipping 通過。Windows 候選 consumer／發布／遊戲 lock 尚待完成；工程仍 3/7。
+
+HD2D-07 首輪 Windows consumer 在 producer 成功後於 headless 資源 gate 失敗；保留 job `124399279404`／artifact `13024158144`。將常駐 Atlas／Clip 範例與空資源起始的 HD2D 診斷分開，保留資源歸零斷言。重跑／原生／發布仍待完成。
+
+HD2D-07 本地配對重現確認：常駐基準素材320 active bytes，獨立 HD2D 為0，兩者皆144次更新／全部階段／正常清理。最新姿態對齊 SDK 的完整 Linux297／通過289／略過八項／零失敗106.49s 與 Shipping 通過。原生 consumer／發布仍待完成。
+
+HD2D-07 候選清理沿用既有 owner-only 機制，只增加本 SDK 明確分支；取消過期同分支 Build／candidate，保留目前 push／PR 與 main。精確 JavaScript／47 防護測試及完整 Linux297／通過289／略過八項／零失敗109.52s 與 Shipping 通過。最終 CI／發布仍待完成。
+
+HD2D-07 發布前 Windows 候選 run41158981348 通過獨立 producer／consumer；原生144幀／features7／timing mask15／兩次重載／active-staging歸零／配置平衡，另通過 headless 及離線重建。尚未發布0.2.0或驗收遊戲／PC；仍需最終 main-push候選／完整CI與相同位元組發布。
+
+HD2D-07 最新59826131 獨立 Windows consumer124420670087 通過實際 DX12144 幀／全部階段／兩次重載／離線 gate，但相依 macOS job124420244953 有三個空直譯器 NOT_RUN 失敗。兩種結果均保留，接入 HD2D-06 明確 Python 探測；發布前仍須完整／原生重試通過。
+
+HD2D-07 接入直譯器修正後通過完整 Linux297／289 通過／八項略過／零失敗108.57 秒、Shipping、SDK5 與 cleanup47。macOS 重試及不可覆寫發布／遊戲 lock 仍待完成，不增加驗收完成度。
+
+HD2D-07 接入限定 Development 的 macOS 診斷匯出修正，保留 job124428232886 在實際 Zig 啟動前的失敗。Python／素材已通過；真正 dyld 搬移／簽署／原生執行仍須重試，Windows 候選收據仍保留。
+
+HD2D-07 接入 Mac Development 匯出後通過完整 Linux298／290 通過／八項略過／零失敗110.97 秒、Shipping（環境重連後續建完成）、SDK5／cleanup47。真正 Mac 原生重試及不可覆寫發布／遊戲 lock 仍待完成。
+
+HD2D-06 已驗收 PR #739／`67db45d2`，受測05c563b8 與合併 tree 相同。41 項檢查全部成功，push／PR Build41167913390／41167916242 均成功結束。DX12／Vulkan／Metal 實際四尺寸 Zig Player 與55 畫面 CPU 像素通過；完整 Windows430／Linux488／Metal405 項。DX12／Vulkan timing mask15；此 Metal CI 裝置明確回報計時不可用。保留全部 Mac 直譯器／匯出／fixture 失敗及不改斷言的重試。HD2D-07 接入已驗收相依，仍需不可覆寫0.2.0 發布與遊戲實際 lock／CI。工程6/7；PC NOT_RUN。
+
+HD2D-07 最終已驗收相依施工通過完整 Linux298／290 通過／八項略過／零失敗106.94 秒、Shipping、SDK5／cleanup47。最終提交 Windows 候選／完整 CI、不可覆寫 main-push 發布與遊戲正式 lock 仍待完成；工程6/7。

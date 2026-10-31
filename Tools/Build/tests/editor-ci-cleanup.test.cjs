@@ -250,3 +250,23 @@ test('Editor package cleanup stops when its branch advances', async () => {
   await cleanup(f);
   assert.deepEqual(f.cancelled, []);
 });
+
+
+test('HD2D delivery cleans only obsolete owner runs on its four exact branches', async () => {
+  const branches = ['feat/hd2d-soft-shadows', 'feat/hd2d-selective-bloom',
+    'feat/hd2d-zig-diagnostics', 'feat/hd2d-sdk-020'];
+  for (const current of branches) {
+    const f = fixture({current, target: current, actorRuns: true});
+    await cleanup(f);
+    assert.deepEqual(f.cancelled, [1, 2]);
+    const queried = f.calls.filter(([kind]) => kind === 'ref').map(([, args]) => args.ref);
+    assert(queried.every(ref => branches.some(branch => ref === `heads/${branch}`)));
+    const advancing = fixture({current, target: current, advance: true});
+    await cleanup(advancing); assert.deepEqual(advancing.cancelled, []);
+    const foreign = fixture({current, target: current, actor: 'contributor'});
+    await cleanup(foreign); assert.deepEqual(foreign.calls, []);
+  }
+  for (const current of ['main', 'feat/hd2d-other', 'feat/hd2d-sdk-020-other']) {
+    const f = fixture({current}); await cleanup(f); assert.deepEqual(f.calls, []);
+  }
+});

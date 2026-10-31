@@ -1,6 +1,6 @@
 # HD-2D Lighting, Soft Shadows and Selective Bloom Plan
 
-> Baseline: Nexora `8c4aa989`; Beads epic `nexora-m6m`. Engineering **5/7 (71%)**; physical acceptance **NOT_RUN**.
+> Baseline: Nexora `8c4aa989`; Beads epic `nexora-m6m`. Engineering **6/7 (86%)**; physical acceptance **NOT_RUN**.
 
 ## Goal and boundaries
 
@@ -17,7 +17,7 @@ Beads is the task source of truth; this table is a review snapshot. Engineering 
 | ✅ HD2D-03 | `nexora-m6m.3` | Dynamic local point lights | 02 | Accepted PR #736, squash `40c96072`; current-head native DX12/Metal and Linux gates passed |
 | ✅ HD2D-04 | `nexora-m6m.4` | Dynamic occlusion and soft shadows | 03 | Accepted PR #737 / `0845c078`; final-head native DX12/Metal and full Linux CI passed |
 | ✅ HD2D-05 | `nexora-m6m.5` | Selective emission and bloom | 02 | Accepted PR #738 / `a28f1001`; all34 final-head checks and native53-frame DX12/Vulkan/Metal CPU readbacks passed |
-| HD2D-06 | `nexora-m6m.6` | Zig diagnostic and native validation | 03, 04, 05 | IN_PROGRESS — real Zig four-size native diagnostic, GPU timestamps and map view; full/native CI pending |
+| ✅ HD2D-06 | `nexora-m6m.6` | Zig diagnostic and native validation | 03, 04, 05 | Accepted PR #739 / `67db45d2`; all41 final-head CI checks, real four-size Zig and three-backend55-frame CPU pixels passed |
 | HD2D-07 | `nexora-m6m.7` | SDK 0.2.0 and game integration | 06 | IN_PROGRESS — isolated0.2.0 candidate/consumer and same-game Zig preparation; immutable release/game lock pending |
 | HD2D-PC | `nexora-m6m.8` | Physical Windows acceptance | 07 | NOT_RUN |
 
@@ -83,3 +83,29 @@ HD2D-06 retains dependent macOS mimalloc job124435568972 fixture failure: tempor
 HD2D-06 fixture-root canonicalization passed full Linux298/290pass/eight skips/zero failures106.22s and Shipping; actual Mac retry still required.
 
 HD2D-05 accepted PR #738 / `a28f1001`, tested0cd1f27a with identical squash tree: Windows native53/full426 tests, Metal53/401, Linux53/484; all34 final-head checks completed successfully (10 legitimate documentation-push skips). HD2D-06 dependency rebase preserves runtime source; current-head native/full CI and Mac fixture retry still required. Engineering5/7; physical PC NOT_RUN.
+
+HD2D-07 preparation packages explicit-mask tools and licensed reusable Zig diagnostics into a versioned 0.2.0 candidate. The independent source-free consumer builds/runs real headless/native DX12 diagnostics and offline rebuilds. Game default NX00 hash is unchanged; local same-product Vulkan two-cycle F9 evidence passed. Native candidate CI, dependency acceptance, actual release hash and final game lock remain required; no acceptance credit or publication claimed.
+
+HD2D-07 release provenance now binds the independent consumer receipt to the actual candidate ZIP SHA-256 and source commit, native DX12 diagnostic and offline rebuild. CI cleanup is scoped to this delivery’s four exact owner branches, only obsolete Build runs; current-head push/PR, main, foreign actor and similarly named branches are preserved. All 47 cleanup guard tests passed.
+
+HD2D-07 [local preparation evidence](../../Tools/SDK/evidence/HD2D-07-Linux-2026-10-31.md): final full Linux gate 297 registered / 289 pass / eight skips / zero failures, Shipping passed. Candidate Windows consumer/publication/game lock remain pending; engineering stays 3/7.
+
+HD2D-07 first Windows consumer failed the headless resource gate after producer success. Retain job `124399279404` / artifact `13024158144`. Separate the canonical eager Atlas/Clip fixture from the empty-start HD2D diagnostic; zero-owned-resource assertions stay intact. Retry/native/publication remain pending.
+
+HD2D-07 local paired reproduction confirms eager baseline320 active bytes versus isolated HD2D0, both144 updates/all phases/normal cleanup. Latest pose-aligned SDK full Linux297/289pass/eight skips/zero failures106.49s and Shipping passed. Native consumer/publication remain pending.
+
+HD2D-07 candidate cleanup recognizes only this SDK branch in the existing owner-only mechanism, cancelling obsolete same-branch Build/candidate runs while preserving current push/PR and main. Exact JavaScript/47 guard tests and full Linux297/289pass/eight skips/zero failures109.52s plus Shipping passed. Final CI/publication remain pending.
+
+HD2D-07 pre-release Windows candidate run41158981348 passed isolated producer/consumer; native144frames/features7/timing mask15/two reloads/zero active-staging/balanced allocations, plus headless and offline rebuild. This does not publish0.2.0 or accept game/PC; final main-push candidate/full CI and exact-byte promotion remain required.
+
+HD2D-07 latest59826131 isolated Windows consumer124420670087 passed actual DX12144-frame/all-phase/two-reload/offline gates, but inherited macOS job124420244953 had three empty-interpreter NOT_RUN failures. Retain both outcomes and inherit HD2D-06 explicit Python discovery; full/native retry remains required before release.
+
+HD2D-07 inherited interpreter fix passed full Linux297/289pass/eight skips/zero failures108.57s plus Shipping, SDK5 and cleanup47. macOS retry and immutable publication/game lock remain pending; no acceptance credit.
+
+HD2D-07 inherits the Development-only macOS diagnostic export repair after job124428232886 failed before real Zig startup. Python/assets pass; actual dyld relocation/signing/native execution remains a retry gate, while Windows candidate receipts remain retained.
+
+HD2D-07 Mac Development export inheritance passed full Linux298/290pass/eight skips/zero failures110.97s, Shipping (resumed after environment reconnection), SDK5/cleanup47. Actual Mac native retry and immutable publication/game lock remain pending.
+
+HD2D-06 accepted PR #739 / `67db45d2`, tested05c563b8 with identical tree. All41 checks succeeded, both push/PR Build runs41167913390/41167916242 completed successfully. Actual four-size Zig Player and55-frame CPU pixels passed on DX12/Vulkan/Metal; full Windows430/Linux488/Metal405 tests. DX12/Vulkan timing mask15; this Metal CI device explicitly reports unavailable timing. All Mac interpreter/export/fixture failures and unchanged-assertion retries remain preserved. HD2D-07 inherits the accepted dependency; immutable0.2.0 publication and actual game lock/CI are still required. Engineering6/7; PC NOT_RUN.
+
+HD2D-07 final accepted-dependency preparation passed full Linux298/290pass/eight skips/zero failures106.94s, Shipping, SDK5/cleanup47. Final-head Windows candidate/full CI, immutable main-push release and published game lock remain pending; engineering6/7.
