@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "scope": "Read-only preflight on isolated clone of existing clean Windows VM, not an accepted cold boot",
+  "vm_uuid": "8ddd045c-7f0d-4103-a888-b26455504d33",
+  "available_before_boot_mib": 7771,
+  "existing_save_count": 0,
+  "final_vm_state": "poweroff"
+}

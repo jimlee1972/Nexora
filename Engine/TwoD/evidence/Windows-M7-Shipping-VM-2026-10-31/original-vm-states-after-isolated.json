@@ -1,0 +1,17 @@
+{
+  "scope": "Read-only final infrastructure state; not guest acceptance",
+  "vms": {
+    "original": {
+      "uuid": "71571b18-806d-425b-ad19-712c9043663d",
+      "state": "saved",
+      "memory_mib": 3072,
+      "snapshot_listing_unchanged": true
+    },
+    "recovery": {
+      "uuid": "86f280ed-50e8-4926-a761-2ce1659fcc74",
+      "state": "saved",
+      "memory_mib": 3072,
+      "current_snapshot_uuid": null
+    }
+  }
+}

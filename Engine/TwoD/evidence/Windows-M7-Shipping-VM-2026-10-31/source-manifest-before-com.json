@@ -1,0 +1,11 @@
+{
+  "runtime_source": "67db45d23e631b0e05b42c23716245a34ae996d5",
+  "harness_source": "34d04c2f3f1a6c7c9e5d43331d5f23416d3d3644",
+  "harness_files": {
+    "Tools/TwoD/WindowsVmAcceptance.py": "52b942c9aeb4ac5b2c14c9b40152942d09ae534619a8f1ce30aeec5bf22ff287",
+    "Tools/TwoD/WindowsVmGuestAcceptance.ps1": "7d45d57ebaa693394a44671cf9432e6c1bbfe482e35af7f6535b7f6140729cb0",
+    "Tests/TwoD/WindowsVmGuestTests.ps1": "808aff752b986c5bcfdbbebcdd030a2b639ff23f6ce0d5986824afd60fa563c8"
+  },
+  "distribution_sha256": "fb2b89428dc9a8a584344e01d5dac2977cacea93e58814d8db3b7bb17260d10a",
+  "scope": "Original M7 only; VM NOT PASSED, physical clean host NOT RUN; M6 and HD2D excluded"
+}

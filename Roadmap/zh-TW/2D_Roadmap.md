@@ -117,8 +117,11 @@ Editor／C／Zig 存取仍不支援，沒有擴張 wire／schema 或功能範圍
 
 **2026-10-31 更新：** ✅ Shipping 建置版本 `67db45d2`、完整 app-local 相依 inventory、
 三個實際 Shipping consumer 測試與開發機原生 DX12 面板檢查通過。
-新封裝**尚未通過** VM 兩輪冷啟動；保留的 Hypervisor／Guest Control 失敗與部分 worker
-日誌不能替代完整案例退出碼。上述 2026-10-28 VM 通過只適用當時的舊封裝。
+✅ 新封裝在既有乾淨 Windows 快照的完整隔離副本通過**兩輪冷啟動／14 個案例**，
+存檔 **0→2→4**、配置平衡、零殘留 Player 與正常關機皆通過。
+✅ 同一 Host fixture 通過 launcher 互動、SAVE／OPEN 與獨立程序讀檔；隔離 VM 正常關機，
+兩台原 VM 的保存狀態與原始快照均保留。先前 Hypervisor／Guest Control／CIM 失敗紀錄不變。
+上述 2026-10-28 原 VM 通過只適用當時的舊封裝。
 乾淨 Windows 實機仍為 **NOT RUN**；M7 與 **9/11（82%）、P0 6/8** 不變。
 見[新封裝與保留失敗證據](../../Engine/TwoD/evidence/Windows-M7-Shipping-VM-2026-10-31/acceptance.md)。
 

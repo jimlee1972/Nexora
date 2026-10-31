@@ -235,36 +235,56 @@ try {
         $entry = New-InteractiveWorkerEntry -Root $Root -Script $script -Cycle $Cycle `
             -ExpectedZipSha $ExpectedZipSha
         $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($entry))
-        $action = New-ScheduledTaskAction -Execute (Join-Path $PSHOME 'powershell.exe') `
-            -Argument ('-NoProfile -NonInteractive -WindowStyle Hidden -EncodedCommand ' + $encoded)
-        $principal = New-ScheduledTaskPrincipal -UserId ([Security.Principal.WindowsIdentity]::GetCurrent().Name) `
-            -LogonType Interactive -RunLevel Limited
-        $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Minutes 4) `
-            -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
-        # Refuse an existing task, even though a GUID collision is unlikely.
-        if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) { throw 'task already exists' }
-        Register-ScheduledTask -TaskName $taskName -Action $action -Principal $principal -Settings $settings | Out-Null
+        # Use the native scheduler object, not CIM name queries that can fail with
+        # 0x80070002 before the worker starts. No credentials are stored.
+        $scheduler = [Activator]::CreateInstance([Type]::GetTypeFromProgID('Schedule.Service'))
+        $scheduler.Connect()
+        $folder = $scheduler.GetFolder('\')
+        $definition = $scheduler.NewTask(0)
+        $user = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+        $definition.Principal.UserId = $user
+        $definition.Principal.LogonType = 3 # TASK_LOGON_INTERACTIVE_TOKEN
+        $definition.Principal.RunLevel = 0 # TASK_RUNLEVEL_LUA
+        $definition.Settings.Enabled = $true
+        $definition.Settings.AllowDemandStart = $true
+        $definition.Settings.ExecutionTimeLimit = 'PT4M'
+        $definition.Settings.DisallowStartIfOnBatteries = $false
+        $definition.Settings.StopIfGoingOnBatteries = $false
+        $action = $definition.Actions.Create(0) # TASK_ACTION_EXEC
+        $action.Path = Join-Path $PSHOME 'powershell.exe'
+        $action.Arguments = '-NoProfile -NonInteractive -WindowStyle Hidden -EncodedCommand ' + $encoded
+        # TASK_CREATE (2) refuses replacement, including an existing GUID task.
+        $task = $folder.RegisterTaskDefinition($taskName, $definition, 2, $user, $null, 3, $null)
         try {
-            Start-ScheduledTask -TaskName $taskName
+            Write-DurableText (Join-Path $Root ('task-' + $Cycle + '-registered.json')) `
+                (@{name = $taskName; path = $task.Path; execution_limit = $definition.Settings.ExecutionTimeLimit;
+                   logon_type = $definition.Principal.LogonType; run_level = $definition.Principal.RunLevel} |
+                    ConvertTo-Json)
+            $running = $task.Run($null)
             $clock = [Diagnostics.Stopwatch]::StartNew()
             do {
                 Start-Sleep -Milliseconds 500
-                $task = Get-ScheduledTask -TaskName $taskName
-                $info = Get-ScheduledTaskInfo -TaskName $taskName
-                if ($info.LastRunTime.Year -gt 2000 -and $task.State -ne 'Running') { break }
+                $state = [int]$task.State
+                $lastRunTime = [DateTime]$task.LastRunTime
+                if ($lastRunTime.Year -gt 2000 -and $state -notin @(2, 4)) { break }
             } while ($clock.Elapsed.TotalSeconds -lt 250)
-            if ($task.State -eq 'Running' -or $info.LastRunTime.Year -le 2000) { throw 'interactive task deadline exceeded' }
-            if ($info.LastTaskResult -ne 0) {
+            if ($state -in @(2, 4) -or $lastRunTime.Year -le 2000) { throw 'interactive task deadline exceeded' }
+            $taskResult = [int]$task.LastTaskResult
+            Write-DurableText (Join-Path $Root ('task-' + $Cycle + '-result.json')) `
+                (@{name = $taskName; state = $state; last_run_time = $lastRunTime.ToUniversalTime().ToString('o');
+                   exit = $taskResult} | ConvertTo-Json)
+            if ($taskResult -ne 0) {
                 $failure = Get-ChildItem -LiteralPath $Root -Filter 'failure-*.json' | Select-Object -Last 1
                 if ($failure) { [Console]::Error.WriteLine([IO.File]::ReadAllText($failure.FullName)) }
-                throw ('interactive task exit: ' + $info.LastTaskResult)
+                throw ('interactive task exit: ' + $taskResult)
             }
             $completed = Read-StrictJson (Join-Path $Root ('cycle-' + $Cycle + '.json'))
             if ($completed.status -cne 'PASS' -or $completed.desktop_session -le 0) { throw 'missing interactive completion' }
             [Console]::WriteLine('INTERACTIVE_ACCEPTANCE_PASS cycle=' + $Cycle)
         } finally {
-            if ((Get-ScheduledTask -TaskName $taskName).State -ne 'Running') {
-                Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
+            # Keep a running/queued task and all evidence after uncertain work.
+            if ([int]$task.State -notin @(2, 4)) {
+                $folder.DeleteTask($taskName, 0)
             }
         }
         exit 0

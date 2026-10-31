@@ -1,0 +1,153 @@
+﻿{
+    "inventory_verified":  true,
+    "preservation":  {
+                         "saves":  {
+                                       "vm/run-28e2141c5e4f4170bbf96d4ae640e146/negative-save-2/visits.nxsav":  {
+                                                                                                                    "sha256":  "d7eded4214dcd9be5652cf29ec806a2e21d3c677065f1109fd1040b997e9e831",
+                                                                                                                    "length":  50
+                                                                                                                },
+                                       "vm/run-28e2141c5e4f4170bbf96d4ae640e146/negative-save-1/visits.nxsav":  {
+                                                                                                                    "sha256":  "a7c6b5f876c5793b4905b036aab87edb1ce037c30d710736981437723e3b58e9",
+                                                                                                                    "length":  50
+                                                                                                                },
+                                       "vm/run-28e2141c5e4f4170bbf96d4ae640e146/durable-saves/visits.nxsav":  {
+                                                                                                                  "sha256":  "c2f0b1d2b3dc0c98ad7bbaf9057f763089f9bb7af9040140b893d5fd576d06a0",
+                                                                                                                  "length":  50
+                                                                                                              },
+                                       "input/run-287c2efb48194908b7036ed282b965e4/test-saves/host.nxsav":  {
+                                                                                                                "sha256":  "de912b24321f89756210581a322c53848bba033cda2452845512874a955e94d9",
+                                                                                                                "length":  78
+                                                                                                            },
+                                       "vm/run-28e2141c5e4f4170bbf96d4ae640e146/中文進度-1/visits.nxsav":  {
+                                                                                                           "sha256":  "ad828b58532036500568222a93945a75a9fea6c78a3b1ba76511c6d53982a4ea",
+                                                                                                           "length":  50
+                                                                                                       },
+                                       "vm/run-28e2141c5e4f4170bbf96d4ae640e146/close-saves-2/visits.nxsav":  {
+                                                                                                                  "sha256":  "ad828b58532036500568222a93945a75a9fea6c78a3b1ba76511c6d53982a4ea",
+                                                                                                                  "length":  50
+                                                                                                              },
+                                       "vm/run-28e2141c5e4f4170bbf96d4ae640e146/close-saves-1/visits.nxsav":  {
+                                                                                                                  "sha256":  "ad828b58532036500568222a93945a75a9fea6c78a3b1ba76511c6d53982a4ea",
+                                                                                                                  "length":  50
+                                                                                                              },
+                                       "vm/run-28e2141c5e4f4170bbf96d4ae640e146/中文進度-2/visits.nxsav":  {
+                                                                                                           "sha256":  "ad828b58532036500568222a93945a75a9fea6c78a3b1ba76511c6d53982a4ea",
+                                                                                                           "length":  50
+                                                                                                       }
+                                   },
+                         "system_vulkan_loader":  false
+                     },
+    "launcher_exit":  0,
+    "fixture":  {
+                    "position":  1.979274,
+                    "rebound":  0,
+                    "saves":  1,
+                    "opens":  1,
+                    "keyboard_movement_frames":  26,
+                    "gamepad_movement_frames":  0,
+                    "buttons_seen":  0,
+                    "bus_changes":  0,
+                    "plays":  0,
+                    "pauses":  0,
+                    "stops":  0,
+                    "cancels":  0,
+                    "final_save_ok":  true,
+                    "axes_min":  [
+                                     0.000000,
+                                     0.000000,
+                                     0.000000,
+                                     0.000000,
+                                     0.000000,
+                                     0.000000
+                                 ],
+                    "axes_max":  [
+                                     0.000000,
+                                     0.000000,
+                                     0.000000,
+                                     0.000000,
+                                     0.000000,
+                                     0.000000
+                                 ]
+                },
+    "report":  {
+                   "status":  "PASS",
+                   "module_abi":  3,
+                   "project_mode":  true,
+                   "api":  1,
+                   "native_frames":  205,
+                   "movement_frames":  26,
+                   "entity_x":  0.000000,
+                   "final_width":  640,
+                   "final_height":  480,
+                   "viewport_x":  0.000000,
+                   "viewport_y":  0.000000,
+                   "viewport_width":  640.000000,
+                   "viewport_height":  480.000000,
+                   "native_ui_draws":  47355,
+                   "effects_completed_frame":  0,
+                   "effects_revision":  0,
+                   "effects_timing_mask":  0,
+                   "effects_timing_source":  0,
+                   "effects_timing_status":  0,
+                   "effects_shadow_ms":  null,
+                   "effects_world_ms":  null,
+                   "effects_bloom_ms":  null,
+                   "effects_composite_ms":  null,
+                   "effects_scene_bytes":  0,
+                   "effects_shadow_bytes":  0,
+                   "effects_bloom_bytes":  0,
+                   "effects_upload_capacity_bytes":  0,
+                   "effects_peak_bytes":  0,
+                   "effects_peak_textures":  3,
+                   "native_ui_texture_uploads":  3,
+                   "resize_generations":  1,
+                   "surface_backend_requested":  "auto",
+                   "render_device_ids_available":  true,
+                   "render_vendor_id":  5140,
+                   "render_device_id":  140,
+                   "initial_dpi_scale":  1.000000,
+                   "minimum_dpi_scale":  1.000000,
+                   "maximum_dpi_scale":  1.000000,
+                   "focus_lost_events":  0,
+                   "focus_gained_events":  1,
+                   "key_press_events":  1,
+                   "mouse_press_events":  2,
+                   "wheel_events":  0,
+                   "unfocused_movement_frames":  0,
+                   "sprite_instanced_draws":  0,
+                   "sprite_gpu_instances":  0,
+                   "sprite_instance_upload_bytes":  0,
+                   "asset_active_bytes":  0,
+                   "asset_retired_bytes":  0,
+                   "asset_staging_bytes":  0,
+                   "asset_peak_content_bytes":  0,
+                   "audio_active_bytes":  384000,
+                   "audio_retired_bytes":  0,
+                   "audio_peak_live_bytes":  384000,
+                   "pool_capacity":  1024,
+                   "visible":  0,
+                   "reloaded":  false,
+                   "validation_package":  false,
+                   "resumed":  false,
+                   "initial_x":  0.000000,
+                   "ui_frames":  205,
+                   "ui_saves":  0,
+                   "ui_opens":  0,
+                   "cooked_reloads":  0,
+                   "audio_submitted_frames":  0,
+                   "audio_open_attempts":  16,
+                   "audio_open_successes":  0,
+                   "audio_pump_failures":  0,
+                   "save_reopened":  false,
+                   "audible_acceptance":  "NOT VERIFIED",
+                   "allocations_balanced":  true,
+                   "physical_windows":  "NOT RUN"
+               },
+    "residual_players":  0,
+    "scope":  "Existing VM, automated native keyboard/mouse; not physical input or audible acceptance",
+    "desktop_session":  1,
+    "resumed":  true,
+    "launcher_system_path_only":  true,
+    "status":  "PASS",
+    "unrelated_unicode_cwd":  true
+}

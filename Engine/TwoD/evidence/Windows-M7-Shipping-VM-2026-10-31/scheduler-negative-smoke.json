@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "scope": "Real developer interactive Task Scheduler negative smoke, not VM acceptance",
+  "parent_exit": 1,
+  "task_exit": 1,
+  "task_state": 3,
+  "logon_type": 3,
+  "run_level": 0,
+  "execution_limit": "PT4M",
+  "worker_phases": 3,
+  "incomplete_fixture_rejected": true,
+  "root_retained": "C:\\NexoraVmAcceptance\\run-8f370ec5c92745da9ccb9f7ef82b202f"
+}
