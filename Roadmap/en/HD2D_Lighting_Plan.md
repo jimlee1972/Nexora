@@ -69,3 +69,7 @@ HD2D-06 input evidence follow-up replaces fixed-time synthetic click injection w
 HD2D-06 aligns moving Sprite poses with the last successfully submitted light/caster snapshot, including zero-size restoration; UI reload defers to the next update start. Full Linux297/289pass/eight skips/zero failures111.82s and Shipping passed. No ABI/host semantics change or acceptance credit before CI.
 
 HD2D-06 four-size aggregate watchdog now covers four unchanged90s case bounds plus export/teardown (420s), justified by a real Windows144-frame consumer taking about53s. Pixel/resource/input assertions and product performance gates are unchanged. Full Linux297/289pass/eight skips/zero failures105.54s and Shipping passed; final-head CI still required.
+
+HD2D-06 macOS job124420121268 retained a configuration failure: the three Python diagnostic tests had an empty interpreter because the older discovery block excludes Apple. Explicitly require the interpreter at the diagnostic registration boundary. Metal native55-frame CPU pixel readback itself passed; three diagnostic tests remain unaccepted until retry, with no assertions/skips weakened.
+
+HD2D-06 interpreter-scope repair passed full Linux Development297/289pass/eight skips/zero failures112.54s with actual four-size Zig Vulkan and synchronization validation, plus Shipping. macOS actual diagnostic retry remains required.

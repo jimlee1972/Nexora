@@ -463,6 +463,7 @@ if(BUILD_TESTING AND NEXORA_ENABLE_2D)
 endif()
 
 if(BUILD_TESTING AND NEXORA_ENABLE_2D AND TARGET NexoraTwoDPlayer)
+  find_package(Python3 REQUIRED COMPONENTS Interpreter)
   add_test(NAME gameplay.zig_hd2d_fallback COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/Tests/TwoD/HD2DAcceptance.py" --app "$<TARGET_FILE:NexoraTwoDPlayer>"
     --module "${hd2d_validation_library}" --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/hd2d-zig-fallback")
