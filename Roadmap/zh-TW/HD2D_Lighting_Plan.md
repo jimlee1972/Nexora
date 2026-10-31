@@ -1,6 +1,6 @@
 # HD-2D 光源、柔影與選擇性 Bloom 施工計畫
 
-> 基準：Nexora `8c4aa989`；Beads 主工單 `nexora-m6m`。工程 **4/7（57%）**；實機 **NOT_RUN**。
+> 基準：Nexora `8c4aa989`；Beads 主工單 `nexora-m6m`。工程 **5/7（71%）**；實機 **NOT_RUN**。
 
 ## 目標與界線
 
@@ -16,9 +16,9 @@ Beads 是任務狀態來源；本表為審閱用快照。工程以已驗收子�
 | ✅ HD2D-02 | `nexora-m6m.2` | 三後端線性 RGBA16F 管線 | 01 | 已驗收 [PR #735](https://github.com/jimlee1972/Nexora/pull/735)，squash `ed0e51e4`；41 項 CI 與三後端原生證據 |
 | ✅ HD2D-03 | `nexora-m6m.3` | 動態局部點光源 | 02 | 已驗收 PR #736，squash `40c96072`；目前提交的原生 DX12／Metal 與 Linux gate 通過 |
 | ✅ HD2D-04 | `nexora-m6m.4` | 動態遮擋與柔影 | 03 | 已驗收 PR #737／`0845c078`；最終提交的原生 DX12／Metal 與完整 Linux CI 通過 |
-| HD2D-05 | `nexora-m6m.5` | 選擇性發光與 bloom | 02 | IN_PROGRESS — 明示 mask／bloom、工具／回收／原生本地驗證；CI 待驗 |
+| ✅ HD2D-05 | `nexora-m6m.5` | 選擇性發光與 bloom | 02 | 已驗收 PR #738／`a28f1001`；最終34 項檢查及 DX12／Vulkan／Metal53 畫面 CPU 讀回通過 |
 | HD2D-06 | `nexora-m6m.6` | Zig 診斷與原生驗證 | 03, 04, 05 | IN_PROGRESS — 實際 Zig 四尺寸原生診斷、GPU 時間與陰影圖檢視；完整／原生 CI 待驗 |
-| HD2D-07 | `nexora-m6m.7` | SDK 0.2.0 與遊戲接入 | 06 | NOT_RUN |
+| HD2D-07 | `nexora-m6m.7` | SDK 0.2.0 與遊戲接入 | 06 | IN_PROGRESS — 獨立0.2.0 候選／consumer 與同遊戲 Zig 施工；不可覆寫發布／遊戲 lock 待完成 |
 | HD2D-PC | `nexora-m6m.8` | Windows 實機驗收 | 07 | NOT_RUN |
 
 ## 實作契約
@@ -81,3 +81,5 @@ HD2D-06 限定 Development 的 macOS 封裝通過完整 Linux298／290 通過／
 HD2D-06 保留相依 macOS mimalloc job124435568972 的 fixture 失敗：暫存 /var 解析為 /private/var，mock import 字典卻用未解析路徑。以 Linux 真實符號連結 TMPDIR 重現六個 KeyError；僅將 fixture 根路徑正規化後，六項原測試通過。匯出器／執行程式及斷言不變，仍須實際 Mac 重試。
 
 HD2D-06 fixture 根路徑正規化通過完整 Linux298／290 通過／八項略過／零失敗106.22 秒及 Shipping；仍須實際 Mac 重試。
+
+HD2D-05 已驗收 PR #738／`a28f1001`，受測0cd1f27a 與 squash tree 相同：Windows 原生53／完整426 項、Metal53／401、Linux53／484；最終34 項檢查成功完成（10 項為文件 push 正常略過）。HD2D-06 相依 rebase 保留執行程式內容，仍需最終提交原生／完整 CI 與 Mac fixture 重試。工程5/7；實機 PC NOT_RUN。

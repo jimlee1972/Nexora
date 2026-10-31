@@ -1,6 +1,6 @@
 # HD-2D Lighting, Soft Shadows and Selective Bloom Plan
 
-> Baseline: Nexora `8c4aa989`; Beads epic `nexora-m6m`. Engineering **4/7 (57%)**; physical acceptance **NOT_RUN**.
+> Baseline: Nexora `8c4aa989`; Beads epic `nexora-m6m`. Engineering **5/7 (71%)**; physical acceptance **NOT_RUN**.
 
 ## Goal and boundaries
 
@@ -16,9 +16,9 @@ Beads is the task source of truth; this table is a review snapshot. Engineering 
 | ✅ HD2D-02 | `nexora-m6m.2` | Linear RGBA16F pipeline on three backends | 01 | Accepted [PR #735](https://github.com/jimlee1972/Nexora/pull/735), squash `ed0e51e4`; 41 CI checks and three-backend native evidence |
 | ✅ HD2D-03 | `nexora-m6m.3` | Dynamic local point lights | 02 | Accepted PR #736, squash `40c96072`; current-head native DX12/Metal and Linux gates passed |
 | ✅ HD2D-04 | `nexora-m6m.4` | Dynamic occlusion and soft shadows | 03 | Accepted PR #737 / `0845c078`; final-head native DX12/Metal and full Linux CI passed |
-| HD2D-05 | `nexora-m6m.5` | Selective emission and bloom | 02 | IN_PROGRESS — explicit mask/bloom, tool/residency/native local validation; CI pending |
+| ✅ HD2D-05 | `nexora-m6m.5` | Selective emission and bloom | 02 | Accepted PR #738 / `a28f1001`; all34 final-head checks and native53-frame DX12/Vulkan/Metal CPU readbacks passed |
 | HD2D-06 | `nexora-m6m.6` | Zig diagnostic and native validation | 03, 04, 05 | IN_PROGRESS — real Zig four-size native diagnostic, GPU timestamps and map view; full/native CI pending |
-| HD2D-07 | `nexora-m6m.7` | SDK 0.2.0 and game integration | 06 | NOT_RUN |
+| HD2D-07 | `nexora-m6m.7` | SDK 0.2.0 and game integration | 06 | IN_PROGRESS — isolated0.2.0 candidate/consumer and same-game Zig preparation; immutable release/game lock pending |
 | HD2D-PC | `nexora-m6m.8` | Physical Windows acceptance | 07 | NOT_RUN |
 
 ## Implementation contracts
@@ -81,3 +81,5 @@ HD2D-06 Development-only macOS export passed full Linux298/290pass/eight skips/z
 HD2D-06 retains dependent macOS mimalloc job124435568972 fixture failure: temporary /var resolves to /private/var, but mocked import keys used the unresolved root. A real Linux symlinked TMPDIR reproduced all six KeyErrors; canonicalizing only the fixture root passes all six unchanged tests. Exporter/runtime and assertions are unchanged; actual Mac retry remains required.
 
 HD2D-06 fixture-root canonicalization passed full Linux298/290pass/eight skips/zero failures106.22s and Shipping; actual Mac retry still required.
+
+HD2D-05 accepted PR #738 / `a28f1001`, tested0cd1f27a with identical squash tree: Windows native53/full426 tests, Metal53/401, Linux53/484; all34 final-head checks completed successfully (10 legitimate documentation-push skips). HD2D-06 dependency rebase preserves runtime source; current-head native/full CI and Mac fixture retry still required. Engineering5/7; physical PC NOT_RUN.

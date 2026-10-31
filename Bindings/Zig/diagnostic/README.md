@@ -46,3 +46,9 @@ Each native regression case retains a 90-second end-to-end watchdog. The four-ca
 has 420 seconds (four case bounds plus export/teardown), rather than an inconsistent 180-second
 aggregate. An isolated Windows Shipping consumer took about 53 seconds for one 144-frame native
 run. These watchdogs are not product FPS gates; pixel tolerances and target-PC gates are unchanged.
+
+macOS staging currently supports explicit Development diagnostics only: use the native `.dylib`
+and `--allow-development`. Staging needs `otool`, `install_name_tool` and `codesign`; copied
+dylibs use loader-relative imports and ad-hoc signatures, all covered by the inventory. This
+does not provide signed/notarized macOS Shipping distribution. Runtime execution needs the
+exported files, not these staging tools or the engine build tree.

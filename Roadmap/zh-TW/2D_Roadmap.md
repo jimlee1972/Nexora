@@ -816,7 +816,7 @@ M6／M7，也不改變 9/11（82%）。
 
 ## HD-2D 擴充工單
 
-[光源、柔影與選擇性 bloom 計畫](HD2D_Lighting_Plan.md)：Beads `nexora-m6m`，工程 3/7，實機 NOT_RUN；不改變既有 9/11、M6／M7 或 SP 驗收。
+[光源、柔影與選擇性 bloom 計畫](HD2D_Lighting_Plan.md)：Beads `nexora-m6m`，工程 5/7，實機 NOT_RUN；不改變既有 9/11、M6／M7 或 SP 驗收。
 
 ✅ HD2D-01：公開 effects 契約／Zig 與原子快照已驗證；原生效果與 SDK 仍待後續工單。詳見上述計畫與證據。
 
@@ -833,3 +833,5 @@ HD2D-05 補上整條管線關閉後的回收：原繪製路徑逐槽釋放已完
 ✅ HD2D-04 經 PR #737／`0845c078` 驗收：DX12／Metal52 畫面 CPU 參考讀回、最終提交完整 CI 與 Linux483 項測試通過。工程4/7；HD2D-05 最終 rebase CI 待驗，實機 PC NOT_RUN。
 
 ✅ HD2D-03 已由 PR #736／`40c96072` 驗收，目前提交的原生 DX12／Metal 像素與完整 CI 通過；工程 3/7。HD2D-06 本地 Zig 場景、四尺寸原生 Player、複製式 GPU 診斷及陰影圖讀回通過完整 Development／Shipping；相依／原生 CI 仍為驗收 gate。[證據](../../Engine/TwoD/evidence/HD2D-06-Linux-2026-10-31.md)。
+
+✅ HD2D-05 經 PR #738／`a28f1001` 驗收，實際三後端53 畫面 CPU 像素與最終提交完整 CI 通過；工程5/7。HD2D-06 實際 Zig／原生計時／檢視及限定 Development 的 Mac 匯出仍需最終提交 CI。實機 PC NOT_RUN。
