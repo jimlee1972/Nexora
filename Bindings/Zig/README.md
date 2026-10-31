@@ -85,3 +85,7 @@ normal view (mode 0, slot 0) or native angular map view (mode 1, slot 0..7) for 
 Old hosts return `error.Unsupported`; original submission/pool operations remain usable.
 Only `timing_mask` bits identify measured GPU durations. Unavailable values are not zero-time
 measurements. [Ownership, validity and measurement scope](../../Engine/TwoD/GameplayEffects.md).
+
+## Released Windows SDK 0.2.0
+
+The negotiated effects API, optional diagnostics/debug-map suffixes and reusable Zig scene are included in the immutable [Windows SDK0.2.0](https://github.com/jimlee1972/Nexora/releases/tag/sdk-2d-windows-x64-v0.2.0), source93a8dd51. The same-product [Onmyoji integration PR31](https://github.com/jimlee1972/OnmyojiSurvivors/pull/31) builds through the SDK/project Zig, defaults to NX00 and toggles DEV ONLY diagnostics with F9; no game C++ or engine source build is required. Retain the SDK Noto OFL/NOTICE when distributing the embedded test font. [Release provenance and retained failures](../../Tools/SDK/evidence/HD2D-07-Linux-2026-10-31.md) distinguish engineering acceptance from physical/formal-game acceptance.

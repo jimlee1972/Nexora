@@ -926,7 +926,7 @@ remain separate. This portable scene slice does not close Editor M3-08, M6/M7 or
 
 ## HD-2D extension work items
 
-[Lighting, soft-shadow and selective bloom plan](HD2D_Lighting_Plan.md): Beads `nexora-m6m`, engineering 6/7, physical NOT_RUN. Existing 9/11, M6/M7 and SP acceptance remain unchanged.
+[Lighting, soft-shadow and selective bloom plan](HD2D_Lighting_Plan.md): Beads `nexora-m6m`, engineering 7/7, physical NOT_RUN. Existing 9/11, M6/M7 and SP acceptance remain unchanged.
 
 ✅ HD2D-01: public effects contract/Zig and atomic snapshots validated; native effects and SDK remain subsequent work. See the plan and linked evidence above.
 
@@ -949,3 +949,6 @@ HD2D-05 follow-up fixes pipeline-off retirement: completed-slot legacy frames re
 ✅ HD2D-06 accepted via PR #739 / `67db45d2`: all41 checks, real four-size Zig on DX12/Vulkan/Metal and55-frame CPU pixels; full Windows430/Linux488/Metal405 tests. Engineering6/7; SDK publication/game integration and physical PC remain separate gates.
 
 HD2D-07 SDK promotion retains immutable source93a8dd51 and successful main Build/candidate evidence. First publication failed only at nested artifact receipt discovery; the recovery path keeps exact-byte/native/offline/full-CI gates and progress6/7. See the paired HD2D plan.
+
+
+✅ HD2D-07 accepted: immutable SDK0.2.0/source93a8dd51, tested ZIP promotion41190794168 and game PR31/f404f59d. Both final Windows cold/no-native-toolchain/offline/inventory/NX00/native F9-retirement/negative-failure gates passed atbe8a5a5b. Beads07 CLOSED, engineering7/7; epic and physical HD2D-PC remain open/NOT_RUN. See the paired HD2D plan for SHA/source, failure/retry history and current acceptance. Existing 2D9/11/SP/M6/M7/formal game/target FPS are unchanged.

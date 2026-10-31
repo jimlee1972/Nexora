@@ -1,6 +1,6 @@
 # HD-2D Lighting, Soft Shadows and Selective Bloom Plan
 
-> Baseline: Nexora `8c4aa989`; Beads epic `nexora-m6m`. Engineering **6/7 (86%)**; physical acceptance **NOT_RUN**.
+> Baseline: Nexora `8c4aa989`; Beads epic `nexora-m6m`. Engineering **7/7 (100%)**; physical acceptance **NOT_RUN**.
 
 ## Goal and boundaries
 
@@ -12,13 +12,13 @@ Beads is the task source of truth; this table is a review snapshot. Engineering 
 
 | ID | Beads | Delivery | Depends on | Status / evidence |
 | --- | --- | --- | --- | --- |
-| ✅ HD2D-01 | `nexora-m6m.1` | Public contract and Zig bindings | — | Contract/snapshots delivered; [Linux evidence](../../Engine/TwoD/evidence/HD2D-01-Linux-2026-10-31.md) |
+| ✅ HD2D-01 | `nexora-m6m.1` | Public contract and Zig bindings | — | Accepted PR734/3628a62e, contract/snapshots delivered; [Linux evidence](../../Engine/TwoD/evidence/HD2D-01-Linux-2026-10-31.md) |
 | ✅ HD2D-02 | `nexora-m6m.2` | Linear RGBA16F pipeline on three backends | 01 | Accepted [PR #735](https://github.com/jimlee1972/Nexora/pull/735), squash `ed0e51e4`; 41 CI checks and three-backend native evidence |
 | ✅ HD2D-03 | `nexora-m6m.3` | Dynamic local point lights | 02 | Accepted PR #736, squash `40c96072`; current-head native DX12/Metal and Linux gates passed |
 | ✅ HD2D-04 | `nexora-m6m.4` | Dynamic occlusion and soft shadows | 03 | Accepted PR #737 / `0845c078`; final-head native DX12/Metal and full Linux CI passed |
 | ✅ HD2D-05 | `nexora-m6m.5` | Selective emission and bloom | 02 | Accepted PR #738 / `a28f1001`; all34 final-head checks and native53-frame DX12/Vulkan/Metal CPU readbacks passed |
 | ✅ HD2D-06 | `nexora-m6m.6` | Zig diagnostic and native validation | 03, 04, 05 | Accepted PR #739 / `67db45d2`; all41 final-head CI checks, real four-size Zig and three-backend55-frame CPU pixels passed |
-| HD2D-07 | `nexora-m6m.7` | SDK 0.2.0 and game integration | 06 | IN_PROGRESS — isolated0.2.0 candidate/consumer and same-game Zig preparation; immutable release/game lock pending |
+| ✅ HD2D-07 | `nexora-m6m.7` | SDK 0.2.0 and game integration | 06 | Accepted SDK0.2.0 at93a8dd51, recovery PR753/0ebfe07e and game PR31/f404f59d; both final Windows runs passed; [receipt](../../Tools/SDK/evidence/HD2D-07-Linux-2026-10-31.md) |
 | HD2D-PC | `nexora-m6m.8` | Physical Windows acceptance | 07 | NOT_RUN |
 
 ## Implementation contracts
@@ -42,6 +42,10 @@ Windows/macOS native evidence comes from their CI hosts; unexecuted checks are n
 Merge this plan first, then dependent stage PRs. Squash merge only after applicable local and current-head CI passes; update both roadmaps, Beads and evidence each time. Preserve source/commit/PR/test traceability and never publish private hardware identifiers.
 
 References: [2D roadmap](2D_Roadmap.md), [color and existing fallback](../../Engine/TwoD/ColorAndFallback.md).
+
+## Historical execution notes
+
+Statuses below describe each attempt at the time; the table above is the current snapshot. All failures/retries remain retained.
 
 HD2D-01 delivers negotiation, Zig wrappers and owning snapshots only. Native capability defaults to zero and Player registration is pending; no rendered effect is claimed. Applicable CI success gates this PR merge.
 
@@ -111,3 +115,19 @@ HD2D-06 accepted PR #739 / `67db45d2`, tested05c563b8 with identical tree. All41
 HD2D-07 final accepted-dependency preparation passed full Linux298/290pass/eight skips/zero failures106.94s, Shipping, SDK5/cleanup47. Final-head Windows candidate/full CI, immutable main-push release and published game lock remain pending; engineering6/7.
 
 HD2D-07 publication retry: PR740 merged93a8dd51 with an identical tested tree; all41 checks and exact-source main Build41178167997/candidate41178168044 passed. Tag0.2.0 is immutable at93a8dd51. Publish run41184604229 stopped before release creation: artifact common-root layout nested the unique acceptance.json. Promotion now locates exactly one receipt recursively, rejects ambiguity and retains every archive/source/native/offline check. A release/windows-2d-sdk-v<version> recovery branch may publish the existing tag only after the corrected publisher's own full push Build passes; no tag movement, candidate rebuild or CI bypass. Engineering remains6/7 until actual release and game integration pass. PC NOT_RUN.
+
+## Published SDK 0.2.0
+
+[Immutable release](https://github.com/jimlee1972/Nexora/releases/tag/sdk-2d-windows-x64-v0.2.0), source `93a8dd51301c50d605a315a39279b0e5b325d91c`, ZIP SHA-256 `cddf164d55be02c0524485c17054426eab8ab096801e842aace1f3cc3cd4fb92`. PR740/93a8dd51 passed41 checks and exact-source main candidate41178168044/full Build41178167997. Consumer124470394777 ran144 native DX12 frames/all4095 phases/two reloads/features7/timing15/zero active-staging/balanced allocations, then rebuilt offline without native developer tools. Windows430/Linux488/Metal405 full desktop CTests and native55-frame CPU pixels passed at that source.
+
+First publication41184604229 stopped at nested receipt discovery before release creation. Recovery PR753/0ebfe07e passed41 final-head checks; testedafd543f6 and squash share treefd0bb1cd. Successful promotion41190794168/job124507009006 verified the unique receipt, original archive SHA/source/tag/embedded manifest/native/offline gates and promoted the original candidate bytes. Its selected full Build41184604230 is also successful at the same immutable source. The tag never moved and0.1.0 remains available.
+
+[Game PR31](https://github.com/jimlee1972/OnmyojiSurvivors/pull/31) pins this actual downloaded ZIP and adds same-product Zig F9 DEV ONLY mode. Local published-SDK4/4 tests, Windows DLL cross-build,11 Python tests and CMake lock/failure checks passed. Both final Windows cold/no-native-toolchain/offline/inventory/two-process/F9 runs41192048648/41192045465 passed atbe8a5a5b; game PR31 mergedf404f59d. Beads07 CLOSED; engineering7/7, physical NOT_RUN.
+
+Game PR31 first68af9fa8 PR/push runs41191107578/41191084107 retained zero-owner failures after successful cold/offline/inventory/NX00 replay. The verifier closed after a fixed0.5s while completion slots still owned effect targets. Retrybe8a5a5 uses existing public state/diagnostics in Zig: disable must be active and scene/shadow/bloom/upload owners must be zero before RETIRED acknowledgement; native CI waits for each exit acknowledgement. All final resource/feature/allocation assertions and120s deadline remain unchanged. Actual released-SDK4/4 tests/Windows DLL cross-build and software Vulkan2400frames/two-cycle acknowledged retirement passed; final Windows retry pending.
+
+## Engineering acceptance 7/7; physical gate remains open
+
+Game PR31/f404f59d accepted after both final-head Windows runs41192048648(PR)/41192045465(push) succeeded: managed Zig cold build with native toolchains denied, actual released SDK source/hash/inventory, offline changed-script rebuild, two600-tick NX00 processes/hash, two native F9/RETIRED cycles, final zero effect owners/balanced allocations/normal exit and intentional-failure preservation. Direct tree diff confirms every Game/Tools/CI/README/HD2D-evidence path matches testedbe8a5a5b; latest-main enemy12/13 art and its demand document were additionally preserved. First failures/retries remain retained.
+
+Beads nexora-m6m.7 is CLOSED; accepted engineering7/7. Epic nexora-m6m and HD2D-PC remain OPEN/NOT_RUN. The game still defaults to NX00; BuildWindows.bat consumes the published SDK/project Zig without an engine checkout, and F9 opens DEV ONLY diagnostics. Formal art/combat, physical controls, clean-host acceptance and target i5-8400/GTX1050Ti/8GB sustained60FPS are not accepted. SP01–07 and M6/M7 history remains unchanged.
