@@ -1,5 +1,13 @@
 # Nexora 圖形化 Editor Roadmap
 
+### 腳本工作流程與 Sprite 整合工單（2026-10-31）
+
+核准的[交付計畫](Editor_Workflow_Delivery_Plan.md)及
+[Epic #741](https://github.com/jimlee1972/Nexora/issues/741) 追蹤九張相依工單，涵蓋腳本 Build UI、
+乾淨遊戲成品、有狀態熱重載及來源感知 Editor／Player／Zig 整合。初始驗收為 0/9，
+既有 supporting capabilities 不直接算完整流程完成；完整 Editor 里程碑維持 0/8。
+現有 CLI 與 `.bat` 開發流程持續可用。
+
 ### Windows 匯出遊戲入口（2026-10-30）
 
 ✅ Windows native Player 與共用 Editor Build 輸出改用 GUI subsystem 2 及 Unicode GUI 入口，
