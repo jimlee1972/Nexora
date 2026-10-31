@@ -35,12 +35,19 @@ jobs:
           cd release
           sha256sum --check *.sha256
           python3 - <<'PY'
-          import json, os, zipfile
+          import hashlib, json, os, zipfile
           from pathlib import Path
           manifest = json.loads(Path('sdk.json').read_text())
           assert manifest['source_commit'] == os.environ['GITHUB_SHA']
           assert 'sdk-2d-windows-x64-v'+manifest['version'] == os.environ['GITHUB_REF_NAME']
-          with zipfile.ZipFile(next(Path('.').glob('*.zip'))) as archive:
+          candidate = next(Path('.').glob('*.zip'))
+          receipt = json.loads(Path('../evidence/acceptance.json').read_text())
+          assert receipt['status'] == 'PASS' and receipt['source_commit'] == manifest['source_commit']
+          if manifest['version'] == '0.2.0':
+              assert receipt['archive_sha256'] == hashlib.sha256(candidate.read_bytes()).hexdigest()
+              assert receipt['real_zig_hd2d'] and receipt['offline_rebuild']
+              assert receipt['native_dx12'] == 'PASS'
+          with zipfile.ZipFile(candidate) as archive:
               assert json.loads(archive.read('sdk.json')) == manifest
           PY
           cat > notes.md <<'EOF'
@@ -48,6 +55,7 @@ jobs:
           Requires Zig 0.14.0, CMake 3.25+ and Python 3.10+; no MSVC, Windows SDK or engine checkout required by consumers.
           The archive is promoted unchanged from a successful isolated Windows consumer run and full Build at this commit.
           Includes Ninja 1.13.2, CRT redistributables and licenses. See Tools/SDK/README.md inside the ZIP.
-          Native/physical game, audio, controller and target-machine acceptance remain NOT_RUN.
+          The 0.2.0 consumer tests real Zig native DX12 engineering diagnostics.
+          Physical display/input, formal game, audio, controller and target-machine acceptance remain NOT_RUN.
           EOF
           gh release create "$GITHUB_REF_NAME" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Nexora 2D Windows SDK ${GITHUB_REF_NAME##*v}" --notes-file notes.md *.zip *.sha256 sdk.json validation.txt

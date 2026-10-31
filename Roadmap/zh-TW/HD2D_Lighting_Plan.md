@@ -85,3 +85,7 @@ HD2D-06 fixture 根路徑正規化通過完整 Linux298／290 通過／八項略
 HD2D-05 已驗收 PR #738／`a28f1001`，受測0cd1f27a 與 squash tree 相同：Windows 原生53／完整426 項、Metal53／401、Linux53／484；最終34 項檢查成功完成（10 項為文件 push 正常略過）。HD2D-06 相依 rebase 保留執行程式內容，仍需最終提交原生／完整 CI 與 Mac fixture 重試。工程5/7；實機 PC NOT_RUN。
 
 HD2D-07 施工將明確 mask 工具與具授權 Zig 診斷納入 0.2.0 候選。無來源碼獨立 consumer 建置／執行實際 headless／原生 DX12 診斷並離線重建。遊戲預設 NX00 hash 不變；本地同一產品 Vulkan 兩輪 F9 證據通過。仍需候選原生 CI、相依驗收、實際發布摘要及遊戲 lock；不增加已驗收完成度或宣稱發布。
+
+HD2D-07 發布來源補強：獨立 consumer 收據綁定實際候選 ZIP SHA-256、來源提交、原生 DX12 診斷與離線重建。CI 清理只限本交付四個明確自有分支的過期 Build；保留目前提交的 push／PR、main、其他操作者與相近名稱分支。47 項清理防護測試通過。
+
+HD2D-07 [本地準備證據](../../Tools/SDK/evidence/HD2D-07-Linux-2026-10-31.md)：最終完整 Linux gate 登錄 297／通過 289／略過八項／零失敗，Shipping 通過。Windows 候選 consumer／發布／遊戲 lock 尚待完成；工程仍 3/7。

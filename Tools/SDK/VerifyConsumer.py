@@ -13,6 +13,7 @@ import subprocess
 import sys
 sys.dont_write_bytecode = True
 import zlib
+import zipfile
 
 
 def load(name, path):
@@ -30,10 +31,21 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument('--sdk', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True)
+    p.add_argument('--archive', type=Path, required=True)
     a = p.parse_args()
     sdk, output = a.sdk.resolve(), a.output.resolve()
     check = load('sdk_check', sdk/'Tools/SDK/SDK.py')
     manifest = check.verify(sdk)
+    archive_sha = hashlib.sha256(a.archive.read_bytes()).hexdigest()
+    with zipfile.ZipFile(a.archive) as archive:
+        if json.loads(archive.read('sdk.json')) != manifest:
+            raise ValueError('consumer SDK is not the candidate ZIP manifest')
+        names = [info.filename for info in archive.infolist() if not info.is_dir()]
+        if len(names) != len(set(names)) or set(names) != set(manifest['files']) | {'sdk.json'}:
+            raise ValueError('candidate ZIP file inventory mismatch')
+        for name, digest in manifest['files'].items():
+            if hashlib.sha256(archive.read(name)).hexdigest() != digest:
+                raise ValueError('candidate ZIP payload differs from consumed SDK: '+name)
     output.mkdir(parents=True, exist_ok=False)
     source = output/'source 陰陽 workspace'
     source.mkdir()
@@ -59,6 +71,7 @@ nexora_add_game_module(game_module PROJECT "${CMAKE_SOURCE_DIR}/project.json" OU
     for kind in ('atlas','clip'):
         run(sys.executable, sdk/'Tools/TwoD/PrepareAssets.py', source/(kind+'.json'), '--compiler', sdk/'bin/NexoraTwoDAssetCompiler.exe', '--output', source/('asset.nx2'+kind))
     (source/'game.json').write_text(json.dumps(dict(schema=1, id='com.nexora.sdk-fixture', title='SDK TEST FIXTURE', scene='Main', module='module.dll', audio='off',
+        display=dict(width=1920, height=1080, mode='windowed', resizable=True),
         assets=[dict(kind=k, path='asset.nx2'+k) for k in ('atlas','clip')])), encoding='utf-8')
     package = output/'relocated game 陰陽'
     run(sys.executable, sdk/'Tools/TwoD/ExportGame.py', source/'game.json',
@@ -149,7 +162,7 @@ test "diagnostic defaults are interactive" {
     if check.verify(sdk) != manifest:
         raise ValueError('consumer modified the SDK')
     (output/'acceptance.json').write_text(json.dumps(dict(status='PASS', source_commit=manifest['source_commit'],
-        two_processes=True, canonical_atlas_clip=True, real_zig_hd2d=True, hd2d_reload_cycles=2, offline_rebuild=True,
+        archive_sha256=archive_sha, two_processes=True, canonical_atlas_clip=True, real_zig_hd2d=True, hd2d_reload_cycles=2, offline_rebuild=True,
         physical_windows='NOT_RUN', native_dx12='PASS'), indent=2)+'\n', encoding='utf-8')
 
 

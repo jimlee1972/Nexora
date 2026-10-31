@@ -121,7 +121,7 @@ jobs:
           Expand-Archive -LiteralPath $zip.FullName -DestinationPath "$env:RUNNER_TEMP/SDK 陰陽"
           $env:ZIG_GLOBAL_CACHE_DIR = "$env:RUNNER_TEMP/sdk-consumer-global-fresh"
           if (Test-Path $env:ZIG_GLOBAL_CACHE_DIR) { throw 'Consumer cache was not fresh' }
-          python tools/VerifyConsumer.py --sdk "$env:RUNNER_TEMP/SDK 陰陽" --output "$env:GITHUB_WORKSPACE/evidence"
+          python tools/VerifyConsumer.py --sdk "$env:RUNNER_TEMP/SDK 陰陽" --archive $zip.FullName --output "$env:GITHUB_WORKSPACE/evidence"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v4
         if: always()

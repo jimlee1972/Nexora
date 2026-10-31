@@ -1,6 +1,6 @@
 # Windows script-only 2D SDK
 
-The immutable `sdk-2d-windows-x64-v0.2.0` release provides a Monolithic Shipping DX12 generic
+SDK 0.2.0 targets the immutable `sdk-2d-windows-x64-v0.2.0` release and provides a Monolithic Shipping DX12 generic
 host, asset compiler, Zig bindings/build entry, export tools, Ninja 1.13.2 and redistributable CRT.
 Game developers install Zig 0.14.0, CMake 3.25+ and Python 3.10+; MSVC, Windows SDK and engine
 source are not consumer requirements. The SDK is for development, not the complete game.
@@ -52,7 +52,8 @@ The archive includes paired-mask preparation and diagnostic staging tools plus N
 under `licenses/`; retain those notices when embedding the diagnostic raster font in a game.
 No normal maps, 3D height shadows, HDR display output or Editor light-authoring tools are included.
 
-The source-free independent Windows consumer builds the actual reusable Zig scene using only the
+Release promotion also checks the consumer receipt SHA-256 against the actual candidate ZIP,
+its source commit, real native diagnostic result and offline rebuild. The source-free independent Windows consumer builds the actual reusable Zig scene using only the
 candidate ZIP, executes its 144-frame headless fallback and native DX12 path, validates complete
 inventories, then reuses the same SDK offline. Consumer validation is diagnostic engineering
 acceptance; physical display/input, formal assets and target-PC FPS remain NOT_RUN. Tagged release
