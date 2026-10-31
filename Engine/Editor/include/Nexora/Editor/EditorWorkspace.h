@@ -170,6 +170,15 @@ struct RecentProject final {
   std::string name;
 };
 
+enum class EditorColorTheme { Dark, Light };
+
+// User-owned appearance, separate from project settings and layout. Missing files return Dark;
+// rejected reads return no value and never write. Explicit saves atomically replace the record.
+[[nodiscard]] NEXORA_EDITOR_API std::optional<EditorColorTheme>
+LoadEditorColorTheme(const std::filesystem::path &path, std::string *error = nullptr);
+NEXORA_EDITOR_API bool SaveEditorColorTheme(const std::filesystem::path &path,
+                                            EditorColorTheme theme, std::string *error = nullptr);
+
 // User-level, versioned recent-project state. The application owns this store separately from a
 // project so opening a project read-only never grants write access to project-owned files.
 class NEXORA_EDITOR_API RecentProjectStore final {

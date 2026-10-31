@@ -349,6 +349,11 @@ public:
   EditorImGuiHost &operator=(const EditorImGuiHost &) = delete;
 
   void SetDisplay(float width, float height, float dpi_scale);
+  // Owner applies a theme between frames and persists the owning menu request outside the UI.
+  // Appearance is user-local and never loaded from a project layout.
+  void SetColorTheme(EditorColorTheme theme, std::string status = {});
+  [[nodiscard]] EditorColorTheme GetColorTheme() const noexcept;
+  [[nodiscard]] std::optional<EditorColorTheme> TakeColorThemeRequest();
   // Pointer events use native client pixels. SetDisplay supplies logical dimensions/frame DPI
   // before forwarding the current native batch; the host converts pointer positions exactly once.
   void ProcessEvents(std::span<const Nexora::Window::WindowEvent> events);

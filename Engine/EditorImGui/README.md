@@ -159,6 +159,25 @@ remain unmeasured. Context sorting and original B/E order define availability in
 Malformed/unbalanced scopes leave the prior static view and live profile intact. The Core
 contract documents pairing, chronological and capacity requirements.
 
+## Editor appearance
+
+Use **Settings > Appearance > Dark / Light** for Unity-inspired neutral gray palettes with blue
+selection and focus accents. Dark is the default. The application applies requests between frames,
+so the complete next frame uses one palette; changing theme never rescales fonts or panel geometry.
+Icons follow text color, while Transform axes and semantic error/warning/success text use colors
+chosen for each theme. Display-referred palette swatches are decoded once for RenderUi's linear
+vertex-color contract so native sRGB output retains the intended gray levels. The Scene/Game render
+background and authored materials retain their colors.
+
+`SetColorTheme` / `GetColorTheme` expose the current presentation choice;
+`TakeColorThemeRequest` consumes the menu's owning request once. UI code performs no settings IO.
+The application loads a user-level `appearance` record beside the recent-project store at startup
+and atomically saves explicit selections, including in read-only projects. Project switching and
+layout loading cannot replace this user choice. Missing records select Dark without writes;
+invalid records are retained and reported under Appearance until an explicit selection replaces them.
+Failed saves retain the selected session palette and show a persistence warning; choosing it again
+retries the save. No scene format, gameplay ABI or project-owned file changes.
+
 `NexoraEditorImGui` is an optional UI-host module. It owns the Dear ImGui context, translates
 public `Nexora::Window` events, applies the Editor theme and DPI scale, creates the root dockspace,
 and presents panels using the stable IDs owned by `NexoraEditorCore`. On the first frame it builds

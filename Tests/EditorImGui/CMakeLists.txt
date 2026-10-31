@@ -1000,3 +1000,18 @@ foreach(nexora_icon_scale RANGE 1 2)
   add_test(NAME editor.transform_layout_${nexora_icon_scale}x
     COMMAND NexoraTransformLayoutTests ${nexora_icon_scale})
 endforeach()
+
+add_executable(NexoraEditorThemeTests ThemeTests.cpp)
+target_include_directories(NexoraEditorThemeTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraEditorThemeTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
+nexora_apply_defaults(NexoraEditorThemeTests)
+foreach(nexora_theme_scale RANGE 1 2)
+  add_test(NAME editor.appearance_${nexora_theme_scale}x COMMAND NexoraEditorThemeTests ${nexora_theme_scale})
+endforeach()
+if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
+  add_test(NAME editor.linux_appearance
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxAppearance.py"
+      --editor "$<TARGET_FILE:NexoraEditor>" --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+      --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_appearance PROPERTIES TIMEOUT 90 LABELS "vulkan;virtual-display")
+endif()

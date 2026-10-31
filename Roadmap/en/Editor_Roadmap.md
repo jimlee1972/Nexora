@@ -272,6 +272,15 @@ satisfy this milestone.
   (docking/multi-viewport), rendered through `Nexora::RHI` rather than a competing windowing
   stack, and names the accessibility gap ED-M7 still has to scope. The ADR settles the framework
   choice only -- it is not itself graphical docking, theme, DPI, IME, accessibility, or crash UX.
+- ✅ Settings > Appearance now offers Unity-inspired Dark / Light neutral palettes with blue
+  selection accents. Requests apply between frames, persist in a user-level appearance record,
+  survive project/layout changes and work in read-only projects. Bounded invalid reads retain
+  the original file; failed saves keep the session theme and expose a retryable warning.
+  Palette swatches decode once for native sRGB output; icons, status text and Transform axes
+  remain readable without changing DPI geometry. Real 1x/2x menu tests and Linux X11/Vulkan
+  pixels/save/reopen/read-only acceptance cover the feature; physical-host acceptance and the
+  overall milestone remain open.
+  [Linux evidence](../../Tools/Build/evidence/EditorAppearance-Linux-2026-10-31.md).
 - ✅ The feature-gated Dear ImGui host implements the portable docking, theme/DPI, input/IME,
   live-panel, recovery UX, and accessibility-direction contracts described by
   [Editor_ImGui_Integration_Plan.md](Editor_ImGui_Integration_Plan.md).

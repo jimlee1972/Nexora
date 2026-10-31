@@ -748,6 +748,14 @@ int RunGraphical(std::optional<ProjectState> project,
   splash.PrepareMainWindow();
   splash.Stage(nexora::editor::app::StartupStage::Workspace);
   nexora::editor::imgui::EditorImGuiHost ui;
+  const auto appearance_path =
+      recent_projects.Path().empty()
+          ? nexora::editor::RecentProjectStore::DefaultPath().replace_filename("appearance")
+          : std::filesystem::path(recent_projects.Path()).replace_filename("appearance");
+  std::string appearance_status;
+  const auto appearance = nexora::editor::LoadEditorColorTheme(appearance_path, &appearance_status);
+  ui.SetColorTheme(appearance.value_or(nexora::editor::EditorColorTheme::Dark), appearance_status);
+
 #if defined(_WIN32)
   ui.SetProjectLocationPicker(
       [](nexora::editor::imgui::ProjectSelectorAction action, std::string &error) {
@@ -3554,6 +3562,15 @@ int RunGraphical(std::optional<ProjectState> project,
     }
 #endif
     static_cast<void>(ui.EndFrame());
+    if (const auto theme = ui.TakeColorThemeRequest()) {
+      appearance_status.clear();
+      if (!nexora::editor::SaveEditorColorTheme(appearance_path, *theme, &appearance_status)) {
+        appearance_status = "Theme applied for this session; could not save: " + appearance_status;
+        std::cerr << appearance_status << '\n';
+      }
+      ui.SetColorTheme(*theme, appearance_status);
+    }
+
 #if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
     if (std::getenv("NEXORA_SOURCE_MARKER_TEST_GEOMETRY")) {
       using Access = nexora::editor::imgui::EditorImGuiTestAccess;
@@ -3672,6 +3689,10 @@ int RunGraphical(std::optional<ProjectState> project,
         if (point)
           geometry << ' ' << name << '=' << (*point)[0] * dpi << ',' << (*point)[1] * dpi;
       };
+      record("appearance_settings", Access::AppearancePosition(ui, 0));
+      record("appearance_menu", Access::AppearancePosition(ui, 1));
+      record("appearance_dark", Access::AppearancePosition(ui, 2));
+      record("appearance_light", Access::AppearancePosition(ui, 3));
       record("scene_select_all", Access::SceneSelectAllPosition(ui));
       record("diagnostic_consent", Access::DiagnosticPosition(ui, 0));
       record("diagnostic_clear", Access::DiagnosticPosition(ui, 1));
