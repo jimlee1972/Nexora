@@ -32,8 +32,15 @@ function Read-StrictJson([string]$Path) {
     return ($text | ConvertFrom-Json)
 }
 
+function Get-FileSha256([string]$Path) {
+    $stream = [IO.File]::OpenRead($Path)
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try { return [BitConverter]::ToString($sha.ComputeHash($stream)).Replace('-', '').ToLowerInvariant() }
+    finally { $sha.Dispose(); $stream.Dispose() }
+}
+
 function Assert-Hash([string]$Path, [string]$Expected) {
-    if ((Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant() -cne $Expected) {
+    if ((Get-FileSha256 $Path) -cne $Expected) {
         throw ('SHA-256 mismatch: ' + $Path)
     }
 }
@@ -184,6 +191,37 @@ function Invoke-PlayerCase {
     return [pscustomobject]$case
 }
 
+function New-InteractiveWorkerEntry {
+    param([string]$Root, [string]$Script, [int]$Cycle, [string]$ExpectedZipSha)
+    $hash = Get-FileSha256 $Script
+    # Hidden workers must set these before the first cmdlet/module import, not only
+    # after parsing the guest script. Publish immutable phases before native work.
+    $template = @'
+$ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
+function Get-FileSha256 { @@HASH_FUNCTION@@ }
+function Mark-WorkerPhase([string]$Phase) {
+    $path = '@@ROOT@@\worker-@@CYCLE@@-' + $Phase + '.txt'
+    $bytes = [Text.UTF8Encoding]::new($false, $true).GetBytes($Phase)
+    $file = [IO.FileStream]::new($path, [IO.FileMode]::CreateNew,
+        [IO.FileAccess]::Write, [IO.FileShare]::None, 4096, [IO.FileOptions]::WriteThrough)
+    try { $file.Write($bytes, 0, $bytes.Length); $file.Flush($true) }
+    finally { $file.Dispose() }
+}
+Mark-WorkerPhase 'started'
+$p = '@@SCRIPT@@'
+if ((Get-FileSha256 $p) -cne '@@HASH@@') { throw 'script hash' }
+Mark-WorkerPhase 'hash-verified'
+$body = [scriptblock]::Create([IO.File]::ReadAllText($p, [Text.UTF8Encoding]::new($false, $true)))
+Mark-WorkerPhase 'script-parsed'
+& $body -Root '@@ROOT@@' -Cycle @@CYCLE@@ -ExpectedZipSha '@@ZIP@@'
+'@
+    return $template.Replace('@@HASH_FUNCTION@@', ${function:Get-FileSha256}.ToString()).
+        Replace('@@ROOT@@', $Root.Replace("'", "''")).
+        Replace('@@SCRIPT@@', $Script.Replace("'", "''")).Replace('@@CYCLE@@', [string]$Cycle).
+        Replace('@@HASH@@', $hash).Replace('@@ZIP@@', $ExpectedZipSha.Replace("'", "''"))
+}
+
 if ($DefinitionsOnly) { return }
 
 try {
@@ -194,10 +232,8 @@ try {
         # An InteractiveToken task uses the existing login; no password is stored in Task Scheduler.
         $taskName = 'NexoraAcceptance-' + (Split-Path -Leaf $Root) + '-' + $Cycle
         $script = Join-Path $Root 'guest.ps1'
-        $hash = (Get-FileHash -LiteralPath $script).Hash.ToLowerInvariant()
-        $entry = "`$p='$script';if((Get-FileHash -LiteralPath `$p).Hash.ToLowerInvariant() -ne '$hash'){throw 'script hash'};" +
-            "& ([scriptblock]::Create([IO.File]::ReadAllText(`$p,[Text.UTF8Encoding]::new(`$false,`$true))))" +
-            " -Root '$Root' -Cycle $Cycle -ExpectedZipSha '$ExpectedZipSha'"
+        $entry = New-InteractiveWorkerEntry -Root $Root -Script $script -Cycle $Cycle `
+            -ExpectedZipSha $ExpectedZipSha
         $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($entry))
         $action = New-ScheduledTaskAction -Execute (Join-Path $PSHOME 'powershell.exe') `
             -Argument ('-NoProfile -NonInteractive -WindowStyle Hidden -EncodedCommand ' + $encoded)
@@ -266,7 +302,7 @@ try {
     $bytes = [IO.File]::ReadAllBytes((Join-Path $primarySaves 'visits.nxsav'))
     $bytes[$bytes.Length - 1] = $bytes[$bytes.Length - 1] -bxor 1
     Write-DurableBytes $slot $bytes
-    $corruptHash = (Get-FileHash -LiteralPath $slot).Hash.ToLowerInvariant()
+    $corruptHash = Get-FileSha256 $slot
     $cases += Invoke-PlayerCase 'ui-corrupt-save' $ui @('--frames', '3', '--save-directory', $corruptSaves) 1
     Assert-Hash $slot $corruptHash
     $cases += Invoke-PlayerCase 'ui-unicode-save' $ui @('--frames', '3', '--native', '--save-directory',
