@@ -8,6 +8,7 @@ pub const dialogue = @import("dialogue.zig");
 pub const lifecycle = @import("lifecycle.zig");
 pub const scene = @import("scene.zig");
 pub const twod_effects = @import("twod_effects.zig");
+pub const hd2d_diagnostic = @import("hd2d_diagnostic.zig");
 pub const audio_state = @import("audio_state.zig");
 pub const audio = @import("audio.zig");
 pub const storage = @import("storage.zig");

@@ -1,0 +1,38 @@
+{
+  "major": 3,
+  "extension_version": 1,
+  "effects_api_suffix": [
+    "get_diagnostics",
+    "set_debug_view"
+  ],
+  "structures": {
+    "NexoraTwoDEffectsDiagnosticsV1": [
+      "struct_size",
+      "abi_version",
+      "timing_mask",
+      "timing_source",
+      "timing_status",
+      "reserved",
+      "completed_frame",
+      "effects_revision",
+      "shadow_dispatches",
+      "world_draws",
+      "bloom_passes",
+      "composite_draws",
+      "shadow_ms",
+      "world_ms",
+      "bloom_ms",
+      "composite_ms",
+      "scene_target_bytes",
+      "shadow_buffer_bytes",
+      "bloom_target_bytes",
+      "upload_capacity_bytes",
+      "peak_effect_bytes",
+      "texture_count",
+      "peak_texture_count"
+    ]
+  },
+  "zig_names": {
+    "NexoraTwoDEffectsDiagnosticsV1": "twod_effects.Diagnostics"
+  }
+}

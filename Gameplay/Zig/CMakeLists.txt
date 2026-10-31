@@ -433,3 +433,48 @@ if(BUILD_TESTING AND NEXORA_ENABLE_2D AND NOT APPLE)
     "${display_library}" "${color_slice_library}")
   set_tests_properties(gameplay.zig_minimized_modules PROPERTIES TIMEOUT 30 LABELS "zig;display;lifecycle")
 endif()
+
+if(BUILD_TESTING AND NEXORA_ENABLE_2D)
+  file(GLOB hd2d_diagnostic_assets CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/Bindings/Zig/diagnostic/*")
+  foreach(label IN ITEMS diagnostic validation)
+    set(hd2d_${label}_library "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}NexoraZigHD2D_${label}${CMAKE_SHARED_LIBRARY_SUFFIX}")
+    set(hd2d_${label}_object "${CMAKE_CURRENT_BINARY_DIR}/zig_hd2d_${label}${twod_object_extension}")
+    foreach(kind IN ITEMS library object)
+      if(APPLE AND kind STREQUAL "library")
+        add_custom_command(OUTPUT "${hd2d_${label}_library}"
+          COMMAND "${CMAKE_CXX_COMPILER}" -dynamiclib "${hd2d_${label}_object}" -o "${hd2d_${label}_library}"
+          DEPENDS "${hd2d_${label}_object}" VERBATIM)
+        continue()
+      endif()
+      if(kind STREQUAL "library")
+        set(hd2d_args ${NEXORA_ZIG_BUILD_LIB_ARGS})
+      else()
+        set(hd2d_args ${NEXORA_ZIG_BUILD_OBJ_ARGS})
+      endif()
+      list(TRANSFORM hd2d_args REPLACE "src/game_module.zig" "src/hd2d_${label}.zig")
+      list(TRANSFORM hd2d_args REPLACE "-femit-bin=.*" "-femit-bin=${hd2d_${label}_${kind}}")
+      add_custom_command(OUTPUT "${hd2d_${label}_${kind}}"
+        COMMAND "${NEXORA_ZIG_EXECUTABLE}" ${hd2d_args}
+        DEPENDS src/hd2d_${label}.zig src/hd2d_module.zig ${gameplay_wire_dependencies} ${hd2d_diagnostic_assets}
+        VERBATIM)
+    endforeach()
+    add_custom_target(NexoraZigHD2D_${label}Build ALL DEPENDS "${hd2d_${label}_library}")
+  endforeach()
+endif()
+
+if(BUILD_TESTING AND NEXORA_ENABLE_2D AND TARGET NexoraTwoDPlayer)
+  add_test(NAME gameplay.zig_hd2d_fallback COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/Tests/TwoD/HD2DAcceptance.py" --app "$<TARGET_FILE:NexoraTwoDPlayer>"
+    --module "${hd2d_validation_library}" --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/hd2d-zig-fallback")
+  set_tests_properties(gameplay.zig_hd2d_fallback PROPERTIES TIMEOUT 90 LABELS "twod;zig;effects;project")
+  if(NEXORA_ENABLE_NATIVE_BACKENDS AND (WIN32 OR APPLE OR NEXORA_ENABLE_VULKAN_BACKEND))
+    add_test(NAME gameplay.zig_hd2d_native COMMAND "${Python3_EXECUTABLE}"
+      "${PROJECT_SOURCE_DIR}/Tests/TwoD/HD2DAcceptance.py" --app "$<TARGET_FILE:NexoraTwoDPlayer>"
+      --module "${hd2d_validation_library}" --native --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/hd2d-zig-native")
+    set_tests_properties(gameplay.zig_hd2d_native PROPERTIES TIMEOUT 180 SKIP_RETURN_CODE 77 RUN_SERIAL TRUE
+      LABELS "twod;zig;effects;project;native-display")
+  endif()
+  add_test(NAME gameplay.hd2d_diagnostic_assets COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/Tools/TwoD/PrepareHD2DDiagnostic.py" --compiler "$<TARGET_FILE:NexoraTwoDAssetCompiler>" --check)
+  set_tests_properties(gameplay.hd2d_diagnostic_assets PROPERTIES TIMEOUT 45 LABELS "twod;zig;effects;assets")
+endif()

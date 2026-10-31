@@ -1,5 +1,6 @@
 #include "Nexora/TwoD/GameplayEffects.h"
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cmath>
 #include <cstring>
@@ -77,6 +78,7 @@ struct GameplayEffects::State final {
   SpriteResolver sprite;
   MaskResolver mask;
   PoolResolver pool;
+  DiagnosticsProvider diagnostics;
   using PoolKey = std::tuple<uint64_t, uint32_t, uint32_t>;
   std::map<PoolKey, uint64_t> poolTokens;
   std::map<uint64_t, EffectsPoolIdentity> poolHandles;
@@ -199,6 +201,9 @@ struct GameplayEffects::State final {
     if (accepted == std::numeric_limits<uint64_t>::max())
       return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
     auto next = std::make_shared<EffectsSnapshot>();
+    const auto &previous = pending ? pending : active;
+    next->debugMode = previous->debugMode;
+    next->debugShadowSlot = previous->debugShadowSlot;
     next->enabled = v->enabled != 0;
     std::copy(std::begin(v->ambient), std::end(v->ambient), next->ambient);
     next->strength = v->strength;
@@ -209,6 +214,24 @@ struct GameplayEffects::State final {
       next->occluders.assign(v->occluders, v->occluders + v->occluder_count);
     if (v->sprite_count)
       next->sprites.assign(v->sprites, v->sprites + v->sprite_count);
+    next->revision = accepted + 1;
+    pending = std::move(next);
+    ++accepted;
+    return NEXORA_GAMEPLAY_OK;
+  }
+  int32_t SetDebug(uint32_t mode, uint32_t slot) {
+    if (mode > 1 || slot >= 8 || (!mode && slot))
+      return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+    if (mode && !(features & NEXORA_TWOD_EFFECTS_SHADOWS))
+      return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+    const auto &previous = pending ? pending : active;
+    if (previous->debugMode == mode && previous->debugShadowSlot == slot)
+      return NEXORA_GAMEPLAY_OK;
+    if (accepted == UINT64_MAX)
+      return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
+    auto next = std::make_shared<EffectsSnapshot>(*previous);
+    next->debugMode = mode;
+    next->debugShadowSlot = slot;
     next->revision = accepted + 1;
     pending = std::move(next);
     ++accepted;
@@ -228,7 +251,7 @@ struct GameplayEffects::State final {
   }
 };
 GameplayEffects::GameplayEffects(uint32_t features, SpriteResolver sprite, MaskResolver mask,
-                                 PoolResolver pool)
+                                 PoolResolver pool, DiagnosticsProvider diagnostics)
     : state_(std::make_unique<State>()) {
   if ((features & ~7u) || ((features & 6u) && !(features & 1u)))
     throw std::invalid_argument("invalid 2D effects feature combination");
@@ -236,6 +259,7 @@ GameplayEffects::GameplayEffects(uint32_t features, SpriteResolver sprite, MaskR
   state_->sprite = std::move(sprite);
   state_->mask = std::move(mask);
   state_->pool = std::move(pool);
+  state_->diagnostics = std::move(diagnostics);
 }
 GameplayEffects::~GameplayEffects() = default;
 std::shared_ptr<const EffectsSnapshot> GameplayEffects::BeginFrame() {
@@ -292,6 +316,42 @@ NexoraGameplayTwoDEffectsApiV1 GameplayEffects::Api() noexcept {
           [](void *p, uint64_t ownerId, uint32_t index, uint32_t generation, uint64_t *output) {
             return State::Call(
                 p, [&](auto &s) { return s.PoolIdentity(ownerId, index, generation, output); });
+          },
+          [](void *p, NexoraTwoDEffectsDiagnosticsV1 *v) {
+            return State::Call(p, [&](auto &s) -> int32_t {
+              if (!v)
+                return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+              if (!Version(v) || !s.diagnostics)
+                return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+              NexoraTwoDEffectsDiagnosticsV1 value{};
+              value.struct_size = sizeof(value);
+              value.abi_version = 1;
+              if (!s.diagnostics(value))
+                return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+              if (!Version(&value) || value.reserved || value.timing_mask > 15 ||
+                  value.timing_source > 3 || value.timing_status > 4 ||
+                  (value.timing_mask &&
+                   (!value.completed_frame || !value.timing_source || value.timing_status != 2)))
+                return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
+              auto times =
+                  std::array{value.shadow_ms, value.world_ms, value.bloom_ms, value.composite_ms};
+              for (unsigned i = 0; i < times.size(); ++i) {
+                if (!(value.timing_mask & (1U << i)))
+                  times[i] = 0;
+                if (!std::isfinite(times[i]) || times[i] < 0)
+                  return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
+              }
+              value.shadow_ms = times[0];
+              value.world_ms = times[1];
+              value.bloom_ms = times[2];
+              value.composite_ms = times[3];
+              value.struct_size = sizeof(value);
+              *v = value;
+              return NEXORA_GAMEPLAY_OK;
+            });
+          },
+          [](void *p, uint32_t mode, uint32_t slot) {
+            return State::Call(p, [&](auto &s) { return s.SetDebug(mode, slot); });
           }};
 }
 } // namespace nexora::twod

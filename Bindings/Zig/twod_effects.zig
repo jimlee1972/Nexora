@@ -81,6 +81,33 @@ fn check(code: i32) Error!void {
         else => error.Lifecycle,
     };
 }
+/// Last completed native frame. timing_mask marks actual GPU measurements; absent values
+/// are unavailable, never a zero-duration claim. Allocations/capacities are not resident VRAM.
+pub const Diagnostics = extern struct {
+    struct_size: u32 = @sizeOf(Diagnostics),
+    abi_version: u32 = 1,
+    timing_mask: u32 = 0,
+    timing_source: u32 = 0,
+    timing_status: u32 = 0,
+    reserved: u32 = 0,
+    completed_frame: u64 = 0,
+    effects_revision: u64 = 0,
+    shadow_dispatches: u64 = 0,
+    world_draws: u64 = 0,
+    bloom_passes: u64 = 0,
+    composite_draws: u64 = 0,
+    shadow_ms: f64 = 0,
+    world_ms: f64 = 0,
+    bloom_ms: f64 = 0,
+    composite_ms: f64 = 0,
+    scene_target_bytes: u64 = 0,
+    shadow_buffer_bytes: u64 = 0,
+    bloom_target_bytes: u64 = 0,
+    upload_capacity_bytes: u64 = 0,
+    peak_effect_bytes: u64 = 0,
+    texture_count: u64 = 0,
+    peak_texture_count: u64 = 0,
+};
 pub const Api = extern struct {
     struct_size: u32 = @sizeOf(Api),
     abi_version: u32 = 1,
@@ -89,17 +116,32 @@ pub const Api = extern struct {
     get_state: ?*const fn (?*anyopaque, *State) callconv(.c) i32 = null,
     submit_frame: ?*const fn (?*anyopaque, *const Frame) callconv(.c) i32 = null,
     pool_identity: ?*const fn (?*anyopaque, u64, u32, u32, *u64) callconv(.c) i32 = null,
+    get_diagnostics: ?*const fn (?*anyopaque, *Diagnostics) callconv(.c) i32 = null,
+    set_debug_view: ?*const fn (?*anyopaque, u32, u32) callconv(.c) i32 = null,
     pub fn valid(self: Api) bool {
         return self.struct_size >= @offsetOf(Api, "pool_identity") and self.abi_version == 1 and
             self.get_capabilities != null and self.get_state != null and self.submit_frame != null;
     }
     pub fn poolIdentity(self: Api, handle: anytype) Error!u64 {
-        if (!self.valid() or self.struct_size < @sizeOf(Api)) return error.Unsupported;
+        if (!self.valid() or self.struct_size < @offsetOf(Api, "pool_identity") + @sizeOf(@FieldType(Api, "pool_identity"))) return error.Unsupported;
         const resolve = self.pool_identity orelse return error.Unsupported;
         var identity: u64 = 0;
         try check(resolve(self.context, handle.owner, handle.index, handle.generation, &identity));
         if (identity == 0) return error.Lifecycle;
         return identity;
+    }
+    pub fn diagnostics(self: Api) Error!Diagnostics {
+        if (!self.valid() or self.struct_size < @offsetOf(Api, "get_diagnostics") + @sizeOf(@FieldType(Api, "get_diagnostics"))) return error.Unsupported;
+        const query = self.get_diagnostics orelse return error.Unsupported;
+        var result = Diagnostics{};
+        try check(query(self.context, &result));
+        if (result.struct_size < @sizeOf(Diagnostics) or result.abi_version != 1) return error.Unsupported;
+        return result;
+    }
+    pub fn debugView(self: Api, mode: u32, shadow_slot: u32) Error!void {
+        if (!self.valid() or self.struct_size < @offsetOf(Api, "set_debug_view") + @sizeOf(@FieldType(Api, "set_debug_view"))) return error.Unsupported;
+        const request = self.set_debug_view orelse return error.Unsupported;
+        try check(request(self.context, mode, shadow_slot));
     }
     pub fn poolSprite(self: Api, handle: anytype) Error!Sprite {
         return .{ .handle = try self.poolIdentity(handle), .kind = 1 };

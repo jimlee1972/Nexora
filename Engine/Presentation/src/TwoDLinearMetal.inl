@@ -7,6 +7,10 @@ struct TwoDBloomTarget {
   std::uint64_t bytes{};
 };
 struct TwoDLinearFrame {
+  id<MTLCounterSampleBuffer> effectsQueries = nil;
+  TwoDEffectsFrameDiagnostics pending;
+  std::chrono::steady_clock::time_point effectsSubmittedAt{};
+  uint32_t profilingStatus{}, counterMode{};
   std::array<TwoDBloomTarget, 9> bloom;
 
   std::array<id<MTLTexture>, 2> colors{};
@@ -22,12 +26,112 @@ id<MTLRenderPipelineState> twoDBloomPipeline_ = nil;
 id<MTLRenderPipelineState> twoDLinearPipeline_ = nil;
 id<MTLRenderPipelineState> twoDLinearInstancePipeline_ = nil;
 id<MTLRenderPipelineState> twoDLinearCompositePipeline_ = nil;
+void UpdateTwoDResourceStats() noexcept {
+  uint64_t upload{};
+  for (const auto &slot : twoDLinearFrames_)
+    upload += slot.capacity;
+  detail::TrackTwoDResources(diagnostics_, upload, uiTextures_.size());
+}
+void InitializeTwoDEffectsTiming(TwoDLinearFrame &f) {
+  f.profilingStatus = !gpuTimingEnabled_ ? 0 : 3;
+  if (!gpuTimingEnabled_)
+    return;
+  if (@available(macOS 11.0, *)) {
+    const bool stage = [device_ supportsCounterSampling:MTLCounterSamplingPointAtStageBoundary];
+    const bool commands =
+        [device_ supportsCounterSampling:MTLCounterSamplingPointAtDrawBoundary] &&
+        [device_ supportsCounterSampling:MTLCounterSamplingPointAtDispatchBoundary];
+    if (!stage && !commands)
+      return;
+    id<MTLCounterSet> timestampSet = nil;
+    for (id<MTLCounterSet> set in device_.counterSets)
+      if ([set.name isEqualToString:MTLCommonCounterSetTimestamp]) {
+        timestampSet = set;
+        break;
+      }
+    if (!timestampSet)
+      return;
+    auto descriptor = [MTLCounterSampleBufferDescriptor new];
+    descriptor.counterSet = timestampSet;
+    descriptor.sampleCount = 8;
+    descriptor.storageMode = MTLStorageModeShared;
+    NSError *error = nil;
+    f.effectsQueries = [device_ newCounterSampleBufferWithDescriptor:descriptor error:&error];
+    f.counterMode = stage ? 1 : 2;
+    f.profilingStatus = f.effectsQueries ? 1 : 4;
+  }
+}
+void CollectTwoDEffects(TwoDLinearFrame &f) noexcept {
+  if (!f.pending.completedFrame)
+    return;
+  auto completed = f.pending;
+  completed.timingSource = f.effectsQueries ? 3U : 0U;
+  completed.timingStatus = f.profilingStatus;
+  completed.timingMask = 0;
+  if (@available(macOS 11.0, *)) {
+    if (f.effectsQueries) {
+      NSData *resolved = [f.effectsQueries resolveCounterRange:NSMakeRange(0, 8)];
+      if (resolved && resolved.length == 8 * sizeof(MTLCounterResultTimestamp)) {
+        std::array<MTLCounterResultTimestamp, 8> values{};
+        std::memcpy(values.data(), resolved.bytes, sizeof(values));
+        for (unsigned pass = 0; pass < 4; ++pass) {
+          const auto begin = values[2 * pass].timestamp, end = values[2 * pass + 1].timestamp;
+          if (!completed.work[pass])
+            continue;
+          if (!begin || !end || begin == MTLCounterErrorValue || end == MTLCounterErrorValue) {
+            completed.timingStatus = 3;
+            continue;
+          }
+          // Metal's timestamp counter values are native nanoseconds, not command-buffer CPU times.
+          const auto measured = detail::TimestampMilliseconds(
+              begin, end, 64, 1.0, detail::CompletionWallMilliseconds(f.effectsSubmittedAt));
+          if (measured) {
+            completed.milliseconds[pass] = *measured;
+            completed.timingMask |= 1U << pass;
+          } else
+            completed.timingStatus = 3;
+        }
+      } else
+        completed.timingStatus = 4;
+    }
+  }
+  detail::PublishTwoDEffects(diagnostics_, completed);
+  f.pending = {};
+}
+void AttachTwoDRenderTiming(MTLRenderPassDescriptor *pass, TwoDLinearFrame &f, NSUInteger begin,
+                            NSUInteger end) {
+  if (@available(macOS 11.0, *)) {
+    if (f.effectsQueries && f.counterMode == 1) {
+      auto attachment = pass.sampleBufferAttachments[0];
+      attachment.sampleBuffer = f.effectsQueries;
+      attachment.startOfVertexSampleIndex = begin;
+      attachment.endOfVertexSampleIndex = MTLCounterDontSample;
+      attachment.startOfFragmentSampleIndex = MTLCounterDontSample;
+      attachment.endOfFragmentSampleIndex = end;
+    }
+  }
+}
+void SampleTwoDRenderTiming(id<MTLRenderCommandEncoder> encoder, TwoDLinearFrame &f,
+                            NSUInteger marker) {
+  if (@available(macOS 11.0, *)) {
+    if (f.effectsQueries && f.counterMode == 2 && marker != MTLCounterDontSample)
+      [encoder sampleCountersInBuffer:f.effectsQueries atSampleIndex:marker withBarrier:YES];
+  }
+}
+void SampleTwoDComputeTiming(id<MTLComputeCommandEncoder> encoder, TwoDLinearFrame &f,
+                             NSUInteger marker) {
+  if (@available(macOS 11.0, *)) {
+    if (f.effectsQueries && f.counterMode == 2)
+      [encoder sampleCountersInBuffer:f.effectsQueries atSampleIndex:marker withBarrier:YES];
+  }
+}
 void ResetTwoDLinearFrame(TwoDLinearFrame &f) {
   diagnostics_.twoDLinearTargetBytes -= f.allocationBytes;
   for (const auto &target : f.bloom)
     diagnostics_.twoDBloomTargetBytes -= target.bytes;
   diagnostics_.twoDShadowBufferBytes -= f.shadowBytes;
   f = {};
+  UpdateTwoDResourceStats();
 }
 void ResetTwoDLinearFrames() {
   for (auto &f : twoDLinearFrames_)
@@ -167,9 +271,13 @@ bool DrawTwoDBloom(TwoDLinearFrame &f, const TwoDLinearDrawData &data, std::size
     pass.colorAttachments[0].loadAction = MTLLoadActionClear;
     pass.colorAttachments[0].storeAction = MTLStoreActionStore;
     pass.colorAttachments[0].clearColor = MTLClearColorMake(0, 0, 0, 1);
+    const NSUInteger begin = &step == &plan.steps.front() ? 4 : MTLCounterDontSample;
+    const NSUInteger end = &step == &plan.steps.back() ? 5 : MTLCounterDontSample;
+    AttachTwoDRenderTiming(pass, f, begin, end);
     auto encoder = [commands_ renderCommandEncoderWithDescriptor:pass];
     if (!encoder)
       return false;
+    SampleTwoDRenderTiming(encoder, f, begin);
     [encoder setRenderPipelineState:twoDBloomPipeline_];
     TwoDShaderConstants constants{{2.F / width_, -2.F / height_, -1, 1}};
     constants.style[3] = step.up ? 1 : 0;
@@ -190,7 +298,9 @@ bool DrawTwoDBloom(TwoDLinearFrame &f, const TwoDLinearDrawData &data, std::size
                          indexType:MTLIndexTypeUInt32
                        indexBuffer:f.upload
                  indexBufferOffset:quadOffset + sizeof(UiVertex) * 4];
+    SampleTwoDRenderTiming(encoder, f, end);
     [encoder endEncoding];
+    ++f.pending.work[2];
     ++diagnostics_.twoDBloomPasses;
     ++diagnostics_.nativeUiDrawCalls;
   }
@@ -224,6 +334,7 @@ bool CreateTwoDLinearTargets(TwoDLinearFrame &f) {
     return false;
   f.shadowBytes = static_cast<std::uint64_t>(f.shadowBuffer.allocatedSize);
   diagnostics_.twoDShadowBufferBytes += f.shadowBytes;
+  InitializeTwoDEffectsTiming(f);
   ++diagnostics_.twoDLinearTargetAllocations;
   return true;
 }
@@ -293,6 +404,9 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
       for (const auto &c : packet->commands)
         if (!uiTextures_.contains(c.textureId))
           return SurfaceStatus::InvalidDescriptor;
+    f.pending = {};
+    f.pending.effectsRevision = data.lighting ? data.lighting->effectsRevision : 0;
+    f.effectsSubmittedAt = std::chrono::steady_clock::now();
     const auto vertices = std::as_bytes(data.world.vertices);
     const auto instances = std::as_bytes(data.world.spriteInstances);
     const auto instanceOffset =
@@ -335,16 +449,31 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
       std::memcpy(bytes + edgeOffset, data.lighting->edges.data(),
                   data.lighting->edges.size_bytes());
     if (data.lighting && data.lighting->uniforms.counts[1]) {
-      auto compute = [commands_ computeCommandEncoder];
+      id<MTLComputeCommandEncoder> compute = nil;
+      if (@available(macOS 11.0, *)) {
+        if (f.effectsQueries && f.counterMode == 1) {
+          auto pass = [MTLComputePassDescriptor computePassDescriptor];
+          pass.sampleBufferAttachments[0].sampleBuffer = f.effectsQueries;
+          pass.sampleBufferAttachments[0].startOfEncoderSampleIndex = 0;
+          pass.sampleBufferAttachments[0].endOfEncoderSampleIndex = 1;
+          compute = [commands_ computeCommandEncoderWithDescriptor:pass];
+        } else
+          compute = [commands_ computeCommandEncoder];
+      } else
+        compute = [commands_ computeCommandEncoder];
+
       if (!compute)
         return SurfaceStatus::DeviceLost;
+      SampleTwoDComputeTiming(compute, f, 0);
       [compute setComputePipelineState:twoDShadowPipeline_];
       [compute setBuffer:f.upload offset:uniformOffset atIndex:1];
       [compute setBuffer:f.upload offset:edgeOffset atIndex:5];
       [compute setBuffer:f.shadowBuffer offset:0 atIndex:7];
       [compute dispatchThreadgroups:MTLSizeMake(16, data.lighting->uniforms.counts[1], 1)
               threadsPerThreadgroup:MTLSizeMake(64, 1, 1)];
+      SampleTwoDComputeTiming(compute, f, 1);
       [compute endEncoding];
+      ++f.pending.work[0];
       ++diagnostics_.twoDShadowDispatches;
       diagnostics_.twoDShadowSamples += uint64_t(data.lighting->uniforms.counts[1]) * 1024;
     }
@@ -355,9 +484,11 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
       pass.colorAttachments[i].storeAction = MTLStoreActionStore;
       pass.colorAttachments[i].clearColor = MTLClearColorMake(0, 0, 0, 1);
     }
+    AttachTwoDRenderTiming(pass, f, 2, 3);
     auto encoder = [commands_ renderCommandEncoderWithDescriptor:pass];
     if (!encoder)
       return SurfaceStatus::DeviceLost;
+    SampleTwoDRenderTiming(encoder, f, 2);
     TwoDShaderConstants transform{{2.F / width_, -2.F / height_, -1, 1}};
     [encoder setViewport:MTLViewport{0, 0, double(width_), double(height_), 0, 1}];
     [encoder setVertexBytes:&transform length:sizeof(transform) atIndex:0];
@@ -406,10 +537,12 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
                        baseVertex:c.vertexOffset
                      baseInstance:0];
       }
+      ++f.pending.work[1];
       if (transform.emission[3] > 0)
         ++diagnostics_.twoDEmissionDraws;
       ++diagnostics_.nativeUiDrawCalls;
     }
+    SampleTwoDRenderTiming(encoder, f, 3);
     [encoder endEncoding];
     if (!DrawTwoDBloom(f, data, quadOffset))
       return SurfaceStatus::DeviceLost;
@@ -418,16 +551,20 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
     pass.colorAttachments[0].loadAction = MTLLoadActionClear;
     pass.colorAttachments[0].storeAction = MTLStoreActionStore;
     pass.colorAttachments[0].clearColor = MTLClearColorMake(0, 0, 0, 1);
+    AttachTwoDRenderTiming(pass, f, 6, 7);
     encoder = [commands_ renderCommandEncoderWithDescriptor:pass];
     if (!encoder)
       return SurfaceStatus::DeviceLost;
+    SampleTwoDRenderTiming(encoder, f, 6);
     [encoder setRenderPipelineState:twoDLinearCompositePipeline_];
+    transform.SetCompositeViewport(width_, height_, data.viewport);
     [encoder setViewport:MTLViewport{0, 0, double(width_), double(height_), 0, 1}];
     [encoder setVertexBytes:&transform length:sizeof(transform) atIndex:0];
     [encoder setVertexBuffer:f.upload offset:quadOffset atIndex:1];
     [encoder setFragmentTexture:f.colors[0] atIndex:0];
     [encoder setFragmentBytes:&transform length:sizeof(transform) atIndex:0];
     [encoder setFragmentBuffer:f.upload offset:uniformOffset atIndex:1];
+    [encoder setFragmentBuffer:f.shadowBuffer offset:0 atIndex:6];
     const auto bloomPlan =
         PrepareTwoDBloom(width_, height_, data.lighting ? &data.lighting->uniforms : nullptr);
     [encoder setFragmentTexture:bloomPlan.result < 0 ? f.colors[1]
@@ -444,6 +581,8 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
                          indexType:MTLIndexTypeUInt32
                        indexBuffer:f.upload
                  indexBufferOffset:quadOffset + sizeof(quad)];
+    SampleTwoDRenderTiming(encoder, f, 7);
+    f.pending.work[3] = 1;
     [encoder endEncoding];
     sceneDrawn_ = true;
     ++diagnostics_.nativeUiDrawCalls;
@@ -453,6 +592,8 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
       if (result != SurfaceStatus::Ready)
         return result;
     }
+    f.pending.completedFrame = diagnostics_.twoDLinearFrames + 1;
+    UpdateTwoDResourceStats();
     ++diagnostics_.twoDLinearFrames;
     return SurfaceStatus::Ready;
   }

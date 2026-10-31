@@ -38,6 +38,7 @@ public:
       }
     }
   }
+  double Distance(unsigned slot, unsigned angle) const { return maps_.at(slot).at(angle); }
   double Visibility(const TwoDPointLight &light, double x, double y) const {
     if (!light.masks[1])
       return 1;

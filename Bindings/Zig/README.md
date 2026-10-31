@@ -57,8 +57,8 @@ try effects.submit(.{ .enabled = 1, .ambient = .{ 0.2, 0.2, 0.25 } },
     &.{}, &.{pooled_style});
 ```
 
-Check `(try effects.capabilities()).features` first. At this stage LIGHTING is available on capable native
-surfaces; SHADOWS and BLOOM are separate later gates. `poolSprite` resolves an opaque effect
+Check `(try effects.capabilities()).features` first. LIGHTING, SHADOWS and BLOOM are independently advertised by capable native
+surfaces; check the actual host rather than assuming all flags. `poolSprite` resolves an opaque effect
 identity, preserving all fields of the existing pool handle; never truncate a handle or use a
 sorted Sprite index. Tokens are service-local runtime data and must not be saved. The optional
 table tail negotiates independently: old hosts retain original effects operations while pool
@@ -70,3 +70,18 @@ resolves base-region to mask-region and `apply` fills an existing effects Sprite
 its entity/pool identity. Keep the copied bytes alive, register/load the mask Atlas first, then
 submit normally. Parsing is allocation-free and rejects malformed/truncated/duplicate links;
 original effects table and Sprite layouts do not change. [Contract](../../Engine/TwoD/EmissionAssets.md).
+
+
+## DEV ONLY HD2D scene and GPU observations
+
+`nx.hd2d_diagnostic.State` is a reusable Zig-controlled scene. See
+[diagnostic controls, assets and limitations](diagnostic/README.md). Use `.start(host, .{})`,
+`.update(delta_seconds)`, `.stop()` from your module lifecycle. Stop before restoring another
+scene; these fixtures reserve their own Atlas IDs and restore the previous camera.
+
+`try effects.diagnostics()` negotiates the optional suffix independently from the original
+40-byte table and 48-byte pool-identity table. `try effects.debugView(mode, slot)` copies a
+normal view (mode 0, slot 0) or native angular map view (mode 1, slot 0..7) for the next boundary.
+Old hosts return `error.Unsupported`; original submission/pool operations remain usable.
+Only `timing_mask` bits identify measured GPU durations. Unavailable values are not zero-time
+measurements. [Ownership, validity and measurement scope](../../Engine/TwoD/GameplayEffects.md).

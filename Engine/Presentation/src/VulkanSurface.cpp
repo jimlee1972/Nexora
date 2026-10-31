@@ -11,6 +11,7 @@
 #include "SceneInstanceUpload.h"
 #include "SceneTextureMipmaps.h"
 #include "SceneViewAdmission.h"
+#include "TwoDEffectsProfiling.h"
 
 #include "ScenePbrVulkanShaders.h"
 #include "SceneToneVulkanShaders.h"
@@ -241,6 +242,7 @@ public:
     if (vkWaitForFences(device_, 1, &frame.fence, VK_TRUE, UINT64_MAX) != VK_SUCCESS)
       return SurfaceStatus::DeviceLost;
     CollectGpuTiming(frame);
+    CollectTwoDEffects(twoDLinearFrames_[frame_]);
     twoDLinearRecorded_ = false;
     meshResidency_.BeginFrame();
     DestroyFrameRetirements(frame);
@@ -1190,7 +1192,11 @@ public:
     ++diagnostics_.presentedFrames;
     return SurfaceStatus::Ready;
   }
-  SurfaceDiagnostics Diagnostics() const noexcept override { return diagnostics_; }
+  SurfaceDiagnostics Diagnostics() const noexcept override {
+    auto result = diagnostics_;
+    result.twoDTextureCount = uiTextures_.size();
+    return result;
+  }
   SurfaceStatus ReleaseSpriteTextures(std::span<const std::uint64_t> ids) override {
     if (!OnThread())
       return SurfaceStatus::WrongThread;

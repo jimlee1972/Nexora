@@ -14,6 +14,7 @@ struct TwoDLightingUniform {
     float4 ambientStrength;
     uint4 counts;
     uint4 shadowLights[2];
+    uint4 debug;
     float4 bloom;
     TwoDPointLight lights[32];
 };
@@ -162,6 +163,17 @@ TwoDFragment twoDFragmentMain(TwoDVertex input) {
 }
 [shader("fragment")]
 float4 twoDCompositeMain(TwoDVertex input) : SV_Target0 {
+    if (lighting.debug.x == 1) {
+        uint slot = lighting.debug.y;
+        if (slot >= lighting.counts.y) return float4(1, 0, 1, 1);
+        uint lightIndex = lighting.shadowLights[slot / 4][slot % 4];
+        float radius = lighting.lights[lightIndex].positionRadiusIntensity.z;
+        uint angle = min(uint(saturate(input.uv.x * transform.emissionUv.x + transform.emissionUv.z) * 1024), 1023U);
+        float distance = shadowDistances[slot * 1024 + angle];
+        float normalized = radius > 0 ? saturate(distance / radius) : 0;
+        // Diagnostic map displays native data directly, with only the output sRGB encoding.
+        return float4(float3(normalized), 1);
+    }
     float3 radiance = clamp(colorTexture.Sample(input.uv).rgb, float3(0), float3(65504));
     if (lighting.counts.w > 0 && lighting.bloom.x > 0 && lighting.ambientStrength.w > 0)
         radiance = min(radiance + auxiliaryTexture.Sample(input.uv).rgb *

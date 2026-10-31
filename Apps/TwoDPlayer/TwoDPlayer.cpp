@@ -181,7 +181,7 @@ NexoraGameplayHostV3 Host(Context &c) {
 
 int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3Fn builtin) {
   try {
-    bool native{}, interactive{}, requireMovement{}, audioOutput{}, framesSpecified{};
+    bool native{}, interactive{}, requireMovement{}, audioOutput{}, framesSpecified{}, gpuTiming{};
     unsigned audioOpenAttempts{}, audioOpenSuccesses{}, audioPumpFailures{};
     auto backend = Nexora::Presentation::SurfaceBackend::Automatic;
     unsigned frames = 60;
@@ -193,6 +193,8 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
             "duplicate argument");
       if (arg == "--native")
         native = true;
+      else if (arg == "--gpu-timing")
+        gpuTiming = true;
       else if (arg == "--audio")
         audioOutput = true;
       else if (arg == "--backend" && i + 1 < argc) {
@@ -505,6 +507,7 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
       d.borderless = project && project->borderless;
       d.fitToWorkArea = true;
       d.srgbUiOutput = true;
+      d.enableGpuTiming = gpuTiming;
       d.backend = backend;
       surface = Nexora::Presentation::CreateRenderSurface(d);
       if (!surface)
@@ -526,6 +529,33 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
         },
         [&](twod::EffectsPoolIdentity h) {
           return pool.Find({h.owner, h.index, h.generation}) != nullptr;
+        },
+        [&](NexoraTwoDEffectsDiagnosticsV1 &out) {
+          if (!native)
+            return false;
+          const auto stats = surface.surface->Diagnostics();
+          const auto &frame = stats.twoDEffects;
+          out.completed_frame = frame.completedFrame;
+          out.effects_revision = frame.effectsRevision;
+          out.timing_mask = frame.timingMask;
+          out.timing_source = frame.timingSource;
+          out.timing_status = frame.completedFrame ? frame.timingStatus : (gpuTiming ? 1U : 0U);
+          out.shadow_dispatches = frame.work[0];
+          out.world_draws = frame.work[1];
+          out.bloom_passes = frame.work[2];
+          out.composite_draws = frame.work[3];
+          out.shadow_ms = frame.milliseconds[0];
+          out.world_ms = frame.milliseconds[1];
+          out.bloom_ms = frame.milliseconds[2];
+          out.composite_ms = frame.milliseconds[3];
+          out.scene_target_bytes = stats.twoDLinearTargetBytes;
+          out.shadow_buffer_bytes = stats.twoDShadowBufferBytes;
+          out.bloom_target_bytes = stats.twoDBloomTargetBytes;
+          out.upload_capacity_bytes = stats.twoDUploadCapacityBytes;
+          out.peak_effect_bytes = stats.twoDEffectsPeakBytes;
+          out.texture_count = stats.twoDTextureCount;
+          out.peak_texture_count = stats.twoDPeakTextureCount;
+          return true;
         });
     services.twod_effects = effects.Api();
     twod::GameplayDisplay display([&](const NexoraDisplayWindowV1 &request) -> int32_t {
@@ -917,7 +947,7 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
               extracted->DrawLinear(*surface.surface, lighting->uniforms, overlay.DrawData(),
                                     {uint32_t(viewport.x), uint32_t(viewport.y),
                                      uint32_t(viewport.width), uint32_t(viewport.height)},
-                                    background, lighting->edges);
+                                    background, lighting->edges, effectsState->revision);
         } else {
           drawStatus = extracted->Draw(*surface.surface, overlay.DrawData(), background);
         }
@@ -1010,6 +1040,11 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
       Check(surface.surface->DrainAndDestroy() == Nexora::Presentation::SurfaceStatus::Ready,
             "surface shutdown");
     engine.Shutdown();
+    const auto effectMilliseconds = [&](unsigned pass) {
+      return (gpu.twoDEffects.timingMask & (1U << pass))
+                 ? std::to_string(gpu.twoDEffects.milliseconds[pass])
+                 : std::string("null");
+    };
     const std::string evidence =
         "{\"status\":\"PASS\",\"module_abi\":3,\"project_mode\":" +
         std::string(project ? "true" : "false") +
@@ -1023,6 +1058,21 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
         ",\"viewport_width\":" + std::to_string(display.State().viewport_pixels.width) +
         ",\"viewport_height\":" + std::to_string(display.State().viewport_pixels.height) +
         ",\"native_ui_draws\":" + std::to_string(gpu.nativeUiDrawCalls) +
+        ",\"effects_completed_frame\":" + std::to_string(gpu.twoDEffects.completedFrame) +
+        ",\"effects_revision\":" + std::to_string(gpu.twoDEffects.effectsRevision) +
+        ",\"effects_timing_mask\":" + std::to_string(gpu.twoDEffects.timingMask) +
+        ",\"effects_timing_source\":" + std::to_string(gpu.twoDEffects.timingSource) +
+        ",\"effects_timing_status\":" + std::to_string(gpu.twoDEffects.timingStatus) +
+        ",\"effects_shadow_ms\":" + effectMilliseconds(0) +
+        ",\"effects_world_ms\":" + effectMilliseconds(1) +
+        ",\"effects_bloom_ms\":" + effectMilliseconds(2) +
+        ",\"effects_composite_ms\":" + effectMilliseconds(3) +
+        ",\"effects_scene_bytes\":" + std::to_string(gpu.twoDLinearTargetBytes) +
+        ",\"effects_shadow_bytes\":" + std::to_string(gpu.twoDShadowBufferBytes) +
+        ",\"effects_bloom_bytes\":" + std::to_string(gpu.twoDBloomTargetBytes) +
+        ",\"effects_upload_capacity_bytes\":" + std::to_string(gpu.twoDUploadCapacityBytes) +
+        ",\"effects_peak_bytes\":" + std::to_string(gpu.twoDEffectsPeakBytes) +
+        ",\"effects_peak_textures\":" + std::to_string(gpu.twoDPeakTextureCount) +
         ",\"native_ui_texture_uploads\":" + std::to_string(gpu.nativeUiTextureUploads) +
         ",\"resize_generations\":" + std::to_string(gpu.resizeGenerations) +
         ",\"surface_backend_requested\":\"" +

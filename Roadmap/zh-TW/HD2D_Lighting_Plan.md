@@ -17,7 +17,7 @@ Beads 是任務狀態來源；本表為審閱用快照。工程以已驗收子�
 | ✅ HD2D-03 | `nexora-m6m.3` | 動態局部點光源 | 02 | 已驗收 PR #736，squash `40c96072`；目前提交的原生 DX12／Metal 與 Linux gate 通過 |
 | ✅ HD2D-04 | `nexora-m6m.4` | 動態遮擋與柔影 | 03 | 已驗收 PR #737／`0845c078`；最終提交的原生 DX12／Metal 與完整 Linux CI 通過 |
 | HD2D-05 | `nexora-m6m.5` | 選擇性發光與 bloom | 02 | IN_PROGRESS — 明示 mask／bloom、工具／回收／原生本地驗證；CI 待驗 |
-| HD2D-06 | `nexora-m6m.6` | Zig 診斷與原生驗證 | 03, 04, 05 | NOT_RUN |
+| HD2D-06 | `nexora-m6m.6` | Zig 診斷與原生驗證 | 03, 04, 05 | IN_PROGRESS — 實際 Zig 四尺寸原生診斷、GPU 時間與陰影圖檢視；完整／原生 CI 待驗 |
 | HD2D-07 | `nexora-m6m.7` | SDK 0.2.0 與遊戲接入 | 06 | NOT_RUN |
 | HD2D-PC | `nexora-m6m.8` | Windows 實機驗收 | 07 | NOT_RUN |
 
@@ -59,3 +59,7 @@ HD2D-03 已驗收：PR #736／`40c96072`；目前提交的 Windows job `12436509
 HD2D-05 補上整條管線關閉後的回收：原繪製路徑逐槽釋放已完成的離屏資源，保護後加 HUD，重新啟用可重建。依連結保留本地／原生 gate 證據；CI 前不計驗收完成。
 
 HD2D-04 已驗收：PR #737／`0845c078`，受測 `dd256588`。Windows52 原生畫面／425 CTests、Metal52／400、Linux483；最終34 項檢查完成（10 項為文件 push 正常略過）。HD2D-05 初步提交9e2323ce 的41 項檢查及 DX12／Metal53 畫面讀回通過；僅相依 rebase 保留執行程式內容，仍須最終提交 CI。工程4/7；實機 PC NOT_RUN。
+
+HD2D-06：可重用 Zig 場景、原生 GPU 陰影圖檢視、已完成 slot 的逐 pass 時間、四尺寸匯出 Player 與明確不可用狀態。[本地證據](../../Engine/TwoD/evidence/HD2D-06-Linux-2026-10-31.md)；IN_PROGRESS，不增加已驗收完成度。
+
+HD2D-03 驗收收據：PR #736／`40c96072`；目前提交的 Windows job `124365092041`（425 項 CTest）與 macOS job `124365092312`（400 項 CTest）通過實際原生像素讀回。實機 PC 仍 NOT_RUN。
