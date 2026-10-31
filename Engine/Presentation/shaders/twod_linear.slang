@@ -1,6 +1,6 @@
 // Flat 2D linear scene/emission composition; deliberately independent from the 3D scene path.
 import Nexora.Common;
-struct TwoDTransform { float4 clip; uint4 style; };
+struct TwoDTransform { float4 clip; uint4 style; float4 emission; float4 emissionUv; };
 struct TwoDPointLight {
     float4 positionRadiusIntensity;
     float4 color;
@@ -14,6 +14,7 @@ struct TwoDLightingUniform {
     float4 ambientStrength;
     uint4 counts;
     uint4 shadowLights[2];
+    float4 bloom;
     TwoDPointLight lights[32];
 };
 [[vk::binding(0, 1)]] ConstantBuffer<TwoDLightingUniform> lighting : register(b1);
@@ -23,6 +24,7 @@ struct TwoDLightingUniform {
 [[vk::binding(0, 1)]] ConstantBuffer<TwoDTransform> transform : register(b0);
 #endif
 [[vk::binding(0, 0)]] Sampler2D<float4> colorTexture : register(t0);
+[[vk::binding(0, 2)]] Sampler2D<float4> auxiliaryTexture : register(t1);
 [[vk::binding(1, 1)]] StructuredBuffer<TwoDShadowEdge> shadowEdges : register(t5);
 [[vk::binding(2, 1)]] StructuredBuffer<float> shadowDistances : register(t6);
 [[vk::binding(3, 1)]] RWStructuredBuffer<float> shadowOutput : register(u7);
@@ -148,14 +150,42 @@ TwoDFragment twoDFragmentMain(TwoDVertex input) {
             illumination += light.color.rgb * (light.positionRadiusIntensity.w * attenuation * lighting.ambientStrength.w);
         }
     }
-    output.scene = float4(clamp(color.rgb * illumination, float3(0), float3(65504)), saturate(color.a));
-    // An ordinary Sprite occludes prior emission according to its actual coverage.
-    output.emission = float4(0, 0, 0, saturate(color.a));
+    float3 emission = float3(0);
+    if (transform.emission.w > 0) {
+        float mask = auxiliaryTexture.Sample(input.uv * transform.emissionUv.xy + transform.emissionUv.zw).r;
+        emission = min(transform.emission.rgb * (transform.emission.w * saturate(mask)), float3(65504));
+    }
+    output.scene = float4(clamp(color.rgb * illumination + emission * lighting.ambientStrength.w, float3(0), float3(65504)), saturate(color.a));
+    // Every Sprite writes actual coverage in the same sorted MRT pass, even with zero emission.
+    output.emission = float4(emission, saturate(color.a));
     return output;
 }
 [shader("fragment")]
 float4 twoDCompositeMain(TwoDVertex input) : SV_Target0 {
     float3 radiance = clamp(colorTexture.Sample(input.uv).rgb, float3(0), float3(65504));
+    if (lighting.counts.w > 0 && lighting.bloom.x > 0 && lighting.ambientStrength.w > 0)
+        radiance = min(radiance + auxiliaryTexture.Sample(input.uv).rgb *
+                      (lighting.bloom.x * lighting.ambientStrength.w), float3(65504));
     // The sRGB attachment performs the sole output encoding; HUD is drawn afterwards.
     return float4(NexoraAcesApproximate(radiance), 1);
+}
+
+[shader("fragment")]
+float4 twoDBloomMain(TwoDVertex input) : SV_Target0 {
+    float2 step = transform.emission.xy;
+    float3 result = float3(0);
+    if (transform.style.w == 0) {
+        result = (colorTexture.Sample(input.uv + step * float2(-0.5, -0.5)).rgb +
+                  colorTexture.Sample(input.uv + step * float2( 0.5, -0.5)).rgb +
+                  colorTexture.Sample(input.uv + step * float2(-0.5,  0.5)).rgb +
+                  colorTexture.Sample(input.uv + step * float2( 0.5,  0.5)).rgb) * 0.25;
+    } else {
+        for (int y = -1; y <= 1; ++y)
+            for (int x = -1; x <= 1; ++x) {
+                float weight = float((x == 0 ? 2 : 1) * (y == 0 ? 2 : 1)) / 16.0;
+                result += colorTexture.Sample(input.uv + step * float2(x, y)).rgb * weight;
+            }
+        result = (result + auxiliaryTexture.Sample(input.uv).rgb) * 0.5;
+    }
+    return float4(clamp(result, float3(0), float3(65504)), 1);
 }

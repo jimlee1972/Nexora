@@ -270,3 +270,7 @@ publishes one immutable effects snapshot before updates, resolves current entity
 identities after updates and carries copied styles through common Sprite/tile sorting. The same
 frozen camera/safe-frame pixel rectangle prepares both geometry and world-space illumination.
 No game-specific light rules or interactive diagnostic controls are implemented in the C++ host.
+
+Selective bloom is independently advertised through the effects capability. Explicit linear mask Atlases
+resolve through normal content; effect styles retain them during extraction and complete-frame rendering.
+Load companion links through deferred blobs in Zig; [format and ownership](../../Engine/TwoD/EmissionAssets.md).

@@ -513,13 +513,17 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
     twod::GameplayEffects effects(
         native && surface.surface->SupportsTwoDLinear()
             ? NEXORA_TWOD_EFFECTS_LIGHTING |
-                  (surface.surface->SupportsTwoDShadows() ? NEXORA_TWOD_EFFECTS_SHADOWS : 0)
+                  (surface.surface->SupportsTwoDShadows() ? NEXORA_TWOD_EFFECTS_SHADOWS : 0) |
+                  (surface.surface->SupportsTwoDBloom() ? NEXORA_TWOD_EFFECTS_BLOOM : 0)
             : 0,
         [&](uint32_t kind, uint64_t handle) {
           return kind == NEXORA_TWOD_EFFECTS_ENTITY && world.FindEntity(handle) &&
                  scene.Find(handle);
         },
-        {},
+        [&](uint64_t high, uint64_t low, uint32_t region) {
+          const auto binding = content.ResolveAtlas({high, low});
+          return binding && !binding->atlas->nearest && binding->atlas->Find(region);
+        },
         [&](twod::EffectsPoolIdentity h) {
           return pool.Find({h.owner, h.index, h.generation}) != nullptr;
         });
@@ -830,8 +834,7 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
       std::vector<twod::SpriteInstance> instances;
       auto poses = world.SceneWorldPoses(sceneId);
       Check(bool(poses), "World poses");
-      std::unordered_map<const twod::Sprite *, Nexora::Presentation::TwoDLightingStyle>
-          effectStyles;
+      std::unordered_map<const twod::Sprite *, const NexoraTwoDEffectsSpriteV1 *> effectStyles;
       if (effectsState->enabled) {
         effectStyles.reserve(effectsState->sprites.size());
         for (const auto &style : effectsState->sprites) {
@@ -845,23 +848,42 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
               sprite = &instance->sprite;
           }
           if (sprite)
-            effectStyles.emplace(
-                sprite, Nexora::Presentation::TwoDLightingStyle{style.groups, style.receive_light,
-                                                                style.receive_shadow, 0});
+            effectStyles.emplace(sprite, &style);
         }
       }
       const auto lightingStyle = [&](const twod::Sprite *sprite) {
         const auto found = effectStyles.find(sprite);
-        return found == effectStyles.end() ? Nexora::Presentation::TwoDLightingStyle{}
-                                           : found->second;
+        if (found == effectStyles.end())
+          return Nexora::Presentation::TwoDLightingStyle{};
+        const auto &s = *found->second;
+        return Nexora::Presentation::TwoDLightingStyle{s.groups, s.receive_light, s.receive_shadow,
+                                                       0};
+      };
+      const auto emissionStyle =
+          [&](const twod::Sprite *sprite) -> std::optional<twod::EmissionSource> {
+        const auto found = effectStyles.find(sprite);
+        if (found == effectStyles.end())
+          return {};
+        const auto &s = *found->second;
+        if (!s.emission_atlas_high && !s.emission_atlas_low)
+          return {};
+        return twod::EmissionSource{{s.emission_atlas_high, s.emission_atlas_low},
+                                    s.emission_region,
+                                    {s.emission_color[0], s.emission_color[1], s.emission_color[2]},
+                                    s.emission_intensity};
       };
       uint64_t identity{};
       for (const auto &pose : *poses)
         if (const auto *v = scene.Find(pose.id))
-          instances.push_back({++identity, *v, pose.matrix, {}, lightingStyle(v)});
+          instances.push_back(
+              {++identity, *v, pose.matrix, {}, lightingStyle(v), emissionStyle(v)});
       pool.ForEach([&](auto &v) {
-        instances.push_back(
-            {++identity, v.sprite, runtime::ToMatrix(v.transform), {}, lightingStyle(&v.sprite)});
+        instances.push_back({++identity,
+                             v.sprite,
+                             runtime::ToMatrix(v.transform),
+                             {},
+                             lightingStyle(&v.sprite),
+                             emissionStyle(&v.sprite)});
       });
       if (hasTiles) {
         auto tileInputs = tiles.Collect(camera);

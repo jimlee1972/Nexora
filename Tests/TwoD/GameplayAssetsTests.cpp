@@ -1,6 +1,8 @@
 #include "Nexora/Core/ProcessMemory.h"
 #include "Nexora/Runtime/GameplayServices.h"
+#include "Nexora/TwoD/EmissionAssets.h"
 #include "Nexora/TwoD/GameplayAssets.h"
+#include "Nexora/TwoD/Scene.h"
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -13,8 +15,8 @@
 #include <thread>
 using namespace nexora;
 namespace {
-twod::Bytes Cook(twod::AssetId id, bool large = false) {
-  twod::Atlas a{id, large ? 2048U : 8U, large ? 2048U : 8U, 1, true, {{1, 1, 1, 2, 2}}, {}};
+twod::Bytes Cook(twod::AssetId id, bool large = false, bool nearest = true) {
+  twod::Atlas a{id, large ? 2048U : 8U, large ? 2048U : 8U, 1, nearest, {{1, 1, 1, 2, 2}}, {}};
   a.rgba.resize(std::size_t(a.width) * a.height * 4, std::byte{255});
   runtime::DerivedDataCache cache;
   const auto cooked = runtime::AssetCooker{}.Cook({id, "sprite_atlas", {}, twod::EncodeAtlas(a)},
@@ -147,6 +149,53 @@ void Portable() {
   }
   assert(Usage(blockedApi).staging_bytes == 0);
 }
+void EmissionResidency() {
+  const twod::AssetId baseId{101, 102}, maskId{103, 104};
+  const twod::EmissionAsset links{{105, 106}, baseId, maskId, {{1, 1}}};
+  const std::array<twod::Bytes, 3> data{Cook(baseId), Cook(maskId, false, false),
+                                        twod::EncodeEmissionAsset(links)};
+  twod::GameplayContent content;
+  twod::GameplayAssets assets(
+      content, {{1, data[0].size(), "0"}, {1, data[1].size(), "1"}, {3, data[2].size(), "2"}},
+      [&](const auto &file) { return data[unsigned(file.path[0] - '0')]; });
+  auto api = Api(assets);
+  uint64_t previousMask{};
+  for (unsigned transition = 0; transition < 6; ++transition) {
+    for (unsigned index = 0; index < 3; ++index) {
+      uint64_t ticket{};
+      assert(api.request(api.context, index, &ticket) == 0);
+      assert(Wait(assets, api, ticket).phase == NEXORA_ASSET_READY);
+      if (index == 2) {
+        twod::Bytes copied(data[index].size());
+        uint64_t size{};
+        assert(api.copy_bytes(api.context, ticket, copied.data(), copied.size(), &size) == 0);
+        const auto decoded = twod::DecodeEmissionAsset(copied);
+        assert(decoded && decoded->maskAtlas == maskId);
+      }
+      assert(api.release_request(api.context, ticket) == 0);
+    }
+    const twod::AtlasResolver resolver = [&](auto id) { return content.ResolveAtlas(id); };
+    twod::SpriteInstance instance{};
+    instance.id = 1;
+    instance.sprite.atlas = baseId;
+    instance.sprite.region = 1;
+    instance.matrix = runtime::ToMatrix(runtime::Transform{});
+    instance.emission = twod::EmissionSource{maskId, 1, {1, 1, 1}, 4};
+    auto frame = twod::ExtractSprites(std::span(&instance, 1), {{}, 10, 0, 200, 100}, resolver);
+    assert(frame && frame->statistics.visible == 1 && frame->retainedAtlases.size() == 2);
+    const auto texture = frame->lightingStyles[0].emissionTexture;
+    assert(texture && texture != previousMask);
+    previousMask = texture;
+    assert(api.remove_asset(api.context, baseId.high, baseId.low) == 0);
+    assert(api.remove_asset(api.context, maskId.high, maskId.low) == 0);
+    assert(content.CollectRetiredTextures().empty() && Usage(api).retired_bytes > 0);
+    assert(frame->Uploads().size() == 2); // A frozen old frame still owns its exact mask pixels.
+    frame = {};
+    assert(content.CollectRetiredTextures().size() == 2);
+    const auto usage = Usage(api);
+    assert(!usage.active_bytes && !usage.retired_bytes && !usage.staging_bytes && !usage.requests);
+  }
+}
 void LiveBudget() {
   twod::GameplayContent content({2, 1000, 1000});
   NexoraGameplayContentApiV1 api{};
@@ -249,6 +298,7 @@ int main(int argc, char **argv) {
     Stress();
   else {
     Portable();
+    EmissionResidency();
     LiveBudget();
   }
 }

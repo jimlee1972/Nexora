@@ -32,6 +32,8 @@ std::optional<LightingFrame> PrepareLighting(const EffectsSnapshot &effects, con
               float(camera.center.y + (-sine * cx + cosine * cy) / scale), 0};
   u.ambientStrength = {effects.ambient[0], effects.ambient[1], effects.ambient[2],
                        effects.strength};
+  u.bloom = {effects.bloom.intensity, effects.bloom.radius, 0, 0};
+  u.counts[3] = effects.bloom.levels;
   frame.submitted = uint32_t(effects.lights.size());
   unsigned submittedShadows{};
   for (const auto &light : effects.lights) {

@@ -2,11 +2,36 @@
 #define small char
 #include "Nexora/Presentation/Surface.h"
 #undef small
+#include "Nexora/Presentation/TwoDBloom.h"
 #include <array>
 #include <cassert>
 #include <limits>
 using namespace Nexora::Presentation;
 int main() {
+  TwoDLightingUniform bloomUniform;
+  bloomUniform.bloom = {1, 64, 0, 0};
+  for (unsigned levels = 1; levels <= 5; ++levels) {
+    bloomUniform.counts[3] = levels;
+    for (const auto dimensions :
+         {std::array<unsigned, 2>{1, 1}, std::array<unsigned, 2>{321, 239}}) {
+      const auto plan = PrepareTwoDBloom(dimensions[0], dimensions[1], &bloomUniform);
+      assert(plan.steps.size() == 2 * levels - 1 && plan.result >= 0);
+      assert(plan.steps.front().width == (dimensions[0] + 1) / 2);
+      assert(plan.steps.front().height == (dimensions[1] + 1) / 2);
+      std::array<bool, 9> written{};
+      for (const auto &step : plan.steps) {
+        assert(step.output >= 0 && step.output < 9 && !written[unsigned(step.output)]);
+        assert(step.source < 0 || written[unsigned(step.source)]);
+        assert(step.detail < 0 || written[unsigned(step.detail)]);
+        assert(step.width > 0 && step.height > 0);
+        written[unsigned(step.output)] = true;
+      }
+    }
+  }
+  assert(PrepareTwoDBloom(0, 240, &bloomUniform).steps.empty());
+  bloomUniform.ambientStrength[3] = 0;
+  assert(PrepareTwoDBloom(320, 240, &bloomUniform).steps.empty());
+
   std::array<UiVertex, 4> vertices{{{{0, 0}, {0, 0}, 0xffffffff},
                                     {{320, 0}, {1, 0}, 0xffffffff},
                                     {{320, 240}, {1, 1}, 0xffffffff},

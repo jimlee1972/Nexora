@@ -11,6 +11,7 @@
 #include <X11/Xutil.h>
 #undef None
 #endif
+#include "TwoDBloomReference.h"
 #include "TwoDShadowReference.h"
 #include <chrono>
 #include <filesystem>
@@ -25,6 +26,11 @@ namespace {
 void Require(bool value, const char *message) {
   if (!value)
     throw std::runtime_error(message);
+}
+unsigned EncodeLinear(double linear) {
+  const double encoded =
+      linear <= 0.0031308 ? 12.92 * linear : 1.055 * std::pow(linear, 1 / 2.4) - 0.055;
+  return unsigned(std::lround(std::clamp(encoded, 0.0, 1.0) * 255));
 }
 unsigned Encode(double linear) {
   const double mapped = std::clamp(
@@ -73,13 +79,14 @@ struct Packet {
   std::array<std::byte, 4> gray{std::byte{128}, std::byte{128}, std::byte{128}, std::byte{255}};
   std::array<std::byte, 4> blue{std::byte{0}, std::byte{0}, std::byte{255}, std::byte{255}};
   std::array<std::byte, 4> red{std::byte{255}, std::byte{0}, std::byte{0}, std::byte{128}};
-  std::array<UiTextureUpload, 2> worldUploads{};
+  std::array<UiTextureUpload, 3> worldUploads{};
   UiTextureUpload blueUpload{};
   std::array<UiDrawCommand, 2> worldCommands{};
   UiDrawCommand hudCommand{};
   UiDrawData source{}, overlay{};
   PreparedSpriteDraws prepared;
-  Packet(unsigned width, unsigned height, bool instances, unsigned tint = 255) {
+  Packet(unsigned width, unsigned height, bool instances, unsigned tint = 255,
+         bool opaqueForeground = false) {
     const auto packed = 0xff000000U | (tint * 0x010101U);
     world = {{{{0, 0}, {0, 0}, packed},
               {{float(width), 0}, {1, 0}, packed},
@@ -93,11 +100,15 @@ struct Packet {
             {{30, 10}, {1, 0}, 0xffffffff},
             {{30, 30}, {1, 1}, 0xffffffff},
             {{10, 30}, {0, 1}, 0xffffffff}}};
+    if (opaqueForeground)
+      red[3] = std::byte{255};
+    const uint64_t redId = opaqueForeground ? 104 : 99;
     worldUploads = {UiTextureUpload{100, 1, 1, 4, gray, true, true},
-                    UiTextureUpload{99, 1, 1, 4, red, true, true}};
+                    UiTextureUpload{redId, 1, 1, 4, red, true, true},
+                    UiTextureUpload{102, 1, 1, 4, gray, false, true}};
     blueUpload = {101, 1, 1, 4, blue, true, true};
     worldCommands = {UiDrawCommand{0, 0, width, height, 100, 6, 0, 0},
-                     UiDrawCommand{0, 0, width, height, 99, 6, 6, 0}};
+                     UiDrawCommand{0, 0, width, height, redId, 6, 6, 0}};
     hudCommand = {0, 0, width, height, 101, 6, 0, 0};
     source = {world, std::as_bytes(std::span(indices)), worldCommands, worldUploads, true};
     overlay = {hud, std::as_bytes(std::span(hudIndices)), std::span(&hudCommand, 1),
@@ -217,13 +228,18 @@ int main(int argc, char **argv) {
         }
         Require(status == SurfaceStatus::Ready, "acquire after resize");
         const unsigned tint = 255 - (frame % 8) * 32;
-        const double base = (128. / 255) * (double(tint) / 255), alpha = 128. / 255;
-        Packet packet(width, height, (frame % 2) == 0, tint);
+        const double base = (128. / 255) * (double(tint) / 255),
+                     alpha = frame == 8 ? 1. : 128. / 255;
+        Packet packet(width, height, (frame % 2) == 0, tint, frame == 8);
         TwoDLighting lighting;
         std::array<TwoDLightingStyle, 3> styles{
             {{UINT32_MAX, 0, 0, 0},
              {frame == 1 ? 1U : 3U, frame == 4 ? 0U : 1U, 1, 0},
              {frame == 6 ? 3U : 2U, frame == 2 || frame == 6 ? 1U : 0U, 1, 0}}};
+        if (frame == 8 || frame == 9) {
+          styles[1].emissionTexture = 102;
+          styles[1].emission = {0.1F, 0.7F, 1.F, 4.F};
+        }
         lighting.styles = styles;
         auto &uniform = lighting.uniforms;
         uniform.worldX = {0.01F, 0, -float(width) * 0.005F, 0};
@@ -275,6 +291,24 @@ int main(int argc, char **argv) {
                                         0.002F, 0, 0};
           }
         }
+        TwoDBloomReference::Image bloomReference;
+        if (frame == 0 || frame == 8 || frame == 9) {
+          uniform.counts[3] = 5;
+          uniform.bloom = {0.6F, 16.F, 0, 0};
+        }
+        if (frame == 8 || frame == 9) {
+          TwoDBloomReference::Image emission{width, height, {}};
+          emission.pixels.resize(std::size_t(width) * height);
+          for (unsigned y = 0; y < height; ++y)
+            for (unsigned x = 40; x < width - 40; ++x) {
+              const bool foreground =
+                  x + 0.5 > double(width) / 3 && x + 0.5 < double(width) * 2 / 3 &&
+                  y + 0.5 > double(height) / 3 && y + 0.5 < double(height) * 2 / 3;
+              emission.pixels[std::size_t(y) * width + x] =
+                  (128. / 255) * (foreground ? 1 - alpha : 1);
+            }
+          bloomReference = TwoDBloomReference::Filter(std::move(emission), 5, 16);
+        }
         const TwoDShadowReference::Frame reference(uniform, lighting.edges);
         const auto expectedAt = [&](unsigned px, unsigned py) {
           const double x = px + 0.5, y = py + 0.5;
@@ -282,13 +316,26 @@ int main(int argc, char **argv) {
                                      : std::array<double, 3>{1, 1, 1};
           const auto redLight = lit ? LightReference(uniform, styles[2], x, y, &reference)
                                     : std::array<double, 3>{1, 1, 1};
+          std::array<double, 3> grayRadiance{}, redRadiance{};
+          for (unsigned c = 0; c < 3; ++c) {
+            grayRadiance[c] = base * grayLight[c] + styles[1].emission[c] * styles[1].emission[3] *
+                                                        (128. / 255) * uniform.ambientStrength[3];
+            redRadiance[c] = (c == 0 ? redLight[c] : 0) + styles[2].emission[c] *
+                                                              styles[2].emission[3] * (128. / 255) *
+                                                              uniform.ambientStrength[3];
+          }
           const bool foreground = x > double(width) / 3 && x < double(width) * 2 / 3 &&
                                   y > double(height) / 3 && y < double(height) * 2 / 3;
           const double coverage = foreground ? alpha : 0;
+          std::array<double, 3> bloom{};
+          if (!bloomReference.pixels.empty())
+            for (unsigned c = 0; c < 3; ++c)
+              bloom[c] = bloomReference.Sample(x / width, y / height) * styles[1].emission[c] *
+                         styles[1].emission[3] * uniform.bloom[0] * uniform.ambientStrength[3];
           return std::array<unsigned, 3>{
-              Encode(coverage * redLight[0] + (1 - coverage) * base * grayLight[0]),
-              Encode((1 - coverage) * base * grayLight[1]),
-              Encode((1 - coverage) * base * grayLight[2])};
+              Encode(coverage * redRadiance[0] + (1 - coverage) * grayRadiance[0] + bloom[0]),
+              Encode(coverage * redRadiance[1] + (1 - coverage) * grayRadiance[1] + bloom[1]),
+              Encode(coverage * redRadiance[2] + (1 - coverage) * grayRadiance[2] + bloom[2])};
         };
         const auto expected = expectedAt(width / 2, height / 2);
         TwoDLinearDrawData data{packet.prepared.View(),
@@ -326,6 +373,15 @@ int main(int argc, char **argv) {
           }
         }
         ++frames;
+        if (frame == 8 || frame == 9) {
+          for (const auto px :
+               {width / 3 - 2, width / 3 + 2, width * 2 / 3 - 2, width * 2 / 3 + 2}) {
+            const auto expectedEdge = expectedAt(px, height / 2);
+            for (unsigned c = 0; c < 3; ++c)
+              Require(std::abs(int(channel(px, height / 2, c)) - int(expectedEdge[c])) <= 2,
+                      "selective bloom/opaque or transparent foreground edge oracle");
+          }
+        }
         if (shadowsEnabled && uniform.counts[1]) {
           ++shadowFrames;
           shadowSamples += uint64_t(uniform.counts[1]) * 1024;
@@ -363,7 +419,8 @@ int main(int argc, char **argv) {
     ++frames;
     Require(litFrames == 40 && maximumLights == 32, "moving/grouped/32-light native matrix");
     const auto state = surface->Diagnostics();
-    Require(state.twoDLinearFrames == frames && state.twoDLinearTargetBytes > 0,
+    Require(state.twoDLinearFrames == frames && state.twoDLinearTargetBytes > 0 &&
+                state.twoDBloomPasses == 135 && state.twoDEmissionDraws == 10,
             "native frame/resource accounting");
     Require(state.twoDLinearTargetAllocations <= 18, "bounded completed-slot target reuse");
     Require(state.spriteGpuInstances > 0, "native instanced path exercised");
@@ -371,6 +428,34 @@ int main(int argc, char **argv) {
                 state.twoDShadowDispatches == shadowFrames &&
                 state.twoDShadowSamples == shadowSamples && state.twoDShadowBufferBytes > 0,
             "GPU shadow dispatch/capacity/sample/resource accounting");
+    // Actual legacy rendering after opt-out retires each completed effects slot.
+    // An appended UI draw inside the same effects frame must never retire live resources.
+    auto legacy = PrepareSpriteDraws(restored.source, restored.overlay, finalWidth, finalHeight,
+                                     true, 0xff000000);
+    Require(bool(legacy), "legacy fallback preparation");
+    const std::array<unsigned, 3> legacyExpected{EncodeLinear(alpha + (1 - alpha) * base),
+                                                 EncodeLinear((1 - alpha) * base),
+                                                 EncodeLinear((1 - alpha) * base)};
+    for (unsigned slot = 0; slot < 3; ++slot) {
+      Require(surface->Acquire() == SurfaceStatus::Ready, "effects-off acquire");
+      Require(surface->RenderUi(legacy->View()) == SurfaceStatus::Ready,
+              "actual legacy fallback draw");
+      (void)read(finalWidth, finalHeight, legacyExpected, EncodeLinear(base), false, true);
+    }
+    Require(surface->Diagnostics().twoDLinearTargetBytes == 0 &&
+                surface->Diagnostics().twoDBloomTargetBytes == 0 &&
+                surface->Diagnostics().twoDShadowBufferBytes == 0,
+            "effects-off retires all completed slot targets and buffers");
+    Require(surface->Acquire() == SurfaceStatus::Ready, "effects resume acquire");
+    Require(surface->DrawTwoDLinear({restored.prepared.View(), {}, {}}) == SurfaceStatus::Ready,
+            "effects resume creates fresh targets");
+    Require(surface->RenderUi(restored.overlay) == SurfaceStatus::Ready,
+            "appended HUD after linear call retains currently recorded targets");
+    (void)read(finalWidth, finalHeight, restoredExpected, Encode(base), false, true);
+    ++frames;
+    Require(surface->Diagnostics().twoDLinearFrames == frames &&
+                surface->Diagnostics().twoDLinearTargetBytes > 0,
+            "effects resume accounting");
     if (argc == 2) {
       const auto parent = std::filesystem::path(argv[1]).parent_path();
       if (!parent.empty())
@@ -383,7 +468,8 @@ int main(int argc, char **argv) {
     }
     Require(surface->DrainAndDestroy() == SurfaceStatus::Ready, "native drain");
     Require(surface->Diagnostics().twoDLinearTargetBytes == 0 &&
-                surface->Diagnostics().twoDShadowBufferBytes == 0 && !surface->SupportsTwoDLinear(),
+                surface->Diagnostics().twoDShadowBufferBytes == 0 &&
+                surface->Diagnostics().twoDBloomTargetBytes == 0 && !surface->SupportsTwoDLinear(),
             "target teardown");
 #if !defined(_WIN32) && !defined(__APPLE__)
     XCloseDisplay(display);

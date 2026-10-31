@@ -1,5 +1,6 @@
 #include "Nexora/Core/Engine.h"
 #include "Nexora/TwoD/Assets.h"
+#include "Nexora/TwoD/EmissionAssets.h"
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -53,11 +54,21 @@ void Write(const std::filesystem::path &path, const Bytes &bytes) {
 } // namespace
 int main(int argc, char **argv) {
   try {
-    if (argc != 4)
+    if (argc != 4 && argc != 6)
       throw std::runtime_error("usage: NexoraTwoDAssetCompiler pack|clip|sprite|cook input output");
     const auto bytes = Read(argv[2]);
     Bytes out;
-    if (std::string_view(argv[1]) == "pack") {
+    if (std::string_view(argv[1]) == "emission") {
+      if (argc != 6)
+        throw std::runtime_error("emission requires base and mask Atlases");
+      const auto links = DecodeEmissionAsset(bytes);
+      const auto base = DecodeAtlas(Read(argv[4])), mask = DecodeAtlas(Read(argv[5]));
+      if (!links || !base || !mask || !ValidateEmissionDependencies(*links, *base, *mask))
+        throw std::runtime_error("invalid emission metadata or dependencies");
+      out = EncodeEmissionAsset(*links);
+    } else if (argc != 4) {
+      throw std::runtime_error("unexpected compiler arguments");
+    } else if (std::string_view(argv[1]) == "pack") {
       Reader r{bytes};
       if (r.Number(4) != 0x4932444e || r.Number(4) != 1)
         throw std::runtime_error("invalid source packet");

@@ -85,6 +85,7 @@ struct SceneGeometryResidencyDiagnostics final {
 struct SurfaceDiagnostics final {
   std::uint64_t twoDLinearFrames{}, twoDLinearTargetBytes{}, twoDLinearTargetAllocations{};
   std::uint64_t twoDShadowBufferBytes{}, twoDShadowDispatches{}, twoDShadowSamples{};
+  std::uint64_t twoDBloomTargetBytes{}, twoDBloomPasses{}, twoDEmissionDraws{};
   SurfaceGpuTiming gpuTiming;
   std::uint64_t acquiredFrames = 0;
   std::uint64_t presentedFrames = 0;
@@ -670,6 +671,7 @@ public:
   virtual SurfaceStatus RenderUi(const UiDrawData &) { return SurfaceStatus::Unsupported; }
   [[nodiscard]] virtual bool SupportsTwoDLinear() const noexcept { return false; }
   [[nodiscard]] virtual bool SupportsTwoDShadows() const noexcept { return false; }
+  [[nodiscard]] virtual bool SupportsTwoDBloom() const noexcept { return false; }
   // Explicit opt-in; separate FP16 world/emission, fixed SDR composition, then untouched UI.
   virtual SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &) {
     return SurfaceStatus::Unsupported;

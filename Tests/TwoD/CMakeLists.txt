@@ -286,3 +286,11 @@ add_executable(NexoraLightingRenderingTests LightingRenderingTests.cpp)
 target_link_libraries(NexoraLightingRenderingTests PRIVATE Nexora::TwoD)
 nexora_apply_defaults(NexoraLightingRenderingTests)
 add_test(NAME twod.lighting_rendering COMMAND NexoraLightingRenderingTests)
+
+set(_nexora_emission_export_args)
+if(TARGET NexoraTwoDPlayer AND TARGET NexoraTwoDProjectFixture)
+  set(_nexora_emission_export_args "$<TARGET_FILE:NexoraTwoDPlayer>" "$<TARGET_FILE:NexoraTwoDProjectFixture>")
+endif()
+add_test(NAME twod.emission_asset_tool COMMAND "${Python3_EXECUTABLE}"
+  "${CMAKE_CURRENT_SOURCE_DIR}/EmissionToolTests.py" "$<TARGET_FILE:NexoraTwoDAssetCompiler>" ${_nexora_emission_export_args})
+set_tests_properties(twod.emission_asset_tool PROPERTIES TIMEOUT 45 LABELS "twod;tools;assets")

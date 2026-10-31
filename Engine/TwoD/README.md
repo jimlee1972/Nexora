@@ -274,3 +274,6 @@ configurable content/pool capacities. Games own transition and event policy in Z
 The [optional effects service](GameplayEffects.md) validates and owns atomic pending/active
 snapshots on the host thread. This contract-only foundation advertises no native capability by
 default; renderer, diagnostic and SDK acceptance remain separate roadmap stages.
+
+The optional [emission companion contract](EmissionAssets.md) provides separate linear masks/metadata,
+Zig blob parsing and ordered selective bloom without changing Atlas/Clip or Sprite ABI.

@@ -3,6 +3,7 @@
 #endif
 #include "GpuTiming.h"
 #include "Nexora/Presentation/Surface.h"
+#include "Nexora/Presentation/TwoDBloom.h"
 #include "PbrMaterialUpload.h"
 #include "SceneGeometryResidency.h"
 #include "SceneGeometryUploadKey.h"
@@ -119,6 +120,7 @@ public:
         inflight_[frame_] = nil;
         retiredTextures_[frame_].clear();
       }
+      twoDLinearRecorded_ = false;
       meshResidency_.BeginFrame();
       drawable_ = [layer_ nextDrawable];
       if (!drawable_)
@@ -177,6 +179,8 @@ public:
         return SurfaceStatus::InvalidDescriptor;
       if (!ValidateUi(drawData) || !ValidateSpriteInstances(drawData))
         return SurfaceStatus::InvalidDescriptor;
+      if (!twoDLinearRecorded_)
+        ResetTwoDLinearFrame(twoDLinearFrames_[frame_]);
       for (const auto &upload : drawData.textureUploads) {
         const auto previous = uiTextureMetadata_.find(upload.textureId);
         if (previous != uiTextureMetadata_.end() && previous->second.immutable &&
@@ -714,7 +718,8 @@ public:
       valid_ = false;
       const bool drained = DrainFrames();
       ResetTwoDLinearFrames();
-      twoDLinearPipeline_ = twoDLinearInstancePipeline_ = twoDLinearCompositePipeline_ = nil;
+      twoDLinearPipeline_ = twoDLinearInstancePipeline_ = twoDLinearCompositePipeline_ =
+          twoDBloomPipeline_ = nil;
       twoDShadowPipeline_ = nil;
       meshResidency_.Clear(diagnostics_.sceneGeometryResidency);
       for (std::size_t i = 0; i < kFrames; ++i) {

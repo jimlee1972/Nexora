@@ -9,7 +9,7 @@ inline constexpr char twod_linear_metal_vert[] = R"NEXORA_TWOD(
 #include <metal_texture>
 using namespace metal;
 
-#line 86 "Engine/Presentation/shaders/twod_linear.slang"
+#line 88 "Engine/Presentation/shaders/twod_linear.slang"
 struct twoDVertexMain_Result_0
 {
     float4 position_0 [[position]];
@@ -18,7 +18,7 @@ struct twoDVertexMain_Result_0
 };
 
 
-#line 86
+#line 88
 struct vertexInput_0
 {
     float2 position_1 [[attribute(0)]];
@@ -32,10 +32,12 @@ struct TwoDTransform_0
 {
     float4 clip_0;
     uint4 style_0;
+    float4 emission_0;
+    float4 emissionUv_0;
 };
 
 
-#line 80
+#line 82
 struct TwoDVertex_0
 {
     float4 position_2;
@@ -44,29 +46,29 @@ struct TwoDVertex_0
 };
 
 
-#line 80
+#line 82
 [[vertex]] twoDVertexMain_Result_0 twoDVertexMain(vertexInput_0 _S1 [[stage_in]], TwoDTransform_0 constant* transform_0 [[buffer(0)]])
 {
 
-#line 90
+#line 92
     thread TwoDVertex_0 output_0;
     (&output_0)->position_2 = float4(_S1.position_1 * transform_0->clip_0.xy + transform_0->clip_0.zw, 0.0f, 1.0f);
     (&output_0)->uv_2 = _S1.uv_1;
     (&output_0)->color_2 = _S1.color_1;
 
-#line 93
+#line 95
     thread twoDVertexMain_Result_0 _S2;
 
-#line 93
+#line 95
     (&_S2)->position_0 = output_0.position_2;
 
-#line 93
+#line 95
     (&_S2)->uv_0 = output_0.uv_2;
 
-#line 93
+#line 95
     (&_S2)->color_0 = output_0.color_2;
 
-#line 93
+#line 95
     return _S2;
 }
 
@@ -77,10 +79,10 @@ inline constexpr char twod_linear_metal_instance[] = R"NEXORA_TWOD(
 #include <metal_texture>
 using namespace metal;
 
-#line 108 "Engine/Presentation/shaders/twod_linear.slang"
+#line 110 "Engine/Presentation/shaders/twod_linear.slang"
 constant array<float2, int(6)> corners_0 = { { float2(0.0f, 0.0f), float2(1.0f, 0.0f), float2(1.0f, 1.0f), float2(0.0f, 0.0f), float2(1.0f, 1.0f), float2(0.0f, 1.0f) } };
 
-#line 97
+#line 99
 struct twoDInstanceMain_Result_0
 {
     float4 position_0 [[position]];
@@ -89,7 +91,7 @@ struct twoDInstanceMain_Result_0
 };
 
 
-#line 97
+#line 99
 struct vertexInput_0
 {
     float2 origin_0 [[attribute(0)]];
@@ -105,10 +107,12 @@ struct TwoDTransform_0
 {
     float4 clip_0;
     uint4 style_0;
+    float4 emission_0;
+    float4 emissionUv_0;
 };
 
 
-#line 80
+#line 82
 struct TwoDVertex_0
 {
     float4 position_1;
@@ -117,29 +121,29 @@ struct TwoDVertex_0
 };
 
 
-#line 80
+#line 82
 [[vertex]] twoDInstanceMain_Result_0 twoDInstanceMain(vertexInput_0 _S1 [[stage_in]], uint vertexID_0 [[vertex_id]], TwoDTransform_0 constant* transform_0 [[buffer(0)]])
 {
 
-#line 114
+#line 116
     thread TwoDVertex_0 output_0;
     (&output_0)->position_1 = float4((_S1.origin_0 + _S1.axisX_0 * float2(corners_0[vertexID_0].x)  + _S1.axisY_0 * float2(corners_0[vertexID_0].y) ) * transform_0->clip_0.xy + transform_0->clip_0.zw, 0.0f, 1.0f);
     (&output_0)->uv_2 = mix(_S1.uv_1.xy, _S1.uv_1.zw, corners_0[vertexID_0]);
     (&output_0)->color_2 = _S1.color_1;
 
-#line 117
+#line 119
     thread twoDInstanceMain_Result_0 _S2;
 
-#line 117
+#line 119
     (&_S2)->position_0 = output_0.position_1;
 
-#line 117
+#line 119
     (&_S2)->uv_0 = output_0.uv_2;
 
-#line 117
+#line 119
     (&_S2)->color_0 = output_0.color_2;
 
-#line 117
+#line 119
     return _S2;
 }
 
@@ -165,9 +169,9 @@ struct TwoDTransform_0
 {
     float4 clip_0;
     uint4 style_0;
+    float4 emission_0;
+    float4 emissionUv_0;
 };
-
-
 
 struct TwoDLightingUniform_0
 {
@@ -176,11 +180,12 @@ struct TwoDLightingUniform_0
     float4 ambientStrength_0;
     uint4 counts_0;
     array<uint4, int(2)> shadowLights_0;
+    float4 bloom_0;
     array<TwoDPointLight_0, int(32)> lights_0;
 };
 
 
-#line 72
+#line 74
 struct KernelContext_0
 {
     texture2d<float, access::sample> colorTexture_texture_0;
@@ -188,110 +193,112 @@ struct KernelContext_0
     TwoDTransform_0 constant* transform_0;
     TwoDLightingUniform_0 constant* lighting_0;
     float device* shadowDistances_0;
+    texture2d<float, access::sample> auxiliaryTexture_texture_0;
+    sampler auxiliaryTexture_sampler_0;
 };
 
 
-#line 56
+#line 58
 float twoDVisibility_0(const TwoDPointLight_0 constant* light_0, float2 relative_0, float distance_0, KernelContext_0 thread* kernelContext_0)
 {
 
-#line 57
+#line 59
     uint _S1 = light_0->masks_0.y;
 
-#line 57
+#line 59
     bool _S2;
 
-#line 57
+#line 59
     if(_S1 == 0U)
     {
 
-#line 57
+#line 59
         _S2 = true;
 
-#line 57
+#line 59
     }
     else
     {
 
-#line 57
+#line 59
         _S2 = (kernelContext_0->transform_0->style_0.z) == 0U;
 
-#line 57
+#line 59
     }
 
-#line 57
+#line 59
     if(_S2)
     {
 
-#line 57
+#line 59
         _S2 = true;
 
-#line 57
+#line 59
     }
     else
     {
 
-#line 57
+#line 59
         _S2 = distance_0 == 0.0f;
 
-#line 57
+#line 59
     }
 
-#line 57
+#line 59
     if(_S2)
     {
 
-#line 57
+#line 59
         return 1.0f;
     }
 
-#line 58
+#line 60
     float phase_0 = atan2(relative_0.y, relative_0.x) / 6.28318548202514648f;
 
     float position_0 = (phase_0 - floor(phase_0)) * 1024.0f - 0.5f;
     float _S3 = floor(position_0);
 
-#line 61
+#line 63
     int _S4 = int(_S3);
     float _S5 = position_0 - _S3;
 
-#line 62
+#line 64
     float4 _S6 = light_0->shadow_0;
     float _S7 = 1.0f + 4.0f * light_0->shadow_0.x;
 
-#line 63
+#line 65
     int tap_0 = int(-4);
 
-#line 63
+#line 65
     float visible_0 = 0.0f;
 
-#line 63
+#line 65
     float total_0 = 0.0f;
 
 
     for(;;)
     {
 
-#line 66
+#line 68
         if(tap_0 <= int(4))
         {
         }
         else
         {
 
-#line 66
+#line 68
             break;
         }
 
-#line 67
+#line 69
         float _S8 = max(0.0f, 1.0f - abs(float(tap_0)) / _S7);
         if(_S8 == 0.0f)
         {
 
-#line 68
+#line 70
             tap_0 = tap_0 + int(1);
 
-#line 66
+#line 68
             continue;
         }
 
@@ -300,74 +307,74 @@ float twoDVisibility_0(const TwoDPointLight_0 constant* light_0, float2 relative
         uint base_0 = (_S1 - 1U) * 1024U;
         float _S9 = _S6.y;
 
-#line 72
+#line 74
         float first_0;
 
-#line 72
+#line 74
         if(distance_0 <= (kernelContext_0->shadowDistances_0[base_0 + sample_0] + _S9))
         {
 
-#line 72
+#line 74
             first_0 = 1.0f;
 
-#line 72
+#line 74
         }
         else
         {
 
-#line 72
+#line 74
             first_0 = 0.0f;
 
-#line 72
+#line 74
         }
 
-#line 72
+#line 74
         float second_0;
         if(distance_0 <= (kernelContext_0->shadowDistances_0[base_0 + next_0] + _S9))
         {
 
-#line 73
+#line 75
             second_0 = 1.0f;
 
-#line 73
+#line 75
         }
         else
         {
 
-#line 73
+#line 75
             second_0 = 0.0f;
 
-#line 73
+#line 75
         }
 
         float total_1 = total_0 + _S8;
 
-#line 75
+#line 77
         visible_0 = visible_0 + _S8 * mix(first_0, second_0, _S5);
 
-#line 75
+#line 77
         total_0 = total_1;
 
-#line 66
+#line 68
         tap_0 = tap_0 + int(1);
 
-#line 66
+#line 68
     }
 
-#line 77
+#line 79
     return visible_0 / total_0;
 }
 
 
-#line 120
+#line 122
 struct TwoDFragment_0
 {
     float4 scene_0 [[color(0)]];
-    float4 emission_0 [[color(1)]];
+    float4 emission_1 [[color(1)]];
 };
 
 
-#line 120
+#line 122
 struct pixelInput_0
 {
     float2 uv_0 [[user(TEXCOORD)]];
@@ -375,175 +382,210 @@ struct pixelInput_0
 };
 
 
-#line 125
-[[fragment]] TwoDFragment_0 twoDFragmentMain(pixelInput_0 _S10 [[stage_in]], float4 position_1 [[position]], texture2d<float, access::sample> colorTexture_texture_1 [[texture(0)]], sampler colorTexture_sampler_1 [[sampler(0)]], TwoDTransform_0 constant* transform_1 [[buffer(0)]], TwoDLightingUniform_0 constant* lighting_1 [[buffer(1)]], float device* shadowDistances_1 [[buffer(6)]])
+#line 127
+[[fragment]] TwoDFragment_0 twoDFragmentMain(pixelInput_0 _S10 [[stage_in]], float4 position_1 [[position]], texture2d<float, access::sample> colorTexture_texture_1 [[texture(0)]], sampler colorTexture_sampler_1 [[sampler(0)]], TwoDTransform_0 constant* transform_1 [[buffer(0)]], TwoDLightingUniform_0 constant* lighting_1 [[buffer(1)]], float device* shadowDistances_1 [[buffer(6)]], texture2d<float, access::sample> auxiliaryTexture_texture_1 [[texture(1)]], sampler auxiliaryTexture_sampler_1 [[sampler(1)]])
 {
 
-#line 125
+#line 127
     thread KernelContext_0 kernelContext_1;
 
-#line 125
+#line 127
     (&kernelContext_1)->colorTexture_texture_0 = colorTexture_texture_1;
 
-#line 125
+#line 127
     (&kernelContext_1)->colorTexture_sampler_0 = colorTexture_sampler_1;
 
-#line 125
+#line 127
     (&kernelContext_1)->transform_0 = transform_1;
 
-#line 125
+#line 127
     (&kernelContext_1)->lighting_0 = lighting_1;
 
-#line 125
+#line 127
     (&kernelContext_1)->shadowDistances_0 = shadowDistances_1;
+
+#line 127
+    (&kernelContext_1)->auxiliaryTexture_texture_0 = auxiliaryTexture_texture_1;
+
+#line 127
+    (&kernelContext_1)->auxiliaryTexture_sampler_0 = auxiliaryTexture_sampler_1;
     ;
 
-#line 126
+#line 128
     float4 color_2 = (((&kernelContext_1)->colorTexture_texture_0).sample(((&kernelContext_1)->colorTexture_sampler_0), (_S10.uv_0))) * _S10.color_1;
     thread TwoDFragment_0 output_0;
     float3 _S11 = float3(int3(int(1)) );
 
-#line 128
+#line 130
     float3 illumination_0;
     if(((&kernelContext_1)->transform_0->style_0.y) != 0U)
     {
 
-#line 130
+#line 132
         float2 _S12 = position_1.xy;
 
-#line 130
+#line 132
         float2 _S13 = float2(dot(_S12, (&kernelContext_1)->lighting_0->worldX_0.xy) + (&kernelContext_1)->lighting_0->worldX_0.z, dot(_S12, (&kernelContext_1)->lighting_0->worldY_0.xy) + (&kernelContext_1)->lighting_0->worldY_0.z);
 
         float3 _S14 = (&kernelContext_1)->lighting_0->ambientStrength_0.xyz;
 
-#line 132
+#line 134
         uint i_0 = 0U;
 
-#line 132
+#line 134
         illumination_0 = _S14;
         for(;;)
         {
 
-#line 133
+#line 135
             if(i_0 < ((&kernelContext_1)->lighting_0->counts_0.x))
             {
             }
             else
             {
 
-#line 133
+#line 135
                 break;
             }
 
-#line 134
+#line 136
             TwoDPointLight_0 light_1 = (&kernelContext_1)->lighting_0->lights_0[i_0];
             if((((&kernelContext_1)->lighting_0->lights_0[i_0].masks_0.x) & ((&kernelContext_1)->transform_0->style_0.x)) == 0U)
             {
 
-#line 135
+#line 137
                 i_0 = i_0 + 1U;
 
-#line 133
+#line 135
                 continue;
             }
 
             float2 _S15 = _S13 - light_1.positionRadiusIntensity_0.xy;
 
-#line 136
+#line 138
             float distanceToLight_0 = length(_S15);
             float radius_0 = light_1.positionRadiusIntensity_0.z;
 
-#line 137
+#line 139
             float attenuation_0;
 
 
             if(distanceToLight_0 == 0.0f)
             {
 
-#line 140
+#line 142
                 attenuation_0 = 1.0f;
 
-#line 140
+#line 142
             }
             else
             {
 
-#line 141
+#line 143
                 if(distanceToLight_0 < radius_0)
                 {
 
-#line 142
+#line 144
                     float q_0 = distanceToLight_0 / radius_0;
                     float smooth_0 = 1.0f - q_0 * q_0;
 
-#line 143
+#line 145
                     attenuation_0 = smooth_0 * smooth_0;
 
-#line 141
+#line 143
                 }
                 else
                 {
 
-#line 141
+#line 143
                     attenuation_0 = 0.0f;
 
-#line 141
+#line 143
                 }
 
-#line 140
+#line 142
             }
 
-#line 140
+#line 142
             float attenuation_1;
 
-#line 146
+#line 148
             if(attenuation_0 > 0.0f)
             {
 
-#line 146
+#line 148
                 float _S16 = twoDVisibility_0(&(&kernelContext_1)->lighting_0->lights_0[i_0], _S15, distanceToLight_0, &kernelContext_1);
 
-#line 146
+#line 148
                 attenuation_1 = attenuation_0 * _S16;
 
-#line 146
+#line 148
             }
             else
             {
 
-#line 146
+#line 148
                 attenuation_1 = attenuation_0;
 
-#line 146
+#line 148
             }
 
-#line 146
+#line 148
             illumination_0 = illumination_0 + light_1.color_0.xyz * float3((light_1.positionRadiusIntensity_0.w * attenuation_1 * (&kernelContext_1)->lighting_0->ambientStrength_0.w)) ;
 
-#line 133
+#line 135
             i_0 = i_0 + 1U;
 
-#line 133
+#line 135
         }
 
-#line 129
+#line 131
     }
     else
     {
 
-#line 129
+#line 131
         illumination_0 = _S11;
 
-#line 129
+#line 131
     }
 
-#line 151
-    float _S17 = saturate(color_2.w);
+#line 153
+    float3 _S17 = float3(int3(int(0)) );
 
-#line 151
-    (&output_0)->scene_0 = float4(clamp(color_2.xyz * illumination_0, float3(int3(int(0)) ), float3(int3(int(65504)) )), _S17);
+#line 153
+    float3 emission_2;
+    if(((&kernelContext_1)->transform_0->emission_0.w) > 0.0f)
+    {
 
-    (&output_0)->emission_0 = float4(0.0f, 0.0f, 0.0f, _S17);
+#line 155
+        float2 _S18 = _S10.uv_0 * (&kernelContext_1)->transform_0->emissionUv_0.xy + (&kernelContext_1)->transform_0->emissionUv_0.zw;
+
+#line 155
+        ;
+
+#line 155
+        emission_2 = min((&kernelContext_1)->transform_0->emission_0.xyz * float3(((&kernelContext_1)->transform_0->emission_0.w * saturate((((&kernelContext_1)->auxiliaryTexture_texture_0).sample(((&kernelContext_1)->auxiliaryTexture_sampler_0), (_S18))).x))) , float3(int3(int(65504)) ));
+
+#line 154
+    }
+    else
+    {
+
+#line 154
+        emission_2 = _S17;
+
+#line 154
+    }
+
+
+
+    float _S19 = saturate(color_2.w);
+
+#line 158
+    (&output_0)->scene_0 = float4(clamp(color_2.xyz * illumination_0 + emission_2 * float3((&kernelContext_1)->lighting_0->ambientStrength_0.w) , _S17, float3(int3(int(65504)) )), _S19);
+
+    (&output_0)->emission_1 = float4(emission_2, _S19);
     return output_0;
 }
 
@@ -577,32 +619,136 @@ struct pixelInput_0
 };
 
 
-#line 90
+#line 4 "Engine/Presentation/shaders/twod_linear.slang"
+struct TwoDPointLight_0
+{
+    float4 positionRadiusIntensity_0;
+    float4 color_2;
+    uint4 masks_0;
+    float4 shadow_0;
+};
+
+
+#line 11
+struct TwoDLightingUniform_0
+{
+    float4 worldX_0;
+    float4 worldY_0;
+    float4 ambientStrength_0;
+    uint4 counts_0;
+    array<uint4, int(2)> shadowLights_0;
+    float4 bloom_0;
+    array<TwoDPointLight_0, int(32)> lights_0;
+};
+
+
+#line 20
 struct KernelContext_0
 {
     texture2d<float, access::sample> colorTexture_texture_0;
     sampler colorTexture_sampler_0;
+    TwoDLightingUniform_0 constant* lighting_0;
+    texture2d<float, access::sample> auxiliaryTexture_texture_0;
+    sampler auxiliaryTexture_sampler_0;
 };
 
 
-#line 157 "Engine/Presentation/shaders/twod_linear.slang"
-[[fragment]] pixelOutput_0 twoDCompositeMain(pixelInput_0 _S1 [[stage_in]], float4 position_0 [[position]], texture2d<float, access::sample> colorTexture_texture_1 [[texture(0)]], sampler colorTexture_sampler_1 [[sampler(0)]])
+#line 164
+[[fragment]] pixelOutput_0 twoDCompositeMain(pixelInput_0 _S1 [[stage_in]], float4 position_0 [[position]], texture2d<float, access::sample> colorTexture_texture_1 [[texture(0)]], sampler colorTexture_sampler_1 [[sampler(0)]], TwoDLightingUniform_0 constant* lighting_1 [[buffer(1)]], texture2d<float, access::sample> auxiliaryTexture_texture_1 [[texture(1)]], sampler auxiliaryTexture_sampler_1 [[sampler(1)]])
 {
 
-#line 157
+#line 164
     thread KernelContext_0 kernelContext_0;
 
-#line 157
+#line 164
     (&kernelContext_0)->colorTexture_texture_0 = colorTexture_texture_1;
 
-#line 157
+#line 164
     (&kernelContext_0)->colorTexture_sampler_0 = colorTexture_sampler_1;
+
+#line 164
+    (&kernelContext_0)->lighting_0 = lighting_1;
+
+#line 164
+    (&kernelContext_0)->auxiliaryTexture_texture_0 = auxiliaryTexture_texture_1;
+
+#line 164
+    (&kernelContext_0)->auxiliaryTexture_sampler_0 = auxiliaryTexture_sampler_1;
     ;
 
-#line 158
-    pixelOutput_0 _S2 = { float4(NexoraAcesApproximate_0(clamp((((&kernelContext_0)->colorTexture_texture_0).sample(((&kernelContext_0)->colorTexture_sampler_0), (_S1.uv_0))).xyz, float3(int3(int(0)) ), float3(int3(int(65504)) ))), 1.0f) };
+#line 165
+    float3 _S2 = float3(int3(int(65504)) );
 
-    return _S2;
+#line 165
+    float3 radiance_0 = clamp((((&kernelContext_0)->colorTexture_texture_0).sample(((&kernelContext_0)->colorTexture_sampler_0), (_S1.uv_0))).xyz, float3(int3(int(0)) ), _S2);
+
+#line 165
+    bool _S3;
+    if(((&kernelContext_0)->lighting_0->counts_0.w) > 0U)
+    {
+
+#line 166
+        _S3 = ((&kernelContext_0)->lighting_0->bloom_0.x) > 0.0f;
+
+#line 166
+    }
+    else
+    {
+
+#line 166
+        _S3 = false;
+
+#line 166
+    }
+
+#line 166
+    if(_S3)
+    {
+
+#line 166
+        _S3 = ((&kernelContext_0)->lighting_0->ambientStrength_0.w) > 0.0f;
+
+#line 166
+    }
+    else
+    {
+
+#line 166
+        _S3 = false;
+
+#line 166
+    }
+
+#line 166
+    float3 radiance_1;
+
+#line 166
+    if(_S3)
+    {
+
+#line 167
+        ;
+
+#line 167
+        radiance_1 = min(radiance_0 + (((&kernelContext_0)->auxiliaryTexture_texture_0).sample(((&kernelContext_0)->auxiliaryTexture_sampler_0), (_S1.uv_0))).xyz * float3(((&kernelContext_0)->lighting_0->bloom_0.x * (&kernelContext_0)->lighting_0->ambientStrength_0.w)) , _S2);
+
+#line 166
+    }
+    else
+    {
+
+#line 166
+        radiance_1 = radiance_0;
+
+#line 166
+    }
+
+#line 166
+    pixelOutput_0 _S4 = { float4(NexoraAcesApproximate_0(radiance_1), 1.0f) };
+
+
+
+    return _S4;
 }
 
 )NEXORA_TWOD";
@@ -612,11 +758,11 @@ inline constexpr char twod_linear_metal_shadow[] = R"NEXORA_TWOD(
 #include <metal_texture>
 using namespace metal;
 
-#line 30 "Engine/Presentation/shaders/twod_linear.slang"
+#line 32 "Engine/Presentation/shaders/twod_linear.slang"
 float twoDCross_0(float2 a_0, float2 b_0)
 {
 
-#line 30
+#line 32
     return a_0.x * b_0.y - a_0.y * b_0.x;
 }
 
@@ -639,6 +785,7 @@ struct TwoDLightingUniform_0
     float4 ambientStrength_0;
     uint4 counts_0;
     array<uint4, int(2)> shadowLights_0;
+    float4 bloom_0;
     array<TwoDPointLight_0, int(32)> lights_0;
 };
 
@@ -651,7 +798,7 @@ struct TwoDShadowEdge_natural_0
 };
 
 
-#line 28
+#line 30
 struct KernelContext_0
 {
     TwoDLightingUniform_0 constant* lighting_0;
@@ -660,53 +807,53 @@ struct KernelContext_0
 };
 
 
-#line 33
+#line 35
 [[kernel]] void twoDShadowMain(uint3 id_0 [[thread_position_in_grid]], TwoDLightingUniform_0 constant* lighting_1 [[buffer(1)]], TwoDShadowEdge_natural_0 device* shadowEdges_1 [[buffer(5)]], float device* shadowOutput_1 [[buffer(7)]])
 {
 
-#line 33
+#line 35
     thread KernelContext_0 kernelContext_0;
 
-#line 33
+#line 35
     (&kernelContext_0)->lighting_0 = lighting_1;
 
-#line 33
+#line 35
     (&kernelContext_0)->shadowEdges_0 = shadowEdges_1;
 
-#line 33
+#line 35
     (&kernelContext_0)->shadowOutput_0 = shadowOutput_1;
     uint _S1 = id_0.x;
 
-#line 34
+#line 36
     bool _S2;
 
-#line 34
+#line 36
     if(_S1 >= 1024U)
     {
 
-#line 34
+#line 36
         _S2 = true;
 
-#line 34
+#line 36
     }
     else
     {
 
-#line 34
+#line 36
         _S2 = (id_0.y) >= ((&kernelContext_0)->lighting_0->counts_0.y);
 
-#line 34
+#line 36
     }
 
-#line 34
+#line 36
     if(_S2)
     {
 
-#line 34
+#line 36
         return;
     }
 
-#line 35
+#line 37
     uint _S3 = id_0.y;
     TwoDPointLight_0 light_0 = (&kernelContext_0)->lighting_0->lights_0[(&kernelContext_0)->lighting_0->shadowLights_0[_S3 / 4U][_S3 % 4U]];
     float angle_0 = (float(_S1) + 0.5f) * 0.00613592332229018f;
@@ -714,152 +861,379 @@ struct KernelContext_0
 
     float _S5 = (&kernelContext_0)->lighting_0->lights_0[(&kernelContext_0)->lighting_0->shadowLights_0[_S3 / 4U][_S3 % 4U]].shadow_0.y;
 
-#line 40
+#line 42
     float closest_0 = (&kernelContext_0)->lighting_0->lights_0[(&kernelContext_0)->lighting_0->shadowLights_0[_S3 / 4U][_S3 % 4U]].positionRadiusIntensity_0.z;
 
-#line 40
+#line 42
     uint i_0 = 0U;
     for(;;)
     {
 
-#line 41
+#line 43
         if(i_0 < ((&kernelContext_0)->lighting_0->counts_0.z))
         {
         }
         else
         {
 
-#line 41
+#line 43
             break;
         }
 
-#line 42
+#line 44
         TwoDShadowEdge_natural_0 edge_0 = (&kernelContext_0)->shadowEdges_0[i_0];
         if((((uint4(edge_0.masks_1) ).x) & (light_0.masks_0.x)) == 0U)
         {
 
-#line 43
+#line 45
             i_0 = i_0 + 1U;
 
-#line 41
+#line 43
             continue;
         }
 
-#line 41
+#line 43
         float4 _S6 = float4(edge_0.points_0) ;
 
 
         float2 _S7 = _S6.xy;
 
-#line 44
+#line 46
         float2 a_1 = _S7 - light_0.positionRadiusIntensity_0.xy;
         float2 e_0 = _S6.zw - _S7;
         float denominator_0 = twoDCross_0(_S4, e_0);
         if((abs(denominator_0)) <= (1.00000001168609742e-07f * length(e_0)))
         {
 
-#line 47
+#line 49
             i_0 = i_0 + 1U;
 
-#line 41
+#line 43
             continue;
         }
 
-#line 48
+#line 50
         float distance_0 = twoDCross_0(a_1, e_0) / denominator_0;
         float segment_0 = twoDCross_0(a_1, _S4) / denominator_0;
         if(distance_0 > _S5)
         {
 
-#line 50
+#line 52
             _S2 = distance_0 < closest_0;
 
-#line 50
+#line 52
         }
         else
         {
 
-#line 50
+#line 52
             _S2 = false;
 
-#line 50
+#line 52
         }
 
-#line 50
+#line 52
         bool _S8;
 
-#line 50
+#line 52
         if(_S2)
         {
 
-#line 50
+#line 52
             _S8 = segment_0 >= 0.0f;
 
-#line 50
+#line 52
         }
         else
         {
 
-#line 50
+#line 52
             _S8 = false;
 
-#line 50
+#line 52
         }
 
-#line 50
+#line 52
         bool _S9;
 
-#line 50
+#line 52
         if(_S8)
         {
 
-#line 50
+#line 52
             _S9 = segment_0 <= 1.0f;
 
-#line 50
+#line 52
         }
         else
         {
 
-#line 50
+#line 52
             _S9 = false;
 
-#line 50
+#line 52
         }
 
-#line 50
+#line 52
         float closest_1;
 
-#line 50
+#line 52
         if(_S9)
         {
 
-#line 50
+#line 52
             closest_1 = distance_0;
 
-#line 50
+#line 52
         }
         else
         {
 
-#line 50
+#line 52
             closest_1 = closest_0;
 
-#line 50
+#line 52
         }
 
-#line 50
+#line 52
         closest_0 = closest_1;
 
-#line 41
+#line 43
         i_0 = i_0 + 1U;
 
-#line 41
+#line 43
     }
 
-#line 53
+#line 55
     *((&kernelContext_0)->shadowOutput_0+(_S3 * 1024U + _S1)) = closest_0;
     return;
+}
+
+)NEXORA_TWOD";
+inline constexpr char twod_linear_metal_bloom[] = R"NEXORA_TWOD(
+#include <metal_stdlib>
+#include <metal_math>
+#include <metal_texture>
+using namespace metal;
+
+#line 90 "core"
+struct pixelOutput_0
+{
+    float4 output_0 [[color(0)]];
+};
+
+
+#line 90
+struct pixelInput_0
+{
+    float2 uv_0 [[user(TEXCOORD)]];
+    float4 color_0 [[user(COLOR)]];
+};
+
+
+#line 3 "Engine/Presentation/shaders/twod_linear.slang"
+struct TwoDTransform_0
+{
+    float4 clip_0;
+    uint4 style_0;
+    float4 emission_0;
+    float4 emissionUv_0;
+};
+
+
+#line 24
+struct KernelContext_0
+{
+    TwoDTransform_0 constant* transform_0;
+    texture2d<float, access::sample> colorTexture_texture_0;
+    sampler colorTexture_sampler_0;
+    texture2d<float, access::sample> auxiliaryTexture_texture_0;
+    sampler auxiliaryTexture_sampler_0;
+};
+
+
+#line 174
+[[fragment]] pixelOutput_0 twoDBloomMain(pixelInput_0 _S1 [[stage_in]], float4 position_0 [[position]], TwoDTransform_0 constant* transform_1 [[buffer(0)]], texture2d<float, access::sample> colorTexture_texture_1 [[texture(0)]], sampler colorTexture_sampler_1 [[sampler(0)]], texture2d<float, access::sample> auxiliaryTexture_texture_1 [[texture(1)]], sampler auxiliaryTexture_sampler_1 [[sampler(1)]])
+{
+
+#line 174
+    thread KernelContext_0 kernelContext_0;
+
+#line 174
+    (&kernelContext_0)->transform_0 = transform_1;
+
+#line 174
+    (&kernelContext_0)->colorTexture_texture_0 = colorTexture_texture_1;
+
+#line 174
+    (&kernelContext_0)->colorTexture_sampler_0 = colorTexture_sampler_1;
+
+#line 174
+    (&kernelContext_0)->auxiliaryTexture_texture_0 = auxiliaryTexture_texture_1;
+
+#line 174
+    (&kernelContext_0)->auxiliaryTexture_sampler_0 = auxiliaryTexture_sampler_1;
+    float2 step_0 = transform_1->emission_0.xy;
+    float3 _S2 = float3(int3(int(0)) );
+
+#line 176
+    float3 result_0;
+    if((transform_1->style_0.w) == 0U)
+    {
+
+#line 178
+        float2 _S3 = _S1.uv_0 + step_0 * float2(-0.5f, -0.5f);
+
+#line 178
+        ;
+
+#line 178
+        float3 _S4 = (((&kernelContext_0)->colorTexture_texture_0).sample(((&kernelContext_0)->colorTexture_sampler_0), (_S3))).xyz;
+        float2 _S5 = _S1.uv_0 + step_0 * float2(0.5f, -0.5f);
+
+#line 179
+        ;
+
+#line 178
+        float3 _S6 = _S4 + (((&kernelContext_0)->colorTexture_texture_0).sample(((&kernelContext_0)->colorTexture_sampler_0), (_S5))).xyz;
+
+        float2 _S7 = _S1.uv_0 + step_0 * float2(-0.5f, 0.5f);
+
+#line 180
+        ;
+
+#line 179
+        float3 _S8 = _S6 + (((&kernelContext_0)->colorTexture_texture_0).sample(((&kernelContext_0)->colorTexture_sampler_0), (_S7))).xyz;
+
+        float2 _S9 = _S1.uv_0 + step_0 * float2(0.5f, 0.5f);
+
+#line 181
+        ;
+
+#line 181
+        result_0 = (_S8 + (((&kernelContext_0)->colorTexture_texture_0).sample(((&kernelContext_0)->colorTexture_sampler_0), (_S9))).xyz) * float3(0.25f) ;
+
+#line 177
+    }
+    else
+    {
+
+#line 177
+        int y_0 = int(-1);
+
+#line 177
+        result_0 = _S2;
+
+#line 183
+        for(;;)
+        {
+
+#line 183
+            if(y_0 <= int(1))
+            {
+            }
+            else
+            {
+
+#line 183
+                break;
+            }
+
+#line 183
+            int x_0 = int(-1);
+            for(;;)
+            {
+
+#line 184
+                if(x_0 <= int(1))
+                {
+                }
+                else
+                {
+
+#line 184
+                    break;
+                }
+
+#line 184
+                int _S10;
+                if(x_0 == int(0))
+                {
+
+#line 185
+                    _S10 = int(2);
+
+#line 185
+                }
+                else
+                {
+
+#line 185
+                    _S10 = int(1);
+
+#line 185
+                }
+
+#line 185
+                int _S11;
+
+#line 185
+                if(y_0 == int(0))
+                {
+
+#line 185
+                    _S11 = int(2);
+
+#line 185
+                }
+                else
+                {
+
+#line 185
+                    _S11 = int(1);
+
+#line 185
+                }
+
+#line 185
+                float weight_0 = float(_S10 * _S11) / 16.0f;
+                float2 _S12 = _S1.uv_0 + step_0 * float2(float(x_0), float(y_0));
+
+#line 186
+                ;
+
+#line 186
+                float3 result_1 = result_0 + (((&kernelContext_0)->colorTexture_texture_0).sample(((&kernelContext_0)->colorTexture_sampler_0), (_S12))).xyz * float3(weight_0) ;
+
+#line 184
+                x_0 = x_0 + int(1);
+
+#line 184
+                result_0 = result_1;
+
+#line 184
+            }
+
+#line 183
+            y_0 = y_0 + int(1);
+
+#line 183
+        }
+
+#line 188
+        ;
+
+#line 188
+        result_0 = (result_0 + (((&kernelContext_0)->auxiliaryTexture_texture_0).sample(((&kernelContext_0)->auxiliaryTexture_sampler_0), (_S1.uv_0))).xyz) * float3(0.5f) ;
+
+#line 177
+    }
+
+#line 177
+    pixelOutput_0 _S13 = { float4(clamp(result_0, _S2, float3(int3(int(65504)) )), 1.0f) };
+
+#line 190
+    return _S13;
 }
 
 )NEXORA_TWOD";
