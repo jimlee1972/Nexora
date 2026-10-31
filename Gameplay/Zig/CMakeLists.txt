@@ -471,7 +471,8 @@ if(BUILD_TESTING AND NEXORA_ENABLE_2D AND TARGET NexoraTwoDPlayer)
     add_test(NAME gameplay.zig_hd2d_native COMMAND "${Python3_EXECUTABLE}"
       "${PROJECT_SOURCE_DIR}/Tests/TwoD/HD2DAcceptance.py" --app "$<TARGET_FILE:NexoraTwoDPlayer>"
       --module "${hd2d_validation_library}" --native --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/hd2d-zig-native")
-    set_tests_properties(gameplay.zig_hd2d_native PROPERTIES TIMEOUT 180 SKIP_RETURN_CODE 77 RUN_SERIAL TRUE
+    # Four independently bounded 90-second cases plus export/teardown; keep each case deadline.
+    set_tests_properties(gameplay.zig_hd2d_native PROPERTIES TIMEOUT 420 SKIP_RETURN_CODE 77 RUN_SERIAL TRUE
       LABELS "twod;zig;effects;project;native-display")
   endif()
   add_test(NAME gameplay.hd2d_diagnostic_assets COMMAND "${Python3_EXECUTABLE}"

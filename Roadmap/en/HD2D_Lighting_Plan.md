@@ -67,3 +67,5 @@ HD2D-03 acceptance receipt: PR #736 / `40c96072`; current-head Windows job `1243
 HD2D-06 input evidence follow-up replaces fixed-time synthetic click injection with actual Zig-sampled neutral/down acknowledgements. A retained dependent full-gate failure motivated the change; three complete four-size native repetitions passed, with the original exactly-one activation/camera isolation assertions intact. Acceptance still requires final-head CI.
 
 HD2D-06 aligns moving Sprite poses with the last successfully submitted light/caster snapshot, including zero-size restoration; UI reload defers to the next update start. Full Linux297/289pass/eight skips/zero failures111.82s and Shipping passed. No ABI/host semantics change or acceptance credit before CI.
+
+HD2D-06 four-size aggregate watchdog now covers four unchanged90s case bounds plus export/teardown (420s), justified by a real Windows144-frame consumer taking about53s. Pixel/resource/input assertions and product performance gates are unchanged. Full Linux297/289pass/eight skips/zero failures105.54s and Shipping passed; final-head CI still required.

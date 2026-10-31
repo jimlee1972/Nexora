@@ -41,3 +41,8 @@ Native moving Sprite poses use the last successfully submitted light/caster time
 next-boundary effects snapshot, including after zero-size suspension. UI reload requests execute
 at the following update's start rather than replacing instances after their poses were prepared.
 Fallback still uses its current unlit time; this does not change the engine publication contract.
+
+Each native regression case retains a 90-second end-to-end watchdog. The four-case CTest suite
+has 420 seconds (four case bounds plus export/teardown), rather than an inconsistent 180-second
+aggregate. An isolated Windows Shipping consumer took about 53 seconds for one 144-frame native
+run. These watchdogs are not product FPS gates; pixel tolerances and target-PC gates are unchanged.
