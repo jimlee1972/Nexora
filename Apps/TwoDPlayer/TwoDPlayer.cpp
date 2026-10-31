@@ -511,7 +511,10 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
         throw std::runtime_error("native 2D surface: " + surface.reason);
     }
     twod::GameplayEffects effects(
-        native && surface.surface->SupportsTwoDLinear() ? NEXORA_TWOD_EFFECTS_LIGHTING : 0,
+        native && surface.surface->SupportsTwoDLinear()
+            ? NEXORA_TWOD_EFFECTS_LIGHTING |
+                  (surface.surface->SupportsTwoDShadows() ? NEXORA_TWOD_EFFECTS_SHADOWS : 0)
+            : 0,
         [&](uint32_t kind, uint64_t handle) {
           return kind == NEXORA_TWOD_EFFECTS_ENTITY && world.FindEntity(handle) &&
                  scene.Find(handle);
@@ -892,7 +895,7 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
               extracted->DrawLinear(*surface.surface, lighting->uniforms, overlay.DrawData(),
                                     {uint32_t(viewport.x), uint32_t(viewport.y),
                                      uint32_t(viewport.width), uint32_t(viewport.height)},
-                                    background);
+                                    background, lighting->edges);
         } else {
           drawStatus = extracted->Draw(*surface.surface, overlay.DrawData(), background);
         }

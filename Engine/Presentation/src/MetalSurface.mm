@@ -715,6 +715,7 @@ public:
       const bool drained = DrainFrames();
       ResetTwoDLinearFrames();
       twoDLinearPipeline_ = twoDLinearInstancePipeline_ = twoDLinearCompositePipeline_ = nil;
+      twoDShadowPipeline_ = nil;
       meshResidency_.Clear(diagnostics_.sceneGeometryResidency);
       for (std::size_t i = 0; i < kFrames; ++i) {
         uiUploads_[i] = nil;

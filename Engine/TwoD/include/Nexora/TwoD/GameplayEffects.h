@@ -7,6 +7,8 @@
 #include <vector>
 
 namespace nexora::twod {
+[[nodiscard]] NEXORA_2D_API bool
+ValidateEffectsOccluder(const NexoraTwoDEffectsOccluderV1 &) noexcept;
 // A frozen owner frame: no pointer into the caller or mutable pending submission.
 struct EffectsSnapshot final {
   bool enabled{};

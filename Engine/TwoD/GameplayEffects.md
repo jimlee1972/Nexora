@@ -1,7 +1,7 @@
 # Optional 2D effects service
 
-HD2D-01 delivers the data contract and snapshot service, not a native renderer. The current
-Player does not register this service yet. A host must advertise only native features it actually
+HD2D-01 delivers the data contract and snapshot service, not a native renderer. That original stage did not register the service in Player; the native integration below
+now registers supported features. A host must advertise only native features it actually
 implements: lighting=1, shadows=2, selective bloom=4. The default service advertises zero and
 rejects enabled submissions. No effect is silently emulated by the existing 3D path.
 
@@ -82,7 +82,7 @@ Zig diagnostic and SDK publication remain later gates in the
 
 ## Lighting host and full pool identities (HD2D-03)
 
-The generic native 2D Player registers the service with LIGHTING only when its surface supports
+The generic native 2D Player registers the service with LIGHTING when its surface supports
 the optional linear 2D path. Headless hosts advertise zero native features; enabled requests
 remain Unsupported. Old modules that never enable effects keep the original rendering path.
 The Player activates pending effects before game updates and retains that snapshot through one
@@ -120,7 +120,25 @@ then removes radius/frame-disjoint, group-zero and zero-intensity lights without
 The inverse rotated orthographic camera includes the safe-frame pixel offset; DPI/UI scale is
 not applied again. No normal map, height shadow or emissive-light inference is involved.
 
-The 32-light/8-shadow capacity contract remains; shadowed requests and nonzero bloom still return
-Unsupported until their corresponding native feature is implemented. Capacity is not a target
+The 32-light/8-shadow capacity contract remains. The Player additionally advertises SHADOWS
+when the surface reports native compute support. Nonzero bloom remains Unsupported until HD2D-05. Capacity is not a target
 60FPS guarantee. GPU frame constants/styles are copied into completed-frame-owned uploads;
 old input arrays and effect snapshots never serve as GPU pointers.
+
+
+## Shadow preparation (HD2D-04)
+
+The same frozen effects/camera snapshot prepares lights and closed contour edges. Validation
+includes every submitted polygon and shadow light before culling: 256 polygons, 16 vertices each,
+2,048 total edges and eight shadow lights. Duplicate contour IDs, self-intersection and invalid
+geometry reject; unused fixed-array vertices are ignored. Spatial culling is conservative against
+visible shadow lights and their caster groups. Compaction rebuilds shadow-slot mappings using
+visible light indices. Moving/removing contours replaces the entire edge list at the next boundary.
+No contour is inferred from a Sprite image or rectangular bounds.
+
+Each active shadow light computes 1,024 centered angular samples. Bias uses world units; softness
+[0,1] controls a bounded angular tent with wrap interpolation. A light's mask selects casters and
+receivers; receive-shadow=false bypasses only shadow visibility, leaving light contribution intact.
+Environment light is never shadowed. This flat approximation excludes height/roof shadows, colored
+transmission and physically correct area-light penumbra. Frame-owned copied edges/uniforms and
+GPU-completion retirement apply on all native backends. See [evidence](evidence/HD2D-04-Linux-2026-10-31.md).

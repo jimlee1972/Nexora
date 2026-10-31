@@ -6,6 +6,7 @@ namespace nexora::twod {
 struct LightingFrame final {
   Nexora::Presentation::TwoDLightingUniform uniforms;
   std::uint32_t submitted{}, culled{};
+  std::vector<Nexora::Presentation::TwoDShadowEdge> edges;
 };
 // Pure copied preparation from a frozen snapshot/camera. Viewport offset is in framebuffer
 // pixels; DPI/UI scale is not applied again. Light culling preserves submitted light order.

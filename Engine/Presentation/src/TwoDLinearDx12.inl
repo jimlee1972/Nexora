@@ -3,7 +3,9 @@ private:
 struct TwoDLinearFrame {
   std::array<ComPtr<ID3D12Resource>, 2> colors;
   ComPtr<ID3D12DescriptorHeap> rtvs, srvs;
-  ComPtr<ID3D12Resource> upload;
+  ComPtr<ID3D12Resource> upload, shadowBuffer;
+  std::uint64_t shadowBytes{};
+  D3D12_RESOURCE_STATES shadowState{D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE};
   std::size_t capacity{};
   std::uint32_t width{}, height{};
   std::uint64_t allocationBytes{};
@@ -11,6 +13,7 @@ struct TwoDLinearFrame {
 };
 std::array<TwoDLinearFrame, kMaximumFrames> twoDLinearFrames_;
 std::array<ComPtr<ID3D12PipelineState>, 5> twoDLinearPipelines_;
+ComPtr<ID3D12PipelineState> twoDShadowPipeline_;
 std::array<ComPtr<ID3D12RootSignature>, 2> twoDLinearRoots_;
 bool CreateTwoDLinearRoots() {
   if (twoDLinearRoots_[0] && twoDLinearRoots_[1])
@@ -19,22 +22,31 @@ bool CreateTwoDLinearRoots() {
   range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
   range.NumDescriptors = 1;
   range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-  D3D12_ROOT_PARAMETER parameters[3]{};
+  D3D12_ROOT_PARAMETER parameters[6]{};
   parameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
   parameters[0].Constants.Num32BitValues = sizeof(TwoDShaderConstants) / 4;
   parameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
   parameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
   parameters[1].DescriptorTable = {1, &range};
-  parameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+  parameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
   parameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
   parameters[2].Descriptor.ShaderRegister = 1;
-  parameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+  parameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+  parameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+  parameters[3].Descriptor.ShaderRegister = 5;
+  parameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+  parameters[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+  parameters[4].Descriptor.ShaderRegister = 6;
+  parameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+  parameters[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
+  parameters[5].Descriptor.ShaderRegister = 7;
+  parameters[5].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
   D3D12_STATIC_SAMPLER_DESC sampler{};
   sampler.AddressU = sampler.AddressV = sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-  sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+  sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
   sampler.MaxLOD = D3D12_FLOAT32_MAX;
   D3D12_ROOT_SIGNATURE_DESC root{};
-  root.NumParameters = 3;
+  root.NumParameters = 6;
   root.pParameters = parameters;
   root.NumStaticSamplers = 1;
   root.pStaticSamplers = &sampler;
@@ -124,8 +136,8 @@ bool CreateTwoDLinearProgram(bool instanced, bool composite, bool nearest,
 bool CreateTwoDLinearPipelines() {
   if (!CreateTwoDLinearRoots())
     return false;
-  if (std::all_of(twoDLinearPipelines_.begin(), twoDLinearPipelines_.end(),
-                  [](const auto &p) { return p.Get() != nullptr; }))
+  if (twoDShadowPipeline_ && std::all_of(twoDLinearPipelines_.begin(), twoDLinearPipelines_.end(),
+                                         [](const auto &p) { return p.Get() != nullptr; }))
     return true;
   for (unsigned i = 0; i < 5; ++i)
     if (!CreateTwoDLinearProgram(i == 2 || i == 3, i == 4, i == 1 || i == 3,
@@ -134,9 +146,23 @@ bool CreateTwoDLinearPipelines() {
         p.Reset();
       return false;
     }
-  return true;
+  ComPtr<ID3DBlob> shader, error;
+  if (FAILED(D3DCompile(twod_linear_hlsl_shadow, std::strlen(twod_linear_hlsl_shadow),
+                        "Nexora2DShadow", nullptr, nullptr, "twoDShadowMain", "cs_5_0", 0, 0,
+                        &shader, &error))) {
+    if (error)
+      std::fprintf(stderr, "2D shadow shader compile: %s\n",
+                   static_cast<const char *>(error->GetBufferPointer()));
+    return false;
+  }
+  D3D12_COMPUTE_PIPELINE_STATE_DESC compute{};
+  compute.pRootSignature = twoDLinearRoots_[0].Get();
+  compute.CS = {shader->GetBufferPointer(), shader->GetBufferSize()};
+  return SUCCEEDED(
+      device_->CreateComputePipelineState(&compute, IID_PPV_ARGS(&twoDShadowPipeline_)));
 }
 void ResetTwoDLinearFrame(TwoDLinearFrame &f) {
+  diagnostics_.twoDShadowBufferBytes -= f.shadowBytes;
   diagnostics_.twoDLinearTargetBytes -= f.allocationBytes;
   f = {};
 }
@@ -145,7 +171,8 @@ void ResetTwoDLinearFrames() {
     ResetTwoDLinearFrame(f);
 }
 bool CreateTwoDLinearTargets(TwoDLinearFrame &f) {
-  if (f.width == width_ && f.height == height_ && f.colors[0] && f.colors[1] && f.rtvs && f.srvs)
+  if (f.width == width_ && f.height == height_ && f.colors[0] && f.colors[1] && f.rtvs && f.srvs &&
+      f.shadowBuffer)
     return true;
   ResetTwoDLinearFrame(f);
   f.width = width_;
@@ -197,6 +224,22 @@ bool CreateTwoDLinearTargets(TwoDLinearFrame &f) {
     view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     device_->CreateShaderResourceView(f.colors[i].Get(), &view, v);
   }
+  D3D12_RESOURCE_DESC shadow{};
+  shadow.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+  shadow.Width = 8 * 1024 * sizeof(float);
+  shadow.Height = shadow.DepthOrArraySize = shadow.MipLevels = 1;
+  shadow.SampleDesc.Count = 1;
+  shadow.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+  shadow.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+  if (FAILED(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &shadow,
+                                              D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr,
+                                              IID_PPV_ARGS(&f.shadowBuffer))))
+    return false;
+  const auto shadowAllocation = device_->GetResourceAllocationInfo(0, 1, &shadow);
+  if (shadowAllocation.SizeInBytes == UINT64_MAX)
+    return false;
+  f.shadowBytes = shadowAllocation.SizeInBytes;
+  diagnostics_.twoDShadowBufferBytes += f.shadowBytes;
   ++diagnostics_.twoDLinearTargetAllocations;
   return true;
 }
@@ -213,6 +256,7 @@ bool SupportsTwoDLinear() const noexcept override {
              device_->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &format, sizeof(format))) &&
          (format.Support1 & need) == need;
 }
+bool SupportsTwoDShadows() const noexcept override { return SupportsTwoDLinear(); }
 SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
   if (!OnThread())
     return SurfaceStatus::WrongThread;
@@ -262,7 +306,10 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
   const std::uint32_t indices[] = {0, 1, 2, 0, 2, 3};
   const auto uniformOffset =
       (quadOffset + sizeof(quad) + sizeof(indices) + 255U) & ~std::size_t(255);
-  const auto required = uniformOffset + sizeof(TwoDLightingUniform);
+  const auto edgeOffset = (uniformOffset + sizeof(TwoDLightingUniform) + 255U) & ~std::size_t(255);
+  const auto edgeBytes = std::max<std::size_t>(1, data.lighting ? data.lighting->edges.size() : 0) *
+                         sizeof(TwoDShadowEdge);
+  const auto required = edgeOffset + edgeBytes;
   if (!CreateUploadAllocation(f.upload, f.capacity, required))
     return SurfaceStatus::DeviceLost;
   void *mapped{};
@@ -279,7 +326,30 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
   const TwoDLightingUniform fallback{};
   std::memcpy(bytes + uniformOffset, data.lighting ? &data.lighting->uniforms : &fallback,
               sizeof(fallback));
+  std::memset(bytes + edgeOffset, 0, edgeBytes);
+  if (data.lighting && !data.lighting->edges.empty())
+    std::memcpy(bytes + edgeOffset, data.lighting->edges.data(), data.lighting->edges.size_bytes());
   f.upload->Unmap(0, nullptr);
+  if (data.lighting && data.lighting->uniforms.counts[1]) {
+    D3D12_RESOURCE_BARRIER shadowBarrier{};
+    shadowBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    shadowBarrier.Transition = {f.shadowBuffer.Get(), D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+                                f.shadowState, D3D12_RESOURCE_STATE_UNORDERED_ACCESS};
+    commands_->ResourceBarrier(1, &shadowBarrier);
+    commands_->SetComputeRootSignature(twoDLinearRoots_[0].Get());
+    commands_->SetPipelineState(twoDShadowPipeline_.Get());
+    commands_->SetComputeRootConstantBufferView(2,
+                                                f.upload->GetGPUVirtualAddress() + uniformOffset);
+    commands_->SetComputeRootShaderResourceView(3, f.upload->GetGPUVirtualAddress() + edgeOffset);
+    commands_->SetComputeRootUnorderedAccessView(5, f.shadowBuffer->GetGPUVirtualAddress());
+    commands_->Dispatch(16, data.lighting->uniforms.counts[1], 1);
+    shadowBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+    shadowBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    commands_->ResourceBarrier(1, &shadowBarrier);
+    f.shadowState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    ++diagnostics_.twoDShadowDispatches;
+    diagnostics_.twoDShadowSamples += uint64_t(data.lighting->uniforms.counts[1]) * 1024;
+  }
   D3D12_RESOURCE_BARRIER barrier{};
   barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
   barrier.Transition = {f.colors[0].Get(), D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, f.colorState,
@@ -325,6 +395,7 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
     commands_->SetGraphicsRoot32BitConstants(0, sizeof(transform) / 4, &transform, 0);
     commands_->SetGraphicsRootConstantBufferView(2,
                                                  f.upload->GetGPUVirtualAddress() + uniformOffset);
+    commands_->SetGraphicsRootShaderResourceView(4, f.shadowBuffer->GetGPUVirtualAddress());
     auto descriptor = uiDescriptors_->GetGPUDescriptorHandleForHeapStart();
     descriptor.ptr += UINT64(texture.descriptor) * uiDescriptorIncrement_;
     commands_->SetGraphicsRootDescriptorTable(1, descriptor);

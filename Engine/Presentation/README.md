@@ -1124,9 +1124,35 @@ or physical product acceptance. See [HD2D plan](../../Roadmap/en/HD2D_Lighting_P
 
 HD2D-03 adds an optional copied `TwoDLighting` packet with one style per prepared world command
 (including an unlit background). Its uniform uses only explicit 16-byte float4/uint4 blocks on all
-three backends; point lights occupy 48 bytes and the 32-light frame 1,600 bytes. No native pointers
+three backends; point lights occupy 64 bytes and the 32-light frame 2,144 bytes (including shadow mappings). No native pointers
 or 44-byte Sprite instance fields change. Vulkan owns an additional uniform descriptor per frame
 slot and negotiates its separate push-constant/layout contract; DX12 owns separate linear/nearest
 root signatures with a frame CBV; Metal binds the same constants separately for vertex/fragment
 stages. Fence/completion protects copied uniforms exactly like geometry. Default null lighting
 keeps HD2D-02 behavior. HUD remains in the original pipeline, outside all lighting and tone mapping.
+
+
+### Planar angular shadows (HD2D-04)
+
+`SupportsTwoDShadows` independently reports compute support. `TwoDLighting` appends borrowed
+world-space edges, copied before return into the completion-protected frame upload. The uniform
+maps at most eight shadow slots to visible light indices; each slot writes 1,024 centered angular
+nearest-distance samples with one 64-thread compute kernel (16 groups per light). The graphics
+pass reads this private 32 KiB buffer. Vulkan uses explicit compute-write/fragment-read barriers,
+DX12 transitions UAV to pixel SRV, and Metal uses tracked resources in the same command buffer.
+No CPU-generated shadow texture substitutes for native compute output.
+
+Casters intersect the light group mask. A receiver's flag bypasses shadowing independently of
+lighting. Bias is a finite world distance, used both to reject source-contact intersections and
+offset receiver comparison. Angular wrapping, linear visibility interpolation and a nine-tap
+tent (at most 18 buffer reads) provide bounded softness; this is planar filtered occlusion, not
+physical area-light penumbra. Empty-edge submissions overwrite every active sample with radius,
+so removing casters cannot leave old shadow data. Lights/contours are validated before culling.
+
+`twoDShadowDispatches`, `twoDShadowSamples` and `twoDShadowBufferBytes` record submitted compute
+work and native allocations, not GPU timing or resident VRAM. Resize/drain release frame-owned
+buffers only after completion. The native fixture now covers 52 frames: 40 lit, 30 shadowed,
+max 32 lights/eight shadow casters, moving contours, group rejection, soft edges, angle seams,
+source contact, HDR values and explicit empty-edge removal. Its independent double-precision
+CPU oracle retains the fixed two-channel-value SDR tolerance. Native Windows/Metal acceptance
+is required separately; [stage evidence](../TwoD/evidence/HD2D-04-Linux-2026-10-31.md).

@@ -151,6 +151,7 @@ public:
         if ((queues[index].queueFlags & VK_QUEUE_GRAPHICS_BIT) && present) {
           physical_ = device;
           queueFamily_ = index;
+          twoDComputeQueue_ = (queues[index].queueFlags & VK_QUEUE_COMPUTE_BIT) != 0;
           timestampBits_ = queues[index].timestampValidBits;
           break;
         }
@@ -1578,7 +1579,7 @@ private:
     create.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     create.size = frame.uiCapacity;
     create.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
-                   VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+                   VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     create.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     if (vkCreateBuffer(device_, &create, nullptr, &frame.uiUpload) != VK_SUCCESS)
       return false;

@@ -64,6 +64,7 @@ public:
                                           bool instanceQuads = false,
                                           std::uint32_t background = 0xFF29140A);
   [[nodiscard]] bool SupportsTwoDLinear() const noexcept;
+  [[nodiscard]] bool SupportsTwoDShadows() const noexcept;
   [[nodiscard]] SurfaceStatus DrawSpritesLinear(const UiDrawData &sprites,
                                                 const UiDrawData &overlay = {},
                                                 bool instanceQuads = false,

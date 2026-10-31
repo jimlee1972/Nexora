@@ -50,12 +50,11 @@ struct NEXORA_2D_API SpriteFrame final {
   Draw(Nexora::Presentation::RenderSurface &surface,
        const Nexora::Presentation::UiDrawData &overlay = {},
        std::uint32_t background = 0xFF29140A) const;
-  [[nodiscard]] Nexora::Presentation::SurfaceStatus
-  DrawLinear(Nexora::Presentation::RenderSurface &,
-             const Nexora::Presentation::TwoDLightingUniform &,
-             const Nexora::Presentation::UiDrawData &overlay = {},
-             const std::array<std::uint32_t, 4> &viewport = {},
-             std::uint32_t background = 0xFF000000) const;
+  [[nodiscard]] Nexora::Presentation::SurfaceStatus DrawLinear(
+      Nexora::Presentation::RenderSurface &, const Nexora::Presentation::TwoDLightingUniform &,
+      const Nexora::Presentation::UiDrawData &overlay = {},
+      const std::array<std::uint32_t, 4> &viewport = {}, std::uint32_t background = 0xFF000000,
+      std::span<const Nexora::Presentation::TwoDShadowEdge> edges = {}) const;
 };
 struct Collider final {
   ShapeKind kind{ShapeKind::Circle};
