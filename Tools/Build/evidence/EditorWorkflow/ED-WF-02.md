@@ -92,3 +92,39 @@ main and completed apt-get update (exit 0), then dependency installation lost it
 transport; recovery timed out after 25 seconds and the environment reported unavailable. Tool
 installation completion is unconfirmed; no cloud implementation gate started or passed. Beads bootstrap/shared-history blockers remain separately
 recorded in ED-WF-01; no shared database was replaced.
+
+## Accepted exact-head validation and merge (2026-10-31)
+
+✅ ED-WF-02 accepted in [PR #754](https://github.com/jimlee1972/Nexora/pull/754), squash
+`1232574620ba784da1b3a607780986790e831b52`. The earlier pending/recovery/local-failure sections above
+are retained historical evidence, superseded by these complete results. Candidate
+`2eabfa2b560c72f931f2b44138a822bd6739ffba`, tree `8a80e6681feef714010f5001215a897cecf1c5b7`:
+
+- All 42 CI checks succeeded. Full hosted development: Linux 489 passed/1 conditional skip,
+  Windows 432 passed/1 conditional skip, macOS 406 passed/1 conditional skip. The conditional
+  test is `twod.portable_font_bake`. Hosted Windows actual GUI workflow passed in 93.85 seconds;
+  unchanged splash/integration pixel tests passed in 0.35/18.04 seconds. Original local failures
+  remain retained; no Logo/startup assertion or deadline was changed.
+- Separately, the new Codex Cloud Linux environment completed Development configure/build/CTest:
+  **490/490 passed, 0 skipped, 0 failed**, 2000.47 seconds, final exit 0 for each command. Shipping
+  configure/build also final exit 0, Zig ON. Actual GUI script Build and native/ABI gates passed;
+  `editor.linux_packaged_play` passed in 45.37 seconds. See the [complete command/exit receipt](ED-WF-02-Cloud.json).
+- Initial Cloud Development/Shipping builds exited 1 due to a read-only Zig cache. Task-scoped
+  XDG/Zig cache directories repaired the environment; complete incremental build commands and
+  full CTest were then run successfully. No source, assertions, deadlines or datasets changed.
+  OOM counters were zero. The old recovery build stopped at 529/969 was an instructed interruption,
+  not a successful full gate or a compiler failure.
+- While Cloud ran, main advanced to `6c5adefc`. Its changes were SDK publication/VM tools and
+  evidence/docs, with no compiled Engine/Apps/Bindings/Gameplay/Shaders/CMake source changes.
+  Integration tree `659e4c1f9a7acd27131580900470b4663e9fcd52` passed 23 changed Markdown documents,
+  SDK promotion 3/3 and real Windows guest-helper hash/UTF-8/pipe regressions. Main's 23 checks
+  succeeded, candidate retained 42 successes. Merged tree was checked equal to that integration.
+- Complete Cloud logs/JUnit/configuration/archive: `validation-754-evidence.tar.gz`, 439768 bytes,
+  SHA-256 `f8f719ec430558c936b93865aa1f3d5768822d0faa3c28ae0ff7fcfe2a421209`.
+  Full logs remain with the Cloud validation artifact; the JSON receipt is committed separately.
+
+Beads safely adopted existing remote history into the original external paths; pull/prime and
+both graph/evidence pushes succeeded. Epic `nexora-whr`, accepted child `nexora-whr.2` and remaining
+`.3` through `.9` retain the approved dependencies. No `bd init`, force or shared-history replacement.
+Accepted workflow progress is **2/9**; full Editor milestone count stays **0/8**. ED-WF-03 and later
+orders and the new final Windows Editor ZIP are not accepted by this supporting work order.

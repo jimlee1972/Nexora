@@ -4,7 +4,7 @@
 
 核准的[交付計畫](Editor_Workflow_Delivery_Plan.md)及
 [Epic #741](https://github.com/jimlee1972/Nexora/issues/741) 追蹤九張相依工單，涵蓋腳本 Build UI、
-乾淨遊戲成品、有狀態熱重載及來源感知 Editor／Player／Zig 整合。驗收為 1/9（11.1%）：ED-WF-01 ✅ PR #751，ED-WF-02 施工中；
+乾淨遊戲成品、有狀態熱重載及來源感知 Editor／Player／Zig 整合。驗收為 2/9（22.2%）：ED-WF-01 ✅ PR #751，ED-WF-02 ✅ PR #754，ED-WF-03 施工中；
 既有 supporting capabilities 不直接算完整流程完成；完整 Editor 里程碑維持 0/8。
 現有 CLI 與 `.bat` 開發流程持續可用。
 

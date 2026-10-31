@@ -7,7 +7,11 @@
 #include "Nexora/Runtime/GameLaunch.h"
 #include <chrono>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
+#include <locale>
+#include <set>
+#include <sstream>
 #include <stdexcept>
 #include <thread>
 
@@ -35,6 +39,56 @@ std::string Utf8(const std::filesystem::path &path) {
   const auto text = path.generic_u8string();
   return {text.begin(), text.end()};
 }
+// Frozen legacy wire format, independent of the new external-receipt publisher.
+std::string LegacyInventory(const std::filesystem::path &directory, std::string_view project) {
+  std::vector<std::filesystem::path> files;
+  for (const auto &entry : std::filesystem::directory_iterator(directory))
+    if (entry.path().filename() != "Game.inventory")
+      files.push_back(entry.path().filename());
+  std::ranges::sort(files);
+  std::string result =
+      "NEXORA_GAME_INVENTORY_1\nproject=" + std::string(project) + "\nintegrity=fnv1a64-size\n";
+  for (const auto &name : files) {
+    const auto bytes = Read(directory / name);
+    std::uint64_t digest = 14695981039346656037ULL;
+    for (const char raw : bytes) {
+      const auto byte = static_cast<unsigned char>(raw);
+      digest ^= byte;
+      digest *= 1099511628211ULL;
+    }
+    std::ostringstream hash;
+    hash.imbue(std::locale::classic());
+    hash << std::hex << std::setfill('0') << std::setw(16) << digest;
+    result += Utf8(name) + "\t" + std::to_string(bytes.size()) + "\t" + hash.str() + "\n";
+  }
+  return result;
+}
+std::set<std::filesystem::path> Files(const std::filesystem::path &root) {
+  std::set<std::filesystem::path> result;
+  for (const auto &entry : std::filesystem::recursive_directory_iterator(root))
+    if (entry.is_regular_file())
+      result.insert(entry.path().lexically_relative(root));
+  return result;
+}
+struct RestorePermissions final {
+  std::vector<std::pair<std::filesystem::path, std::filesystem::perms>> entries;
+  void Protect(const std::filesystem::path &path) {
+    const auto old = std::filesystem::status(path).permissions();
+    entries.emplace_back(path, old);
+    std::filesystem::permissions(path, old & ~std::filesystem::perms::owner_write &
+                                           ~std::filesystem::perms::group_write &
+                                           ~std::filesystem::perms::others_write);
+  }
+  ~RestorePermissions() {
+    for (auto it = entries.rbegin(); it != entries.rend(); ++it) {
+      try {
+        std::error_code ec;
+        std::filesystem::permissions(it->first, it->second, ec);
+      } catch (...) {
+      }
+    }
+  }
+};
 std::uint32_t Command(const std::filesystem::path &executable, const std::filesystem::path &cwd,
                       std::vector<std::string> arguments) {
   core::JobSystem jobs(1);
@@ -134,6 +188,7 @@ void Run(const std::filesystem::path &root, int argc, char **argv) {
   editor::GameBuildRequest request;
   request.project_root = root;
   request.temporary_parent = root.parent_path();
+  request.records_parent = root.parent_path() / "User Data";
   request.capture = *capture;
   request.tools.player = Path(argv[1]);
   request.tools.cmake = Path(argv[3]);
@@ -156,6 +211,7 @@ void Run(const std::filesystem::path &root, int argc, char **argv) {
   const auto output = root / "BuiltGame";
   auto prepared = PrepareOnWorker(request, error);
   Require(prepared.has_value(), error.c_str());
+  Require(!prepared->Receipt(), "unpublished preparation exposed a committed receipt");
   Require(!prepared->Publish(output, {}, [] { return false; }) && !exists(output), "owner guard");
   core::CancellationSource cancelled;
   cancelled.Cancel();
@@ -166,7 +222,14 @@ void Run(const std::filesystem::path &root, int argc, char **argv) {
   Require(!prepared->Publish(output, {}, [] { return true; }) && !exists(output), "stale scene");
   Write(root / "Title.scene", original);
   Require(prepared->Publish(output, {}, [] { return true; }, &error), error.c_str());
-  const auto old_inventory = Read(output / "Game.inventory");
+  Require(prepared->Receipt().has_value(), "independent build receipt missing");
+  const auto records = prepared->Receipt()->directory;
+  Require(prepared->Receipt()->file == records / "Publication.receipt" &&
+              exists(prepared->Receipt()->file) && !exists(output / "Game.inventory") &&
+              !exists(output / "Build.commands") && !exists(output / "Build.sources") &&
+              !exists(output / "Build.tools"),
+          "tool records leaked into runtime output");
+  const auto old_inventory = Read(records / "Game.inventory");
 #if defined(_WIN32)
   const auto installed = output / "Game.exe";
 #else
@@ -189,31 +252,111 @@ void Run(const std::filesystem::path &root, int argc, char **argv) {
   std::filesystem::remove(output / "FlatRuntime.profile");
   Require(Command(Path(argv[6]), root,
                   {"--build-game=" + Utf8(root), "--output=" + Utf8(root / "CliGame"),
+                   "--build-records=" + Utf8(request.records_parent),
                    "--runtime-profile=" +
                        Utf8(request.tools.player.parent_path() / "GameRuntime.profile"),
                    "--scene-only"}) == 0U &&
-              exists(root / "CliGame/Game.inventory"),
+              exists(root / "CliGame/Game.launch") && !exists(root / "CliGame/Game.inventory"),
           "Editor CLI did not use the shared build service");
   Require(Command(Path(argv[6]), root,
                   {"--build-game=" + Utf8(root), "--output=" + Utf8(root / "InstalledCliGame"),
-                   "--scene-only"}) == 0U &&
-              exists(root / "InstalledCliGame/Game.inventory"),
+                   "--build-records=" + Utf8(request.records_parent), "--scene-only"}) == 0U &&
+              exists(root / "InstalledCliGame/Game.launch") &&
+              !exists(root / "InstalledCliGame/Game.inventory"),
           "Editor CLI could not resolve its installed/developer runtime and tool configuration");
   Require(!old_inventory.empty() && exists(output / "Game.launch") &&
               exists(output / "Game.nxgame") && !exists(output / "Title.scene") &&
               !exists(output / "sdk") && !exists(output / "source"),
           "source-free artifact");
-  auto changed = editor::PrepareGameBuild(request, {}, &error);
+  for (const auto *name :
+       {"Build.commands", "Game.inventory", "Records.inventory", "Publication.receipt"}) {
+    const auto forbidden = root / name;
+    Write(forbidden, "tool metadata is not a runtime library");
+    auto unsafe = request;
+    unsafe.tools.runtime_files.push_back(forbidden);
+    Require(!editor::PrepareGameBuild(std::move(unsafe), {}, &error) &&
+                error == "Game runtime inventory contains an invalid or unavailable library." &&
+                Read(records / "Game.inventory") == old_inventory && !exists(output / name),
+            "publication metadata was not rejected by runtime-library validation");
+    std::filesystem::remove(forbidden);
+  }
+  for (const auto &bad_records : {root / "ForbiddenRecords", output / "Records",
+                                  root.parent_path() / "User Data/../UnnormalizedRecords"}) {
+    auto unsafe = request;
+    unsafe.records_parent = bad_records;
+    auto rejected = editor::PrepareGameBuild(std::move(unsafe), {}, &error);
+    Require(rejected && !rejected->Publish(output, {}, [] { return true; }) &&
+                Read(records / "Game.inventory") == old_inventory && !exists(bad_records),
+            "unsafe/overlapping record storage wrote project/runtime files");
+  }
+  auto replacement = request;
+  replacement.maximum_frames = 101;
+  auto changed = editor::PrepareGameBuild(replacement, {}, &error);
   Require(changed.has_value(), error.c_str());
+  const auto old_receipt = Read(records / "Publication.receipt");
+  const auto old_record_inventory = Read(records / "Records.inventory");
+  const auto old_commands = Read(records / "Build.commands");
+  Write(records / "Build.commands", old_commands + "changed\n");
+  Require(!changed->Publish(output, {}, [] { return true; }) &&
+              Read(records / "Game.inventory") == old_inventory &&
+              Read(records / "Publication.receipt") == old_receipt,
+          "modified external records admitted");
+  Write(records / "Build.commands", old_commands);
+  // A real destination-filesystem failure after the game directory commit must restore it.
+  // Move only this fixture's external storage, and occupy its original name with a foreign file.
+  // The owner predicate is the existing final commit barrier, not a test-only publisher hook.
+  const auto displaced_records = root.parent_path() / "Temporarily moved records";
+  unsigned guards{};
+  const auto old_launch = Read(output / "Game.launch");
+  Require(Read(changed->Directory() / "Game.launch") != old_launch,
+          "rollback fixture must publish a different runtime payload");
+  const bool committed = changed->Publish(
+      output, {},
+      [&] {
+        if (++guards == 2) {
+          std::filesystem::rename(request.records_parent, displaced_records);
+          Write(request.records_parent, "foreign storage occupant");
+        }
+        return true;
+      },
+      &error);
+  Require(!committed && guards == 2 && Read(output / "Game.launch") == old_launch &&
+              Read(request.records_parent) == "foreign storage occupant" &&
+              error.find("transaction rolled back") != std::string::npos,
+          "receipt commit failure did not roll back the game or preserved no foreign storage");
+  std::filesystem::remove(request.records_parent);
+  std::filesystem::rename(displaced_records, request.records_parent);
+  Require(Read(records / "Publication.receipt") == old_receipt &&
+              Read(records / "Records.inventory") == old_record_inventory,
+          "failed receipt transaction changed previous metadata");
+  const auto legacy_output = root / "LegacyGame";
+  std::filesystem::copy(output, legacy_output, std::filesystem::copy_options::recursive);
+  for (const auto *name : {"Build.commands", "Build.sources", "Build.tools"})
+    std::filesystem::copy_file(records / name, legacy_output / name);
+  const auto legacy_inventory =
+      LegacyInventory(legacy_output, request.capture.project.project.ToString());
+  Write(legacy_output / "Game.inventory", legacy_inventory);
+  auto migration = editor::PrepareGameBuild(request, {}, &error);
+  Require(migration.has_value(), error.c_str());
+  Write(legacy_output / "Build.commands", old_commands + "corrupt legacy\n");
+  Require(!migration->Publish(legacy_output, {}, [] { return true; }) &&
+              Read(legacy_output / "Game.inventory") == legacy_inventory,
+          "corrupt legacy output migrated");
+  Write(legacy_output / "Build.commands", old_commands);
+  Require(migration->Publish(legacy_output, {}, [] { return true; }, &error), error.c_str());
+  Require(!exists(legacy_output / "Game.inventory") && !exists(legacy_output / "Build.commands") &&
+              Read(migration->Receipt()->directory / "Legacy.Game.inventory") == legacy_inventory &&
+              Read(migration->Receipt()->directory / "Legacy.Build.commands") == old_commands,
+          "verified legacy migration did not retain old records outside runtime output");
   Write(output / "keep-user-file.txt", "user data");
   Require(!changed->Publish(output, {}, [] { return true; }) &&
-              Read(output / "Game.inventory") == old_inventory &&
+              Read(records / "Game.inventory") == old_inventory &&
               exists(output / "keep-user-file.txt"),
           "foreign output overwritten");
   std::filesystem::remove(output / "keep-user-file.txt");
   Write(changed->Directory() / "Game.launch", "tampered");
   Require(!changed->Publish(output, {}, [] { return true; }) &&
-              Read(output / "Game.inventory") == old_inventory,
+              Read(records / "Game.inventory") == old_inventory,
           "tampered artifact published");
   std::filesystem::create_directory(root / "Scripts");
   std::filesystem::copy_file(Path(argv[2]), root / "Scripts/game.zig");
@@ -221,10 +364,10 @@ void Run(const std::filesystem::path &root, int argc, char **argv) {
         R"({"schema":1,"module_name":"BuiltGameFixture","script":"game.zig"})");
   Require(Command(Path(argv[6]), root,
                   {"--build-game=" + Utf8(root), "--output=" + Utf8(root / "DefaultScriptGame"),
+                   "--build-records=" + Utf8(request.records_parent),
                    "--script-project=Scripts/project.json"}) == 0U &&
               exists(root / "DefaultScriptGame" / runtime::kGameModuleFilename) &&
-              Read(root / "DefaultScriptGame/Build.sources").find("mode=script-project") !=
-                  std::string::npos,
+              !exists(root / "DefaultScriptGame/Build.sources"),
           "Editor default script build could not resolve its configured compiler");
   request.mode = editor::GameBuildMode::ScriptProject;
   request.script_manifest = "Scripts/project.json";
@@ -234,18 +377,18 @@ void Run(const std::filesystem::path &root, int argc, char **argv) {
           "SDK tests not run");
   Write(root / "Scripts/new.zig", "// new source\n");
   Require(!scripted->Publish(output, {}, [] { return true; }) &&
-              Read(output / "Game.inventory") == old_inventory,
+              Read(records / "Game.inventory") == old_inventory,
           "script inventory change escaped guard");
   std::filesystem::remove(root / "Scripts/new.zig");
   Require(scripted->Publish(output, {}, [] { return true; }, &error), error.c_str());
   Require(exists(output / runtime::kGameModuleFilename) &&
-              Read(output / "Build.sources").find("mode=script-project") != std::string::npos,
+              Read(records / "Build.sources").find("mode=script-project") != std::string::npos,
           "compiled module missing");
-  const auto scripted_inventory = Read(output / "Game.inventory");
+  const auto scripted_inventory = Read(records / "Game.inventory");
   const auto valid_script = Read(root / "Scripts/game.zig");
   Write(root / "Scripts/game.zig", "invalid Zig source\n");
   Require(!editor::PrepareGameBuild(request, {}, &error) &&
-              Read(output / "Game.inventory") == scripted_inventory,
+              Read(records / "Game.inventory") == scripted_inventory,
           "failed compile replaced previous game");
   Write(root / "Scripts/game.zig", valid_script);
   Require(!editor::PrepareGameBuild(request, cancelled.Token()), "pre-cancelled build ran");
@@ -260,10 +403,26 @@ void Run(const std::filesystem::path &root, int argc, char **argv) {
       std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
     Require(result && !result->prepared && !worker.Busy() &&
-                Read(output / "Game.inventory") == scripted_inventory,
+                Read(records / "Game.inventory") == scripted_inventory,
             "cancelled graphical worker published or retained a live operation");
   }
   workspace = editor::ProjectWorkspace{};
+  {
+    const auto files_before = Files(root);
+    RestorePermissions permissions;
+    for (const auto &entry : std::filesystem::recursive_directory_iterator(root))
+      permissions.Protect(entry.path());
+    permissions.Protect(root);
+    const auto readonly_output = root.parent_path() / "ReadOnlyGame";
+    Require(Command(Path(argv[6]), root.parent_path(),
+                    {"--build-game=" + Utf8(root), "--output=" + Utf8(readonly_output),
+                     "--build-records=" + Utf8(request.records_parent),
+                     "--script-project=Scripts/project.json"}) == 0U &&
+                exists(readonly_output / runtime::kGameModuleFilename) &&
+                !exists(readonly_output / "Game.inventory") && Files(root) == files_before &&
+                editor::GameBuildSourcesCurrent(root, request.capture.sources, &error),
+            "read-only script project build wrote authored files or leaked runtime tool records");
+  }
 }
 } // namespace
 int main(int argc, char **argv) {
@@ -279,7 +438,8 @@ int main(int argc, char **argv) {
     --argc;
   }
   try {
-    Run(root, argc, argv);
+    std::filesystem::create_directory(root);
+    Run(root / "Project", argc, argv);
     if (!retain)
       std::filesystem::remove_all(root);
     std::cout

@@ -90,7 +90,7 @@ def graphical_build(args, root, evidence, environment):
             output = root / "Build/Game"
             deadline = time.monotonic() + 120
             while time.monotonic() < deadline:
-                if (output / "Game.inventory").is_file() and observation().get("busy") == "0":
+                if (output / "Game.launch").is_file() and observation().get("busy") == "0":
                     break
                 result = re.search(r"^game build result: (.*)$",
                                    errors.read_text(errors="replace"), re.M)
@@ -98,9 +98,18 @@ def graphical_build(args, root, evidence, environment):
                         errors.read_text(errors="replace"))
                 require(editor.poll() is None, errors.read_text(errors="replace"))
                 time.sleep(.1)
-            require((output / "Game.inventory").is_file() and (output / "libGame.so").is_file(),
+            require((output / "Game.launch").is_file() and (output / "libGame.so").is_file(),
                     errors.read_text(errors="replace"))
-            require("mode=script-project" in (output / "Build.sources").read_text(),
+            receipt_line = re.search(r"^game build receipt: (.*)$",
+                                     errors.read_text(errors="replace"), re.M)
+            require(receipt_line, "GUI did not expose its independent build receipt")
+            records = Path(json.loads(receipt_line.group(1)))
+            require(records.is_dir() and not records.is_relative_to(root) and
+                    (records / "Publication.receipt").is_file(), "build records overlap project")
+            require(not any((output / name).exists() for name in
+                    ("Game.inventory", "Build.commands", "Build.sources", "Build.tools")),
+                    "development records leaked into runtime output")
+            require("mode=script-project" in (records / "Build.sources").read_text(),
                     "graphical build did not compile the selected script project")
             verification = subprocess.run([str(output / "Game"), "--verify-game-module",
                                            str(output / "libGame.so")], cwd=root, env=environment,
@@ -119,7 +128,8 @@ def graphical_build(args, root, evidence, environment):
         require(saved_settings.read_bytes() == saved_build_settings,
                 "GUI Build rewrote saved configuration")
         return {"exit": editor.returncode, "saved_configuration": configuration, "inventory_sha256": hashlib.sha256(
-            (output / "Game.inventory").read_bytes()).hexdigest(), "script_abi_verified": True}
+            (records / "Game.inventory").read_bytes()).hexdigest(), "script_abi_verified": True,
+                "runtime_only": True, "build_receipt": str(records / "Publication.receipt")}
     finally:
         if editor is not None and editor.poll() is None:
             editor.terminate()
@@ -152,7 +162,8 @@ def main():
     passed = False
     try:
         require(display, "Xvfb unavailable")
-        environment = dict(os.environ, DISPLAY=display)
+        environment = dict(os.environ, DISPLAY=display,
+                           XDG_CONFIG_HOME=str(evidence / "user-data"))
         errors = evidence / "stderr.log"
         with errors.open("wb") as stderr, (evidence / "stdout.log").open("wb") as stdout:
             editor = subprocess.Popen([args.editor, "--project=" + str(root), "--graphical",

@@ -4,7 +4,7 @@
 
 更新：2026-10-31。基線：`8c4aa989ee7443cc0b2129d54f0f0f77c73d2b49`。
 文件發布基底：目前 main `67db45d23e631b0e05b42c23716245a34ae996d5`。
-驗收快照：**1/9 工單（11.1%）**；ED-WF-01 已由 [PR #751](https://github.com/jimlee1972/Nexora/pull/751) 合併。
+驗收快照：**2/9 工單（22.2%）**；ED-WF-01 已由 [PR #751](https://github.com/jimlee1972/Nexora/pull/751)、ED-WF-02 由 [PR #754](https://github.com/jimlee1972/Nexora/pull/754) 合併。
 後續已驗收項目及 merged PR／證據記於 Epic。完整圖形化 Editor 驗收維持 **0/8**；
 本計畫不自動驗收實體裝置或乾淨主機 gates。
 
@@ -24,8 +24,8 @@ SortingGroup、九宮格／Tiled、遮罩及進階動畫狀態機不在本批範
 | ID | GitHub | 相依 | 必須通過的驗收 | 狀態 |
 | --- | --- | --- | --- | --- |
 | ED-WF-01 | [#742](https://github.com/jimlee1972/Nexora/issues/742) | 無 | 發布雙語計畫、能力基線、工單圖及驗證／證據對應 | ✅ PR #751 |
-| ED-WF-02 | [#743](https://github.com/jimlee1972/Nexora/issues/743) | 01 | 保存腳本 Build 設定，真實 GUI Build／Build & Run、取消、進度與診斷 | 施工中，待驗收 |
-| ED-WF-03 | [#744](https://github.com/jimlee1972/Nexora/issues/744) | 01 | 無原始碼的 Runtime 成品；開發紀錄與發布 inventory 留在成品外 | 待辦 |
+| ED-WF-02 | [#743](https://github.com/jimlee1972/Nexora/issues/743) | 01 | 保存腳本 Build 設定，真實 GUI Build／Build & Run、取消、進度與診斷 | ✅ PR #754 |
+| ED-WF-03 | [#744](https://github.com/jimlee1972/Nexora/issues/744) | 01 | 無原始碼的 Runtime 成品；開發紀錄與發布 inventory 留在成品外 | 施工中，待驗收 |
 | ED-WF-04 | [#745](https://github.com/jimlee1972/Nexora/issues/745) | 01 | Runtime／Zig 交易式遷移；替換失敗保留舊模組及 World | 待辦 |
 | ED-WF-05 | [#746](https://github.com/jimlee1972/Nexora/issues/746) | 02、04 | 背景編譯來源並保留狀態熱重載，不需 Stop／Play | 待辦 |
 | ED-WF-06 | [#747](https://github.com/jimlee1972/Nexora/issues/747) | 01 | 相容的 C／Zig 來源 API 與 cooked Player 相依閉包 | 待辦 |
@@ -36,7 +36,8 @@ SortingGroup、九宮格／Tiled、遮罩及進階動畫狀態機不在本批範
 各工單於 `Tools/Build/evidence/EditorWorkflow/ED-WF-XX.md` 記錄精確指令、結果及限制。
 現有 [ED-WF-01 基線](../../Tools/Build/evidence/EditorWorkflow/ED-WF-01.md) 區分規劃、
 實作與已驗收交付；後續證據檔存在後才加入連結。
-[ED-WF-02 Windows 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02.md) 記錄原生通過項目、保留失敗及待執行的雲端／CI gates，不代表工單已驗收。
+[ED-WF-02 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02.md)及[雲端收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02-Cloud.json)記錄已驗收的 PR #754：42 項 CI 成功、雲端 490/490 與 Shipping 建置通過，保留初次環境／本機畫面擷取失敗。ED-WF-03 施工中，尚未驗收。Beads 已安全採用既有歷史並恢復同步；Epic `nexora-whr` 與 `.1`～`.9` 對應連結的 GitHub 工單。
+[ED-WF-03 施工證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03.md)記錄原生通過項目及尚待完成的精確版本雲端／CI gate，尚未驗收工單。
 完成度為具備驗收證據及 merged delivery PR 的子工單數除以九；已驗收列使用 `✅`，
 待辦及 blocked 項目維持未標記。
 

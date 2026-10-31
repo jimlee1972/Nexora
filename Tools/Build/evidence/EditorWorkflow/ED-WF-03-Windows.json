@@ -1,0 +1,116 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "scope": "Windows developer host native DX12 GUI; not clean-host or physical-device milestone acceptance",
+  "source_base": "1232574620ba784da1b3a607780986790e831b52",
+  "source_sha256": {
+    "Apps/Editor/GameBuildCommand.h": "ade5c8c264f545013cda54c2fc49a55a3b34ee968f360cd3b879e5d5d70920cf",
+    "Apps/Editor/GameRunCoordinator.h": "babb47baebd947bc011e72a73a07778568269501695eaeb4b82b25b0649cba3b",
+    "Apps/Editor/main.cpp": "6f8ae596ddd3c8cda006f185b2e17aa6f71af594cc0696fef889d2d671b6a3d0",
+    "Engine/Editor/include/Nexora/Editor/GameBuild.h": "f8f9df78605aa66fc0a6b5d8974021ce387bda07166f5b84796f093a932d807f",
+    "Engine/Editor/src/GameBuild.cpp": "09005c4d0eb192f1ba55c72e20ad55f38ac8a63e2fb651e9d5d530da2078e8dd",
+    "Tests/Editor/WindowsBuildWorkflow.py": "9bdf63913cf0a8227c5f6f002841f03821a958d64d4ad44c628242f7e4690dc7"
+  },
+  "desktop": {
+    "thread": "Default",
+    "input": "Default"
+  },
+  "gui_ctest_seconds": 263.45,
+  "gui_ctest_exit": 0,
+  "native_player": {
+    "direct_child": true,
+    "console_attached": false,
+    "presented_frames_at_least": 2,
+    "normal_exit": 0,
+    "no_retained_children": true
+  },
+  "runtime_only": true,
+  "independent_receipt": true,
+  "published_phase_retained": true,
+  "saved_configuration": {
+    "schema": 2,
+    "start_scene": "00000000-0000-0001-0000-000000000002",
+    "scenes": [
+      {
+        "id": "00000000-0000-0001-0000-000000000001",
+        "path": "Title.scene",
+        "enabled": true
+      },
+      {
+        "id": "00000000-0000-0001-0000-000000000002",
+        "path": "Level01.scene",
+        "enabled": true
+      },
+      {
+        "id": "00000000-0000-0001-0000-000000000003",
+        "path": "Excluded.scene",
+        "enabled": false
+      }
+    ],
+    "build": {
+      "mode": "script-project",
+      "script_manifest": "Scripts/預覽 project.json",
+      "output": "Build/預覽 Game"
+    }
+  },
+  "runtime_file_sha256": {
+    "concrt140.dll": "2405355f0a58067b258f8df33c327e3a3d716eaac5a3a5aebb757842d85bd376",
+    "Game.dll": "697598ac5ae3c7501777c0932582dcd277ee8a13fafc92322718653e1c735620",
+    "Game.exe": "6813da283ff60e040b1db507d398425c34bc417d59f1be62704a63066a32b6b1",
+    "Game.launch": "3f6e15d749a1bd56c4e57910fc4aa8ba14d2f9996ae9921126fd90b80a3a7411",
+    "Game.nxgame": "695a91da387262a4265a2440b8a41b3f9f4cffe42a2261257e2f19d8342f5a18",
+    "LICENSE": "1efea8712186f4d30e3a444bb709213b33a8706e371ddd2a9c6be38ce83f40e1",
+    "msvcp140.dll": "0f885b509a685d2bbfa652fed26b5fb31d88fbdab0a978c641d1c7b8aa460aa9",
+    "msvcp140_1.dll": "bfad5aef4c63a669e3c140655cdfdf395b6c979b400a447bd5dcb65ed8826c3d",
+    "msvcp140_2.dll": "3ea06f0ee098b4823cb79599df3780e7f23cce52c19aac31d2a0d47efe33a5e9",
+    "msvcp140_atomic_wait.dll": "640b2aefced484d0368eea5bdd06addd0658a3a70a49256e560d6923b404a479",
+    "msvcp140_codecvt_ids.dll": "f2069a52880ec885ee7f0511186100eb7fada0411a2b4948fafea7735b878a18",
+    "NexoraCore.dll": "50b0db0ef4ccd00cf83ed5f6e1c90d8465c8a0ea0be11fb6119cd61661b0c564",
+    "NexoraFoundation.dll": "c442b1c5f3131557d3a361ecd9ad9565b39a2d65abef6f9957acb361b2b26b3a",
+    "NexoraPresentation.dll": "b626b09e7747f2f5704fed1920a9c294d26839391d3a3bc1591542095c9eba51",
+    "NexoraRenderer.dll": "00b9aed60b8775cd006da8d9459ab8915c83b08865c7066d0dd51f7168e67cdd",
+    "NexoraRHI.dll": "f1faddeba1799112c9d5357db36a7ad4cd60352fb307803e080212b60caff8ed",
+    "NexoraRuntime.dll": "9aed44d5c917f34a85a72e853362a7b0b3a20ef422ff10718cd21f3e1228a288",
+    "NexoraTwoD.dll": "24338acaab0762947f9fafb9ee2f0b1540f095a236488c5f906e90bcc33efe83",
+    "NexoraWindow.dll": "250330f9fb764af3d3a1d95475588a137687afa5759c3325fd609da84af03923",
+    "vcruntime140.dll": "d5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066",
+    "vcruntime140_1.dll": "1f2d41c4aa5db0bc33ebf7b66d72943a817d7ce6cbe880502a9403823633093f"
+  },
+  "editor_sha256": "3e41ffd96630d13e1d2ce7a543c3d98c6e1485f3ad60fe6c528371e88bdd0796",
+  "authoring_unchanged": true,
+  "compile_failure_preserved_output": true,
+  "stale_source_preserved_output": true,
+  "cancel_drained_preserved_output": true,
+  "repeated_build_and_run_stop": true,
+  "failed_attempts": [
+    {
+      "name": "isolated desktop attempt 1",
+      "seconds": 90.07,
+      "result": "failed native frames/normal close"
+    },
+    {
+      "name": "isolated desktop attempt 2",
+      "seconds": 127.78,
+      "result": "no successful present on CodexSandboxDesktop"
+    }
+  ],
+  "acceptance": "ED-WF-03 full exact-head Linux/CI and merge pending",
+  "final_core_gate": {
+    "registered": 5,
+    "passed": 5,
+    "failed": 0,
+    "exit": 0,
+    "seconds": 304.74,
+    "actual_producer_seconds": 300.83,
+    "actual_producer_scope": [
+      "SDK/CMake/Zig/native admission",
+      "runtime-only contents",
+      "metadata rejected as a runtime library",
+      "unsafe record paths",
+      "modified records/foreign output rejection",
+      "different-payload rollback on receipt filesystem failure",
+      "legacy corruption rejection and verified migration",
+      "read-only script project with unchanged source file set/bytes"
+    ]
+  }
+}

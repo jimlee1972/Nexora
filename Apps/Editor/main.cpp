@@ -1473,7 +1473,8 @@ int RunGraphical(std::optional<ProjectState> project,
     if (game_builder.Busy() && !build_owner_current())
       game_builder.Cancel();
     if (auto observation = game_builder.PollProgress();
-        observation && project && project->workspace.Project().id == game_build_project &&
+        observation && game_builder.Busy() && project &&
+        project->workspace.Project().id == game_build_project &&
         project->workspace.Root() == game_build_root)
       ui.SetGameBuildProgress(std::move(*observation));
     if (game_runner.Busy() && (!project || !game_runner.Current(project->workspace.Project().id,
@@ -2356,8 +2357,14 @@ int RunGraphical(std::optional<ProjectState> project,
         const bool published = finished->prepared &&
                                finished->prepared->Publish(game_build_output, game_builder.Token(),
                                                            build_owner_current, &error);
-        if (std::getenv("NEXORA_PROJECT_GAME_BUILD_EVIDENCE"))
+        if (std::getenv("NEXORA_PROJECT_GAME_BUILD_EVIDENCE")) {
           std::cerr << "game build result: " << (published ? "published" : error) << '\n';
+          if (published)
+            std::cerr << "game build receipt: "
+                      << nexora::editor::preview::BuildJsonPath(
+                             finished->prepared->Receipt()->directory)
+                      << '\n';
+        }
         if (published) {
           const auto module = game_build_output / nexora::runtime::kGameModuleFilename;
           const auto relative =
@@ -3756,6 +3763,12 @@ int RunGraphical(std::optional<ProjectState> project,
       observation << "game build ui busy=" << Access::ProjectGameBuildBusy(ui)
                   << " running=" << Access::ProjectGameRunBusy(ui)
                   << " diagnostics=" << Access::ProjectGameBuildDiagnosticCount(ui);
+#if NEXORA_ASSET_PIPELINE_ENABLED
+      const auto run_output = game_runner.Busy() ? game_runner.Snapshot().output : std::string{};
+      observation << " player_ready="
+                  << (run_output.find("player native ready: presented_frames=2") !=
+                      std::string::npos);
+#endif
       if (const auto stage = Access::ProjectGameBuildStage(ui))
         observation << " phase=" << static_cast<unsigned>(*stage);
       for (std::size_t index = 0; index < 16; ++index)
