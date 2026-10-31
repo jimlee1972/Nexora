@@ -1,6 +1,6 @@
 # Windows script-only 2D SDK
 
-SDK 0.2.0 targets the immutable `sdk-2d-windows-x64-v0.2.0` release and provides a Monolithic Shipping DX12 generic
+SDK 0.2.0 is published in the immutable [`sdk-2d-windows-x64-v0.2.0` release](https://github.com/jimlee1972/Nexora/releases/tag/sdk-2d-windows-x64-v0.2.0) and provides a Monolithic Shipping DX12 generic
 host, asset compiler, Zig bindings/build entry, export tools, Ninja 1.13.2 and redistributable CRT.
 Game developers install Zig 0.14.0, CMake 3.25+ and Python 3.10+; MSVC, Windows SDK and engine
 source are not consumer requirements. The SDK is for development, not the complete game.

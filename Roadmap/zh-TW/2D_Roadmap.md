@@ -821,7 +821,7 @@ M6／M7，也不改變 9/11（82%）。
 
 ## HD-2D 擴充工單
 
-[光源、柔影與選擇性 bloom 計畫](HD2D_Lighting_Plan.md)：Beads `nexora-m6m`，工程 6/7，實機 NOT_RUN；不改變既有 9/11、M6／M7 或 SP 驗收。
+[光源、柔影與選擇性 bloom 計畫](HD2D_Lighting_Plan.md)：Beads `nexora-m6m`，工程 7/7，實機 NOT_RUN；不改變既有 9/11、M6／M7 或 SP 驗收。
 
 ✅ HD2D-01：公開 effects 契約／Zig 與原子快照已驗證；原生效果與 SDK 仍待後續工單。詳見上述計畫與證據。
 
@@ -844,3 +844,6 @@ HD2D-05 補上整條管線關閉後的回收：原繪製路徑逐槽釋放已完
 ✅ HD2D-06 經 PR #739／`67db45d2` 驗收：41 項檢查、DX12／Vulkan／Metal 實際四尺寸 Zig 與55 畫面 CPU 像素、完整 Windows430／Linux488／Metal405 項通過。工程6/7；SDK 發布／遊戲接入與實機 PC 仍為獨立 gate。
 
 HD2D-07 SDK 發布保留不可移動來源93a8dd51與 main Build／候選包通過證據。首輪僅在巢狀 artifact 收據定位失敗；恢復路徑保留同位元組／原生／離線／完整 CI 門檻，完成度仍6/7。詳見雙語 HD2D 計畫。
+
+
+✅ HD2D-07 已驗收：不可覆寫 SDK0.2.0／來源93a8dd51、同候選位元組發布41190794168，以及遊戲 PR31／f404f59d。最終be8a5a5b 兩組 Windows 冷建置／拒絕原生工具鏈／離線／inventory／NX00／原生 F9回收／負向失敗檢查通過。Beads07 CLOSED、工程7/7；主工單與實機 HD2D-PC 保持 OPEN／NOT_RUN。SHA／來源、失敗重試與現況見雙語 HD2D 計畫。既有2D9/11／SP／M6／M7／正式遊戲／目標FPS判定不變。
