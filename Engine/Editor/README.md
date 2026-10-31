@@ -2761,3 +2761,14 @@ path accepts `std::nullopt`; an empty optional is not a present zero UUID. The u
 TwoD scene supports source UUID snapshots and source-aware extraction; see
 [the source contract](../TwoD/SpriteAssets.md#persistent-scene-and-pool-source-bindings).
 Project import, frozen Play capture and Player catalogs still require explicit source admission.
+
+## User appearance preference
+
+`LoadEditorColorTheme` / `SaveEditorColorTheme` read and atomically write the user-owned
+`schema=1` record with `theme=dark` or `theme=light`. Reads are bounded to 64 bytes, accept LF/CRLF,
+reject symbolic links and malformed/unsupported records, and never write. Absence selects Dark;
+other failures return no value with a diagnostic. Explicit selection permits replacing a malformed
+record through the existing atomic writer; an occupied staging path preserves both files.
+The graphical application stores `appearance` beside `RecentProjectStore::DefaultPath()` (or its
+configured recent-project path), separate from project layout, locks and read-only permissions.
+Calls run on the application owner thread; UI widgets emit values and perform no IO.
