@@ -1,0 +1,614 @@
+{
+  "status": "PASS",
+  "source": "c9f1717085078b216913cd1096427c5aa42c6946",
+  "tree": "84b3867ea2e9014bead151dec733d210f6bfc8ef",
+  "pull_request": "https://github.com/jimlee1972/Nexora/pull/760",
+  "merged": true,
+  "squash_commit": "92ae6bc7447ce35a9abc8f3887b07d57db55b197",
+  "merged_tree_equals_validated_tree": true,
+  "check_count": 42,
+  "checks": [
+    {
+      "id": 124780024430,
+      "name": "CI result",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279633688/job/124780024430"
+    },
+    {
+      "id": 124778968231,
+      "name": "CI result",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279636810/job/124778968231"
+    },
+    {
+      "id": 124769269695,
+      "name": "consumer",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279636835/job/124769269695"
+    },
+    {
+      "id": 124768875158,
+      "name": "mimalloc backend (windows-development)",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279633688/job/124768875158"
+    },
+    {
+      "id": 124768875143,
+      "name": "desktop (windows-latest, windows-development)",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279633688/job/124768875143"
+    },
+    {
+      "id": 124768875128,
+      "name": "CMake configure smoke (android-development)",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279633688/job/124768875128"
+    },
+    {
+      "id": 124768875119,
+      "name": "build-contract",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279633688/job/124768875119"
+    },
+    {
+      "id": 124768875115,
+      "name": "desktop (ubuntu-latest, linux-development)",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279633688/job/124768875115"
+    },
+    {
+      "id": 124768875101,
+      "name": "Zig object smoke (aarch64-ios)",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279633688/job/124768875101"
+    },
+    {
+      "id": 124768875091,
+      "name": "modern-shaders-preview",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279633688/job/124768875091"
+    },
+    {
+      "id": 124768875080,
+      "name": "mimalloc backend (macos-development)",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279633688/job/124768875080"
+    },
+    {
+      "id": 124768875079,
+      "name": "Zig object smoke (aarch64-linux-android)",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279633688/job/124768875079"
+    },
+    {
+      "id": 124768875046,
+      "name": "desktop (macos-latest, macos-development)",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279633688/job/124768875046"
+    },
+    {
+      "id": 124768875043,
+      "name": "CMake configure smoke (ios-development)",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279633688/job/124768875043"
+    },
+    {
+      "id": 124768875041,
+      "name": "mimalloc backend (linux-development)",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279633688/job/124768875041"
+    },
+    {
+      "id": 124768875019,
+      "name": "showcase-posix-shipping-package (macos-latest, macos-showcase-shipping)",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279633688/job/124768875019"
+    },
+    {
+      "id": 124768875018,
+      "name": "showcase-posix-shipping-package (ubuntu-latest, linux-showcase-shipping)",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279633688/job/124768875018"
+    },
+    {
+      "id": 124768875011,
+      "name": "showcase-windows-shipping-package",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279633688/job/124768875011"
+    },
+    {
+      "id": 124768875006,
+      "name": "showcase-windows-vulkan-package",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279633688/job/124768875006"
+    },
+    {
+      "id": 124768874992,
+      "name": "Editor Linux display acceptance (Xvfb)",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279633688/job/124768874992"
+    },
+    {
+      "id": 124768854481,
+      "name": "CMake configure smoke (ios-development)",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279636810/job/124768854481"
+    },
+    {
+      "id": 124768854451,
+      "name": "build-contract",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279636810/job/124768854451"
+    },
+    {
+      "id": 124768854389,
+      "name": "CMake configure smoke (android-development)",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279636810/job/124768854389"
+    },
+    {
+      "id": 124768854374,
+      "name": "desktop (macos-latest, macos-development)",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279636810/job/124768854374"
+    },
+    {
+      "id": 124768854363,
+      "name": "desktop (ubuntu-latest, linux-development)",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279636810/job/124768854363"
+    },
+    {
+      "id": 124768854360,
+      "name": "mimalloc backend (macos-development)",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279636810/job/124768854360"
+    },
+    {
+      "id": 124768854339,
+      "name": "showcase-posix-shipping-package (ubuntu-latest, linux-showcase-shipping)",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279636810/job/124768854339"
+    },
+    {
+      "id": 124768854323,
+      "name": "modern-shaders-preview",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279636810/job/124768854323"
+    },
+    {
+      "id": 124768854319,
+      "name": "mimalloc backend (windows-development)",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279636810/job/124768854319"
+    },
+    {
+      "id": 124768854305,
+      "name": "Zig object smoke (aarch64-ios)",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279636810/job/124768854305"
+    },
+    {
+      "id": 124768854300,
+      "name": "Zig object smoke (aarch64-linux-android)",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279636810/job/124768854300"
+    },
+    {
+      "id": 124768854299,
+      "name": "showcase-windows-vulkan-package",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279636810/job/124768854299"
+    },
+    {
+      "id": 124768854298,
+      "name": "desktop (windows-latest, windows-development)",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279636810/job/124768854298"
+    },
+    {
+      "id": 124768854290,
+      "name": "Editor Linux display acceptance (Xvfb)",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279636810/job/124768854290"
+    },
+    {
+      "id": 124768854284,
+      "name": "showcase-posix-shipping-package (macos-latest, macos-showcase-shipping)",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279636810/job/124768854284"
+    },
+    {
+      "id": 124768854277,
+      "name": "mimalloc backend (linux-development)",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279636810/job/124768854277"
+    },
+    {
+      "id": 124768854265,
+      "name": "showcase-windows-shipping-package",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279636810/job/124768854265"
+    },
+    {
+      "id": 124768742624,
+      "name": "producer",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279636835/job/124768742624"
+    },
+    {
+      "id": 124768730555,
+      "name": "Documentation and change detection",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279636810/job/124768730555"
+    },
+    {
+      "id": 124768730111,
+      "name": "cleanup",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279636835/job/124768730111"
+    },
+    {
+      "id": 124768720917,
+      "name": "package",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279633843/job/124768720917"
+    },
+    {
+      "id": 124768720872,
+      "name": "Documentation and change detection",
+      "head_sha": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/jimlee1972/Nexora/actions/runs/41279633688/job/124768720872"
+    }
+  ],
+  "workflow_run_ids": [
+    41279633688,
+    41279636810,
+    41279636835,
+    41279633843
+  ],
+  "scope": "Exact implementation head. Native process and hosted display acceptance; no physical clean-host claim. Workflow epic remains 4/9; package is not final nine-order delivery.",
+  "native_receipts": [
+    {
+      "source": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "platform": "Native Windows GitHub-hosted runner",
+      "run_id": 41279636810,
+      "job_id": 124768854298,
+      "status": "PASS_WITH_EXISTING_OPTIONAL_SKIP",
+      "registered": 437,
+      "passed": 436,
+      "failed": 0,
+      "skipped": 1,
+      "skip": "twod.portable_font_bake",
+      "skip_reason_from_log": "SKIP: install Tools/TwoD/font-requirements.txt for portable font bake tests",
+      "elapsed_seconds": 1455.99,
+      "decoded_job_log": {
+        "path": "build/editor-workflow-native/unity-input-windows-full-c9f171-success.log",
+        "bytes": 1016966,
+        "sha256": "c65cf81ec2a6c505808f45fa26b7d73ab50892c30acb30f891d3596a7597419a"
+      },
+      "affected_results": [
+        "2026-11-01T06:40:23.3564888Z 380/437 Test #380: editor.play_input_state ..................................   Passed    1.72 sec",
+        "2026-11-01T06:42:14.0481455Z 423/437 Test #423: editor.play_twod_services ................................   Passed    0.13 sec"
+      ],
+      "scope": "Native windows-development full suite. No physical clean-host claim; Cloud and all exact-source CI subsequently passed; see Unity-Input-Cloud.json and this receipt."
+    },
+    {
+      "source": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "platform": "Native macOS GitHub-hosted runner",
+      "run_id": 41279636810,
+      "job_id": 124768854374,
+      "status": "PASS_WITH_EXISTING_OPTIONAL_SKIP",
+      "registered": 411,
+      "passed": 410,
+      "failed": 0,
+      "skipped": 1,
+      "skip": "twod.portable_font_bake; original optional dependency availability gate, not disabled by this patch",
+      "elapsed_seconds": 928.55,
+      "decoded_job_log": {
+        "path": "build/editor-workflow-native/unity-input-macos-c9f171-success.log",
+        "bytes": 867759,
+        "sha256": "ba39739a7cecea27b449868c59eacf95d384560ba9d20771725bc8219ead40f6"
+      },
+      "affected_results": [
+        "2026-11-01T06:31:01.9418410Z 355/411 Test #355: editor.play_input_state ..................................   Passed    1.00 sec",
+        "2026-11-01T06:32:06.5168550Z 397/411 Test #397: editor.play_twod_services ................................   Passed    0.11 sec"
+      ],
+      "scope": "Native macOS development suite, not manual physical Editor input or clean-host acceptance; full latest-source Cloud and remaining CI still required.",
+      "skip_reason_from_log": "SKIP: install Tools/TwoD/font-requirements.txt for portable font bake tests"
+    },
+    {
+      "source": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "platform": "Native Linux Xvfb/software Vulkan GitHub-hosted runner",
+      "run_id": 41279636810,
+      "job_id": 124768854290,
+      "status": "PASS",
+      "registered_editor_cases": 246,
+      "passed": 246,
+      "failed": 0,
+      "skipped": 0,
+      "elapsed_seconds": 1447.68,
+      "decoded_job_log": {
+        "path": "build/editor-workflow-native/unity-input-linux-xvfb-c9f171-success.log",
+        "bytes": 3931288,
+        "sha256": "c414f015b49bb753c419cf173137bca9bde3d680cc02bf7f1a0defc5f5605395"
+      },
+      "affected_results": [
+        "2026-11-01T06:35:41.5234818Z 151/246 Test #400: editor.linux_prefab_isolation ............................   Passed  140.57 sec",
+        "2026-11-01T06:39:53.7090792Z 167/246 Test #416: editor.linux_native_scene_preview ........................   Passed   27.05 sec",
+        "2026-11-01T06:41:10.2092578Z 173/246 Test #422: editor.linux_play_host_memory ............................   Passed    0.93 sec",
+        "2026-11-01T06:43:32.3655644Z 228/246 Test #477: editor.play_twod_services ................................   Passed    0.12 sec",
+        "2026-11-01T06:43:32.9887548Z 229/246 Test #478: editor.play_twod_native ..................................   Passed    0.62 sec"
+      ],
+      "scope": "Actual native Editor interaction/pixel/save/reopen and helper tests; not the entire495 development inventory, not Codex Cloud, not Windows/macOS or physical-host acceptance."
+    },
+    {
+      "status": "SCOPED_PASS_NOT_FINAL_DELIVERY",
+      "source": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "run_id": 41279633843,
+      "job_id": 124768720917,
+      "artifact_id": 13072139137,
+      "wrapper": {
+        "path": "build/editor-workflow-native/NexoraEditor-c9f17170-CI-wrapper.zip",
+        "bytes": 110310865,
+        "sha256": "20bfe690a6c011d61029348e4bf362880a04a2f4434facfdbd40c305a5c84a60"
+      },
+      "editor_zip": {
+        "path": "build/editor-workflow-native/NexoraEditor-Windows-x64-c9f171708507.zip",
+        "bytes": 115761152,
+        "sha256": "0133f51f51c0470aa235e1457c81d7103dd8203a58b4650cf305bcf92d1eb1ae"
+      },
+      "decoded_job_log": {
+        "path": "build/editor-workflow-native/unity-input-windows-package-c9f171-success.log",
+        "bytes": 166513,
+        "sha256": "cd31d38b6a0d54bebfe17bb816df9da72c1184aff76f6629300e8a69784fd760"
+      },
+      "startup_brand_entry_ctest": {
+        "passed": 5,
+        "failed": 0,
+        "skipped": 0,
+        "exit_code": 0,
+        "elapsed_seconds": 28.5
+      },
+      "hosted_extracted_relocation": {
+        "result.json": {
+          "status": "PASS",
+          "platform": "Windows native process",
+          "editor_subsystem": "Windows GUI (2)",
+          "console_attached": false,
+          "game_build": true,
+          "extracted_editor_play": true,
+          "no_argument_startup": true,
+          "no_argument_game": true,
+          "physical_host_acceptance": "NOT_RUN"
+        },
+        "relocation.json": {
+          "temporary_path": "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\Nexora relocated 陰陽 33_mecy2",
+          "canonical_root": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\Nexora relocated 陰陽 33_mecy2",
+          "working_directory": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\Nexora relocated 陰陽 33_mecy2\\empty working directory"
+        },
+        "no-argument-startup/result.json": {
+          "status": "PASS",
+          "launches": [
+            {
+              "argv": [],
+              "normal_recent_store": true,
+              "events": [
+                "splash-show",
+                "main-create-observed",
+                "main-show"
+              ],
+              "splash_responsive_probes": 538,
+              "main_responsive": true,
+              "foreground_input": true,
+              "white_fraction": 0.04788424124513619,
+              "normal_close_exit": 0,
+              "orphan_windows": false
+            },
+            {
+              "argv": [],
+              "normal_recent_store": true,
+              "events": [
+                "splash-show",
+                "main-create-observed",
+                "main-show"
+              ],
+              "splash_responsive_probes": 535,
+              "main_responsive": true,
+              "foreground_input": true,
+              "white_fraction": 0.04788424124513619,
+              "normal_close_exit": 0,
+              "orphan_windows": false
+            }
+          ],
+          "startup_timeout_seconds": 35,
+          "message_timeout_ms": 500,
+          "shutdown_timeout_seconds": 10
+        },
+        "no-argument-game/result.json": {
+          "status": "PASS",
+          "argv": [],
+          "creationflags": 0,
+          "subsystem": 2,
+          "private_player_matches": true,
+          "standard_handles_absent": false,
+          "console_attached": false,
+          "response_probes": 3,
+          "window_observations": [
+            {
+              "pid": 3908,
+              "class": "Nexora.Window",
+              "visible_windows": 1
+            }
+          ],
+          "child_processes": [],
+          "normal_close_exit": 0,
+          "runtime": {
+            "status": "RENDERED_GAME_PACKAGE",
+            "native_rendering": true,
+            "start_scene": "00000000-0000-0001-0000-000000000002",
+            "active_scene": "00000000-0000-0001-0000-000000000002",
+            "camera": "2",
+            "gameplay_loaded": true,
+            "gameplay_updates": 6,
+            "scene_commits": 1,
+            "rejected_requests": 0,
+            "scene_records": 1,
+            "instances": 1,
+            "stored_entities": 2,
+            "presented_frames": 7,
+            "scene_draw_calls": 7,
+            "geometry_residency_available": true,
+            "geometry_uploads": 1,
+            "geometry_hits": 6,
+            "geometry_native_bytes": 65536,
+            "geometry_cpu_bytes": 150,
+            "scene_texture_uploads": 3,
+            "software_rasterizer": false,
+            "drained": true
+          }
+        },
+        "no-argument-game-no-streams/result.json": {
+          "status": "PASS",
+          "argv": [],
+          "creationflags": 0,
+          "subsystem": 2,
+          "private_player_matches": true,
+          "standard_handles_absent": true,
+          "console_attached": "entry separately verified",
+          "response_probes": 20,
+          "window_observations": [
+            {
+              "pid": 3040,
+              "class": "Nexora.Window",
+              "visible_windows": 1
+            }
+          ],
+          "child_processes": [],
+          "normal_close_exit": 0,
+          "runtime": {}
+        }
+      },
+      "build_info": {
+        "schema": 1,
+        "source_commit": "c9f1717085078b216913cd1096427c5aa42c6946",
+        "configuration": "Development",
+        "architecture": "x64",
+        "backend": "DX12",
+        "build_testing": true,
+        "game_build_tools": {
+          "runtime_files": 13,
+          "cmake": "Tools/cmake/bin/cmake.exe",
+          "ninja": "Tools/ninja.exe",
+          "zig": "Tools/zig/zig.exe",
+          "resources": "Compiler standard libraries and CMake modules; no Nexora/game source checkout"
+        }
+      },
+      "zip_integrity": {
+        "status": "PASS",
+        "hashed_files": 22697,
+        "uncompressed_bytes_verified": 403105404,
+        "invalid_or_uninventoried_paths": [],
+        "engine_or_game_sources_outside_required_tools": [],
+        "executables": [
+          "NexoraEditor.exe",
+          "Runtime/NexoraProjectPlayer.exe",
+          "Tools/cmake/bin/cmake.exe",
+          "Tools/ninja.exe",
+          "Tools/zig/zig.exe"
+        ],
+        "elapsed_seconds": 9.597
+      },
+      "pending": [
+        "Full exact-source Linux Cloud gates",
+        "Remaining exact-head CI",
+        "ED-WF-05 through09 and final integrated ZIP acceptance"
+      ],
+      "physical_host_acceptance": "NOT_RUN"
+    }
+  ]
+}

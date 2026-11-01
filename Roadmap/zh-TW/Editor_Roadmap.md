@@ -1,19 +1,21 @@
 # Nexora 圖形化 Editor Roadmap
 
-### Unity 風格的 Editor 操作（施工中）
+### ✅ Unity 風格的 Editor 操作（支援範圍已驗收）
 
-[工單 #759](https://github.com/jimlee1972/Nexora/issues/759) 追蹤 Unity 風格 Scene 導覽、
-全域 Q 手形／WER 工具、X／Z 模式、空白鍵導覽、現有指令／視窗快捷鍵及輸入所有權。保留 F5／F6／F10 與
-P pivot 舊別名；Prefab isolation 改用 Ctrl＋Alt＋Shift＋P。本機限縮 Windows10/10 已通過，
-[輸入驗收證據](../../Tools/Build/evidence/EditorWorkflow/Unity-Input.md)保留完整 Cloud／原生驗收、PR 與最後 ZIP 待完成。
-後續修正將工具切換延至輔助視窗完成文字所有權判定，並讓 Game 擷取期間的 Ctrl／Command
-Play 指令可用且不觸發綁定 P 的遊戲動作。首版 Cloud 有三項原生測試失敗，另有 Shipping
-錯誤啟用 Editor 的組態失敗；原始證據保留，不計為通過。
-下一版另修正真實 2D services Input API 可重現的 P 快捷鍵穿透，與舊輸入共用攔截規則，
-並在擷取初始化批次保留消耗狀態。新版須驗收兩條輸入路徑與 F5／F6／F10 舊別名；先前
-已通過的 ZIP 仍屬候選版。
+[工單 #759](https://github.com/jimlee1972/Nexora/issues/759) 由
+[PR #760](https://github.com/jimlee1972/Nexora/pull/760) 實作，已合併為 `92ae6bc7447c`，
+與驗收版本 `c9f171708507` 的 tree 相同。全域 Q 手形／WER、X／Z 模式、Scene 環繞／平移／
+視角／飛行／縮放、聚焦／跟隨、支援的指令／視窗快捷鍵與文字／modal／Game 輸入所有權已通過。
+舊輸入與 2D services 兩條路徑均會消耗保留的 Play 快捷鍵，不觸發遊戲動作。
+保留 F5／F6／F10 與 P 別名；Prefab isolation 使用 Ctrl＋Alt＋Shift＋P。
+[輸入驗收證據](../../Tools/Build/evidence/EditorWorkflow/Unity-Input.md)記錄 Cloud 495/495、
+支援的 Shipping 連結、42 項 CI、原生 Windows 436 通過／一項可選字型略過、macOS 410 通過／
+同一項可選字型略過、Linux Xvfb 246/246 與封裝啟動 5/5。舊版失敗及修正證據均保留。
+Rect／整合工具、頂點吸附、方向元件、最大化視窗與新的 XY 2D 模式不在本次範圍。
+乾淨實機驗收仍為 NOT_RUN；本次輸入驗收 ZIP 並非最後工作流程交付版。
 操作細節見 [Editor 文件](../../Apps/Editor/README.md#unity-style-editor-input-issue-759)。
 此支援工單不改變工作流程 4/9 與 Editor 里程碑 0/8 完成度。
+
 
 
 ### 腳本工作流程與 Sprite 整合工單（2026-10-31）
