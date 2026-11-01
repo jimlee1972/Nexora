@@ -55,6 +55,7 @@ public:
         window_(static_cast<HWND>(windows.NativeHandle(d.window))), width_(d.width),
         height_(d.height), frames_(d.framesInFlight), mode_(d.presentMode),
         gpuTimingEnabled_(d.enableGpuTiming), srgbUiOutput_(d.srgbUiOutput) {
+    diagnostics_.uiTargetEncodesSrgb = srgbUiOutput_;
     if (!window_ || frames_ < 2 || frames_ > kMaximumFrames || d.colorSpace != ColorSpace::Srgb)
       return;
     UINT flags = 0;

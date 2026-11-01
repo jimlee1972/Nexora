@@ -110,6 +110,32 @@ int main(int argc, char **argv) {
                   ImGui::GetIO().FontGlobalScale == font_scale,
               "theme switching changed DPI geometry");
     }
+    for (const bool srgb_target : {true, false}) {
+      ui.SetUiOutputSrgb(srgb_target);
+      for (const auto theme : {EditorColorTheme::Dark, EditorColorTheme::Light}) {
+        ui.SetColorTheme(theme);
+        draw();
+        const auto &c = ImGui::GetStyle().Colors;
+        const float display_gray = theme == EditorColorTheme::Light ? .76F : .22F;
+        const auto expected =
+            srgb_target ? detail::LinearColor({display_gray, display_gray, display_gray, 1})
+                        : ImVec4(display_gray, display_gray, display_gray, 1);
+        Require(std::abs(c[ImGuiCol_WindowBg].x - expected.x) < .00001F,
+                "palette does not match actual attachment encoding");
+        const auto linear = [&](ImVec4 value) {
+          return srgb_target ? value : detail::LinearColor(value);
+        };
+        Require(Contrast(linear(c[ImGuiCol_Text]), linear(c[ImGuiCol_WindowBg])) >= 4.5F &&
+                    Contrast(linear(c[ImGuiCol_TextDisabled]), linear(c[ImGuiCol_WindowBg])) >=
+                        4.5F,
+                "normal/secondary text contrast below 4.5:1");
+        Require(ImGui::GetStyle().FramePadding.x == padding.x &&
+                    ImGui::GetIO().FontGlobalScale == font_scale,
+                "output encoding changed DPI geometry");
+      }
+    }
+    ui.SetUiOutputSrgb(true);
+    ui.SetColorTheme(EditorColorTheme::Dark);
     const auto point = [&](std::size_t index) {
       const auto p = Access::AppearancePosition(ui, index);
       Require(p.has_value(), "actual appearance menu item missing");

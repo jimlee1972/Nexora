@@ -2,6 +2,99 @@
 const std = @import("std");
 const nx = @import("nexora.zig");
 
+/// Explicit data encoding for hot reload. Never serialize Game/Context memory or native pointers.
+pub const maximum_state_bytes: usize = 1024 * 1024;
+const state_header_bytes: usize = 16;
+
+pub const StateWriter = struct {
+    destination: ?[]u8 = null,
+    written: usize = 0,
+
+    fn raw(self: *StateWriter, value: []const u8) !void {
+        if (self.written > maximum_state_bytes or value.len > maximum_state_bytes - self.written)
+            return error.InvalidArgument;
+        const end = self.written + value.len;
+        if (self.destination) |output| {
+            if (end > output.len) return error.InvalidArgument;
+            @memcpy(output[self.written..end], value);
+        }
+        self.written = end;
+    }
+
+    pub fn int(self: *StateWriter, comptime T: type, value: T) !void {
+        comptime validateInteger(T);
+        var encoded: [@sizeOf(T)]u8 = undefined;
+        std.mem.writeInt(T, &encoded, value, .little);
+        try self.raw(&encoded);
+    }
+
+    pub fn float(self: *StateWriter, value: f64) !void {
+        if (!std.math.isFinite(value)) return error.InvalidArgument;
+        try self.int(u64, @bitCast(value));
+    }
+
+    pub fn boolean(self: *StateWriter, value: bool) !void {
+        try self.int(u8, if (value) 1 else 0);
+    }
+
+    pub fn bytes(self: *StateWriter, value: []const u8) !void {
+        if (value.len > maximum_state_bytes) return error.InvalidArgument;
+        try self.int(u32, @intCast(value.len));
+        try self.raw(value);
+    }
+};
+
+pub const StateReader = struct {
+    source: []const u8,
+    consumed: usize = 0,
+
+    fn raw(self: *StateReader, length: usize) ![]const u8 {
+        if (self.source.len > maximum_state_bytes or self.consumed > self.source.len or
+            length > self.source.len - self.consumed) return error.InvalidArgument;
+        const value = self.source[self.consumed..][0..length];
+        self.consumed += length;
+        return value;
+    }
+
+    pub fn int(self: *StateReader, comptime T: type) !T {
+        comptime validateInteger(T);
+        const value = try self.raw(@sizeOf(T));
+        return std.mem.readInt(T, value[0..@sizeOf(T)], .little);
+    }
+
+    pub fn float(self: *StateReader) !f64 {
+        const value: f64 = @bitCast(try self.int(u64));
+        if (!std.math.isFinite(value)) return error.InvalidArgument;
+        return value;
+    }
+
+    pub fn boolean(self: *StateReader) !bool {
+        return switch (try self.int(u8)) {
+            0 => false,
+            1 => true,
+            else => error.InvalidArgument,
+        };
+    }
+
+    /// Borrowed until loadState returns. Copy into owned fields instead of retaining the slice.
+    pub fn bytes(self: *StateReader) ![]const u8 {
+        const length = try self.int(u32);
+        return self.raw(length);
+    }
+
+    pub fn finish(self: *const StateReader) !void {
+        if (self.consumed != self.source.len) return error.InvalidArgument;
+    }
+};
+
+fn validateInteger(comptime T: type) void {
+    switch (@typeInfo(T)) {
+        .int => |info| if (info.bits != 8 and info.bits != 16 and info.bits != 32 and info.bits != 64)
+            @compileError("State integers must have 8, 16, 32 or 64 bits"),
+        else => @compileError("State encoding accepts integer values, never native pointers"),
+    }
+}
+
 pub const Context = struct {
     host: nx.GameplayHostV3,
 
@@ -63,6 +156,11 @@ fn resultCode(err: anyerror) i32 {
 
 /// Game must be default-initializable. All lifecycle methods are optional.
 pub fn Module(comptime Game: type) type {
+    const migration = @hasDecl(Game, "saveState") and @hasDecl(Game, "loadState");
+    if (@hasDecl(Game, "saveState") != @hasDecl(Game, "loadState"))
+        @compileError("Game must provide both saveState and loadState, or neither");
+    if (migration and (!@hasDecl(Game, "state_version") or Game.state_version == 0))
+        @compileError("Migrating Game must declare a nonzero u32 state_version");
     return struct {
         const Instance = struct { context: Context, game: Game = .{} };
         const owner_tag = @intFromEnum(nx.AllocationOwner.gameplay_state);
@@ -126,13 +224,47 @@ pub fn Module(comptime Game: type) type {
             host.deallocate.?(host.context, owner_tag, state, @sizeOf(Instance), @alignOf(Instance));
         }
 
+        fn saveState(pointer: ?*anyopaque, data: ?*anyopaque, size: u32) callconv(.c) u32 {
+            if (!migration) return 0;
+            const state = instance(pointer);
+            var writer = StateWriter{ .destination = if (data) |output|
+                @as([*]u8, @ptrCast(output))[0..size]
+            else
+                null };
+            writer.raw("NXGS") catch return 0;
+            writer.int(u32, 1) catch return 0;
+            writer.int(u32, Game.state_version) catch return 0;
+            writer.int(u32, 0) catch return 0;
+            const game: *const Game = &state.game;
+            game.saveState(&writer) catch return 0;
+            if (writer.destination) |output| {
+                std.mem.writeInt(u32, output[12..16], @intCast(writer.written - state_header_bytes), .little);
+            }
+            return @intCast(writer.written);
+        }
+
+        fn loadState(pointer: ?*anyopaque, data: ?*const anyopaque, size: u32) callconv(.c) i32 {
+            if (!migration) return -2;
+            if (data == null or size < state_header_bytes or size > maximum_state_bytes) return -1;
+            var reader = StateReader{ .source = @as([*]const u8, @ptrCast(data.?))[0..size] };
+            const magic = reader.raw(4) catch return -1;
+            if (!std.mem.eql(u8, magic, "NXGS")) return -1;
+            if ((reader.int(u32) catch return -1) != 1 or
+                (reader.int(u32) catch return -1) != Game.state_version) return -2;
+            if ((reader.int(u32) catch return -1) != size - state_header_bytes) return -1;
+            instance(pointer).game.loadState(&reader) catch |err| return resultCode(err);
+            reader.finish() catch return -1;
+            return 0;
+        }
+
         pub fn load(abi: u32, output: ?*nx.GameModuleV3) i32 {
             const module = output orelse return -1;
             if (abi != nx.abi_version or module.struct_size < @sizeOf(nx.GameModuleV3)) return -2;
             module.* = .{
                 .struct_size = @sizeOf(nx.GameModuleV3),
                 .abi_version = nx.abi_version,
-                .capabilities = if (@hasDecl(Game, "fixedUpdate")) 1 << 1 else 0,
+                .capabilities = (if (@hasDecl(Game, "fixedUpdate")) @as(u64, 1 << 1) else 0) |
+                    (if (migration) @as(u64, 1) else 0),
                 .module_state = null,
                 .create = create,
                 .on_start = start,
@@ -140,8 +272,8 @@ pub fn Module(comptime Game: type) type {
                 .update = update,
                 .on_stop = stop,
                 .destroy = destroy,
-                .save_state = null,
-                .load_state = null,
+                .save_state = if (migration) saveState else null,
+                .load_state = if (migration) loadState else null,
             };
             return 0;
         }

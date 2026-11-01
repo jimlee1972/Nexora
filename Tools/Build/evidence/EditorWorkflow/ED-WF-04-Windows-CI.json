@@ -1,0 +1,171 @@
+{
+  "status": "HOSTED_WINDOWS_PACKAGE_PASS_NOT_FINAL_DELIVERY",
+  "commit": "9547cc8afa1e4c69d5dd79b5e54e5c358cf152da",
+  "tree": "3f9ae84f244ee7e4e27e1007cdfa4a569c9d98f9",
+  "run_id": 41226660454,
+  "job_id": 124612117854,
+  "run_url": "https://github.com/jimlee1972/Nexora/actions/runs/41226660454",
+  "conclusion": "success",
+  "scope": "Actual hosted Windows native process/DX12 acceptance; no local physical-host or clean-host claim. ED-WF-04 candidate only; remaining work orders and final delivery remain open.",
+  "startup_ctest": {
+    "registered": 5,
+    "passed": 5,
+    "failed": 0,
+    "exit_code": 0,
+    "seconds": 21.27,
+    "startup_integration_seconds": 18.97,
+    "tests": [
+      "runtime.windows_game_entry",
+      "editor.brand_assets",
+      "editor.windows_startup_splash",
+      "editor.windows_startup_integration",
+      "editor.windows_gui_entry"
+    ]
+  },
+  "artifact": {
+    "id": 13052765182,
+    "bytes": 110307952,
+    "sha256": "eab5c490a1d220952d4fa6e6346248dd8b71bff86821db5eadb2ca9d8e8ddaa4",
+    "name": "NexoraEditor-Windows-x64-9547cc8afa1e4c69d5dd79b5e54e5c358cf152da",
+    "inner_editor_zip": {
+      "name": "NexoraEditor-Windows-x64-9547cc8afa1e.zip",
+      "bytes": 115756541,
+      "sha256": "ef3929c63e6f7bfb5e5cbc445a50f7f1cc67faa508e6746ee7f7affd4e59a8ba",
+      "root_executables": [
+        "NexoraEditor.exe"
+      ],
+      "final_delivery": false
+    }
+  },
+  "extracted_result": {
+    "status": "PASS",
+    "platform": "Windows native process",
+    "editor_subsystem": "Windows GUI (2)",
+    "console_attached": false,
+    "game_build": true,
+    "extracted_editor_play": true,
+    "no_argument_startup": true,
+    "no_argument_game": true,
+    "physical_host_acceptance": "NOT_RUN"
+  },
+  "extracted_startup": {
+    "status": "PASS",
+    "launches": [
+      {
+        "argv": [],
+        "normal_recent_store": true,
+        "events": [
+          "splash-show",
+          "main-create-observed",
+          "main-show"
+        ],
+        "splash_responsive_probes": 364,
+        "main_responsive": true,
+        "foreground_input": true,
+        "white_fraction": 0.04780993298746217,
+        "normal_close_exit": 0,
+        "orphan_windows": false
+      },
+      {
+        "argv": [],
+        "normal_recent_store": true,
+        "events": [
+          "splash-show",
+          "main-create-observed",
+          "main-show"
+        ],
+        "splash_responsive_probes": 290,
+        "main_responsive": true,
+        "foreground_input": true,
+        "white_fraction": 0.04780993298746217,
+        "normal_close_exit": 0,
+        "orphan_windows": false
+      }
+    ],
+    "startup_timeout_seconds": 35,
+    "message_timeout_ms": 500,
+    "shutdown_timeout_seconds": 10
+  },
+  "extracted_play": {
+    "status": "PASS",
+    "frames": 1200,
+    "scene_commits": 3,
+    "scene_draws": 2397,
+    "saved_sources": {
+      "Excluded.scene": "5c50c63f615684c28268bb0e736ffb4c27388a67e5008a2889c3b53aafc4e061",
+      "Game.dll": "f78dfb602c375d8290ae33e5872dbbcc149998e043136a2f440ec4b0e63d9a2d",
+      "Level01.scene": "49ca8de2ef770c25445b5f4357ab6065654054c929bc63a1628e294e3d517211",
+      "project.build.json": "4205756a2299d5b41e411838daa6d196fa379a6ec4758748979291613b95fd33",
+      "project.nexora": "079018cbbb4a61fb266aea7b4e744497cd61ce12b1e69358ecd8d90a702fe83c",
+      "Title.scene": "058d6d5d7495816007a7523e29296dbdce03832a2bbbd0e5cdff79f0f7b3e094",
+      "Content/Paint.nmaterial": "91c57536ce43d3a90a02be96260eb789dd6efc612e51071fe7845c147968ea6f",
+      "Content/Paint.nmaterial.meta": "d3a36cbe1985ac7619609a39c12dcde4da1310e1230c459f14a1a0f0e658d1e5",
+      "Content/Triangle.obj": "69244b0e9ea7fe99d8845a10adc8e413b96606635216764bf42953a533f951b9",
+      "Content/Triangle.obj.meta": "af18e903de89c794cc8c2770701f1922027e1dbd20efa1a127548f9b752b560b",
+      "Scripts/game.zig": "8d2c844e317737b2b667d5a7b48a0a253466a04f1c60ead0b0cf2e345d9fb200",
+      "Scripts/project.json": "180a2c234908984e38d6f3d0352164428ee1d03a3640cc73902efe811ab30713"
+    },
+    "scope": "Extracted Editor same Play command, shipped-tool module, hosted DX12; no physical pixel claim"
+  },
+  "extracted_game_build": {
+    "status": "PASS",
+    "runtime": {
+      "status": "RENDERED_GAME_PACKAGE",
+      "native_rendering": true,
+      "start_scene": "00000000-0000-0001-0000-000000000002",
+      "active_scene": "00000000-0000-0001-0000-000000000002",
+      "camera": "8",
+      "gameplay_loaded": true,
+      "gameplay_updates": 99,
+      "scene_commits": 3,
+      "rejected_requests": 0,
+      "scene_records": 1,
+      "instances": 1,
+      "stored_entities": 2,
+      "presented_frames": 100,
+      "scene_draw_calls": 100,
+      "geometry_residency_available": true,
+      "geometry_uploads": 1,
+      "geometry_hits": 99,
+      "geometry_native_bytes": 65536,
+      "geometry_cpu_bytes": 150,
+      "scene_texture_uploads": 3,
+      "software_rasterizer": false,
+      "drained": true
+    },
+    "hashes": {
+      "Game.dll": "f78dfb602c375d8290ae33e5872dbbcc149998e043136a2f440ec4b0e63d9a2d",
+      "Game.exe": "ff76a4eedef756793c3d76402286b830c9b68bca95a450695f792a60c5927002",
+      "Game.launch": "3f6e15d749a1bd56c4e57910fc4aa8ba14d2f9996ae9921126fd90b80a3a7411",
+      "Game.nxgame": "695a91da387262a4265a2440b8a41b3f9f4cffe42a2261257e2f19d8342f5a18",
+      "LICENSE": "1efea8712186f4d30e3a444bb709213b33a8706e371ddd2a9c6be38ce83f40e1",
+      "msvcp140.dll": "7c26614e1d733892c2deac7e245ce115504b1d80592dd0a01b08e3e5a55f89ca",
+      "msvcp140_2.dll": "d50d7883f20d1dc6191768d3746f52dd9cac89c346ffaed5be1f110c2f34a838",
+      "NexoraCore.dll": "03eccb348331caa328370d56d95396bf7f17a65043a1ae9bc293c7075707227d",
+      "NexoraFoundation.dll": "18b3917871315eabe826da3b43e7317da744de204cd9459a8c2f2440ee7fb5a9",
+      "NexoraPresentation.dll": "15b269e8ff6b999a47532108d60b23d80fc090219358c61f02c39415a280704b",
+      "NexoraRenderer.dll": "aa8b208597f6f5a9d14bcf117c1e3c48b5368c6de99a81bbab2b5d952e9685f5",
+      "NexoraRHI.dll": "5f537c5673b1d6c7ea0d6c07b697bfd91acad2864e39b5bd4221243e43a9a42b",
+      "NexoraRuntime.dll": "78a9b5ddcf1926f9d4ad66976a19fc1980041285aa26aba65765b993c027e843",
+      "NexoraTwoD.dll": "7a53031a867cd00817a5992f705e830527503d6f796c40a30baca2fa2f3a471d",
+      "NexoraWindow.dll": "ceb22abad1de1a72b958574defd6b2ead1a54087fa6ec8bae4d7e1d1934825da",
+      "vcruntime140.dll": "d1f4225df2cd877dbf130d5668a021dce3f94118455ff5ec952061c30afc9ce7",
+      "vcruntime140_1.dll": "a7146c08f89fe5b04541ab507cdb59ff7b44534d4ba3c668a426c6450a03434e"
+    },
+    "scope": "Installed tools, script build and bounded native run; no physical pixel claim"
+  },
+  "palette_image": {
+    "path_in_artifact": "editor-delivery/verification/extracted/no-argument-startup/no-arguments-0-first-show.bmp",
+    "sha256": "0ef170ededd734f88f7f4d17cef70c52492c92de9ae5937244d6a2201aef4111",
+    "sample_xy": [
+      500,
+      300
+    ],
+    "display_rgb": [
+      56,
+      56,
+      56
+    ],
+    "interpretation": "Intended .22 display-referred Dark WindowBg on the mixed Windows UNORM target, verified in the actual captured Editor."
+  }
+}

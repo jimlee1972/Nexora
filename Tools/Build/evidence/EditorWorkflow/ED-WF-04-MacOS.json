@@ -1,0 +1,79 @@
+{
+  "status": "MACOS_CI_FAILURE_REPAIR_PENDING_NATIVE_REVALIDATION",
+  "failed_commit": "9547cc8afa1e4c69d5dd79b5e54e5c358cf152da",
+  "failed_tree": "3f9ae84f244ee7e4e27e1007cdfa4a569c9d98f9",
+  "job_id": 124612286930,
+  "job_url": "https://github.com/jimlee1972/Nexora/actions/runs/41226660465/job/124612286930",
+  "gate": {
+    "registered": 411,
+    "passed": 409,
+    "skipped": 1,
+    "failed": 1,
+    "exit_code": 8,
+    "seconds": 885.22,
+    "failed_test": "runtime.zig_reload_transaction",
+    "failure": "Candidate still mapped at original assertion, ZigReloadTransactionTests.cpp:128",
+    "failed_test_seconds": 0.34,
+    "skipped_test": "twod.portable_font_bake",
+    "skip_reason": "Optional portable font Python dependencies unavailable"
+  },
+  "retained_log": {
+    "file": "ed-wf04-macos-ci-9547-failure.log",
+    "normalization": "Decoded GitHub connector text, normalized LF",
+    "sha256": "59305890f8d63ffa5c93d544d4f5a89c25664c391e583772dd5f4b7f50a9128e"
+  },
+  "cross_probe": {
+    "host": "Windows x64",
+    "target": "aarch64-macos",
+    "scope": "Compile/object inspection only; NOT native macOS execution",
+    "tool": "Zig 0.14.0",
+    "flags": [
+      "build-obj",
+      "-target",
+      "aarch64-macos",
+      "-OReleaseSafe",
+      "-fPIC",
+      "-fcompiler-rt",
+      "-fno-stack-check"
+    ],
+    "game": "Tests/Runtime/GameReloadScript/restore.zig",
+    "before_root": "Tools/Zig/game_entry.zig at 9547cc8a",
+    "probe_root": "Ignored test-only copy with standard simple_panic namespace",
+    "after_actual_root": "Modified actual Tools/Zig/game_entry.zig",
+    "objects": [
+      {
+        "variant": "before",
+        "file": "ed-wf04-macos-tls-before.o",
+        "bytes": 2708312,
+        "sha256": "31922946f820ad110350ce9903a08a5d33cda5bbb1f2e47a68c5e745303bce37",
+        "tls_sections": [
+          "__DATA,__thread_bss",
+          "__DATA,__thread_vars"
+        ]
+      },
+      {
+        "variant": "after",
+        "file": "ed-wf04-macos-tls-after.o",
+        "bytes": 1116832,
+        "sha256": "48e365303e49afbf715fa22398c8b87f47093fb4e9735db83d32c5b3ac212d0b",
+        "tls_sections": []
+      },
+      {
+        "variant": "after-actual",
+        "file": "ed-wf04-macos-tls-after-actual.o",
+        "bytes": 1116784,
+        "sha256": "a69fe848e3747f0830082867192aefc576d374efb1bbcda4fcd84aa61c26f6f5",
+        "tls_sections": []
+      }
+    ],
+    "interpretation": "Default panic introduced TLS sections; standard macOS message-and-trap handler removes them without disabling runtime safety."
+  },
+  "platform_reference": "https://github.com/apple-oss-distributions/dyld/blob/main/doc/man/man3/dlclose.3",
+  "repair": "Strict dynamic initial load/replacement rejects known TLS/Objective-C-pinned images before giving them a host/context; legacy module-state-only constructors preserve behavior. Original 32 replacements/224 rejections/unload assertions remain; add genuine C++ TLS fixture on macOS.",
+  "pending": [
+    "Native macOS complete CI at repaired source",
+    "Windows native regression at repaired source",
+    "Full Codex Cloud Development/Shipping at repaired source",
+    "All exact-head CI before merge"
+  ]
+}

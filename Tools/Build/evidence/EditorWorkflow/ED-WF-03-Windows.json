@@ -94,7 +94,7 @@
       "result": "no successful present on CodexSandboxDesktop"
     }
   ],
-  "acceptance": "ED-WF-03 full exact-head Linux/CI and merge pending",
+  "acceptance": "ED-WF-03 accepted by PR #756 after full exact-head Cloud/CI; merge70be4f77 has identical tree. This receipt remains scoped to the Windows developer host.",
   "final_core_gate": {
     "registered": 5,
     "passed": 5,

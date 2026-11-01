@@ -504,21 +504,73 @@ returns the exact allocation during `destroy`, so allocation ownership never cro
 implicitly and reload candidates have independent state. No exception crosses the C ABI; every
 fallible callback reports a `NexoraGameplayResult`, and an update failure does not implicitly
 unload the active module. Event delivery remains a future additive capability.
-Modules may additionally provide state save/load callbacks. Reload serializes the active state,
-creates and restores the candidate before calling its `on_start`, and only then retires the active
-module. This ordering lets `on_start` reuse restored scene and entity handles instead of spawning
-duplicate content. Load, descriptor, start, and migration failures destroy the candidate while
-keeping the active module alive; `on_stop` runs only for a module that started successfully.
+Modules may additionally provide paired state save/load callbacks and STATE_MIGRATION. Reload
+requires both callbacks/capability on both generations, closes new registered dispatch, drains the
+embedding barrier and all `WorkLease` owners, then captures state. Missing migration reports
+`ReloadFailure::RestartRequired`, keeps the old generation and does not silently reset it. Zero,
+inconsistent or greater-than-1-MiB state rejects before candidate creation. The typed Zig SDK's
+[NXGS codec](../../Tools/Zig/README.md#typed-reload-state) adds explicit versioned data, deterministic
+query/write hooks and bounds without changing the existing V3 wire table.
+
+Each generation owns a stable host-table allocation through module destruction and library
+finalizers, including raw consumers that retain the table pointer. Reload creates and restores the
+candidate before `on_start`, so start can reuse restored scene/entity handles. Descriptor, save,
+initialization and restoration failures keep the active module alive. Failed start is followed by
+destroy without stop. `GetReloadFailure` reports the last replacement failure separately from
+update/fixed-update failures; success clears both. C++ consumers rebuild for these API/lifetime
+changes; constructing the C++ owner may fail to allocate its shared work registry.
+The owned table advertises at most its actual known allocation size, including after a transaction
+supplies a candidate host. An older negotiated prefix stays its original size; an oversized future
+suffix cannot be copied through this by-value C++ boundary and is not falsely advertised.
+
+On macOS, strict dynamic owners reject known dyld-pinned TLS/Objective-C images before initial
+creation, or report restart required before staging a replacement. No host/context is handed to
+an initially rejected image. Embedders must not independently retain loader handles; static-loader
+callers own their code lifetime. This admission rule is scoped to the strict overload: legacy
+module-state-only constructors retain their existing loading/reload behavior. The SDK's macOS
+library entry uses Zig's message-and-trap panic namespace to avoid the default handler's implicit
+TLS while retaining runtime safety checks and fatal panic behavior. Authored TLS/Objective-C code
+is not made unloadable by that handler. Module cleanup remains explicit in destroy; modules must
+not retain host pointers for delayed thread/process-exit callbacks.
+
+World/resource embeddings use the strict three-argument constructor with `ReloadTransaction`.
+All four nonthrowing hooks are required; absent isolation reports restart required. `begin` stages
+unpublished World/resource state and may replace the candidate host context/services; rollback
+must handle partial begin and is called after candidate destroy. Successful candidate start is
+followed by `retire`, which quarantines old Stop/Destroy and library-finalizer effects so they cannot
+delete transferred Play-owned objects. `commit` then publishes the candidate and releases retired
+state. Commit/retire are infallible publication operations; every allocation/admission they need
+must finish before candidate start is accepted. Hook/context/service owners outlive all module callbacks. A host that exposes
+native audio/window/storage or other external effects must stage or reject those effects; a World
+snapshot alone does not roll them back. All readers are drained before staging and no candidate
+state may escape before commit. Runtime does not infer or copy opaque embedding service storage.
+The older constructors preserve the original module-state-only contract for existing consumers;
+they do not promise rollback of arbitrary host/World/resource side effects. The Editor integration
+must use the strict constructor; that integrated workflow remains ED-WF-05 acceptance work.
+Strict dynamic reload also requires a distinct loader identity: publish each candidate under a
+unique generation filename. Reopening the active DLL/shared-object handle rejects before calling
+its loader/create, so failed replacement cannot overwrite the old generation's module globals.
 The path overloads discover platform-named modules and own each loaded library as one monotonically
-numbered generation. Before retiring a generation, the host invokes the configured quiescence
-barrier while lifecycle serialization is held; the embedding must wait there for every job and
-deferred callback that can enter that generation. Only after the barrier, `on_stop`, and `destroy`
-does the host release the old `LoadLibrary`/`dlopen` handle. Unload follows the same ordering, so
+numbered generation. Before capturing state, the host closes registered dispatch and invokes the
+configured quiescence barrier while lifecycle serialization is held. The embedding drains/pumps
+every job and deferred callback that can enter that generation, and the host waits for all
+registered work leases. Only after that barrier, candidate admission, `on_stop`, and `destroy`
+does the host release the old `LoadLibrary`/`dlopen` handle. Unload drains work before stop/destroy, so
 shutdown racing a reload is serialized and cannot release callable code. Static function-pointer
 loads remain supported for monolithic/Shipping consumers, but a dynamically owned generation may
 only be replaced by another dynamically owned generation. `Generation()` and `GetReloadStats()`
 expose the active generation, successful reload count, migrated bytes, and wall-clock reload
 duration for diagnostics and profiler integration. Dynamic path reloads first require consecutive stable file-size and write-time samples, so a linker copy cannot be opened halfway through publication. `GetFailureState()` records the callback kind, ABI result, and generation for the latest variable/fixed-update failure; failures remain observable without implicitly unloading state and a successful transactional reload clears the prior generation's failure.
+
+`AcquireWork(expected_generation)` registers before the callable is submitted, including queued
+callbacks, and returns a move-only lease. It rejects stale/closed generations without entering the
+lifecycle mutex and may be used while a module callback is active. Retain it until all module code
+and callable captures have finished/destructed; it owns no callable or function pointer. The shared
+registry remains alive through the final lease release. The owner must stop submitting before
+teardown and must never re-enter Update/Reload/Unload from a barrier or leased callback. A barrier
+may pump its already registered raw callbacks on their proper owner thread. Failed replacement
+reopens the old generation, successful replacement opens the new one; unload keeps it closed.
+Generation values are not recycled across unload/load of the same owner.
 
 `Tests/Gameplay/GameplayConformanceVectors.h` is the single lifecycle/update vector set used by the
 C++ fake and Zig consumer. The Runtime negative suite rejects a missing loader symbol, ABI and

@@ -165,8 +165,12 @@ Use **Settings > Appearance > Dark / Light** for Unity-inspired neutral gray pal
 selection and focus accents. Dark is the default. The application applies requests between frames,
 so the complete next frame uses one palette; changing theme never rescales fonts or panel geometry.
 Icons follow text color, while Transform axes and semantic error/warning/success text use colors
-chosen for each theme. Display-referred palette swatches are decoded once for RenderUi's linear
-vertex-color contract so native sRGB output retains the intended gray levels. The Scene/Game render
+chosen for each theme. Before each frame, the owner calls `SetUiOutputSrgb` with the actual
+surface attachment encoding. Display-referred palette swatches are decoded only when that
+attachment performs sRGB output encoding; legacy UNORM targets retain display-referred values.
+The per-context setting belongs to the host and changes colors without rebuilding fonts or
+rescaling layout. Normal and secondary text retain at least 4.5:1 contrast against WindowBg.
+The Scene/Game render
 background and authored materials retain their colors.
 
 `SetColorTheme` / `GetColorTheme` expose the current presentation choice;
