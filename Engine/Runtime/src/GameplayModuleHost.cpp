@@ -102,9 +102,11 @@ struct GameplayModuleHost::DynamicLibrary final {
         result->unloadable =
             header->magic == MH_MAGIC_64 && !(header->flags & MH_HAS_TLV_DESCRIPTORS);
         if (result->unloadable)
-          for (const auto *segment : {"__DATA", "__DATA_CONST", "__DATA_DIRTY"})
-            if (getsectbynamefromheader_64(header, segment, "__objc_imageinfo"))
+          for (const auto *segment : {"__DATA", "__DATA_CONST", "__DATA_DIRTY"}) {
+            unsigned long size{};
+            if (getsectiondata(header, segment, "__objc_imageinfo", &size))
               result->unloadable = false;
+          }
       }
     }
 #endif
