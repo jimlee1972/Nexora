@@ -17,6 +17,7 @@ inline std::string PrefabWorkflowEvidence(const imgui::EditorImGuiHost &ui,
   out << " focused=" << input.focused << " keys=";
   for (const bool key : input.keys)
     out << key;
+  out << " shift=" << Access::SceneShortcutInput(ui).keys[2];
   for (std::size_t index = 0; index < input.enabled.size(); ++index)
     if (const auto point = Access::PrefabControlPosition(ui, index))
       out << " c" << index << '=' << (*point)[0] * dpi << ',' << (*point)[1] * dpi << ','

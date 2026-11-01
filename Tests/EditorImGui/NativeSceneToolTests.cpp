@@ -1,4 +1,5 @@
 #include "EditorImGuiTestAccess.h"
+#include <imgui.h>
 
 #include <algorithm>
 #include <array>
@@ -42,9 +43,24 @@ void Run(float dpi) {
   ui.SetNativeScenePreview(true);
   Access::ConfigureSyntheticInput(ui);
   editor::ProjectWorkspace *workspace = &writer;
+  bool auxiliary_text_visible{}, auxiliary_text_active{}, auxiliary_focus_requested{};
+  std::array<char, 64> auxiliary_text{};
   const auto draw = [&] {
     ui.BeginFrame();
     ui.DrawProductShell(shell, &scene, workspace);
+    if (auxiliary_text_visible) {
+      if (auxiliary_focus_requested)
+        ImGui::SetNextWindowFocus();
+      ImGui::SetNextWindowSize({320, 120});
+      if (ImGui::Begin("Auxiliary text input", nullptr, ImGuiWindowFlags_NoSavedSettings)) {
+        if (auxiliary_focus_requested)
+          ImGui::SetKeyboardFocusHere();
+        ImGui::InputText("Text", auxiliary_text.data(), auxiliary_text.size());
+        auxiliary_text_active = ImGui::IsItemActive();
+      }
+      ImGui::End();
+      auxiliary_focus_requested = false;
+    }
     static_cast<void>(ui.EndFrame());
   };
   Event focus{};
@@ -405,6 +421,27 @@ void Run(float dpi) {
   ui.ProcessEvents(std::array{right, key(Key::LeftAlt, false)});
   draw();
   ui.SetNativeScenePreview(true);
+  Access::FocusScene(ui);
+  draw();
+  auxiliary_text_visible = true;
+  auxiliary_focus_requested = true;
+  draw(); // Queue the real auxiliary field's focus, after the main ProductShell widgets.
+  ui.ProcessEvents(std::array{key(Key::W, true)});
+  draw();
+  Require(auxiliary_text_active && ui.GetNativeSceneTool() == Tool::Hand,
+          "auxiliary field activation leaked a tool key before EndFrame");
+  // Once the actual field owns text, deliver the character phase and retain it.
+  Event typed{};
+  typed.type = EventType::Text;
+  typed.value0 = 'w';
+  ui.ProcessEvents(std::array{key(Key::W, false), typed});
+  draw();
+  Require(auxiliary_text_active && std::string_view(auxiliary_text.data()) == "w" &&
+              ui.GetNativeSceneTool() == Tool::Hand,
+          "auxiliary owned text was lost or changed the Scene tool");
+  auxiliary_text_visible = false;
+  Access::FocusScene(ui);
+  draw();
   Access::FocusInspector(ui);
   Access::FocusInspectorTransformField(ui, 0);
   draw();

@@ -24,7 +24,7 @@ WindowEvent Mouse(int button, bool down) {
   event.value1 = down;
   return event;
 }
-void ObservePlayShortcuts(float dpi) {
+void ObservePlayShortcuts(float dpi, bool macos_behaviors = false) {
   using namespace nexora;
   using namespace editor;
   using Access = imgui::EditorImGuiTestAccess;
@@ -39,7 +39,7 @@ void ObservePlayShortcuts(float dpi) {
   ProductShell shell;
   imgui::EditorImGuiHost host;
   host.SetDisplay(1280, 720, dpi);
-  Access::ConfigureSyntheticInput(host);
+  Access::ConfigureSyntheticInput(host, macos_behaviors);
   bool attached = true;
   const auto draw = [&] {
     host.BeginFrame();
@@ -100,7 +100,7 @@ void ObservePlayShortcuts(float dpi) {
     draw();
     Require(host.TakePlayCommand() == Command::None, "Unity chord repeated on release");
   };
-  const auto ctrl = KeyModifiers::Control;
+  const auto ctrl = macos_behaviors ? KeyModifiers::Super : KeyModifiers::Control;
   const auto pause_chord = static_cast<KeyModifiers>(static_cast<unsigned>(ctrl) |
                                                      static_cast<unsigned>(KeyModifiers::Shift));
   const auto step_chord = static_cast<KeyModifiers>(static_cast<unsigned>(ctrl) |
@@ -160,8 +160,30 @@ int main() {
   try {
     ObservePlayShortcuts(1);
     ObservePlayShortcuts(2);
+    ObservePlayShortcuts(1, true);
+    ObservePlayShortcuts(2, true);
     using namespace nexora;
     using namespace editor;
+    for (const auto action : {KeyModifiers::Control, KeyModifiers::Super}) {
+      preview::PlayInputState reserved;
+      PlayInputBindings bindings;
+      bindings.controls[4] = {PlayInputControl::P, PlayInputControl::None};
+      Require(reserved.SetBindings(bindings), "P binding fixture rejected");
+      reserved.SetFocused(true);
+      reserved.Process({}); // Acquisition is deliberately neutral.
+      auto key = KeyEvent(Key::P, true);
+      key.modifiers = action;
+      reserved.Process(std::array{key});
+      Require((reserved.Snapshot().buttons & 1U) == 0,
+              "Editor Play chord also fired a game action");
+      key.modifiers = KeyModifiers::None;
+      reserved.Process(std::array{key});
+      Require((reserved.Snapshot().buttons & 1U) == 0,
+              "modifier release/autorepeat exposed the consumed P press");
+      reserved.Process(std::array{KeyEvent(Key::P, false), KeyEvent(Key::P, true)});
+      Require((reserved.Snapshot().buttons & 1U) != 0,
+              "ordinary P binding did not recover after release");
+    }
     preview::PlayInputState input;
     const std::array held{KeyEvent(Key::D, true), KeyEvent(Key::Space, true), Mouse(0, true)};
     input.Process(held);
@@ -409,19 +431,35 @@ int main() {
             "captured input blocked the reserved Pause shortcut");
     host.ProcessEvents(std::array{KeyEvent(Key::F6, false)});
     draw();
-    auto unity_pause = KeyEvent(Key::P, true);
-    unity_pause.modifiers = static_cast<KeyModifiers>(3);
-    host.ProcessEvents(std::array{unity_pause});
-    draw();
-    Require(host.TakePlayCommand() == imgui::PlayCommand::Pause && host.GameInputFocused() &&
-                document.Nodes().empty(),
-            "Game capture blocked Unity Pause or leaked authoring input");
-    host.ProcessEvents(std::array{KeyEvent(Key::P, false)});
-    draw();
-    Require(host.TakePlayCommand() == imgui::PlayCommand::None &&
-                !Access::SceneShortcutInput(host).keys[0] &&
-                !Access::SceneShortcutInput(host).keys[2],
-            "Unity chord release left captured modifiers latched");
+    for (const bool macos : {false, true}) {
+      Access::ConfigureSyntheticInput(host, macos);
+      const auto action = macos ? KeyModifiers::Super : KeyModifiers::Control;
+      auto unity_pause = KeyEvent(Key::P, true);
+      unity_pause.modifiers = static_cast<KeyModifiers>(static_cast<unsigned>(action) | 2U);
+      host.ProcessEvents(std::array{unity_pause});
+      draw();
+      Require(host.TakePlayCommand() == imgui::PlayCommand::Pause && host.GameInputFocused() &&
+                  document.Nodes().empty(),
+              "Game capture blocked Ctrl/Command Unity Pause or leaked authoring input");
+      auto release_shift = KeyEvent(Key::LeftShift, false);
+      release_shift.modifiers = action;
+      host.ProcessEvents(std::array{release_shift});
+      draw();
+      host.ProcessEvents(std::array{KeyEvent(macos ? Key::LeftSuper : Key::LeftControl, false)});
+      draw();
+      Require(!Access::SceneShortcutInput(host).keys[0] &&
+                  !Access::SceneShortcutInput(host).keys[2] && !Access::SuperModifierDown(host),
+              "captured modifier release left Ctrl/Command latched while P was held");
+      host.ProcessEvents(std::array{KeyEvent(Key::P, false)});
+      draw();
+      Require(host.TakePlayCommand() == imgui::PlayCommand::None,
+              "Unity chord release repeated its Play request");
+    }
+#if defined(__APPLE__)
+    Access::ConfigureSyntheticInput(host, true);
+#else
+    Access::ConfigureSyntheticInput(host);
+#endif
     host.ProcessEvents(std::array{KeyEvent(Key::Escape, true)});
     draw();
     Require(!host.GameInputFocused(), "Escape did not release UI capture");

@@ -7,6 +7,9 @@ global Q Hand/WER tools, X/Z modes, Space navigation, supported command/window s
 F5/F6/F10 and P pivot aliases remain; Prefab isolation moves to Ctrl+Alt+Shift+P. Local input
 implementation passes scoped Windows8/8; [input evidence](../../Tools/Build/evidence/EditorWorkflow/Unity-Input.md)
 keeps full Cloud/native acceptance, PR and final ZIP pending.
+Follow-up repairs defer tools until auxiliary text ownership resolves and preserve Ctrl/Command
+Play chords through Game capture without firing P-bound game actions. The first Cloud candidate
+failed three native tests and an invalid Shipping Editor configuration; its evidence is retained.
 See [Editor input behavior](../../Apps/Editor/README.md#unity-style-editor-input-issue-759).
 This supporting task does not alter the 4/9 workflow count or 0/8 Editor milestone count.
 

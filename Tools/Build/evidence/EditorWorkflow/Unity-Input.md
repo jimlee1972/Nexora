@@ -19,6 +19,10 @@ Ctrl activates incremental transform snapping; Shift rotation/scale snapping rem
 The existing overview stays X/Z and supports Hand/right/middle panning without authoring.
 
 Tools and X/Z shortcuts work across Editor panels after same-frame text/item ownership is resolved.
+Ordinary tool keys resolve at EndFrame, after auxiliary windows also establish ownership; only an
+owning per-frame admission bit is retained, never a borrowed Scene pointer. Actual auxiliary InputText
+activation and character delivery are tested at 1x/2x. Scene initial-click selection retains its
+pre-pick ordering.
 The Scene initial-click path still resolves tool selection before authoring starts. Normal no-project
 interactive startup prefers native3D, with one-time Unsupported fallback; explicit native/CLI choices
 keep their existing admission. This new startup behavior still needs native/CI acceptance.
@@ -29,6 +33,10 @@ scene/save/history/object shortcuts. F5/F6/F10 remain aliases. Prefab isolation 
 Ctrl+Alt+Shift+P to remove the actual Step conflict. Game capture keeps reserved Play chords and
 filters unrelated authoring input. Text entry, application/window focus and modal admission remain
 required. Build requests retain the existing owner's Save/Discard/Cancel and publication gates.
+Native macOS uses the existing Command-primary policy. Both Windows and macOS policies are tested
+at 1x/2x, including modifier release while P remains held. Reserved Ctrl/Command+P is consumed by
+Editor Play input until P is released, so it cannot also fire a P-bound game action or leak through
+autorepeat after releasing its modifier.
 
 Rect/combined Transform tools, vertex snapping, orientation widget, maximized-view layout, and a
 new XY 2D mode are outside this input change; no inactive shortcut pretends to supply them.
@@ -37,8 +45,8 @@ See [current controls](../../../../Apps/Editor/README.md#unity-style-editor-inpu
 ## Verification
 
 The [Windows receipt](Unity-Input-Windows.json) records exact commands, eight passed cases, elapsed
-times, log hashes, thirteen source hashes and six executable/library hashes. Final scoped CTest
-exited 0: **8/8 passed, zero skips/failures, 74.88s** after the complete native target build exited
+times, log hashes, eighteen source hashes and six executable/library hashes. Final scoped CTest
+exited 0: **8/8 passed, zero skips/failures, 73.58s** after the complete native target build exited
 0. Real ImGui input tests exercise 1x/2x Hand, orbit/look/pan/fly/zoom, no accidental picks/history,
 modified transform admission/cancellation, tool/axis/pivot guards, Shift+F/Undo/follow cancellation,
 Unity Play chords and Game capture, and Build Settings/Build & Run/busy-build admission. Existing
@@ -57,3 +65,36 @@ Full Codex Cloud development configure/build/CTest, applicable Shipping linkage,
 native Scene/Prefab interaction and final ZIP extraction/relocation remain pending. The input
 changes are separate from immutable PR #758 Runtime validation and must not use its old results
 as acceptance of these new controls. No new completion marker is earned yet.
+
+## First immutable candidate failures and repairs
+
+Commit `99db277558cb2616850aca9503819e88f99060ff`, tree
+`567096d379e786011e5893055d835ee08507ce03`, is unaccepted. Cloud ran all 495 cases:
+492 passed / 3 failed / zero skipped, CTest exit8, 1756.448s. Configure/build exited0.
+Original archive `/workspace/validation-759-evidence.tar.gz` is retained unchanged, 414063 bytes,
+SHA256 `2fe20c077a83033779ad09dc47f358186e1657952ca4af5aaec939b69b2f01d0`.
+
+- Prefab isolation requested the new Shift chord but its physical key mapping lacked Shift.
+  The repair adds real Shift down/up acknowledgement via opt-in observation, preserving the
+  original fixture, source isolation, save/reopen assertions and deadlines.
+- Native Scene's final gesture still used old RMB orbit / Shift-MMB vertical pan semantics and
+  required zero X/Z movement. It now performs Alt-LMB orbit and MMB view-plane pan and requires
+  finite, changed pitch/height/distance and nonzero horizontal target movement, followed by exact
+  camera persistence across reopen. Existing actual handle/pixel/Undo/scene-byte checks remain.
+- Play memory did not observe the fixture starting after a short unacknowledged F5 press. The
+  repair observes actual focused Play admission and one physical key's processed down/up phases,
+  without retrying Play or extending the existing result deadlines. Runtime allocation, pixels,
+  pause/stop/restart and source-byte assertions remain the result oracles. Full Linux rerun is pending.
+
+The same candidate's native macOS `editor.play_input_state` failed because captured input dropped
+Command+P. Job `124756081826` exited8 overall; raw decoded log is retained locally as
+`build/editor-workflow-native/unity-input-macos-99db-failure.log`, 792584 bytes, SHA256
+`9672360c418e6847ec11a1940e262c636cc86dfcb09032c9dd4a7f9fd669affa`.
+The repair and expanded Windows/macOS-profile tests do not substitute for new native macOS CI.
+
+The requested first Shipping command incorrectly enabled graphical Editor, despite the existing
+Shipping contract forcibly disabling Editor. Configure/build each exited1, before Editor linkage.
+Keep this failure; do not change product ownership to accommodate a validation mistake. The next
+run uses the supported Shipping Runtime/Player boundary (Zig/Slang/Vulkan/ProjectPlayer/native ON,
+graphical Editor OFF). Development continues to compile/link the actual graphical Editor and run
+its complete native suite. Shipping has testing OFF and does not validate an Editor executable.

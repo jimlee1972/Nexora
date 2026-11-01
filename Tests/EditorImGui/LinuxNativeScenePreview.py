@@ -841,22 +841,23 @@ def main() -> int:
         driver.send("key", "f")
         time.sleep(0.15)
         driver.send("click", "4")
-        driver.send("mousedown", "3")
+        # Unity orbit is Alt+LMB; MMB pans in the view plane rather than only world Y.
+        driver.send("keydown", "Alt_L")
+        driver.send("mousedown", "1")
         time.sleep(0.1)
         driver.send("mousemove", "--window", str(window),
                     str(center_x + 40), str(center_y + 30))
         time.sleep(0.15)
-        driver.send("mouseup", "3")
+        driver.send("mouseup", "1")
+        driver.send("keyup", "Alt_L")
         driver.send("mousemove", "--window", str(window),
                     str(center_x), str(center_y))
-        driver.send("keydown", "Shift_L")
         driver.send("mousedown", "2")
         time.sleep(0.1)
         driver.send("mousemove", "--window", str(window),
                     str(center_x), str(center_y + 48))
         time.sleep(0.15)
         driver.send("mouseup", "2")
-        driver.send("keyup", "Shift_L")
         driver.send("key", "--delay", "80", "ctrl+s")
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline and not scene_file.is_file():
@@ -876,10 +877,11 @@ def main() -> int:
         if len(camera_lines) != 2 or camera_lines[0] != "NEXORA_SCENE_CAMERA 1":
             raise RuntimeError(f"native preview camera was not saved: {camera_lines!r}")
         camera_values = [float(value) for value in camera_lines[1].split()]
-        if (len(camera_values) != 8 or abs(camera_values[4] - 0.588) < 0.01 or
+        if (len(camera_values) != 8 or not all(map(math.isfinite, camera_values)) or
+                abs(camera_values[4] - 0.588) < 0.01 or
                 camera_values[5] >= 5.0 or camera_values[1] < 0.1 or
-                camera_values[6] != 0 or abs(camera_values[0]) > 1e-6 or
-                abs(camera_values[2]) > 1e-6):
+                camera_values[6] != 0 or
+                math.hypot(camera_values[0], camera_values[2]) < 0.05):
             raise RuntimeError(f"native preview gestures were not saved: {camera_values!r}")
         editor = subprocess.Popen(
             [args.editor, f"--project={root}", "--graphical", "--native-scene-preview",

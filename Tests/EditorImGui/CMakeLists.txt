@@ -152,7 +152,7 @@ add_test(NAME editor.scene_mesh_frame_selection COMMAND NexoraEditorSceneFrameTe
 
 add_executable(NexoraNativeSceneToolTests NativeSceneToolTests.cpp)
 target_include_directories(NexoraNativeSceneToolTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
-target_link_libraries(NexoraNativeSceneToolTests PRIVATE Nexora::EditorImGui)
+target_link_libraries(NexoraNativeSceneToolTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
 nexora_apply_defaults(NexoraNativeSceneToolTests)
 add_test(NAME editor.native_scene_tools COMMAND NexoraNativeSceneToolTests)
 

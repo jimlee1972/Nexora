@@ -28,6 +28,9 @@ Implementation is in progress; full Cloud/native validation and delivery remain 
 F5/F6/F10 remain compatible Play aliases. Prefab isolation moves to Ctrl+Alt+Shift+P so it no
 longer intercepts Unity's Step chord. Existing Save/Discard/Cancel and build ownership still apply.
 Tool shortcuts are global across Editor panels when no text/item edit or gesture owns input.
+Ordinary global tool keys resolve in `EndFrame`, after auxiliary windows also establish ownership;
+observe their tool state after that call. Scene initial-click keys still resolve before pick/drag.
+Only a per-frame admission bit is retained, with no scene/document borrow or repeated-EndFrame action.
 Camera navigation belongs to the Scene canvas. Commands retain application focus, text input,
 modal and Game capture admission. Normal no-project interactive startup chooses the native 3D
 Scene view, falling back to the overview when the backend reports Unsupported. Explicit native
@@ -37,6 +40,9 @@ Navigation never changes selection, scene bytes, or undo history. Native picking
 Ctrl/Shift drags that hit no transform handle through `CancelNativeSceneTransform` in the issuing GUI
 frame; the application owns actual hit testing and scene mutations. Read-only camera navigation works.
 Play chords remain available while Game captures input; unrelated authoring chords do not.
+The native macOS shortcut policy uses Command for the primary action modifier. Captured
+Ctrl/Command releases are forwarded even while P is held; a reserved Play press cannot also fire
+a game action bound to P, including autorepeat after the modifier is released.
 
 This aligns supported commands and view navigation. Rect/combined Transform tools, vertex snapping,
 Scene orientation widget, a new XY 2D authoring mode, and maximized-view layout are not implemented

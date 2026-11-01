@@ -113,17 +113,20 @@ def main():
 
         def key(*keys):
             physical = {'ctrl': ('Control_L', 0), 'alt': ('Alt_L', 1), 'p': ('p', 2),
-                        'a': ('a', 3), 'Return': ('Return', 4), 'Escape': ('Escape', 5)}
+                        'a': ('a', 3), 'Return': ('Return', 4), 'Escape': ('Escape', 5),
+                        'shift': ('Shift_L', None)}
             for chord in keys:
                 deadline = time.monotonic() + 8
                 parts = [physical[part] for part in chord.split('+')]
                 for name, index in parts:
                     send('keydown', name)
-                    wait_ui(lambda value: value['keys'][index] == '1',
+                    wait_ui(lambda value: (value['shift'] if index is None else
+                                          value['keys'][index]) == '1',
                             f'GUI did not observe {name} down', deadline)
                 for name, index in reversed(parts):
                     send('keyup', name)
-                    wait_ui(lambda value: value['keys'][index] == '0',
+                    wait_ui(lambda value: (value['shift'] if index is None else
+                                          value['keys'][index]) == '0',
                             f'GUI did not observe {name} up', deadline)
 
         def click(window, x, y, history=None):

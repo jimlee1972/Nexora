@@ -445,6 +445,7 @@ struct EditorImGuiHost::State final {
   };
   std::optional<SceneDrag> scene_drag;
   std::uint64_t scene_gesture_document_generation{};
+  bool scene_tool_shortcuts_allowed{};
   struct InspectorTransformRequest final {
     std::vector<SceneDocument::NodeKey> entities;
     std::vector<runtime::Transform> transforms;
@@ -5312,9 +5313,12 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
             physical_key != Nexora::Window::Key::RightShift &&
             physical_key != Nexora::Window::Key::LeftAlt &&
             physical_key != Nexora::Window::Key::RightAlt &&
+            physical_key != Nexora::Window::Key::LeftSuper &&
+            physical_key != Nexora::Window::Key::RightSuper &&
             !(physical_key == Nexora::Window::Key::P &&
               ((static_cast<unsigned>(event.modifiers) &
-                static_cast<unsigned>(Nexora::Window::KeyModifiers::Control)) != 0 ||
+                (static_cast<unsigned>(Nexora::Window::KeyModifiers::Control) |
+                 static_cast<unsigned>(Nexora::Window::KeyModifiers::Super))) != 0 ||
                ImGui::IsKeyDown(ImGuiKey_P))))
           break;
       }
@@ -5381,6 +5385,7 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
 
 void EditorImGuiHost::BeginFrame(float delta_seconds) {
   Activate(state_->context);
+  state_->scene_tool_shortcuts_allowed = false;
   state_->scene_file_positions = {};
   state_->hierarchy_create_positions = {};
   state_->scene_canvas_viewport.reset();
@@ -7922,17 +7927,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     }
     ImGui::EndPopup();
   }
-  // Resolve global tool keys after widgets establish text/item ownership in this frame.
-  // The Scene's initial-click path still resolves tool keys before authoring pick/drag setup.
-  const auto &tool_io = ImGui::GetIO();
-  if (scene && state_->app_focused && !interaction_blocked && !tool_io.WantTextInput &&
-      !state_->game_input_focused && !state_->native_scene_drag_origin &&
-      !state_->native_scene_drag && !ImGui::IsAnyItemActive() &&
-      !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel) &&
-      !tool_io.KeyCtrl && !tool_io.KeyAlt && !tool_io.KeyShift && !tool_io.KeySuper &&
-      !ImGui::IsMouseDown(ImGuiMouseButton_Left) && !ImGui::IsMouseDown(ImGuiMouseButton_Right) &&
-      !ImGui::IsMouseDown(ImGuiMouseButton_Middle))
-    ApplySceneToolKeys(*state_);
+  // No scene/document borrow survives this call. EndFrame resolves global tools only
+  // after auxiliary windows have also established their text/item ownership.
+  state_->scene_tool_shortcuts_allowed = scene != nullptr && !interaction_blocked;
   if (!focus_panel.empty())
     ImGui::SetWindowFocus(focus_panel.c_str());
 }
@@ -9570,6 +9567,16 @@ void EditorImGuiHost::UpdateImeCandidate(Nexora::Presentation::RenderSurface &su
 
 FrameMetrics EditorImGuiHost::EndFrame() {
   Activate(state_->context);
+  const auto &tool_io = ImGui::GetIO();
+  if (state_->scene_tool_shortcuts_allowed && state_->app_focused && !tool_io.WantTextInput &&
+      !state_->game_input_focused && !state_->native_scene_drag_origin &&
+      !state_->native_scene_drag && !ImGui::IsAnyItemActive() &&
+      !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel) &&
+      !tool_io.KeyCtrl && !tool_io.KeyAlt && !tool_io.KeyShift && !tool_io.KeySuper &&
+      !ImGui::IsMouseDown(ImGuiMouseButton_Left) && !ImGui::IsMouseDown(ImGuiMouseButton_Right) &&
+      !ImGui::IsMouseDown(ImGuiMouseButton_Middle))
+    ApplySceneToolKeys(*state_);
+  state_->scene_tool_shortcuts_allowed = false;
   state_->game_two_d_frame_open = false;
   ImGui::Render();
   state_->surface = nullptr;
@@ -9801,6 +9808,11 @@ void EditorImGuiTestAccess::ConfigureSyntheticInput(EditorImGuiHost &host,
   auto &io = ImGui::GetIO();
   io.ConfigInputTrickleEventQueue = false;
   io.ConfigMacOSXBehaviors = macos_behaviors;
+}
+
+bool EditorImGuiTestAccess::SuperModifierDown(const EditorImGuiHost &host) noexcept {
+  Activate(host.state_->context);
+  return ImGui::GetIO().KeySuper;
 }
 
 void EditorImGuiTestAccess::InvokeImeCallback(EditorImGuiHost &host, float x, float y,
