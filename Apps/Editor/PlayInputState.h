@@ -7,6 +7,33 @@
 #include <span>
 
 namespace nexora::editor::preview {
+// Shared by legacy snapshots and the 2D services API. A reserved press stays consumed until
+// its physical release, including repeats after releasing Ctrl/Command and acquisition batches.
+class PlayShortcutFilter final {
+public:
+  void Reset() noexcept { reserved_p_ = false; }
+  bool KeyDown(const Nexora::Window::WindowEvent &event) noexcept {
+    using namespace Nexora::Window;
+    if (event.value0 == static_cast<std::int32_t>(Key::F5) ||
+        event.value0 == static_cast<std::int32_t>(Key::F6) ||
+        event.value0 == static_cast<std::int32_t>(Key::F10))
+      return false;
+    if (event.value0 == static_cast<std::int32_t>(Key::P)) {
+      const auto action =
+          static_cast<unsigned>(KeyModifiers::Control) | static_cast<unsigned>(KeyModifiers::Super);
+      if (!event.value1)
+        reserved_p_ = false;
+      else if (static_cast<unsigned>(event.modifiers) & action)
+        reserved_p_ = true;
+      if (reserved_p_)
+        return false;
+    }
+    return event.value1 != 0;
+  }
+
+private:
+  bool reserved_p_{};
+};
 // Owner-thread held input. Only copied snapshots cross the gameplay ABI. Focus transitions clear
 // held state; the acquisition frame is discarded so clicking to capture does not fire in-game.
 class PlayInputState final {
@@ -19,6 +46,7 @@ public:
     if (bindings_ != bindings) {
       bindings_ = bindings;
       keys_.fill(false);
+      play_keys_.Reset();
       buttons_ = 0;
       snapshot_.move_x = snapshot_.move_y = 0;
       snapshot_.buttons = 0;
@@ -30,6 +58,7 @@ public:
   void SetFocused(bool focused) noexcept {
     if (focused_ != focused) {
       keys_.fill(false);
+      play_keys_.Reset();
       buttons_ = 0;
       acquired_ = focused;
       ResetPointer(true);
@@ -67,6 +96,8 @@ public:
           pointer_anchored_ = false;
         else if (event.type == WindowEventType::Pointer)
           TrackPointer(event.value0, event.value1, false);
+        else if (event.type == WindowEventType::Key)
+          static_cast<void>(play_keys_.KeyDown(event));
       }
       return false;
     }
@@ -79,8 +110,10 @@ public:
         wheel_x_ = std::clamp(wheel_x_ + event.value0, -kMaximumWheelUnits, kMaximumWheelUnits);
         wheel_y_ = std::clamp(wheel_y_ + event.value1, -kMaximumWheelUnits, kMaximumWheelUnits);
       } else if (event.type == WindowEventType::Key) {
-        if (event.value0 > 0 && static_cast<std::size_t>(event.value0) < keys_.size())
-          keys_[static_cast<std::size_t>(event.value0)] = event.value1 != 0;
+        if (event.value0 > 0 && static_cast<std::size_t>(event.value0) < keys_.size()) {
+          const auto index = static_cast<std::size_t>(event.value0);
+          keys_[index] = play_keys_.KeyDown(event);
+        }
       } else if (event.type == WindowEventType::PointerButton && event.value0 >= 0 &&
                  event.value0 < 5) {
         const auto bit = 2U << event.value0;
@@ -185,6 +218,7 @@ private:
   std::int32_t pointer_x_{}, pointer_y_{};
   double delta_x_{}, delta_y_{}, wheel_x_{}, wheel_y_{};
   bool focused_{}, acquired_{};
+  PlayShortcutFilter play_keys_;
   std::array<bool, static_cast<std::size_t>(Nexora::Window::Key::F12) + 1> keys_{};
   std::uint32_t buttons_{};
   NexoraInputSnapshot snapshot_{};

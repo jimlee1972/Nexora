@@ -357,7 +357,9 @@ NativeScenePickHit PickNativeSceneProxy(const nexora::editor::SceneDocument &sce
       proxy = nexora::editor::PickHit{candidate.entity, *distance};
   }
   const auto handles =
-      tool == nexora::editor::imgui::NativeSceneTool::Select ? std::vector<NativeSceneAxisHandle>{}
+      (tool == nexora::editor::imgui::NativeSceneTool::Select ||
+       tool == nexora::editor::imgui::NativeSceneTool::Hand)
+          ? std::vector<NativeSceneAxisHandle>{}
       : tool == nexora::editor::imgui::NativeSceneTool::Rotate
           ? NativeSceneRotationHandles(scene, candidates, local_axes, center_pivot)
       : tool == nexora::editor::imgui::NativeSceneTool::Scale
@@ -576,7 +578,9 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
   const auto palette = nexora::editor::preview::PrepareMaterialPalette(scene, materials, generation,
                                                                        material_entities);
   const auto handles =
-      tool == nexora::editor::imgui::NativeSceneTool::Select ? std::vector<NativeSceneAxisHandle>{}
+      (tool == nexora::editor::imgui::NativeSceneTool::Select ||
+       tool == nexora::editor::imgui::NativeSceneTool::Hand)
+          ? std::vector<NativeSceneAxisHandle>{}
       : tool == nexora::editor::imgui::NativeSceneTool::Rotate
           ? NativeSceneRotationHandles(scene, candidates, local_axes, center_pivot)
       : tool == nexora::editor::imgui::NativeSceneTool::Scale
@@ -725,7 +729,7 @@ int RunGraphical(std::optional<ProjectState> project,
                  nexora::editor::ProjectAccess selector_access, std::uint32_t frame_limit,
                  bool native_scene_preview,
                  const std::optional<std::string> &initial_gameplay_library, bool start_play,
-                 nexora::editor::app::StartupSplash &splash) {
+                 nexora::editor::app::StartupSplash &splash, bool fallback_scene_overview = false) {
   splash.Stage(nexora::editor::app::StartupStage::Graphics);
   Nexora::Presentation::RenderSurfaceDescriptor surface_descriptor{
       "Nexora Editor",
@@ -2912,8 +2916,11 @@ int RunGraphical(std::optional<ProjectState> project,
               active_scene(), *viewport, ui.GetSceneOverviewCamera(), ui.GetNativeSceneOrbit(),
               *request, ui.NativeSceneLocalAxes(), ui.NativeSceneCenterPivot(),
               ui.GetNativeSceneTool(), *native_scene_meshes);
-          native_scene_drag_axis = request->additive ? std::nullopt : hit.axis;
-          native_scene_drag_plane = request->additive ? std::nullopt : hit.plane;
+          const bool additive = request->additive && !hit.axis && !hit.plane && !hit.scale_axis;
+          if (additive)
+            ui.CancelNativeSceneTransform();
+          native_scene_drag_axis = hit.axis;
+          native_scene_drag_plane = hit.plane;
           native_scene_drag_rotate =
               native_scene_drag_axis &&
               ui.GetNativeSceneTool() == nexora::editor::imgui::NativeSceneTool::Rotate;
@@ -2926,16 +2933,16 @@ int RunGraphical(std::optional<ProjectState> project,
             const bool already_selected =
                 std::find(active_scene().Selection().begin(), active_scene().Selection().end(),
                           *hit.entity) != active_scene().Selection().end();
-            if (request->additive || already_selected)
+            if (additive || already_selected)
               selection.assign(active_scene().Selection().begin(),
                                active_scene().Selection().end());
             const auto existing = std::find(selection.begin(), selection.end(), *hit.entity);
             if (existing == selection.end())
               selection.push_back(*hit.entity);
-            else if (request->additive)
+            else if (additive)
               selection.erase(existing);
             static_cast<void>(active_scene().Select(selection));
-          } else if (!hit.axis && !hit.plane && !request->additive) {
+          } else if (!hit.axis && !hit.plane && !hit.scale_axis && !additive) {
             static_cast<void>(active_scene().Select(std::span<const nexora::runtime::Id>{}));
           }
         }
@@ -3698,6 +3705,10 @@ int RunGraphical(std::optional<ProjectState> project,
         if (point)
           geometry << ' ' << name << '=' << (*point)[0] * dpi << ',' << (*point)[1] * dpi;
       };
+      record("scene_select_tool",
+             Access::NativeSceneToolPosition(ui, nexora::editor::imgui::NativeSceneTool::Select));
+      record("scene_hand_tool",
+             Access::NativeSceneToolPosition(ui, nexora::editor::imgui::NativeSceneTool::Hand));
       record("appearance_settings", Access::AppearancePosition(ui, 0));
       record("appearance_menu", Access::AppearancePosition(ui, 1));
       record("appearance_dark", Access::AppearancePosition(ui, 2));
@@ -3918,6 +3929,11 @@ int RunGraphical(std::optional<ProjectState> project,
             *native_scene_meshes, materials, project_generation);
         ui.SetNativeScenePreviewAvailable(scene_status !=
                                           Nexora::Presentation::SurfaceStatus::Unsupported);
+        if (fallback_scene_overview &&
+            scene_status == Nexora::Presentation::SurfaceStatus::Unsupported) {
+          ui.SetNativeScenePreview(false);
+          fallback_scene_overview = false;
+        }
         if (scene_status == Nexora::Presentation::SurfaceStatus::Ready &&
             (!native_scene_viewport_reported || native_scene_viewport_reported->x != viewport->x ||
              native_scene_viewport_reported->y != viewport->y ||
@@ -4303,6 +4319,7 @@ int Run(int argc, char **argv) try {
   bool graphical = false;
   bool read_only = false;
   bool native_scene_preview = false;
+  bool fallback_scene_overview = false;
   bool start_play = false;
   std::optional<std::string> gameplay_library;
   std::optional<std::string> create_project;
@@ -4361,8 +4378,11 @@ int Run(int argc, char **argv) try {
   }
 #if defined(NEXORA_EDITOR_GRAPHICAL_SHELL)
   // Choose the interactive default only after every explicit CLI option has been parsed.
-  if (!has_project && !create_project && report.empty())
+  if (!has_project && !create_project && report.empty()) {
     graphical = true;
+    fallback_scene_overview = !native_scene_preview;
+    native_scene_preview = true;
+  }
 #endif
   if (create_project) {
     if (has_project || read_only || create_project->empty() || !project_name ||
@@ -4432,10 +4452,12 @@ int Run(int argc, char **argv) try {
     return RunGraphical(std::move(project_state), recent_projects,
                         read_only ? nexora::editor::ProjectAccess::ReadOnly
                                   : nexora::editor::ProjectAccess::ReadWrite,
-                        frame_limit, native_scene_preview, gameplay_library, start_play, splash);
+                        frame_limit, native_scene_preview, gameplay_library, start_play, splash,
+                        fallback_scene_overview);
 #else
   static_cast<void>(frame_limit);
   static_cast<void>(native_scene_preview);
+  static_cast<void>(fallback_scene_overview);
 #endif
   if (!project_state) {
     std::cerr << "--project is required\n";

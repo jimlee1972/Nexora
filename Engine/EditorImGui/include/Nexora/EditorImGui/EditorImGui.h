@@ -289,7 +289,7 @@ struct NativeSceneOrbit final {
   double target_y{};
 };
 
-enum class NativeSceneTool { Move, Rotate, Scale, Select };
+enum class NativeSceneTool { Move, Rotate, Scale, Select, Hand };
 
 struct NativeScenePickRequest final {
   std::uint32_t x{}, y{}; // framebuffer pixels
@@ -581,6 +581,10 @@ public:
   [[nodiscard]] std::optional<Nexora::Presentation::SceneViewport>
   NativeScenePreviewViewport() const noexcept;
   [[nodiscard]] std::optional<NativeScenePickRequest> NativeScenePick() const noexcept;
+  // After native picking in the issuing frame, cancel a Ctrl/Shift-click that hit no transform
+  // handle. Preserves selection and camera; the application remains the owner of actual hit
+  // testing.
+  void CancelNativeSceneTransform() noexcept;
   // One-shot owning scope; the host revalidates it against the current project/document and
   // supplies the actual bounded submission candidates after widget/authoring commands.
   [[nodiscard]] std::optional<SceneFileToken> TakeNativeSceneFrameAllRequest() noexcept;

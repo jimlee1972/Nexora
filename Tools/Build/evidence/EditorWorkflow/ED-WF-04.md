@@ -1,9 +1,33 @@
 # ED-WF-04: transactional Runtime and typed Zig reload
 
-Status: **in progress, not accepted**. [Issue #745](https://github.com/jimlee1972/Nexora/issues/745),
-Epic #741, Beads `nexora-whr.4`. Implementation starts from latest merged main
-`70be4f773135e6975a0a7d996b36dcc952e6b087` after ED-WF-03/#756 acceptance, retaining the same
-Editor branch and isolated worktree. Accepted progress remains **3/9**, graphical Editor **0/8**.
+Status: **✅ accepted in merged [PR #758](https://github.com/jimlee1972/Nexora/pull/758)**.
+Issue #745 and Beads `nexora-whr.4` are closed. Validated head `278fea636750d9aa2065c2a0075ca4c6791ae859`
+and squash `c494eff255ec652e89e0577f5db1ae34fb66a7cc` share tree
+`76f732f85e7c74a118d00496ca4b1c4066288783`. Accepted workflow count is **4/9 (44.4%)**;
+graphical Editor milestones remain **0/8**.
+
+## Final acceptance
+
+The [Cloud receipt](ED-WF-04-Cloud.json) records all five exact-source Development/Shipping gates
+first exit 0; Development CTest **495/495, zero skips/failures, 1897.30s**, clean source, OOM 0 and
+unchanged previous archives. Archive SHA256 is
+`08e61d10bbd1ec7108a8550e2bc6a5cc5acd47a16d355ed85f7178b06fe6cbcc` (378837 bytes).
+The trailing archive-shell `ps|rg` exit 1 meant no matching processes; a separate postflight exited
+0 with zero residual processes. The original archive and all gate exit codes were preserved.
+
+[Final CI](ED-WF-04-CI.json) records all **42 successful checks/four completed workflows** before
+squash merge and identical merged tree. Native Windows Runtime regression passed 3/3 in11.19s;
+expanded historical scoped 21/21 and6/6 retain their exact-source scope. Latest hosted Windows
+startup/branding/input/no-console passed5/5 in29.63s; intermediate package artifact13068967782
+wrapper SHA256 is `b13dfcfe02aaab1d8012655a2ca710082b3bf1dc5dd2c1488ed53389b0dae111`.
+Native macOS job124742723908 registered411:410 pass/one existing optional font-dependency skip/zero
+failures in1096.58s; real Zig reload/unload/pinned-image admission passed in26.18s. Complete decoded
+logs and hashes are retained in the task build area and GitHub Actions. These are hosted/native
+proofs, not physical clean-host acceptance. The final nine-work-order ZIP is not accepted here.
+
+Editor coordination05, source workflows06/07, animation/pools08 and integrated delivery09 remain
+open. The following implementation and failed/repaired candidate observations are historical;
+the final current acceptance is this section and its receipts.
 
 ## Typed data boundary
 

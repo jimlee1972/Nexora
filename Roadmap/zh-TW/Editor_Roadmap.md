@@ -1,10 +1,26 @@
 # Nexora 圖形化 Editor Roadmap
 
+### Unity 風格的 Editor 操作（施工中）
+
+[工單 #759](https://github.com/jimlee1972/Nexora/issues/759) 追蹤 Unity 風格 Scene 導覽、
+全域 Q 手形／WER 工具、X／Z 模式、空白鍵導覽、現有指令／視窗快捷鍵及輸入所有權。保留 F5／F6／F10 與
+P pivot 舊別名；Prefab isolation 改用 Ctrl＋Alt＋Shift＋P。本機限縮 Windows10/10 已通過，
+[輸入驗收證據](../../Tools/Build/evidence/EditorWorkflow/Unity-Input.md)保留完整 Cloud／原生驗收、PR 與最後 ZIP 待完成。
+後續修正將工具切換延至輔助視窗完成文字所有權判定，並讓 Game 擷取期間的 Ctrl／Command
+Play 指令可用且不觸發綁定 P 的遊戲動作。首版 Cloud 有三項原生測試失敗，另有 Shipping
+錯誤啟用 Editor 的組態失敗；原始證據保留，不計為通過。
+下一版另修正真實 2D services Input API 可重現的 P 快捷鍵穿透，與舊輸入共用攔截規則，
+並在擷取初始化批次保留消耗狀態。新版須驗收兩條輸入路徑與 F5／F6／F10 舊別名；先前
+已通過的 ZIP 仍屬候選版。
+操作細節見 [Editor 文件](../../Apps/Editor/README.md#unity-style-editor-input-issue-759)。
+此支援工單不改變工作流程 4/9 與 Editor 里程碑 0/8 完成度。
+
+
 ### 腳本工作流程與 Sprite 整合工單（2026-10-31）
 
 核准的[交付計畫](Editor_Workflow_Delivery_Plan.md)及
 [Epic #741](https://github.com/jimlee1972/Nexora/issues/741) 追蹤九張相依工單，涵蓋腳本 Build UI、
-乾淨遊戲成品、有狀態熱重載及來源感知 Editor／Player／Zig 整合。驗收為 3/9（33.3%）：ED-WF-01 ✅ PR #751，ED-WF-02 ✅ PR #754，ED-WF-03 ✅ PR #756，ED-WF-04 施工中；
+乾淨遊戲成品、有狀態熱重載及來源感知 Editor／Player／Zig 整合。驗收為 4/9（44.4%）：ED-WF-01 ✅ PR #751，ED-WF-02 ✅ PR #754，ED-WF-03 ✅ PR #756、ED-WF-04 ✅ PR #758；
 既有 supporting capabilities 不直接算完整流程完成；完整 Editor 里程碑維持 0/8。
 現有 CLI 與 `.bat` 開發流程持續可用。
 
@@ -631,7 +647,7 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
   測試保留 unknown bytes、clipboard 與 Redo，拒絕 stale／malformed／duplicate packet，並涵蓋
   4,001 個節點。Linux Xvfb 選取兩個 proxy／OBJ root；完整 Scene View 驗收仍待完成。
 
-- ✅ Native Scene Select（Q）保留一般／Ctrl picking，隱藏變形把手並停止 drag preview／commit。
+- ✅ Native Scene Select（工具列）保留一般／Ctrl picking，隱藏變形把手並停止 drag preview／commit。
   W／E／R 回到 Move／Rotate／Scale。真正 1×／2× 輸入測試涵蓋同 frame Q／click、toolbar
   一致性、Home 導覽、active／pending drag、唯讀、panel／focus／modal／text gate 及保留 Redo。
   Linux Xvfb 驗證 proxy／OBJ picking、隱藏把手、Select 拖曳後 saved bytes 不變，再切回變形工具。
