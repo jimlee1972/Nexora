@@ -62,10 +62,15 @@ int Run() {
   damaged.data.back() ^= std::byte{1};
   Require(!BundleBuilder::Verify(damaged), "corrupt bundle accepted");
   std::vector<std::string> cycle;
-  Require(
-      !BundleBuilder::ValidateDependencyDag({{"a", 1, {"b"}, {}}, {"b", 1, {"a"}, {}}}, &cycle) &&
-          cycle.size() == 3,
-      "bundle cycle was accepted or not reported");
+  std::vector<BundleManifest> cyclic_manifests(2);
+  cyclic_manifests[0].name = "a";
+  cyclic_manifests[0].generation = 1;
+  cyclic_manifests[0].dependencies.push_back("b");
+  cyclic_manifests[1].name = "b";
+  cyclic_manifests[1].generation = 1;
+  cyclic_manifests[1].dependencies.push_back("a");
+  Require(!BundleBuilder::ValidateDependencyDag(cyclic_manifests, &cycle) && cycle.size() == 3,
+          "bundle cycle was accepted or not reported");
 
   AssetGenerationStore store;
   Require(store.Stage({*first}) && store.ActivateStaged() && store.ActiveGeneration() == 1,
@@ -90,10 +95,17 @@ int Run() {
   Require(store.ResidentBytes() == 0 && store.Unpin(1), "residency release failed");
 
   DataTable table;
-  Require(table.Build({{"sword", {{"damage", "12"}}}, {"shield", {{"armor", "8"}}}}) &&
-              table.Find("sword") && table.Find("sword")->values.at("damage") == "12",
+  std::vector<DataTableRow> valid_rows(2);
+  valid_rows[0].key = "sword";
+  valid_rows[0].values.emplace("damage", "12");
+  valid_rows[1].key = "shield";
+  valid_rows[1].values.emplace("armor", "8");
+  Require(table.Build(valid_rows) && table.Find("sword") &&
+              table.Find("sword")->values.at("damage") == "12",
           "data table lookup failed");
-  Require(!table.Build({{"duplicate", {}}, {"duplicate", {}}}) && table.Find("sword"),
+  std::vector<DataTableRow> duplicate_rows(2);
+  duplicate_rows[0].key = duplicate_rows[1].key = "duplicate";
+  Require(!table.Build(duplicate_rows) && table.Find("sword"),
           "invalid table replaced previous good data");
 
   const auto started = std::chrono::steady_clock::now();

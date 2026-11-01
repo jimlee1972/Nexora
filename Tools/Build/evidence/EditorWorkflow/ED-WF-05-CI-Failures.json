@@ -1,0 +1,214 @@
+{
+  "status": "UNACCEPTED_SUPERSEDED_CANDIDATE",
+  "source": "de0204cfc8d0f2c612ae141ef8ccf6ed258c62d4",
+  "tree": "09e548f370a15ff3f1f59a511f8e1ff7d69c88bb",
+  "failure": "GNU15.2 -Werror=dangling-pointer in existing RuntimeTests.cpp empty-dependency temporary asset vectors, before full CTest",
+  "environment": {
+    "current": "GitHub ubuntu26/20261025.179, GNU15.2.0",
+    "previous_c9": "GitHub ubuntu24/20261025.353, GNU13.3.0"
+  },
+  "repair": "Named owning vectors; default-construct empty dependency records, then set fields. Same cycle, activation, pinning and rollback assertions. No warning suppression, retries, disabled tests or relaxed limits.",
+  "local_repair_check": {
+    "build_exit_code": 0,
+    "ctest_exit_code": 0,
+    "case": "runtime.v1_m4_m11_contracts",
+    "passed": 1,
+    "failed": 0,
+    "elapsed_seconds": 0.2
+  },
+  "logs": [
+    {
+      "path": "build/editor-workflow-native/ed-wf05-linux-de0204cf-job-124862507194-failed.log",
+      "bytes": 138701,
+      "sha256": "26c9872a2a607a8f04df7bfd63010ce4910332f06abab87e900cdd0b0262b6b7"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-linux-de0204cf-job-124862507178-failed.log",
+      "bytes": 164732,
+      "sha256": "f0e74f50c31a6750a308c9f07e3e445eae0e2343775628dc44b9df6dc18b36e2"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-linux-de0204cf-job-124862560056-failed.log",
+      "bytes": 137659,
+      "sha256": "e8ad928c7b34ce507e7503555555d532c4257c0aa2862323fb6a0d7310a20265"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-linux-de0204cf-job-124862507280-failed.log",
+      "bytes": 75220,
+      "sha256": "683e0e8970e49c46ad5f2ad95c8aa243eb9612b0bb426e47ae2fba35e8a52c85"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-gcc-owned-fixture-build.log",
+      "bytes": 985,
+      "sha256": "cc2641a739980ca417f99209c90419e611ac6ccacff836171639e4045f41ffa3"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-gcc-owned-fixture-test.log",
+      "bytes": 426,
+      "sha256": "0f7cdf2341f37b650b7461ff41f1e223771392ad7668287d9d8a05d8468ec32d"
+    }
+  ],
+  "scope": "Windows targeted repair check does not prove GCC15 build. Full repaired-head Cloud and CI remain required.",
+  "fix1": {
+    "source": "357be4aff82128eae3f46c529b1ebd74ecc9eec5",
+    "tree": "4efcfdb952431fd33992eee3d69c09c24d1ca853",
+    "status": "UNACCEPTED",
+    "result": "Original RuntimeTests compile failure cleared; next GNU15.2 failures in V1M5Tests.cpp temporary DAG manifests and DataTable rows.",
+    "repair": "Named default-constructed owning manifests/rows, assign fields and emplace values; original DAG cycle, valid lookup, duplicate-row conservation and 10k-cook deadline remain unchanged.",
+    "local_build_exit_code": 0,
+    "local_ctest_exit_code": 0,
+    "local_passed": 2,
+    "local_elapsed_seconds": 0.48,
+    "logs": [
+      {
+        "path": "build/editor-workflow-native/ed-wf05-linux-357be4af-job-124866626343-failed.log",
+        "bytes": 146995,
+        "sha256": "d66fd5f63b289dfa02062fb3b10b98d60d12e615a9d0f4913a1005817e44f59a"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-linux-357be4af-job-124866596342-failed.log",
+        "bytes": 172622,
+        "sha256": "e9f7d3ff6487af275208313ba4c54fb48c9d6fa4e02082957db8781315e81f54"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-gcc-m5-fixture-build.log",
+        "bytes": 1798,
+        "sha256": "8871ff1195889fa8a3d25316d4db971294658296091203c63c9f332f9c2fb4df"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-gcc-m5-fixture-test.log",
+        "bytes": 543,
+        "sha256": "db15f421a0de0c924d84865fc1ec0940d1dadb9adfba3e9624f374bb97eff6d8"
+      }
+    ]
+  },
+  "fix2": {
+    "source": "4c3a53added709a7b5808048d848faabc676555e",
+    "tree": "7b08c3ebb7af7ce640209800a2409f459388fef4",
+    "status": "UNACCEPTED",
+    "result": "Both Runtime fixture translation units now compile on GNU15.2; next dangling-pointer failure is the existing PrefabPlacementSourceTests nested temporary opaque-component vector.",
+    "repair": "Named owning default-constructed expected opaque record, exact type 43, type_name Kept missing, data byte 13. Original conservation assertions retained. Preserve SaveAs error details. Add failure-only Ninja -k 0 diagnostics after the original strict Linux build; the failed required step remains failed.",
+    "local": {
+      "build_exit_code": 0,
+      "ctest_exit_code": 0,
+      "passed": 1,
+      "failed": 0,
+      "elapsed_seconds": 2.55,
+      "case": "editor.prefab_instance_source_apply",
+      "workflow_contract_cases": 16,
+      "workflow_contract_exit_code": 0,
+      "initial_failures": "Sandboxed Prefab path canonicalization returned Access denied before the modified assertion. Normal-permission final run passed. Workflow Python first lacked markdown_it, then python3 resolved to an inaccessible Windows alias; pinned existing task dependencies and python3 launcher passed all 16 cases."
+    },
+    "logs": [
+      {
+        "path": "build/editor-workflow-native/ed-wf05-linux-4c3a53ad-job-124870094013-failed.log",
+        "bytes": 154922,
+        "sha256": "47ffdda4191b06dea8833db6e0cad61787e11f75914e618e828c4a9cd67d15d6"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-linux-4c3a53ad-job-124870078474-failed.log",
+        "bytes": 152038,
+        "sha256": "3664c110d631177e46365e4d0e0d7619a157ae7870071162b16d2d13c943c31b"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-gcc-prefab-coordinator-test.log",
+        "bytes": 711,
+        "sha256": "a7d9957e6f739a57f4902c4d6910e41300a9536838da5f4efaeb43744b147675"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-gcc-prefab-diagnostic-test.log",
+        "bytes": 635,
+        "sha256": "9dbd2308a5664da91073701dc473525b9b46abfc96041508a3fd91a6501bf5a4"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-gcc-prefab-utf8-test.log",
+        "bytes": 767,
+        "sha256": "978916cd6f1febc6ba83b5547819f0713ea58e189a5696337a1428f4481cda09"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-gcc-prefab-final-build.log",
+        "bytes": 1780,
+        "sha256": "78f886c99b8487a19721c3bca84164e052bc91358e7754f17a0990f1a273b54d"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-gcc-prefab-final-test.log",
+        "bytes": 439,
+        "sha256": "f1389e4a35e188c14141800ea356d1f324df3a3acae16bcc3e3b54ab8ad14671"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-ci-diagnostics-contract-test.log",
+        "bytes": 404,
+        "sha256": "e13a1fb5056a57d17a1686f2d1ef37fde7ca1f5d800e60cdc03e057707235068"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-ci-diagnostics-contract-final-test.log",
+        "bytes": 6482,
+        "sha256": "eda831bdda83dd4f45f492e3e648d7fad72994ea2b25e057401dcc20da6e2c0c"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-ci-diagnostics-contract-fixed-test.log",
+        "bytes": 2528,
+        "sha256": "f4da4981708e97445fdca73e35cfdfbaee61c7565d327cbca91d30de411201ea"
+      }
+    ]
+  },
+  "fix3": {
+    "source": "aba81782a80dacc5f64208ee1398448e509322a7",
+    "tree": "f2d0a22db004eee09c143146edc99ed7837035ac",
+    "status": "UNACCEPTED",
+    "result": "Required strict desktop build fails at AdditiveSceneSessionTests. Failure-only Ninja -k0 completes remaining translation units and retains errors in SceneSaveBatchTests, EditorImGui SceneComparisonTests and ReflectedInspectorTests. Original Runtime/Prefab compile failures cleared.",
+    "repair": "Named default-constructed owning opaque/component/field fixtures, exact type/name/payload/kind/offset/array/choice data and original assertions retained. Matching additive composition fixture uses the same ownership. No warning suppression, missing tests, relaxed limits or required-check bypass.",
+    "local": {
+      "scene_target_build_exit_code": 0,
+      "scene_ctest_exit_code": 0,
+      "scene_passed": 3,
+      "scene_failed": 0,
+      "scene_elapsed_seconds": 121.6,
+      "gui_target_build_exit_code": 0,
+      "gui_ctest_exit_code": 0,
+      "gui_passed": 2,
+      "gui_failed": 0,
+      "gui_cases": [
+        "editor.semantic_scene_comparison_ui",
+        "editor.reflected_inspector_ui"
+      ],
+      "gui_case_seconds": [
+        7.38,
+        6.1
+      ],
+      "scope": "Local builds also contain uncommitted Runtime capture and TwoD pool prework; these target checks do not accept an immutable source head. That prework is excluded from the CI fixture repair publication. Full exact-head Cloud and CI remain required."
+    },
+    "logs": [
+      {
+        "path": "build/editor-workflow-native/ed-wf05-linux-aba81782-job-124875104031-failed.log",
+        "bytes": 183153,
+        "sha256": "f9a08c49ce9daca551ad0da2db6906fdd954df64d9d2d60cbf5675328e4f07bc"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-linux-aba81782-job-124875104153-failed.log",
+        "bytes": 254851,
+        "sha256": "a35515de55ca4c15edb0f7288fe755f428bea9091aa63be651e92848d3c0b361"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-gcc-scene-fixture-build.log",
+        "bytes": 5649,
+        "sha256": "def07c625405dc2b6014bc120ad45c8621d6d93b43b4875f50bbc99094c12f0e"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-gcc-scene-fixture-test.log",
+        "bytes": 671,
+        "sha256": "98f2137b57a4a15a9abede6a5e770dd3f7673e48bb97fab46230d9c969d83ef6"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-pool-ui-fixtures-final-build.log",
+        "bytes": 6829,
+        "sha256": "7a1af0a63cfb5e081a8581a38cc05173a80211ba5581cd7cc6a00a0a53847233"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-pool-ui-fixtures-final-test.log",
+        "bytes": 678,
+        "sha256": "1e86c09fd0fb0e4c288d21e7751a5f55fb9bacbb1db68bfedde3185635bcc8d3"
+      }
+    ]
+  }
+}

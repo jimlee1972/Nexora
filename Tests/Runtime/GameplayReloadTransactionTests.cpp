@@ -112,6 +112,11 @@ int32_t NoMigration(std::uint32_t abi, NexoraGameModuleV3 *module) {
   module->load_state = nullptr;
   return result;
 }
+int32_t LoadWithReloadLifecycle(std::uint32_t abi, NexoraGameModuleV3 *module) {
+  const auto result = Load(abi, module);
+  module->capabilities |= NEXORA_GAMEPLAY_CAPABILITY_RELOAD_LIFECYCLE;
+  return result;
+}
 int32_t BadAbi(std::uint32_t abi, NexoraGameModuleV3 *module) {
   const auto result = Load(abi, module);
   ++module->abi_version;
@@ -212,4 +217,37 @@ int main() {
   Host bounded(api, {}, transaction);
   assert(bounded.Load(LoadBounded) && bounded.Update(0.1) && bounded.Reload(LoadBounded));
   Verify(widened, 1);
+
+  // Candidate-only lifecycle admission must happen before candidate Create can mutate even
+  // its staging World. Both generations must opt in; a rejected candidate leaves live state.
+  for (const bool old_supports_reload : {false, true}) {
+    Owner lifecycle;
+    auto hooks = lifecycle.Transaction();
+    hooks.begin = [](void *pointer, NexoraGameplayHostV3 &candidate) noexcept {
+      auto owned = static_cast<Owner *>(pointer)->Transaction();
+      const bool begun = owned.begin(pointer, candidate);
+      candidate.capabilities |= NEXORA_GAMEPLAY_CAPABILITY_RELOAD_CANDIDATE;
+      return begun;
+    };
+    Host modern(lifecycle.Api(), {}, hooks);
+    assert(modern.Load(old_supports_reload ? LoadWithReloadLifecycle : Load));
+    assert(modern.Update(0.1));
+    const auto generation = modern.Generation();
+    const auto allocations = lifecycle.allocations;
+    assert(!modern.Reload(old_supports_reload ? Load : LoadWithReloadLifecycle));
+    assert(modern.GetReloadFailure() == Host::ReloadFailure::RestartRequired);
+    assert(modern.Generation() == generation && lifecycle.commits == 0);
+    assert(lifecycle.allocations == allocations && lifecycle.stops == 0);
+    Verify(lifecycle, 1);
+    assert(modern.Update(0.1));
+    Verify(lifecycle, 2);
+    if (old_supports_reload) {
+      assert(modern.Reload(LoadWithReloadLifecycle));
+      Verify(lifecycle, 2);
+      assert(modern.Update(0.1));
+      Verify(lifecycle, 3);
+    }
+    modern.Unload();
+    assert(lifecycle.allocations == lifecycle.frees);
+  }
 }

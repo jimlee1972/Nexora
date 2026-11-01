@@ -146,8 +146,10 @@ struct Fixture final {
             "Source/live identity translation fixture failed");
     Dormant(target, live, 117, 3, 501, 502);
     editor::SceneFileSession files(workspace, target);
-    Require(files.SaveAs(files.Token(), "Content/Live.scene").Applied() && !target.Dirty() &&
-                target.Select(std::array{live}) && target.CopySelection(),
+    const auto saved = files.SaveAs(files.Token(), "Content/Live.scene");
+    if (!saved.Applied())
+      throw std::runtime_error("Live saved baseline failed: " + saved.message);
+    Require(!target.Dirty() && target.Select(std::array{live}) && target.CopySelection(),
             "Live saved baseline/clipboard failed");
     auto pose = *target.Transform(live);
     pose.x = 12;
@@ -338,7 +340,11 @@ void RemoveOpaque() {
               document.Transform(f.parent) == f.source.Transform(f.parent),
           "Opaque-only publication changed unselected known groups");
   const auto opaque = document.OpaqueComponents(*document.Key(f.parent));
-  Require(opaque && *opaque == std::vector{editor::OpaqueComponent{43, "Kept missing", {13}}},
+  std::vector<editor::OpaqueComponent> expected_opaque(1);
+  expected_opaque.front().type = 43;
+  expected_opaque.front().type_name = "Kept missing";
+  expected_opaque.front().data.push_back(13);
+  Require(opaque && *opaque == expected_opaque,
           "Opaque-only publication removed unselected bytes or added local-only fields");
   for (const auto &node : published->nodes) {
     const auto old = std::ranges::find(f.asset.nodes, node.id, &editor::PrefabNodeIdentity::id);

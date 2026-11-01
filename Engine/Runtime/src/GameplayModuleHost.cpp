@@ -382,6 +382,10 @@ bool GameplayModuleHost::ReloadLocked(NexoraGameModuleLoadV3Fn load,
     if (isolated && !transaction_.begin(transaction_.context, *candidate_host))
       return reject(ReloadFailure::Isolation);
     *candidate_host = OwnedHost(*candidate_host);
+    if ((candidate_host->capabilities & NEXORA_GAMEPLAY_CAPABILITY_RELOAD_CANDIDATE) &&
+        (!(module_.capabilities & NEXORA_GAMEPLAY_CAPABILITY_RELOAD_LIFECYCLE) ||
+         !(candidate.capabilities & NEXORA_GAMEPLAY_CAPABILITY_RELOAD_LIFECYCLE)))
+      return reject(ReloadFailure::RestartRequired);
     if (candidate_host->struct_size < kRequiredHostSize ||
         candidate_host->abi_version != NEXORA_GAMEPLAY_ABI_VERSION)
       return reject(ReloadFailure::Isolation);
@@ -424,6 +428,9 @@ bool GameplayModuleHost::ReloadLocked(NexoraGameModuleLoadV3Fn load,
     if (isolated)
       transaction_.commit(transaction_.context);
     host_ = *module_host_; // A retired generation's embedding context may have been released.
+    // Keep the current context, but a future fresh Load must not inherit candidate creation mode.
+    // The live generation retains its original host table through destruction/finalizers.
+    host_.capabilities &= ~static_cast<std::uint64_t>(NEXORA_GAMEPLAY_CAPABILITY_RELOAD_CANDIDATE);
     transaction.active = false;
     return true;
   } catch (const std::exception &) {

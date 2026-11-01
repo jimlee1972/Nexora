@@ -90,9 +90,9 @@ void Verify(const Owner &owner, std::uint64_t expected, runtime::Id scene, runti
 
 int main(int argc, char **argv) {
 #if defined(__APPLE__)
-  assert(argc == 10);
+  assert(argc == 11);
 #else
-  assert(argc == 9);
+  assert(argc == 10);
 #endif
   Directory directory;
   const Path normal{argv[1]};
@@ -223,6 +223,61 @@ int main(int argc, char **argv) {
   Verify(owner, 1, scene, owner.entity);
   host.Unload();
   assert(owner.blocks.empty() && owner.allocations == owner.frees && !Loaded(current));
+
+  // Exercise the opt-in SDK lifecycle through real independently loaded Zig libraries.
+  // Fresh init/start reset this script's counter; candidate preparation/reloaded must not.
+  Owner modern_owner(false);
+  auto transaction = modern_owner.Transaction();
+  transaction.begin = [](void *pointer, NexoraGameplayHostV3 &candidate) noexcept {
+    auto hooks = static_cast<Owner *>(pointer)->Transaction();
+    const bool begun = hooks.begin(pointer, candidate);
+    candidate.capabilities |= NEXORA_GAMEPLAY_CAPABILITY_RELOAD_CANDIDATE;
+    return begun;
+  };
+  Host modern(modern_owner.Api(), modern_owner.Barrier(), transaction);
+  const Path modern_source{argv[argc - 1]};
+  auto modern_path = Copy(modern_source, directory.path, "modern-generation-1");
+  assert(modern.Load(modern_path) && modern.Update(0.1));
+  const auto modern_scene = modern_owner.scene, modern_entity = modern_owner.entity;
+  std::uint64_t modern_counter = 8;
+  Verify(modern_owner, modern_counter, modern_scene, modern_entity);
+  for (unsigned index = 0; index < 32; ++index) {
+    for (std::size_t failure = 0; failure < 5; ++failure) {
+      const auto generation = modern.Generation();
+      assert(!modern.Reload(failures[failure]));
+      assert(modern.GetReloadFailure() == reasons[failure]);
+      assert(modern.Generation() == generation);
+      Verify(modern_owner, modern_counter, modern_scene, modern_entity);
+      assert(modern.Update(0.1));
+      Verify(modern_owner, ++modern_counter, modern_scene, modern_entity);
+    }
+    const auto next =
+        Copy(modern_source, directory.path, "modern-generation-" + std::to_string(index + 2));
+    assert(modern.Reload(next) && !Loaded(modern_path));
+    Verify(modern_owner, modern_counter, modern_scene, modern_entity);
+    auto work = modern.AcquireWork(modern.Generation());
+    assert(work);
+    auto call = BorrowJob(next);
+    call(); // prepareReload must bind the new instance, never a retired pointer.
+    call = nullptr;
+    work = {};
+    modern_counter += 100;
+    assert(modern.Update(0.1));
+    Verify(modern_owner, ++modern_counter, modern_scene, modern_entity);
+    modern_path = next;
+  }
+  assert(modern.Generation() == 33 && modern.GetReloadStats().successful_reloads == 32);
+  modern.Unload();
+  assert(modern_owner.blocks.empty() && modern_owner.allocations == modern_owner.frees);
+  assert(!modern_owner.world.FindEntity(modern_entity) && !Loaded(modern_path));
+  modern_owner.world = runtime::World{runtime::WorldKind::Play};
+  modern_owner.scene = modern_owner.world.LoadScene("Reload", true);
+  modern_owner.entity = 0;
+  assert(modern.Load(modern_path) && modern.Generation() == 34);
+  assert(modern.Update(0.1));
+  Verify(modern_owner, 8, modern_owner.scene, modern_owner.entity);
+  modern.Unload();
+  assert(modern_owner.blocks.empty() && modern_owner.allocations == modern_owner.frees);
   std::cout << "Real Zig: 32 successful unique-DLL reloads, 224 rejected candidates, retained "
                "counter/scene/entity, registered old-code job barrier, safe retirement and "
                "failed-candidate DLL finalizers and unload/reload generations verified.\n";

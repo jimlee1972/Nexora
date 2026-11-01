@@ -110,8 +110,13 @@ void ReopenAndPolicies(const std::filesystem::path &root) {
               !reopened.session.WritableFiles(rows[1].id),
           "Restore lost load order, active role, stable primary or reference policy");
   const auto *reference = reopened.session.Document(rows[1].id);
-  Require(reference->OpaqueComponents(*reference->Key(reference->Nodes()[0].id)) ==
-              std::vector<editor::OpaqueComponent>{{41, "Missing.Composition", {0, 7, 255}}},
+  std::vector<editor::OpaqueComponent> expected_opaque(1);
+  expected_opaque.front().type = 41;
+  expected_opaque.front().type_name = "Missing.Composition";
+  expected_opaque.front().data.push_back(0);
+  expected_opaque.front().data.push_back(7);
+  expected_opaque.front().data.push_back(255);
+  Require(reference->OpaqueComponents(*reference->Key(reference->Nodes()[0].id)) == expected_opaque,
           "Composition reopen lost opaque payloads");
   Require(reopened.composition.Save() && Read(project.Metadata()) == project.metadata,
           "Unchanged composition did not round-trip deterministically");

@@ -6,7 +6,7 @@ import select
 import subprocess
 import time
 
-from LinuxDisplayAcceptance import collect_output
+from LinuxDisplayAcceptance import collect_output, physical_key_arguments
 
 
 class NativeSceneInput:
@@ -56,9 +56,11 @@ class NativeSceneInput:
         raise RuntimeError(f'{message}; actual GUI: {self.observation()}')
 
     def raw(self, *arguments, deadline=None, minimum_wait=None):
+        requested = arguments
+        arguments = physical_key_arguments(arguments, self.environment)
         with (self.state / 'input.jsonl').open('a', encoding='utf-8') as log:
             log.write(json.dumps({'time': time.monotonic(), 'launch': self.launch,
-                                  'input': arguments}) + '\n')
+                                  'input': requested, 'native_input': arguments}) + '\n')
         remaining = None if deadline is None else deadline - time.monotonic()
         if remaining is not None and remaining <= 0:
             raise RuntimeError("Scene input deadline expired before sending the next phase")
@@ -97,12 +99,15 @@ class NativeSceneInput:
         deadline = time.monotonic() + 8 if deadline is None else deadline
         index = {'F5': 0, 'F6': 1, 'F10': 2}[key]
         value = self.wait(lambda v: v['focused'] == '1' and v['play_keys'] == '000'
+                          and v['keys'][:3] == '000'
                           and v['play_admitted'] == '1',
                           'Play shortcut is not released/focused/admitted', deadline)
         before = int(value['play_requests'])
         self.raw('keydown', key, deadline=deadline, minimum_wait=self.phase_wait)
-        self.wait(lambda v: v['play_keys'][index] == '1',
-                  f'GUI did not observe {key} down', deadline)
+        value = self.wait(lambda v: v['play_keys'][index] == '1',
+                          f'GUI did not observe {key} down', deadline)
+        if value['keys'][:3] != '000':
+            raise RuntimeError(f'Physical {key} acquired an unintended modifier: {value}')
         self.raw('keyup', key, deadline=deadline, minimum_wait=self.phase_wait)
         value = self.wait(lambda v: v['play_keys'][index] == '0',
                           f'GUI did not observe {key} up', deadline)

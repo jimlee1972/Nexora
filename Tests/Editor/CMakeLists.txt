@@ -60,6 +60,14 @@ if(NEXORA_ENABLE_ASSET_PIPELINE)
         "${CMAKE_COMMAND}" "${NEXORA_EDITOR_GAME_NINJA_EXECUTABLE}" "${NEXORA_ZIG_EXECUTABLE}"
         "$<TARGET_FILE:NexoraEditor>" ${game_runtime_files})
     set_tests_properties(editor.game_build PROPERTIES TIMEOUT 600)
+    add_executable(NexoraGameScriptBuildTests GameScriptBuildTests.cpp)
+    target_link_libraries(NexoraGameScriptBuildTests PRIVATE Nexora::Editor)
+    nexora_apply_defaults(NexoraGameScriptBuildTests)
+    add_dependencies(NexoraGameScriptBuildTests NexoraProjectPlayer)
+    add_test(NAME editor.game_script_build
+      COMMAND NexoraGameScriptBuildTests "$<TARGET_FILE:NexoraProjectPlayer>"
+        "${CMAKE_COMMAND}" "${NEXORA_EDITOR_GAME_NINJA_EXECUTABLE}" "${NEXORA_ZIG_EXECUTABLE}")
+    set_tests_properties(editor.game_script_build PROPERTIES TIMEOUT 300)
   endif()
   add_executable(NexoraGameProjectExportTests GameProjectExportTests.cpp)
   target_link_libraries(NexoraGameProjectExportTests PRIVATE Nexora::Editor)

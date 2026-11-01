@@ -64,12 +64,34 @@ The NXGS frame contains codec version 1, the game schema version and exact paylo
 whole frame is limited to 1 MiB. Unknown versions, short buffers, truncation, trailing data, invalid
 values and hook errors reject restoration. No native Game padding or host pointer is serialized.
 `saveState` receives a const Game and may run twice (size query, then write); keep it deterministic,
-without IO or side effects. `loadState` restores candidate game fields before `start`, so `start`
-can reuse existing scene/entity handles. Initialization must still unwind failures as described below.
+without IO or side effects. Legacy embeddings call `loadState` before ordinary `start`; their
+initialization/start ordering remains compatible. Initialization must unwind failures as below.
+
+An isolating host may opt into the candidate-only lifecycle by adding `RELOAD_CANDIDATE` to the
+unpublished host supplied by its transaction. Runtime requires both old and new modules to
+advertise `RELOAD_LIFECYCLE` before candidate creation; otherwise it keeps the old generation and
+reports restart required. The typed SDK requires paired state hooks and explicit
+`pub const reload_lifecycle: bool = true;` to advertise this support. A codec alone preserves its
+legacy lifecycle and does not claim it can skip fresh initialization safely.
+Neither capability changes V3 layouts. Hosts must never mark a fresh Play start as a candidate.
+
+In candidate mode, the SDK skips fresh `init` and `start`. Optional
+`prepareReload(self: *Game, context: *const nx.game.Context) !void` binds transient context or
+allocations before restoration; optional `reloaded` with the same signature runs after successful
+`loadState`. Use it to rebind restored handles, never recreate fresh gameplay entities or reset
+restored counters. Starting before a complete valid restore fails. `Context.isReloadCandidate()`
+exposes this creation mode without retaining host pointers in saved data. It remains true for that
+instance after publication; it does not query the host's current transaction phase.
+
+Failed `prepareReload` must unwind its own partial resources; SDK allocation is freed without
+calling user `deinit`. Successful preparation, or a successful load hook, makes user state eligible
+for `deinit`, including envelope trailing-data rejection after the hook. Failed load hooks unwind
+their own partial resources. Failed `reloaded` destroys prepared/restored state without `stop`.
+An unprepared candidate that never successfully loads is freed without user finalization.
 
 These hooks supply a data codec, not World/resource isolation or a job barrier. The embedding
-Runtime transaction owns those boundaries. ED-WF-04's complete transactional/native/Cloud acceptance
-remains pending until recorded in its evidence; a codec unit test does not accept seamless Editor reload.
+Runtime transaction owns those boundaries. ED-WF-04 Runtime acceptance is recorded separately;
+ED-WF-05 Editor integration remains pending. A codec unit test does not accept seamless Editor reload.
 
 ## Ownership and errors
 

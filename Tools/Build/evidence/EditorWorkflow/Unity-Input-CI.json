@@ -610,5 +610,21 @@
       ],
       "physical_host_acceptance": "NOT_RUN"
     }
-  ]
+  ],
+  "documentation_publication": {
+    "pull_request": "https://github.com/jimlee1972/Nexora/pull/761",
+    "validated_head": "a9b18635cc1f027212f470d957f5b959b5a90ca7",
+    "squash_commit": "e306a382140864acf0fe5d451f62d49d0720ea5d",
+    "tree": "da0950f2bccb517d58cf3202270839d97a9324fd",
+    "merged_tree_equals_validated_tree": true,
+    "successful_exact_head_checks": 42,
+    "successful_workflow_run_ids": [
+      41285367121,
+      41285353263,
+      41285353272,
+      41285367088
+    ],
+    "issue759": "closed completed",
+    "beads": "nexora-mhh closed; Dolt push exited0"
+  }
 }

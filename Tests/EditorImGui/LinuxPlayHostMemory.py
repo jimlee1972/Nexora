@@ -10,7 +10,8 @@ import shutil
 import subprocess
 import tempfile
 import time
-from LinuxDisplayAcceptance import request_window_close, start_xvfb, wait_for_window
+from LinuxDisplayAcceptance import (physical_key_arguments, request_window_close,
+                                    start_xvfb, wait_for_window)
 from LinuxNativeScenePreview import scene_region_pixels
 
 
@@ -79,6 +80,7 @@ def main():
             raise RuntimeError(message)
 
         def command(*argv):
+            argv = physical_key_arguments(argv, env)
             subprocess.run([args.xdotool, *argv], env=env, check=True,
                            stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=5)
 
