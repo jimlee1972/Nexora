@@ -49,6 +49,13 @@ The old Cloud run is allowed to finish its current live gate and retains its ori
 only the repaired exact head can receive final acceptance. The compiler coordinator is separate
 local WIP and is not part of this candidate repair.
 
+Repair `357be4af` clears the first Runtime fixture compilation and exposes the same GNU 15.2
+diagnostic in existing V1M5 DAG/data-table initializer-list fixtures. Those now use named owning
+manifests/rows with explicitly populated fields. All cycle/lookup/duplicate-row conservation,
+generation/residency and the original 10k-cook deadline remain. Native Windows build exits 0 and
+the two Runtime contract cases pass (exit 0,2/2,0.48s). Both candidates' original logs are retained
+in the failure receipt. Full repaired-head Linux gates and CI remain mandatory; no result is waived.
+
 ## Verified integration gaps
 
 Observations use commit `c9f1717085078b216913cd1096427c5aa42c6946`:

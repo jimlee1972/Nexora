@@ -48,5 +48,38 @@
       "sha256": "0f7cdf2341f37b650b7461ff41f1e223771392ad7668287d9d8a05d8468ec32d"
     }
   ],
-  "scope": "Windows targeted repair check does not prove GCC15 build. Full repaired-head Cloud and CI remain required."
+  "scope": "Windows targeted repair check does not prove GCC15 build. Full repaired-head Cloud and CI remain required.",
+  "fix1": {
+    "source": "357be4aff82128eae3f46c529b1ebd74ecc9eec5",
+    "tree": "4efcfdb952431fd33992eee3d69c09c24d1ca853",
+    "status": "UNACCEPTED",
+    "result": "Original RuntimeTests compile failure cleared; next GNU15.2 failures in V1M5Tests.cpp temporary DAG manifests and DataTable rows.",
+    "repair": "Named default-constructed owning manifests/rows, assign fields and emplace values; original DAG cycle, valid lookup, duplicate-row conservation and 10k-cook deadline remain unchanged.",
+    "local_build_exit_code": 0,
+    "local_ctest_exit_code": 0,
+    "local_passed": 2,
+    "local_elapsed_seconds": 0.48,
+    "logs": [
+      {
+        "path": "build/editor-workflow-native/ed-wf05-linux-357be4af-job-124866626343-failed.log",
+        "bytes": 146995,
+        "sha256": "d66fd5f63b289dfa02062fb3b10b98d60d12e615a9d0f4913a1005817e44f59a"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-linux-357be4af-job-124866596342-failed.log",
+        "bytes": 172622,
+        "sha256": "e9f7d3ff6487af275208313ba4c54fb48c9d6fa4e02082957db8781315e81f54"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-gcc-m5-fixture-build.log",
+        "bytes": 1798,
+        "sha256": "8871ff1195889fa8a3d25316d4db971294658296091203c63c9f332f9c2fb4df"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-gcc-m5-fixture-test.log",
+        "bytes": 543,
+        "sha256": "db15f421a0de0c924d84865fc1ec0940d1dadb9adfba3e9624f374bb97eff6d8"
+      }
+    ]
+  }
 }
