@@ -523,6 +523,14 @@ The owned table advertises at most its actual known allocation size, including a
 supplies a candidate host. An older negotiated prefix stays its original size; an oversized future
 suffix cannot be copied through this by-value C++ boundary and is not falsely advertised.
 
+A transaction may add host-only `RELOAD_CANDIDATE` after staging its unpublished context. Before
+candidate creation Runtime then requires module-only `RELOAD_LIFECYCLE` on both generations;
+absence rolls back staging and reports restart required without creating a candidate. This opt-in
+does not change legacy embeddings or any V3 wire layout. The typed SDK uses preparation/restore/
+reloaded instead of fresh init/start in this mode; see its lifecycle and partial-failure ownership
+contract. The bit is not for initial Play. It supplies no World/service isolation or save-side-effect
+guard by itself; the embedding still owns those admission and quiescence boundaries.
+
 On macOS, strict dynamic owners reject known dyld-pinned TLS/Objective-C images before initial
 creation, or report restart required before staging a replacement. No host/context is handed to
 an initially rejected image. Embedders must not independently retain loader handles; static-loader

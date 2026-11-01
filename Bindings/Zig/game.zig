@@ -98,6 +98,10 @@ fn validateInteger(comptime T: type) void {
 pub const Context = struct {
     host: nx.GameplayHostV3,
 
+    pub fn isReloadCandidate(self: *const Context) bool {
+        return (self.host.capabilities & nx.reload_candidate_capability) != 0;
+    }
+
     pub fn services(self: *const Context) !nx.GameplayServicesApiV1 {
         return nx.getServices(&self.host) orelse error.Unsupported;
     }
@@ -161,8 +165,16 @@ pub fn Module(comptime Game: type) type {
         @compileError("Game must provide both saveState and loadState, or neither");
     if (migration and (!@hasDecl(Game, "state_version") or Game.state_version == 0))
         @compileError("Migrating Game must declare a nonzero u32 state_version");
+    const reload_lifecycle = @hasDecl(Game, "reload_lifecycle") and Game.reload_lifecycle;
+    if (reload_lifecycle and !migration)
+        @compileError("Reload lifecycle requires paired saveState/loadState hooks");
     return struct {
-        const Instance = struct { context: Context, game: Game = .{} };
+        const Instance = struct {
+            context: Context,
+            game: Game = .{},
+            initialized: bool = false,
+            restored: bool = false,
+        };
         const owner_tag = @intFromEnum(nx.AllocationOwner.gameplay_state);
 
         fn instance(pointer: ?*anyopaque) *Instance {
@@ -173,6 +185,7 @@ pub fn Module(comptime Game: type) type {
         fn create(out: *?*anyopaque, host: *const nx.GameplayHostV3) callconv(.c) i32 {
             out.* = null;
             if (host.struct_size < nx.host_v3_base_size or host.abi_version != nx.abi_version) return -2;
+            if ((host.capabilities & nx.reload_candidate_capability) != 0 and !reload_lifecycle) return -2;
             const allocate = host.allocate orelse return -2;
             const deallocate = host.deallocate orelse return -2;
             const memory = allocate(host.context, owner_tag, @sizeOf(Instance), @alignOf(Instance)) orelse return -3;
@@ -183,11 +196,22 @@ pub fn Module(comptime Game: type) type {
             const host_bytes = @min(host.struct_size, @sizeOf(nx.GameplayHostV3));
             @memcpy(std.mem.asBytes(&copied_host)[0..host_bytes], std.mem.asBytes(host)[0..host_bytes]);
             state.* = .{ .context = .{ .host = copied_host } };
-            if (@hasDecl(Game, "init")) {
-                state.game.init(&state.context) catch |err| {
-                    deallocate(host.context, owner_tag, memory, @sizeOf(Instance), @alignOf(Instance));
-                    return resultCode(err);
-                };
+            if (state.context.isReloadCandidate()) {
+                if (@hasDecl(Game, "prepareReload")) {
+                    state.game.prepareReload(&state.context) catch |err| {
+                        deallocate(host.context, owner_tag, memory, @sizeOf(Instance), @alignOf(Instance));
+                        return resultCode(err);
+                    };
+                    state.initialized = true;
+                }
+            } else {
+                if (@hasDecl(Game, "init")) {
+                    state.game.init(&state.context) catch |err| {
+                        deallocate(host.context, owner_tag, memory, @sizeOf(Instance), @alignOf(Instance));
+                        return resultCode(err);
+                    };
+                }
+                state.initialized = true;
             }
             out.* = memory;
             return 0;
@@ -195,6 +219,11 @@ pub fn Module(comptime Game: type) type {
 
         fn start(pointer: ?*anyopaque) callconv(.c) i32 {
             const state = instance(pointer);
+            if (state.context.isReloadCandidate()) {
+                if (!state.restored) return -3;
+                if (@hasDecl(Game, "reloaded")) state.game.reloaded(&state.context) catch |err| return resultCode(err);
+                return 0;
+            }
             if (@hasDecl(Game, "start")) state.game.start(&state.context) catch |err| return resultCode(err);
             return 0;
         }
@@ -213,12 +242,16 @@ pub fn Module(comptime Game: type) type {
 
         fn stop(pointer: ?*anyopaque) callconv(.c) void {
             const state = instance(pointer);
-            if (@hasDecl(Game, "stop")) state.game.stop(&state.context);
+            if (@hasDecl(Game, "stop")) {
+                if (state.initialized) state.game.stop(&state.context);
+            }
         }
 
         fn destroy(pointer: ?*anyopaque) callconv(.c) void {
             const state = instance(pointer);
-            if (@hasDecl(Game, "deinit")) state.game.deinit(&state.context);
+            if (@hasDecl(Game, "deinit")) {
+                if (state.initialized) state.game.deinit(&state.context);
+            }
             const host = state.context.host;
             // create requires this callback; use the same allocator, tag, size and alignment.
             host.deallocate.?(host.context, owner_tag, state, @sizeOf(Instance), @alignOf(Instance));
@@ -245,6 +278,8 @@ pub fn Module(comptime Game: type) type {
 
         fn loadState(pointer: ?*anyopaque, data: ?*const anyopaque, size: u32) callconv(.c) i32 {
             if (!migration) return -2;
+            const state = instance(pointer);
+            state.restored = false;
             if (data == null or size < state_header_bytes or size > maximum_state_bytes) return -1;
             var reader = StateReader{ .source = @as([*]const u8, @ptrCast(data.?))[0..size] };
             const magic = reader.raw(4) catch return -1;
@@ -252,8 +287,11 @@ pub fn Module(comptime Game: type) type {
             if ((reader.int(u32) catch return -1) != 1 or
                 (reader.int(u32) catch return -1) != Game.state_version) return -2;
             if ((reader.int(u32) catch return -1) != size - state_header_bytes) return -1;
-            instance(pointer).game.loadState(&reader) catch |err| return resultCode(err);
+            state.game.loadState(&reader) catch |err| return resultCode(err);
+            // A successful hook owns its loaded fields even if trailing-data admission fails.
+            state.initialized = true;
             reader.finish() catch return -1;
+            state.restored = true;
             return 0;
         }
 
@@ -264,7 +302,8 @@ pub fn Module(comptime Game: type) type {
                 .struct_size = @sizeOf(nx.GameModuleV3),
                 .abi_version = nx.abi_version,
                 .capabilities = (if (@hasDecl(Game, "fixedUpdate")) @as(u64, 1 << 1) else 0) |
-                    (if (migration) @as(u64, 1) else 0),
+                    (if (migration) @as(u64, 1) else 0) |
+                    (if (reload_lifecycle) nx.reload_lifecycle_capability else 0),
                 .module_state = null,
                 .create = create,
                 .on_start = start,

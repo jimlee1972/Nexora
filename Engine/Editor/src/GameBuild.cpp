@@ -3,6 +3,7 @@
 #include "GameBuildSDKFiles.h"
 #include "Nexora/Editor/BuildProcess.h"
 #include "Nexora/Editor/EditorWorkspace.h"
+#include "Nexora/Editor/GameScriptBuild.h"
 #include "Nexora/Runtime/GameLaunch.h"
 #include <algorithm>
 #include <chrono>
@@ -427,6 +428,149 @@ std::optional<GameBuildToolchain> ReadGameBuildToolchain(const Path &profile, co
   return tools;
 }
 
+struct PreparedGameScript::Implementation final {
+  DirectoryOwner operation;
+  Path root, script_directory, library;
+  std::vector<Path> files;
+  std::vector<GameBuildSource> sources;
+  std::string log, commands, library_fingerprint;
+  std::size_t library_size{};
+  bool Current(std::string *error) const {
+    if (!GameBuildSourcesCurrent(root, sources, error))
+      return false;
+    if (!library.empty()) {
+      const auto artifact =
+          ReadGameBuildSource(operation.path, library.filename(), 64 * 1024 * 1024, false, error);
+      if (!artifact || !artifact->bytes || artifact->bytes->size() != library_size ||
+          Fingerprint(*artifact->bytes) != library_fingerprint)
+        return Fail(error, "Compiled gameplay library changed before admission.");
+    }
+    const auto observed = ScriptFiles(root, script_directory, error);
+    return (observed && *observed == files) ||
+           Fail(error, "Script source inventory changed during compilation.");
+  }
+};
+PreparedGameScript::PreparedGameScript(std::unique_ptr<Implementation> value)
+    : implementation_(std::move(value)) {}
+PreparedGameScript::~PreparedGameScript() = default;
+PreparedGameScript::PreparedGameScript(PreparedGameScript &&) noexcept = default;
+PreparedGameScript &PreparedGameScript::operator=(PreparedGameScript &&) noexcept = default;
+const Path &PreparedGameScript::Library() const noexcept { return implementation_->library; }
+const std::string &PreparedGameScript::Log() const noexcept { return implementation_->log; }
+bool PreparedGameScript::Current(std::string *error) const {
+  return implementation_->Current(error);
+}
+
+std::optional<PreparedGameScript> PrepareGameScript(GameScriptBuildRequest request,
+                                                    const core::CancellationToken &cancel,
+                                                    std::string *error) {
+  if (error)
+    error->clear();
+  if (request.maximum_source_bytes > kMaximumGameBuildSourceBytes ||
+      request.maximum_source_files > kMaximumGameBuildSourceFiles ||
+      cancel.IsCancellationRequested()) {
+    Fail(error, "Script build source limits are invalid or compilation was cancelled.");
+    return {};
+  }
+  auto state = std::make_unique<PreparedGameScript::Implementation>();
+  state->root = std::move(request.project_root);
+  state->script_directory = request.script_manifest.parent_path();
+  const auto temporary_relative = request.temporary_parent.lexically_relative(state->root);
+  if (!Physical(request.temporary_parent) ||
+      (!temporary_relative.empty() && !temporary_relative.is_absolute() &&
+       *temporary_relative.begin() != "..")) {
+    Fail(error, "Script compilation requires a physical temporary parent outside the project.");
+    return {};
+  }
+  const auto files = ScriptFiles(state->root, state->script_directory, error);
+  if (!files)
+    return {};
+  if (files->size() > request.maximum_source_files) {
+    Fail(error, "Combined game/script source count exceeds admission limits.");
+    return {};
+  }
+  state->files = *files;
+  state->operation.path = UniqueDirectory(request.temporary_parent, "nexora-script-");
+  if (state->operation.path.empty()) {
+    Fail(error, "Cannot create a private script compilation directory.");
+    return {};
+  }
+  const auto &operation = state->operation.path;
+  if (request.progress)
+    request.progress(ObserveGameBuildProgress(GameBuildStage::ScriptSnapshot));
+  std::size_t source_bytes{};
+  for (const auto &path : state->files) {
+    if (cancel.IsCancellationRequested()) {
+      Fail(error, "Script compilation cancelled during source capture.");
+      return {};
+    }
+    auto source = ReadGameBuildSource(state->root, path,
+                                      request.maximum_source_bytes - source_bytes, false, error);
+    if (!source || !source->bytes || !Write(operation / "source" / path, *source->bytes, error))
+      return {};
+    source_bytes += source->bytes->size();
+    state->sources.push_back(std::move(*source));
+  }
+  if (!state->Current(error))
+    return {};
+  for (const auto &file : detail::kGameSDKFiles)
+    if (!Write(operation / "sdk" / file.path, Bytes(file.Bytes()), error))
+      return {};
+  constexpr std::string_view cmake = R"cmake(cmake_minimum_required(VERSION 3.24)
+project(NexoraInstalledGameBuild LANGUAGES NONE)
+include("${CMAKE_CURRENT_LIST_DIR}/sdk/CMake/Modules/NexoraGameProject.cmake")
+nexora_add_game_module(GameModule PROJECT "${NEXORA_GAME_MANIFEST}"
+  OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/module" ZIG "${NEXORA_GAME_ZIG}")
+file(READ "${NEXORA_GAME_MANIFEST}" manifest)
+string(JSON module_name GET "${manifest}" module_name)
+if(WIN32)
+  set(module_file "bin/${module_name}.dll")
+elseif(APPLE)
+  set(module_file "lib/lib${module_name}.dylib")
+else()
+  set(module_file "lib/lib${module_name}.so")
+endif()
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/module-file.txt" "${module_file}")
+)cmake";
+  core::JobSystem processes(1);
+  processes.Start();
+  if (!Write(operation / "CMakeLists.txt", Bytes(cmake), error) ||
+      !Run(processes, request.tools.cmake, operation,
+           {"-S", detail::PathUtf8(operation), "-B", detail::PathUtf8(operation / "compile"), "-G",
+            "Ninja", "-DCMAKE_MAKE_PROGRAM=" + detail::PathUtf8(request.tools.ninja),
+            "-DNEXORA_GAME_MANIFEST=" +
+                detail::PathUtf8(operation / "source" / request.script_manifest),
+            "-DNEXORA_GAME_ZIG=" + detail::PathUtf8(request.tools.zig)},
+           cancel, state->log, error, &state->commands, request.progress,
+           GameBuildStage::Configure) ||
+      !Run(processes, request.tools.cmake, operation,
+           {"--build", detail::PathUtf8(operation / "compile"), "--target", "GameModule"}, cancel,
+           state->log, error, &state->commands, request.progress, GameBuildStage::CompileAndTest))
+    return {};
+  const auto module_name = Read(operation / "compile/module-file.txt", 256, error);
+  if (!module_name)
+    return {};
+  auto module =
+      ReadGameBuildSource(operation / "compile/module",
+                          Path(std::u8string(reinterpret_cast<const char8_t *>(module_name->data()),
+                                             module_name->size())),
+                          64 * 1024 * 1024, false, error);
+  if (!module || !module->bytes)
+    return {};
+  state->library_size = module->bytes->size();
+  state->library_fingerprint = Fingerprint(*module->bytes);
+  state->library =
+      operation / (detail::PathUtf8(operation.filename()) +
+                   Path{std::string(runtime::kGameModuleFilename)}.extension().string());
+  if (!Write(state->library, *module->bytes, error) ||
+      !Run(processes, request.tools.player, operation,
+           {"--verify-game-module", detail::PathUtf8(state->library)}, cancel, state->log, error,
+           &state->commands, request.progress, GameBuildStage::Verify) ||
+      cancel.IsCancellationRequested() || !state->Current(error))
+    return {};
+  return PreparedGameScript(std::move(state));
+}
+
 struct PreparedGameBuild::Implementation final {
   DirectoryOwner operation;
   Path package, records, records_parent, root, script_directory;
@@ -558,82 +702,48 @@ std::optional<PreparedGameBuild> PrepareGameBuild(GameBuildRequest request,
            cancel, state->log, error, &state->commands, request.progress, GameBuildStage::Verify))
     return {};
   if (request.mode == GameBuildMode::ScriptProject) {
-    if (request.progress)
-      request.progress(ObserveGameBuildProgress(GameBuildStage::ScriptSnapshot));
-    state->script_directory = request.script_manifest.parent_path();
-    const auto files = ScriptFiles(state->root, state->script_directory, error);
-    if (!files)
-      return {};
-    state->script_files = *files;
-    if (state->script_files.size() + state->sources.size() > kMaximumGameBuildSourceFiles) {
+    std::size_t source_bytes{};
+    for (const auto &source : state->sources) {
+      if (source.bytes) {
+        if (source.bytes->size() > kMaximumGameBuildSourceBytes - source_bytes) {
+          Fail(error, "Combined game/script source bytes exceed admission limits.");
+          return {};
+        }
+        source_bytes += source.bytes->size();
+      }
+    }
+    if (state->sources.size() > kMaximumGameBuildSourceFiles) {
       Fail(error, "Combined game/script source count exceeds admission limits.");
       return {};
     }
-    std::size_t source_bytes{};
-    for (const auto &source : state->sources)
-      if (source.bytes)
-        source_bytes += source.bytes->size();
-    for (const auto &path : *files) {
-      auto source = ReadGameBuildSource(state->root, path,
-                                        kMaximumGameBuildSourceBytes - source_bytes, false, error);
-      if (!source || !source->bytes || !Write(operation / "source" / path, *source->bytes, error))
-        return {};
-      source_bytes += source->bytes->size();
-      state->sources.push_back(std::move(*source));
-    }
-    if (!state->Current(error))
+    auto compiler_parent = operation;
+    const auto within_project = operation.lexically_relative(state->root);
+    if (!within_project.empty() && !within_project.is_absolute() && *within_project.begin() != "..")
+      compiler_parent = std::filesystem::canonical(std::filesystem::temp_directory_path());
+    GameScriptBuildRequest script_request{state->root,
+                                          compiler_parent,
+                                          request.script_manifest,
+                                          request.tools,
+                                          kMaximumGameBuildSourceBytes - source_bytes,
+                                          kMaximumGameBuildSourceFiles - state->sources.size(),
+                                          request.progress};
+    auto script = PrepareGameScript(std::move(script_request), cancel, error);
+    if (!script)
       return {};
-    const auto sdk = operation / "sdk";
-    for (const auto &file : detail::kGameSDKFiles)
-      if (!Write(sdk / file.path, Bytes(file.Bytes()), error))
-        return {};
-    constexpr std::string_view cmake = R"cmake(cmake_minimum_required(VERSION 3.24)
-project(NexoraInstalledGameBuild LANGUAGES NONE)
-include("${CMAKE_CURRENT_LIST_DIR}/sdk/CMake/Modules/NexoraGameProject.cmake")
-nexora_add_game_module(GameModule PROJECT "${NEXORA_GAME_MANIFEST}"
-  OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/module" ZIG "${NEXORA_GAME_ZIG}")
-file(READ "${NEXORA_GAME_MANIFEST}" manifest)
-string(JSON module_name GET "${manifest}" module_name)
-if(WIN32)
-  set(module_file "bin/${module_name}.dll")
-elseif(APPLE)
-  set(module_file "lib/lib${module_name}.dylib")
-else()
-  set(module_file "lib/lib${module_name}.so")
-endif()
-file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/module-file.txt" "${module_file}")
-)cmake";
-    if (!Write(operation / "CMakeLists.txt", Bytes(cmake), error) ||
-        !Run(processes, request.tools.cmake, operation,
-             {"-S", detail::PathUtf8(operation), "-B", detail::PathUtf8(operation / "compile"),
-              "-G", "Ninja", "-DCMAKE_MAKE_PROGRAM=" + detail::PathUtf8(request.tools.ninja),
-              "-DNEXORA_GAME_MANIFEST=" +
-                  detail::PathUtf8(operation / "source" / request.script_manifest),
-              "-DNEXORA_GAME_ZIG=" + detail::PathUtf8(request.tools.zig)},
-             cancel, state->log, error, &state->commands, request.progress,
-             GameBuildStage::Configure) ||
-        !Run(processes, request.tools.cmake, operation,
-             {"--build", detail::PathUtf8(operation / "compile"), "--target", "GameModule"}, cancel,
-             state->log, error, &state->commands, request.progress, GameBuildStage::CompileAndTest))
+    auto &compiled = *script->implementation_;
+    const auto module = Read(script->Library(), 64 * 1024 * 1024, error);
+    if (!module || module->size() != compiled.library_size ||
+        Fingerprint(*module) != compiled.library_fingerprint ||
+        !Write(state->package / runtime::kGameModuleFilename, *module, error))
       return {};
-    const auto module_name = Read(operation / "compile/module-file.txt", 256, error);
-    if (!module_name)
-      return {};
-    auto module = ReadGameBuildSource(
-        operation / "compile/module",
-        Path(std::u8string(reinterpret_cast<const char8_t *>(module_name->data()),
-                           module_name->size())),
-        64 * 1024 * 1024, false, error);
-    if (!module || !module->bytes ||
-        !Write(state->package / runtime::kGameModuleFilename, *module->bytes, error))
-      return {};
-    if (!Run(processes, request.tools.player, operation,
-             {"--verify-game-module",
-              detail::PathUtf8(state->package / runtime::kGameModuleFilename)},
-             cancel, state->log, error, &state->commands, request.progress, GameBuildStage::Verify))
-      return {};
-    // Zig entry tests run in the established adapter; actual module lifetime/rendering is an
-    // integrated runtime acceptance gate, not inferred from compilation or this inventory.
+    state->script_directory = std::move(compiled.script_directory);
+    state->script_files = std::move(compiled.files);
+    for (auto &source : compiled.sources)
+      state->sources.push_back(std::move(source));
+    state->commands += compiled.commands;
+    state->log += compiled.log;
+    if (state->log.size() > 1024 * 1024)
+      state->log.erase(0, state->log.size() - 1024 * 1024);
   } else if (!request.script_manifest.empty()) {
     Fail(error, "Scene-only mode cannot silently ignore a configured script manifest.");
     return {};

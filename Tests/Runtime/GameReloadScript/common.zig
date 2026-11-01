@@ -1,6 +1,6 @@
 const nx = @import("nexora");
 
-pub const Mode = enum { normal, restore_fail, init_fail, start_fail, schema_change };
+pub const Mode = enum { normal, restore_fail, init_fail, start_fail, schema_change, candidate_lifecycle };
 var job_state: ?*anyopaque = null;
 var job_call: ?*const fn (?*anyopaque) void = null;
 
@@ -14,6 +14,7 @@ pub fn Script(comptime mode: Mode) type {
     return struct {
         const Self = @This();
         pub const state_version: u32 = if (mode == .schema_change) 2 else 1;
+        pub const reload_lifecycle = true;
         counter: u64 = 0,
         scene: u64 = 0,
         entity: u64 = 0,
@@ -21,6 +22,7 @@ pub fn Script(comptime mode: Mode) type {
         pub fn init(self: *Self, context: *const nx.game.Context) !void {
             job_state = @ptrCast(self);
             job_call = job;
+            if (mode == .candidate_lifecycle) self.counter = 0;
             if (mode == .init_fail or mode == .restore_fail) {
                 // Inject partial World effects. The embedding transaction must discard them.
                 try context.activateScene("Rejected");
@@ -29,6 +31,24 @@ pub fn Script(comptime mode: Mode) type {
                 job_state = null;
                 job_call = null;
                 return error.InjectedInitialization;
+            }
+        }
+
+        pub fn prepareReload(self: *Self, context: *const nx.game.Context) !void {
+            if (mode == .candidate_lifecycle) {
+                job_state = @ptrCast(self);
+                job_call = job;
+            } else {
+                try self.init(context);
+            }
+        }
+
+        pub fn reloaded(self: *Self, context: *const nx.game.Context) !void {
+            if (mode == .candidate_lifecycle) {
+                if (job_state != @as(?*anyopaque, @ptrCast(self))) return error.UnboundCandidate;
+                try self.write(context);
+            } else {
+                try self.start(context);
             }
         }
 
@@ -44,6 +64,7 @@ pub fn Script(comptime mode: Mode) type {
         }
 
         pub fn start(self: *Self, context: *const nx.game.Context) !void {
+            if (mode == .candidate_lifecycle) self.counter = 7;
             const host = &context.host;
             if (self.scene == 0) {
                 const name = "Reload";

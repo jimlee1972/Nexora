@@ -1,0 +1,156 @@
+{
+  "status": "NATIVE_FOUNDATION_PASS_INTEGRATION_PENDING",
+  "work_order": "ED-WF-05",
+  "publication_base": "a9b18635cc1f027212f470d957f5b959b5a90ca7",
+  "source_state": "uncommitted working tree; exact scoped source hashes below",
+  "reproduction": "Candidate create repeats fresh init instead of prepareReload: expected100, found1; six adapter tests passed and one failed.",
+  "targeted_result": {
+    "ctest_exit_code": 0,
+    "registered": 3,
+    "passed": 3,
+    "failed": 0,
+    "skipped": 0,
+    "elapsed_seconds": 61.72,
+    "cases": [
+      "runtime.gameplay_reload_transaction",
+      "runtime.zig_reload_transaction",
+      "gameplay.zig_game_script_adapter"
+    ]
+  },
+  "logs": [
+    {
+      "path": "build/editor-workflow-native/ed-wf05-sdk-lifecycle-repro-test.log",
+      "exit_code": 8,
+      "bytes": 2082,
+      "sha256": "a79cc0bc0e53cd63a9dc8ff09c788cc5c3c59e09adc792c106af64f18b06f29d"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-real-zig-cold-restart-repro-test.log",
+      "exit_code": 8,
+      "bytes": 766,
+      "sha256": "6f29ac493a5b9e02fdcff0f561dc0be2b71b118d2903eb04e618294113c1db82"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-lifecycle-fixed-build.log",
+      "exit_code": 0,
+      "bytes": 4728,
+      "sha256": "accf7c9315fe085d8e0693cc1c1a0b73bc5b24704100d0d70fcfd70348f91fc9"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-lifecycle-final-test.log",
+      "exit_code": 0,
+      "bytes": 689,
+      "sha256": "2a5c05774636b24e78ce766ac9b77a956285bd69fe5738a2984b1563b7121fb8"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-lifecycle-optin-build.log",
+      "exit_code": 0,
+      "bytes": 5339,
+      "sha256": "3e591bb3ed8e55cd813f67cbaae3a7b3ab7dad9fffe8662644262a9131ca37da"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-lifecycle-optin-test.log",
+      "exit_code": 0,
+      "bytes": 689,
+      "sha256": "b83bd940739171b5b0e514b9e004777a49d658afaec0bf4dc3bd62368df95589"
+    }
+  ],
+  "scoped_source_hashes": {
+    "Bindings/Zig/game.zig": "3e254ef402dbf49e5c8f5d6a48b7e0a3b869e2cb27aff79b8cef1f83c0be4cb2",
+    "Bindings/Zig/nexora.zig": "106a3591b48da2d3a0e6e60942ebbe7573f1668c1b38ca4ab838c95c971cf3f5",
+    "Engine/API/include/nexora/nexora.h": "6839b518b22aabba977b886c6ed588e1b2ad7eee8303716c74cfc386c10987e1",
+    "Engine/Runtime/src/GameplayModuleHost.cpp": "0e38b3dcda1e336a34a8161308d01da7bfee454858ce6876e87ab954cf2768f6",
+    "Tests/TwoD/GameScriptAdapter.zig": "0fdf20f024ecb9183a6272aaf20af4a7111e680dea1ec58c5f4c69cece27125f",
+    "Tests/Runtime/GameplayReloadTransactionTests.cpp": "8d36b7c136ac07778c4cc445d1a45627d24198e72b5d4b830f15c0fe9090918e",
+    "Tests/Runtime/ZigReloadTransactionTests.cpp": "6a1ec83e9f101e25783669af51c109c49f3e68d2622e5b62040178df83c29cb8",
+    "Tests/Runtime/GameReloadScript/common.zig": "343422abed577cb9f190fc70407ad6657f98a188d218288e7a372db9be30de4d",
+    "Tests/Runtime/GameReloadScript/candidate.zig": "57c37c48df7734bf66a051b4202dbd9d0069f693966948b30f4ab567b82e8265",
+    "Tests/Runtime/GameReloadScript/project-candidate.json": "afce5b34edf40187e7f277d7547d2b8d72c1b2673597f88f6b74604156f06419",
+    "Tests/Runtime/CMakeLists.txt": "cced1658559f15a6d2ea3c9ce4fc8f972d3282a056eed542e14f41ded8f5a6ea"
+  },
+  "pending": [
+    "Editor compiler coordination and source/project/Play epochs",
+    "Save-phase host mutation guard and candidate/retired World/resource isolation",
+    "Native integrated animation/pool state retention",
+    "Full exact-head Cloud development/Shipping/CI gates"
+  ],
+  "scope": "Windows scoped native process tests only. No complete ED-WF-05 or final ZIP claim.",
+  "real_zig": {
+    "legacy_successful_reloads": 32,
+    "legacy_fault_injections_rejected": 224,
+    "candidate_successful_reloads": 32,
+    "candidate_fault_injections_rejected": 160,
+    "cold_restart_after_unload": "PASS at generation34 with counter8",
+    "retained": "Counter, scene/entity IDs, new-generation callback binding; old registered-code job barrier and retirement checks remain intact",
+    "not_proven": "Editor compilation/epochs, live animation/pool/resource ownership, physical clean host"
+  },
+  "cold_restart_reproduction": {
+    "exit_code": 8,
+    "elapsed_seconds": 22.96,
+    "assertion": "modern.Load(modern_path) && modern.Generation() == 34",
+    "repair": "Clear the candidate creation flag only in the default host template after commit; keep each live generation host table intact"
+  },
+  "previous_native_result": {
+    "ctest_exit_code": 0,
+    "registered": 3,
+    "passed": 3,
+    "failed": 0,
+    "skipped": 0,
+    "elapsed_seconds": 51.05,
+    "cases": [
+      "runtime.gameplay_reload_transaction",
+      "runtime.zig_reload_transaction",
+      "gameplay.zig_game_script_adapter"
+    ],
+    "scoped_source_hashes": {
+      "Bindings/Zig/game.zig": "2c6e7472014e0344397047a157404210e9cf01f073c50a19d8280290df2882c1",
+      "Bindings/Zig/nexora.zig": "106a3591b48da2d3a0e6e60942ebbe7573f1668c1b38ca4ab838c95c971cf3f5",
+      "Engine/API/include/nexora/nexora.h": "6839b518b22aabba977b886c6ed588e1b2ad7eee8303716c74cfc386c10987e1",
+      "Engine/Runtime/src/GameplayModuleHost.cpp": "0e38b3dcda1e336a34a8161308d01da7bfee454858ce6876e87ab954cf2768f6",
+      "Tests/TwoD/GameScriptAdapter.zig": "20eb17979b5de25633caa3bd483e830c6c0476bcd0f99307d9debce47a850a6f",
+      "Tests/Runtime/GameplayReloadTransactionTests.cpp": "8d36b7c136ac07778c4cc445d1a45627d24198e72b5d4b830f15c0fe9090918e",
+      "Tests/Runtime/ZigReloadTransactionTests.cpp": "6a1ec83e9f101e25783669af51c109c49f3e68d2622e5b62040178df83c29cb8",
+      "Tests/Runtime/GameReloadScript/common.zig": "d53aa5f37dc2a9b44fbb9884be2ece637abf47b739849cdc1d139cd34cd27e3f",
+      "Tests/Runtime/GameReloadScript/candidate.zig": "57c37c48df7734bf66a051b4202dbd9d0069f693966948b30f4ab567b82e8265",
+      "Tests/Runtime/GameReloadScript/project-candidate.json": "afce5b34edf40187e7f277d7547d2b8d72c1b2673597f88f6b74604156f06419",
+      "Tests/Runtime/CMakeLists.txt": "cced1658559f15a6d2ea3c9ce4fc8f972d3282a056eed542e14f41ded8f5a6ea"
+    },
+    "note": "Before explicit lifecycle opt-in compatibility refinement; retained historical pass, not acceptance of current source."
+  },
+  "explicit_opt_in": "Paired state hooks plus pub const reload_lifecycle: bool = true; codec-only scripts keep the legacy capability and lifecycle and reject candidate mode before allocation.",
+  "validation_argv": [
+    [
+      "cmake",
+      "--build",
+      "build/editor-workflow-native",
+      "--config",
+      "Development",
+      "--parallel",
+      "2",
+      "--target",
+      "NexoraZigReloadTransactionTests",
+      "NexoraGameplayReloadTransactionTests"
+    ],
+    [
+      "ctest",
+      "--test-dir",
+      "build/editor-workflow-native",
+      "-C",
+      "Development",
+      "-R",
+      "^(runtime\\.(gameplay_reload_transaction|zig_reload_transaction)|gameplay\\.zig_game_script_adapter)$",
+      "--output-on-failure",
+      "--output-junit",
+      "ed-wf05-lifecycle-optin.xml"
+    ]
+  ],
+  "environment": {
+    "platform": "Windows native MSVC processes",
+    "zig": "0.14.0",
+    "cache_directories": [
+      "build/editor-workflow-native/zig-global-cache",
+      "build/editor-workflow-native/zig-local-cache"
+    ],
+    "profile": "Development; scoped Runtime/SDK targets; unavailable Cryptography provider fails closed. Not the complete shipping/product gate."
+  }
+}

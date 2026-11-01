@@ -40,8 +40,14 @@ The typed lifecycle facade and engine-owned build/entry are documented in [Tools
 Optional paired `saveState`/`loadState` hooks use `game.StateWriter`/`StateReader` and a nonzero game
 `state_version`. They encode explicit bounded/versioned values through the existing V3 migration
 slots, without serializing Game memory or host/service pointers. See the SDK contract above for
-query/write determinism, borrowed byte lifetimes and initialization order. Complete Runtime/Editor
-transactional reload remains separately gated in ED-WF-04/05.
+query/write determinism, borrowed byte lifetimes and initialization order. Hosts can opt into
+candidate-only preparation/restore/reloaded through `reload_candidate_capability`; paired state
+hooks plus `pub const reload_lifecycle: bool = true;` advertise `reload_lifecycle_capability`.
+Codecs without this explicit opt-in keep their old capability/lifecycle. In candidate mode fresh init/start do not run;
+`Context.isReloadCandidate()` identifies an instance created through this reload path; it remains
+true after publication and is not a live transaction-phase query. Legacy hosts retain their
+ordinary lifecycle. Runtime admission requires both generations to support this mode. This SDK
+support does not complete ED-WF-05 Editor coordination or World/resource isolation.
 
 ## Optional 2D effects contract
 

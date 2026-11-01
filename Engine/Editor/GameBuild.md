@@ -1,5 +1,32 @@
 # Shared installed-game build contract
 
+## Shared script compilation
+
+`PrepareGameScript` accepts an owning `GameScriptBuildRequest` with a dedicated relative manifest,
+trusted host toolchain and physical temporary parent outside the authored project. It freezes the bounded source subtree and
+materializes the canonical embedded SDK in a private operation; no scene capture/cooking or engine
+checkout is required. Game Build uses this same entry with its remaining combined byte/file budget,
+then carries the script baselines into its existing final publication guard and external records.
+There is one CMake/Zig compiler path for installed Build and future Editor Play coordination.
+Game publication staging retains its output-filesystem ownership for atomic replacement. If that
+staging is inside the authored project, its nested script compiler instead uses the canonical system
+temporary directory and copies the verified library back; compiler sources/tools stay outside the project.
+
+The move-only `PreparedGameScript` owns a uniquely named library and its operation. Retain it until
+the loaded generation and library finalizers have unloaded. `Current` verifies exact authored bytes,
+the complete source inventory, ordinary paths, and the compiled artifact's size/FNV fingerprint,
+using the existing cooperative single-writer integrity model. This is not code signing or sandboxing.
+The child Player admits the compiled V3 descriptor without creating gameplay. A prepared library
+does not prove successful game initialization or authorize application to a stale project/Play epoch.
+
+Preparation is synchronous worker work with owning progress/diagnostic values and no Editor borrows.
+It uses the existing managed process runner and independent one-worker job pool, with cancellation
+and drain before private cleanup. Ordinary filesystem/allocation/progress-observer exceptions retain
+the existing propagation contract. Publication, source/project/Play epoch admission and strict Runtime
+World/service transaction ownership remain the Editor's responsibility; that integration is pending.
+
+## Game capture and publication
+
 `GameBuildCapture.h` captures saved enabled scenes and owning imported geometry/material inputs
 on the authoring thread. It retains exact descriptor/settings/scene/source/sidecar bytes, including
 observed missing sidecars. It rejects changed/unreimported imported sources and identity changes.
