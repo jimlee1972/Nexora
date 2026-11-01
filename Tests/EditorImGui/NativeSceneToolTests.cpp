@@ -95,6 +95,22 @@ void Run(float dpi) {
   ui.ProcessEvents(std::array{button});
   draw();
   Require(!ui.NativeSceneDrag(), "Hand created a released transform transaction");
+  press(Key::W);
+  const auto space_camera = ui.GetSceneOverviewCamera();
+  ui.ProcessEvents(std::array{key(Key::Space, true)});
+  draw();
+  button.value1 = 1;
+  ui.ProcessEvents(std::array{button});
+  draw();
+  pointer.value0 += static_cast<int>(12 * dpi);
+  ui.ProcessEvents(std::array{pointer});
+  draw();
+  Require(ui.GetNativeSceneTool() == Tool::Move && !ui.NativeScenePick() &&
+              !ui.NativeSceneDragPreview() && ui.GetSceneOverviewCamera().x != space_camera.x,
+          "Space pan changed tools, selected geometry, or failed to move the camera");
+  button.value1 = 0;
+  ui.ProcessEvents(std::array{button, key(Key::Space, false)});
+  draw();
   // The explicit Select toolbar remains available for picking without a transform.
   const auto select_initial = Access::NativeSceneToolPosition(ui, Tool::Select);
   Require(select_initial.has_value(), "Select toolbar position missing");
@@ -326,8 +342,14 @@ void Run(float dpi) {
   Access::FocusHierarchy(ui);
   draw();
   press(Key::W);
-  blocked_modes();
-  Require(ui.GetNativeSceneTool() == Tool::Hand, "Scene hover stole another panel's key");
+  Require(ui.GetNativeSceneTool() == Tool::Move, "Hierarchy focus blocked the global Move tool");
+  press(Key::X);
+  press(Key::Z);
+  Require(ui.NativeSceneLocalAxes() && ui.NativeSceneCenterPivot(),
+          "Hierarchy focus blocked global axis/pivot shortcuts");
+  press(Key::X);
+  press(Key::Z);
+  press(Key::Q);
   Access::FocusScene(ui);
   draw();
   focus.value0 = 0;
@@ -348,6 +370,41 @@ void Run(float dpi) {
   Require(ui.TakeCloseChoice() == editor::imgui::CloseChoice::Cancel,
           "tool close fixture did not cancel");
   workspace = &writer;
+  // The overview has the same Hand admission, plus two-dimensional Alt+RMB zoom.
+  ui.SetNativeScenePreview(false);
+  Access::FocusScene(ui);
+  draw();
+  const auto overview = ui.SceneCanvasViewport();
+  Require(overview.has_value(), "overview viewport absent");
+  pointer.value0 = static_cast<int>(overview->x + overview->width / 2);
+  pointer.value1 = static_cast<int>(overview->y + overview->height / 2);
+  ui.ProcessEvents(std::array{pointer});
+  draw();
+  const auto overview_before = ui.GetSceneOverviewCamera();
+  button.value1 = 1;
+  ui.ProcessEvents(std::array{button});
+  draw();
+  pointer.value0 += static_cast<int>(24 * dpi);
+  ui.ProcessEvents(std::array{pointer});
+  draw();
+  Require(ui.GetSceneOverviewCamera().x != overview_before.x && !ui.NativeSceneDragPreview(),
+          "overview Hand did not pan without authoring");
+  button.value1 = 0;
+  ui.ProcessEvents(std::array{button, alt});
+  draw();
+  const auto overview_scale = ui.GetSceneOverviewCamera().pixels_per_unit;
+  right.value1 = 1;
+  ui.ProcessEvents(std::array{right});
+  draw();
+  pointer.value0 += static_cast<int>(16 * dpi);
+  ui.ProcessEvents(std::array{pointer});
+  draw();
+  Require(ui.GetSceneOverviewCamera().pixels_per_unit < overview_scale,
+          "overview Alt+RMB did not zoom");
+  right.value1 = 0;
+  ui.ProcessEvents(std::array{right, key(Key::LeftAlt, false)});
+  draw();
+  ui.SetNativeScenePreview(true);
   Access::FocusInspector(ui);
   Access::FocusInspectorTransformField(ui, 0);
   draw();

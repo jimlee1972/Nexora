@@ -8,7 +8,7 @@ unchanged. Status: implementation and scoped Windows tests pass; complete valida
 
 Q selects Hand, W/E/R select Move/Rotate/Scale, X toggles axes and Z toggles Pivot/Center. The
 explicit Select toolbar remains available; P remains a pivot alias. Native Scene navigation uses
-Alt+left orbit, middle or Alt+Ctrl+left view-plane pan, right look, right+WASD/QE fly, Shift faster,
+Alt+left orbit, middle, Space+left or Alt+Ctrl+left view-plane pan, right look, right+WASD/QE fly, Shift faster,
 wheel zoom (fly-speed adjustment during right hold), and Alt+right dolly zoom. Right look preserves
 the eye; orbit preserves the pivot. F frames, Shift+F follows selected world bounds at fixed
 distance, Home frames all. Manual navigation or scope/focus/modal changes cancel following.
@@ -17,6 +17,11 @@ Ctrl/Shift-click toggles ordinary entity selection. Native hit testing admits te
 drags only for actual transform handles; ordinary entity clicks cancel the transform request.
 Ctrl activates incremental transform snapping; Shift rotation/scale snapping remains compatible.
 The existing overview stays X/Z and supports Hand/right/middle panning without authoring.
+
+Tools and X/Z shortcuts work across Editor panels after same-frame text/item ownership is resolved.
+The Scene initial-click path still resolves tool selection before authoring starts. Normal no-project
+interactive startup prefers native3D, with one-time Unsupported fallback; explicit native/CLI choices
+keep their existing admission. This new startup behavior still needs native/CI acceptance.
 
 Unity Play chords (Ctrl+P, Ctrl+Shift+P, Ctrl+Alt+P), Ctrl+1..5 panel focus, Ctrl+Shift+C Console,
 Ctrl+R Project refresh, Ctrl+Shift+B Build Settings and Ctrl+B scoped Build & Run join existing
@@ -33,16 +38,19 @@ See [current controls](../../../../Apps/Editor/README.md#unity-style-editor-inpu
 
 The [Windows receipt](Unity-Input-Windows.json) records exact commands, eight passed cases, elapsed
 times, log hashes, thirteen source hashes and six executable/library hashes. Final scoped CTest
-exited 0: **8/8 passed, zero skips/failures, 70.19s** after the complete native target build exited
+exited 0: **8/8 passed, zero skips/failures, 74.88s** after the complete native target build exited
 0. Real ImGui input tests exercise 1x/2x Hand, orbit/look/pan/fly/zoom, no accidental picks/history,
 modified transform admission/cancellation, tool/axis/pivot guards, Shift+F/Undo/follow cancellation,
 Unity Play chords and Game capture, and Build Settings/Build & Run/busy-build admission. Existing
 selection, camera alignment and Game camera regression cases also passed. These are native
 Windows process tests, not physical clean-host, full GUI presentation or final ZIP acceptance.
 
-Two exploratory failures remain recorded locally: the Select test released after leaving its
+Three exploratory failures remain recorded locally: the Select test released after leaving its
 button, corrected by real pointer release ordering; Ctrl+Alt+P was intercepted by the existing
-Prefab shortcut, corrected by moving that shortcut. Final assertions remain present. Initial
+Prefab shortcut, corrected by moving that shortcut; the global tool follow-up initially reached an
+Inspector field before same-frame text ownership existed, corrected by resolving ordinary tool keys
+after widgets. The original text assertion passes at both DPIs. Overview Hand/Alt+RMB and global
+Hierarchy tools/Space clutch are also exercised. Final assertions remain present. Initial
 build invocations named two nonexistent test targets; the corrected final build exited 0.
 
 Full Codex Cloud development configure/build/CTest, applicable Shipping linkage, exact-head CI,

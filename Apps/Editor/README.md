@@ -6,14 +6,14 @@ Implementation is in progress; full Cloud/native validation and delivery remain 
 
 | Context | Input | Behavior |
 | --- | --- | --- |
-| Scene | Q / W / E / R | Hand / Move / Rotate / Scale |
-| Scene | X / Z | Global-local axes / Pivot-center; P remains a pivot alias |
+| Editor tools | Q / W / E / R | Hand / Move / Rotate / Scale |
+| Editor tools | X / Z | Global-local axes / Pivot-center; P remains a pivot alias |
 | Native Scene | Alt + left drag | Orbit the selection/view pivot |
-| Scene | Middle drag; Alt + Ctrl + left drag | Pan in the view plane |
+| Scene | Middle drag; Space + left drag; Alt + Ctrl + left drag | Pan in the view plane |
 | Native Scene | Right drag | Look around without moving the eye |
 | Native Scene | Hold right + WASD / QE | Fly forward-back-left-right / down-up; Shift accelerates |
 | Native Scene | Wheel while holding right | Adjust fly speed; release right to wheel zoom |
-| Native Scene | Alt + right drag | Dolly zoom |
+| Scene | Alt + right drag | Dolly zoom (overview zooms its orthographic scale) |
 | Transform handle | Hold Ctrl while dragging | Incremental movement/rotation/scale snapping; ordinary Ctrl/Shift-click toggles selection |
 | Scene | F / Shift + F / Home | Frame selected / follow selection / frame all (follow is native-preview only) |
 | Overview | Q + left drag; right or middle drag | Pan the existing X/Z overview; wheel zooms |
@@ -27,7 +27,12 @@ Implementation is in progress; full Cloud/native validation and delivery remain 
 
 F5/F6/F10 remain compatible Play aliases. Prefab isolation moves to Ctrl+Alt+Shift+P so it no
 longer intercepts Unity's Step chord. Existing Save/Discard/Cancel and build ownership still apply.
-Commands are admitted by actual application/window focus, text input, modal and Game capture rules.
+Tool shortcuts are global across Editor panels when no text/item edit or gesture owns input.
+Camera navigation belongs to the Scene canvas. Commands retain application focus, text input,
+modal and Game capture admission. Normal no-project interactive startup chooses the native 3D
+Scene view, falling back to the overview when the backend reports Unsupported. Explicit native
+preview requests keep their unavailable status; explicit project CLI workflows retain their preview
+selection. The legacy overview edits positions with Move; it never translates through Rotate/Scale.
 Navigation never changes selection, scene bytes, or undo history. Native picking cancels tentative
 Ctrl/Shift drags that hit no transform handle through `CancelNativeSceneTransform` in the issuing GUI
 frame; the application owns actual hit testing and scene mutations. Read-only camera navigation works.
@@ -322,7 +327,7 @@ active/pending-drag gates protect the action; same-frame native framing waits fo
 Real 1x/2x, 4,001-node and native proxy/OBJ inputs verify the workflow without source IO.
 Select (toolbar) removes all transform handles from native drawing and picking and suppresses transform
 preview/commit requests, while ordinary and Ctrl/Shift-toggle entity picking remain available. W/E/R return
-to Move/Rotate/Scale. Tool keys require focused Scene/canvas input and respect text/modal/focus and
+to Move/Rotate/Scale. Tool keys work across Editor panels and respect text/item edit, Game capture, modal/focus and
 active/pending-drag guards; keyboard navigation after Home does not mask the actual canvas hover.
 Read-only picking works. Real 1x/2x input and native proxy/OBJ saved-byte tests cover this path.
 Left click selects the nearest visible position proxy using a viewport ray against its drawn

@@ -3,18 +3,18 @@
 ### Unity 風格的 Editor 操作（施工中）
 
 [工單 #759](https://github.com/jimlee1972/Nexora/issues/759) 追蹤 Unity 風格 Scene 導覽、
-Q 手形／WER 工具、X／Z 模式、現有指令／視窗快捷鍵及輸入所有權。保留 F5／F6／F10 與
-P pivot 舊別名；Prefab isolation 改用 Ctrl＋Alt＋Shift＋P。本機實作與輸入測試進行中，
-完整 Cloud／原生驗收、PR 與最後 ZIP 尚待完成。
+全域 Q 手形／WER 工具、X／Z 模式、空白鍵導覽、現有指令／視窗快捷鍵及輸入所有權。保留 F5／F6／F10 與
+P pivot 舊別名；Prefab isolation 改用 Ctrl＋Alt＋Shift＋P。本機限縮 Windows8/8 已通過，
+[輸入驗收證據](../../Tools/Build/evidence/EditorWorkflow/Unity-Input.md)保留完整 Cloud／原生驗收、PR 與最後 ZIP 待完成。
 操作細節見 [Editor 文件](../../Apps/Editor/README.md#unity-style-editor-input-issue-759)。
-此支援工單不改變工作流程 3/9 與 Editor 里程碑 0/8 完成度。
+此支援工單不改變工作流程 4/9 與 Editor 里程碑 0/8 完成度。
 
 
 ### 腳本工作流程與 Sprite 整合工單（2026-10-31）
 
 核准的[交付計畫](Editor_Workflow_Delivery_Plan.md)及
 [Epic #741](https://github.com/jimlee1972/Nexora/issues/741) 追蹤九張相依工單，涵蓋腳本 Build UI、
-乾淨遊戲成品、有狀態熱重載及來源感知 Editor／Player／Zig 整合。驗收為 3/9（33.3%）：ED-WF-01 ✅ PR #751，ED-WF-02 ✅ PR #754，ED-WF-03 ✅ PR #756，ED-WF-04 施工中；
+乾淨遊戲成品、有狀態熱重載及來源感知 Editor／Player／Zig 整合。驗收為 4/9（44.4%）：ED-WF-01 ✅ PR #751，ED-WF-02 ✅ PR #754，ED-WF-03 ✅ PR #756、ED-WF-04 ✅ PR #758；
 既有 supporting capabilities 不直接算完整流程完成；完整 Editor 里程碑維持 0/8。
 現有 CLI 與 `.bat` 開發流程持續可用。
 

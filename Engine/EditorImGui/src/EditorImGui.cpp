@@ -2354,17 +2354,22 @@ void DrawSceneOverview(StateT &state, SceneDocument &scene, bool editable,
       else if (ImGui::IsKeyPressed(ImGuiKey_W, false))
         state.native_scene_tool = NativeSceneTool::Move;
     }
-    const bool hand = state.native_scene_tool == NativeSceneTool::Hand || io.KeyAlt;
-    if (!state.scene_drag && ImGui::IsItemActive() &&
+    const bool hand = state.native_scene_tool == NativeSceneTool::Hand || io.KeyAlt ||
+                      ImGui::IsKeyDown(ImGuiKey_Space);
+    const bool drag_zoom =
+        ImGui::IsItemActive() && io.KeyAlt && ImGui::IsMouseDown(ImGuiMouseButton_Right);
+    if (!state.scene_drag && !drag_zoom && ImGui::IsItemActive() &&
         (ImGui::IsMouseDown(ImGuiMouseButton_Middle) ||
          ImGui::IsMouseDown(ImGuiMouseButton_Right) ||
          (hand && ImGui::IsMouseDown(ImGuiMouseButton_Left)))) {
       state.scene_center_world.x -= io.MouseDelta.x / state.scene_pixels_per_unit;
       state.scene_center_world.y -= io.MouseDelta.y / state.scene_pixels_per_unit;
     }
-    if (!state.scene_drag && io.MouseWheel != 0.0F) {
+    if (!state.scene_drag && (io.MouseWheel != 0.0F || drag_zoom)) {
       const auto old_scale = state.scene_pixels_per_unit;
-      const auto new_scale = std::clamp(old_scale * std::pow(1.15F, io.MouseWheel), 4.0F, 256.0F);
+      const auto zoom = drag_zoom ? std::exp(-(io.MouseDelta.x + io.MouseDelta.y) * 0.01F)
+                                  : std::pow(1.15F, io.MouseWheel);
+      const auto new_scale = std::clamp(old_scale * zoom, 4.0F, 256.0F);
       state.scene_center_world.x +=
           (io.MousePos.x - center.x) * (1.0F / old_scale - 1.0F / new_scale);
       state.scene_center_world.y +=
@@ -2478,7 +2483,7 @@ void DrawSceneOverview(StateT &state, SceneDocument &scene, bool editable,
   const auto handle = std::ranges::find_if(state.scene_markers, [&](const auto &marker) {
     return std::ranges::find(scene.Selection(), marker.entity.id) != scene.Selection().end();
   });
-  if (handle != state.scene_markers.end()) {
+  if (handle != state.scene_markers.end() && state.native_scene_tool != NativeSceneTool::Hand) {
     const auto position = handle->position;
     draw->AddLine({position.x + 12.0F, position.y}, {position.x + 42.0F, position.y},
                   IM_COL32(225, 99, 99, 255), 3.0F);
@@ -2492,7 +2497,8 @@ void DrawSceneOverview(StateT &state, SceneDocument &scene, bool editable,
                             {position.x + 5.0F, position.y + 39.0F}, IM_COL32(99, 150, 225, 255));
   }
   draw->PopClipRect();
-  if (navigation_allowed && !io.KeyAlt && state.native_scene_tool != NativeSceneTool::Hand &&
+  if (navigation_allowed && !io.KeyAlt && !ImGui::IsKeyDown(ImGuiKey_Space) &&
+      state.native_scene_tool != NativeSceneTool::Hand &&
       ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
     std::optional<SceneDocument::NodeKey> picked;
     auto axis = StateT::SceneDrag::Axis::Free;
@@ -2530,7 +2536,8 @@ void DrawSceneOverview(StateT &state, SceneDocument &scene, bool editable,
       if (!already_selected || io.KeyCtrl || io.KeyShift)
         static_cast<void>(
             ApplyHierarchySelection(state, scene, visible, *picked, io.KeyCtrl, io.KeyShift));
-      if (editable && !io.KeyCtrl && !io.KeyShift) {
+      if (editable && state.native_scene_tool == NativeSceneTool::Move && !io.KeyCtrl &&
+          !io.KeyShift) {
         std::vector<SceneDocument::NodeKey> keys;
         for (const auto id : scene.Selection()) {
           const auto key = scene.Key(id);
@@ -6493,26 +6500,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
             ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
             (ImGui::IsItemHovered(ImGuiHoveredFlags_NoNavOverride) || ImGui::IsItemActive()) &&
             !state_->native_scene_drag_origin && !state_->native_scene_drag && !io.WantTextInput &&
-            !io.KeyCtrl && !io.KeyAlt && !io.KeySuper &&
+            !io.KeyCtrl && !io.KeyAlt && !io.KeyShift && !io.KeySuper &&
+            ImGui::IsMouseClicked(ImGuiMouseButton_Left) &&
             !ImGui::IsMouseDown(ImGuiMouseButton_Right) &&
             !ImGui::IsMouseDown(ImGuiMouseButton_Middle)) {
-          if (ImGui::IsKeyPressed(ImGuiKey_Q, false))
-            state_->native_scene_tool = NativeSceneTool::Hand;
-          else if (ImGui::IsKeyPressed(ImGuiKey_W, false))
-            state_->native_scene_tool = NativeSceneTool::Move;
-          else if (ImGui::IsKeyPressed(ImGuiKey_E, false))
-            state_->native_scene_tool = NativeSceneTool::Rotate;
-          else if (ImGui::IsKeyPressed(ImGuiKey_R, false)) {
-            state_->native_scene_tool = NativeSceneTool::Scale;
-            state_->native_scene_local_axes = true;
-          }
-          if (!io.KeyCtrl && !io.KeyAlt && !io.KeySuper) {
-            if (state_->native_scene_tool != NativeSceneTool::Scale &&
-                ImGui::IsKeyPressed(ImGuiKey_X, false))
-              state_->native_scene_local_axes = !state_->native_scene_local_axes;
-            if (ImGui::IsKeyPressed(ImGuiKey_Z, false) || ImGui::IsKeyPressed(ImGuiKey_P, false))
-              state_->native_scene_center_pivot = !state_->native_scene_center_pivot;
-          }
+          ApplySceneToolKeys(*state_);
         }
         if (scene_editable && !scene->Selection().empty() && !io.WantTextInput &&
             (ImGui::IsItemHovered() || ImGui::IsItemActive()) &&
@@ -6524,7 +6516,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           state_->native_scene_drag_preview.reset();
         }
         if (state_->app_focused && !interaction_blocked && state_->scene_canvas_viewport &&
-            !io.KeyAlt && state_->native_scene_tool != NativeSceneTool::Hand &&
+            !io.KeyAlt && !ImGui::IsKeyDown(ImGuiKey_Space) &&
+            state_->native_scene_tool != NativeSceneTool::Hand &&
             ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
           const auto x = static_cast<std::uint32_t>(io.MousePos.x * io.DisplayFramebufferScale.x);
           const auto y = static_cast<std::uint32_t>(io.MousePos.y * io.DisplayFramebufferScale.y);
@@ -7929,6 +7922,17 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     }
     ImGui::EndPopup();
   }
+  // Resolve global tool keys after widgets establish text/item ownership in this frame.
+  // The Scene's initial-click path still resolves tool keys before authoring pick/drag setup.
+  const auto &tool_io = ImGui::GetIO();
+  if (scene && state_->app_focused && !interaction_blocked && !tool_io.WantTextInput &&
+      !state_->game_input_focused && !state_->native_scene_drag_origin &&
+      !state_->native_scene_drag && !ImGui::IsAnyItemActive() &&
+      !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel) &&
+      !tool_io.KeyCtrl && !tool_io.KeyAlt && !tool_io.KeyShift && !tool_io.KeySuper &&
+      !ImGui::IsMouseDown(ImGuiMouseButton_Left) && !ImGui::IsMouseDown(ImGuiMouseButton_Right) &&
+      !ImGui::IsMouseDown(ImGuiMouseButton_Middle))
+    ApplySceneToolKeys(*state_);
   if (!focus_panel.empty())
     ImGui::SetWindowFocus(focus_panel.c_str());
 }

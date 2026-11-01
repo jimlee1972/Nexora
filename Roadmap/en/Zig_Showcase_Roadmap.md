@@ -14,13 +14,14 @@ set; allocation tags, negative descriptor/callback coverage, and Linux sanitizer
 ZS-M0. Runtime dynamic discovery and generation lifecycle are implemented; the Showcase builds and
 selects a Zig Development shared library, while Shipping retains the same statically linked ABI.
 
-**Editor workflow extension (2026-11-01, acceptance pending):** ED-WF-04 adds paired typed
-Zig save/load data, an actual registered-work barrier and strict embedding-owned World/resource
-transactions. A scoped Windows fixture passed 32 real Zig library replacements and 224 rejected
-candidates; complete Cloud/CI/Editor integration is still pending. This extends the historical
-module-state contract above without accepting Editor background reload or animation/pool workflows.
-The macOS SDK/strict-loader unloadability repair remains under native verification; the original
-reload/unload assertions are retained. See [the work-order evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04.md).
+✅ **Editor workflow extension (2026-11-01):** ED-WF-04 is accepted in merged
+[PR #758](https://github.com/jimlee1972/Nexora/pull/758). Paired typed Zig state, actual registered-work
+barriers and strict World/resource transactions retain 32 successful reloads and 224 expected
+rejections. Full Cloud 495/495 and Shipping builds, native Windows/macOS and all 42 CI checks pass;
+merged tree equals the validated tree. The macOS panic TLS/deprecated-API failures and repairs are
+retained with original unload assertions. See [accepted evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04.md).
+This extends the historical module-state contract; Editor background coordination, animation/pools
+and final workflow delivery remain separate pending work. Historical ZS milestone progress is unchanged.
 
 **Local implementation status (2026-09-23):** Deterministic headless/static and
 Development-dynamic ZS-M1 verification is now available as `NexoraShowcase.exe`. C++ owns `main`, engine lifecycle, a small

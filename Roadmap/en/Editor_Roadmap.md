@@ -3,11 +3,12 @@
 ### Unity-style Editor input (in progress)
 
 [Issue #759](https://github.com/jimlee1972/Nexora/issues/759) tracks Unity-style Scene navigation,
-Q Hand/WER tools, X/Z modes, supported command/window shortcuts and input ownership. Legacy
+global Q Hand/WER tools, X/Z modes, Space navigation, supported command/window shortcuts and input ownership. Legacy
 F5/F6/F10 and P pivot aliases remain; Prefab isolation moves to Ctrl+Alt+Shift+P. Local input
-implementation and tests are underway; full Cloud/native acceptance, PR and final ZIP are pending.
+implementation passes scoped Windows8/8; [input evidence](../../Tools/Build/evidence/EditorWorkflow/Unity-Input.md)
+keeps full Cloud/native acceptance, PR and final ZIP pending.
 See [Editor input behavior](../../Apps/Editor/README.md#unity-style-editor-input-issue-759).
-This supporting task does not alter the 3/9 workflow count or 0/8 Editor milestone count.
+This supporting task does not alter the 4/9 workflow count or 0/8 Editor milestone count.
 
 
 ### Script workflow and Sprite integration work orders (2026-10-31)
@@ -15,7 +16,7 @@ This supporting task does not alter the 3/9 workflow count or 0/8 Editor milesto
 The approved [delivery plan](Editor_Workflow_Delivery_Plan.md) and
 [Epic #741](https://github.com/jimlee1972/Nexora/issues/741) track nine dependent work orders for
 script Build UI, clean game output, stateful reload and source-aware Editor/Player/Zig integration.
-Acceptance is 3/9 (33.3%): ED-WF-01 ✅ [PR #751](https://github.com/jimlee1972/Nexora/pull/751), ED-WF-02 ✅ [PR #754](https://github.com/jimlee1972/Nexora/pull/754), ED-WF-03 ✅ [PR #756](https://github.com/jimlee1972/Nexora/pull/756). ED-WF-04 is in progress; existing supporting capabilities are not counted as complete workflows.
+Acceptance is 4/9 (44.4%): ED-WF-01 ✅ [PR #751](https://github.com/jimlee1972/Nexora/pull/751), ED-WF-02 ✅ [PR #754](https://github.com/jimlee1972/Nexora/pull/754), ED-WF-03 ✅ [PR #756](https://github.com/jimlee1972/Nexora/pull/756), ED-WF-04 ✅ [PR #758](https://github.com/jimlee1972/Nexora/pull/758); existing supporting capabilities are not counted as complete workflows.
 The full Editor milestone count remains 0/8. Existing CLI and `.bat` development remains available.
 
 ### Windows exported game entry (2026-10-30)

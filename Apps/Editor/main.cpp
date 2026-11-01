@@ -729,7 +729,7 @@ int RunGraphical(std::optional<ProjectState> project,
                  nexora::editor::ProjectAccess selector_access, std::uint32_t frame_limit,
                  bool native_scene_preview,
                  const std::optional<std::string> &initial_gameplay_library, bool start_play,
-                 nexora::editor::app::StartupSplash &splash) {
+                 nexora::editor::app::StartupSplash &splash, bool fallback_scene_overview = false) {
   splash.Stage(nexora::editor::app::StartupStage::Graphics);
   Nexora::Presentation::RenderSurfaceDescriptor surface_descriptor{
       "Nexora Editor",
@@ -3929,6 +3929,11 @@ int RunGraphical(std::optional<ProjectState> project,
             *native_scene_meshes, materials, project_generation);
         ui.SetNativeScenePreviewAvailable(scene_status !=
                                           Nexora::Presentation::SurfaceStatus::Unsupported);
+        if (fallback_scene_overview &&
+            scene_status == Nexora::Presentation::SurfaceStatus::Unsupported) {
+          ui.SetNativeScenePreview(false);
+          fallback_scene_overview = false;
+        }
         if (scene_status == Nexora::Presentation::SurfaceStatus::Ready &&
             (!native_scene_viewport_reported || native_scene_viewport_reported->x != viewport->x ||
              native_scene_viewport_reported->y != viewport->y ||
@@ -4314,6 +4319,7 @@ int Run(int argc, char **argv) try {
   bool graphical = false;
   bool read_only = false;
   bool native_scene_preview = false;
+  bool fallback_scene_overview = false;
   bool start_play = false;
   std::optional<std::string> gameplay_library;
   std::optional<std::string> create_project;
@@ -4372,8 +4378,11 @@ int Run(int argc, char **argv) try {
   }
 #if defined(NEXORA_EDITOR_GRAPHICAL_SHELL)
   // Choose the interactive default only after every explicit CLI option has been parsed.
-  if (!has_project && !create_project && report.empty())
+  if (!has_project && !create_project && report.empty()) {
     graphical = true;
+    fallback_scene_overview = !native_scene_preview;
+    native_scene_preview = true;
+  }
 #endif
   if (create_project) {
     if (has_project || read_only || create_project->empty() || !project_name ||
@@ -4443,10 +4452,12 @@ int Run(int argc, char **argv) try {
     return RunGraphical(std::move(project_state), recent_projects,
                         read_only ? nexora::editor::ProjectAccess::ReadOnly
                                   : nexora::editor::ProjectAccess::ReadWrite,
-                        frame_limit, native_scene_preview, gameplay_library, start_play, splash);
+                        frame_limit, native_scene_preview, gameplay_library, start_play, splash,
+                        fallback_scene_overview);
 #else
   static_cast<void>(frame_limit);
   static_cast<void>(native_scene_preview);
+  static_cast<void>(fallback_scene_overview);
 #endif
   if (!project_state) {
     std::cerr << "--project is required\n";

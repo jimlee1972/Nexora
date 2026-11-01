@@ -1,3 +1,20 @@
+template <typename StateT> void ApplySceneToolKeys(StateT &state) {
+  if (ImGui::IsKeyPressed(ImGuiKey_Q, false))
+    state.native_scene_tool = NativeSceneTool::Hand;
+  else if (ImGui::IsKeyPressed(ImGuiKey_W, false))
+    state.native_scene_tool = NativeSceneTool::Move;
+  else if (ImGui::IsKeyPressed(ImGuiKey_E, false))
+    state.native_scene_tool = NativeSceneTool::Rotate;
+  else if (ImGui::IsKeyPressed(ImGuiKey_R, false)) {
+    state.native_scene_tool = NativeSceneTool::Scale;
+    state.native_scene_local_axes = true;
+  }
+  if (state.native_scene_tool != NativeSceneTool::Scale && ImGui::IsKeyPressed(ImGuiKey_X, false))
+    state.native_scene_local_axes = !state.native_scene_local_axes;
+  if (ImGui::IsKeyPressed(ImGuiKey_Z, false) || ImGui::IsKeyPressed(ImGuiKey_P, false))
+    state.native_scene_center_pivot = !state.native_scene_center_pivot;
+}
+
 // View navigation changes only the Editor camera, never the authoring World or history.
 template <typename StateT> void NavigateNativeScene(StateT &state) {
   const auto &io = ImGui::GetIO();
@@ -8,7 +25,8 @@ template <typename StateT> void NavigateNativeScene(StateT &state) {
   const bool fly = right && !io.KeyAlt;
   const bool pan =
       middle || (left && ((io.KeyAlt && io.KeyCtrl) ||
-                          (!io.KeyAlt && state.native_scene_tool == NativeSceneTool::Hand)));
+                          (!io.KeyAlt && (state.native_scene_tool == NativeSceneTool::Hand ||
+                                          ImGui::IsKeyDown(ImGuiKey_Space)))));
   const bool orbit = left && io.KeyAlt && !io.KeyCtrl;
   const bool zoom = right && io.KeyAlt;
   auto &camera = state.native_scene_orbit;
