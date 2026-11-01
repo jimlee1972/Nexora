@@ -43,6 +43,9 @@ Play chords remain available while Game captures input; unrelated authoring chor
 The native macOS shortcut policy uses Command for the primary action modifier. Captured
 Ctrl/Command releases are forwarded even while P is held; a reserved Play press cannot also fire
 a game action bound to P, including autorepeat after the modifier is released.
+Legacy snapshots and the 2D services Input API share the same Editor-only filter. It remembers
+reserved P consumption even in discarded capture-acquisition batches; F5/F6/F10 are also reserved,
+while ordinary P after release and nonreserved function keys remain available to games.
 
 This aligns supported commands and view navigation. Rect/combined Transform tools, vertex snapping,
 Scene orientation widget, a new XY 2D authoring mode, and maximized-view layout are not implemented

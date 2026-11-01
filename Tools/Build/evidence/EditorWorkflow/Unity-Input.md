@@ -44,13 +44,13 @@ See [current controls](../../../../Apps/Editor/README.md#unity-style-editor-inpu
 
 ## Verification
 
-The [Windows receipt](Unity-Input-Windows.json) records exact commands, eight passed cases, elapsed
-times, log hashes, eighteen source hashes and six executable/library hashes. Final scoped CTest
-exited 0: **8/8 passed, zero skips/failures, 73.58s** after the complete native target build exited
+The [Windows receipt](Unity-Input-Windows.json) records exact commands, ten passed cases, elapsed
+times, log hashes, twenty source hashes and eight executable/library hashes. Final scoped CTest
+exited 0: **10/10 passed, zero skips/failures, 76.65s** after the complete native target build exited
 0. Real ImGui input tests exercise 1x/2x Hand, orbit/look/pan/fly/zoom, no accidental picks/history,
 modified transform admission/cancellation, tool/axis/pivot guards, Shift+F/Undo/follow cancellation,
 Unity Play chords and Game capture, and Build Settings/Build & Run/busy-build admission. Existing
-selection, camera alignment and Game camera regression cases also passed. These are native
+selection, camera alignment, Game camera, real 2D services and packaged Play regression cases also passed. These are native
 Windows process tests, not physical clean-host, full GUI presentation or final ZIP acceptance.
 
 Three exploratory failures remain recorded locally: the Select test released after leaving its
@@ -98,3 +98,32 @@ Keep this failure; do not change product ownership to accommodate a validation m
 run uses the supported Shipping Runtime/Player boundary (Zig/Slang/Vulkan/ProjectPlayer/native ON,
 graphical Editor OFF). Development continues to compile/link the actual graphical Editor and run
 its complete native suite. Shipping has testing OFF and does not validate an Editor executable.
+
+## Services Input admission follow-up
+
+The next candidate `07afb671f61a0aaf5b52f8045bc716c765feef40` passed the existing scoped Windows
+8/8 gate and native Windows package startup/branding/entry checks (5/5, exit0,19.45s), including
+two actual no-argument startup/shutdown cycles after ZIP extraction and relocation. Its downloaded
+inner ZIP is 115761001 bytes, SHA256
+`5bfdb6ebb47fac900906a7e319184e8bfb3bba306b7a5973da4df8adc8d0cdb6`.
+All 22697 inventory-listed files were hash/CRC/path checked locally, with zero missing/foreign files.
+The only root EXE is NexoraEditor.exe; private Runtime Player and build tools are required Editor
+dependencies. No engine/game source checkout is included; compiler/CMake resource sources stay
+inside the required private Tools tree. Physical clean-host acceptance remains NOT_RUN.
+
+That source is still **unaccepted**: a new actual host `get_services_api` action-binding regression
+reproduced Ctrl/Command+P firing a P-bound 2D game action. The original reproduction is retained as
+`build/editor-workflow-native/unity-input-twod-repro-test.log`, exit8,0.36s. Legacy PlayInputState
+already consumed the chord, but PlayTwoDServices received the original raw events. The repair shares
+one Editor-only, allocation-free filter across both providers, preserves reserved-P consumption
+through acquisition and modifier-release repeats, and reserves F5/F6/F10 aliases. The same real
+services test must prove ordinary P recovery, focus revocation and nonreserved F2 delivery across
+all 32 clone lifetimes. Existing animation, pool, native frame, source/scene isolation and cleanup
+assertions remain. Shipping Runtime Input behavior and public C/Zig ABI are unchanged.
+
+The candidate's unrelated `modern-shaders-preview` job `124765137921` failed before compile while
+PrepareD3D12Preview downloaded an SDK (WinError10060). Its raw log is retained, SHA256
+`76622f271f7ade4d971d347a6955edca78d23eca842d442493add1a61226772d`,57362 bytes. GitHub rejected
+an immediate per-job retry with HTTP403 because run41278360329 was still running. This does not
+waive the check: the repaired source requires a new complete Cloud/CI run and successful final-head
+shader validation. Do not retry/merge the superseded source as final acceptance.

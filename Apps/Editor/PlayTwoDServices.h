@@ -11,6 +11,7 @@
 #include "Nexora/TwoD/GameplayBridge.h"
 #include "Nexora/TwoD/GameplayUi.h"
 #include "Nexora/Window/Window.h"
+#include "PlayInputState.h"
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -103,6 +104,7 @@ public:
     }
   }
   void RevokeInput() noexcept {
+    play_keys_.Reset();
     try {
       (void)input_.SetFocused(false);
       ui_.BeginInput({.focused = false});
@@ -117,13 +119,14 @@ public:
     using namespace Nexora::Window;
     (void)input_.BeginFrame();
     if (!accepted) {
+      RevokeInput();
       // Capture may anchor the pointer without admitting its click or any held controls.
       for (const auto &event : events)
         if (event.type == WindowEventType::Pointer) {
           pointer_x_ = event.value0;
           pointer_y_ = event.value1;
-        }
-      RevokeInput();
+        } else if (event.type == WindowEventType::Key)
+          static_cast<void>(play_keys_.KeyDown(event));
       return;
     }
     (void)input_.SetFocused(true);
@@ -143,7 +146,8 @@ public:
       else if (event.type == WindowEventType::Key && event.value0 > 0 &&
                event.value0 <= static_cast<int>(Key::F12))
         (void)input_.Submit(user, NEXORA_INPUT_DEVICE_KEYBOARD, 0,
-                            static_cast<std::uint32_t>(event.value0), event.value1 ? 1.F : 0.F);
+                            static_cast<std::uint32_t>(event.value0),
+                            play_keys_.KeyDown(event) ? 1.F : 0.F);
       else if (event.type == WindowEventType::PointerButton && event.value0 >= 0 &&
                event.value0 < 5)
         (void)input_.Submit(user, NEXORA_INPUT_DEVICE_MOUSE, 0,
@@ -361,6 +365,7 @@ private:
   twod::InstancePool pool_;
   twod::GameplayBridge bridge_;
   runtime::GameplayInput input_;
+  PlayShortcutFilter play_keys_;
   runtime::NativeGameplayGamepad gamepads_;
   runtime::GameplayAudio audio_;
   twod::GameplayUi ui_;

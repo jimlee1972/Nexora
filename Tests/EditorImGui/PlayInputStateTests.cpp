@@ -183,6 +183,14 @@ int main() {
       reserved.Process(std::array{KeyEvent(Key::P, false), KeyEvent(Key::P, true)});
       Require((reserved.Snapshot().buttons & 1U) != 0,
               "ordinary P binding did not recover after release");
+      reserved.SetFocused(false);
+      reserved.SetFocused(true);
+      key.modifiers = action;
+      reserved.Process(std::array{key}); // Acquisition discards controls, but retains consumption.
+      key.modifiers = KeyModifiers::None;
+      reserved.Process(std::array{key});
+      Require((reserved.Snapshot().buttons & 1U) == 0,
+              "acquisition discarded the reserved legacy P latch");
     }
     preview::PlayInputState input;
     const std::array held{KeyEvent(Key::D, true), KeyEvent(Key::Space, true), Mouse(0, true)};
