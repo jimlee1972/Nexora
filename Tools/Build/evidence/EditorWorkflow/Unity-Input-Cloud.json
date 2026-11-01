@@ -1,0 +1,450 @@
+{
+  "status": "PASS",
+  "commit": "c9f1717085078b216913cd1096427c5aa42c6946",
+  "tree": "84b3867ea2e9014bead151dec733d210f6bfc8ef",
+  "working_tree_clean": true,
+  "registered": 495,
+  "executed": 495,
+  "passed": 495,
+  "failed": 0,
+  "skipped": 0,
+  "failure_reasons": [],
+  "skip_reasons": [],
+  "registration_changes": {
+    "added": [],
+    "removed": []
+  },
+  "ctest_duration_seconds": 1890.31,
+  "gates": [
+    {
+      "command": [
+        "cmake",
+        "--preset",
+        "linux-development",
+        "-DNEXORA_ENABLE_ZIG_GAMEPLAY=ON",
+        "-DNEXORA_ENABLE_SLANG=ON",
+        "-DNEXORA_ENABLE_VULKAN_BACKEND=ON",
+        "-DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON",
+        "-DNEXORA_BUILD_PROJECT_PLAYER=ON",
+        "-DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON",
+        "-DNEXORA_CRYPTOGRAPHY_BACKEND=OPENSSL"
+      ],
+      "cwd": "/workspace/Nexora",
+      "commit": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "tree": "84b3867ea2e9014bead151dec733d210f6bfc8ef",
+      "start": 1793514332.4635375,
+      "state": "completed",
+      "exit_code": 0,
+      "end": 1793514334.495625,
+      "name": "development-configure",
+      "duration_seconds": 2.032,
+      "stdout": "development-configure.stdout.log",
+      "stderr": "development-configure.stderr.log"
+    },
+    {
+      "command": [
+        "cmake",
+        "--build",
+        "--preset",
+        "linux-development"
+      ],
+      "cwd": "/workspace/Nexora",
+      "commit": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "tree": "84b3867ea2e9014bead151dec733d210f6bfc8ef",
+      "start": 1793514344.389115,
+      "state": "completed",
+      "exit_code": 0,
+      "end": 1793514395.6045008,
+      "name": "development-build",
+      "duration_seconds": 51.215,
+      "stdout": "development-build.stdout.log",
+      "stderr": "development-build.stderr.log"
+    },
+    {
+      "command": [
+        "ctest",
+        "--preset",
+        "linux-development",
+        "-V",
+        "--output-junit",
+        "/workspace/validation-759-fix2/development-junit.xml"
+      ],
+      "cwd": "/workspace/Nexora",
+      "commit": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "tree": "84b3867ea2e9014bead151dec733d210f6bfc8ef",
+      "start": 1793514410.834598,
+      "state": "completed",
+      "exit_code": 0,
+      "end": 1793516301.2385845,
+      "name": "development-ctest",
+      "duration_seconds": 1890.404,
+      "stdout": "development-ctest.stdout.log",
+      "stderr": "development-ctest.stderr.log"
+    },
+    {
+      "command": [
+        "cmake",
+        "--preset",
+        "linux-shipping",
+        "-DNEXORA_ENABLE_ZIG_GAMEPLAY=ON",
+        "-DNEXORA_ENABLE_SLANG=ON",
+        "-DNEXORA_ENABLE_VULKAN_BACKEND=ON",
+        "-DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=OFF",
+        "-DNEXORA_BUILD_PROJECT_PLAYER=ON",
+        "-DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON",
+        "-DNEXORA_CRYPTOGRAPHY_BACKEND=OPENSSL"
+      ],
+      "cwd": "/workspace/Nexora",
+      "commit": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "tree": "84b3867ea2e9014bead151dec733d210f6bfc8ef",
+      "start": 1793516314.6638353,
+      "state": "completed",
+      "exit_code": 0,
+      "end": 1793516315.6444783,
+      "name": "shipping-configure",
+      "duration_seconds": 0.981,
+      "stdout": "shipping-configure.stdout.log",
+      "stderr": "shipping-configure.stderr.log"
+    },
+    {
+      "command": [
+        "cmake",
+        "--build",
+        "--preset",
+        "linux-shipping"
+      ],
+      "cwd": "/workspace/Nexora",
+      "commit": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "tree": "84b3867ea2e9014bead151dec733d210f6bfc8ef",
+      "start": 1793516328.0197232,
+      "state": "completed",
+      "exit_code": 0,
+      "end": 1793516354.0417428,
+      "name": "shipping-build",
+      "duration_seconds": 26.022,
+      "stdout": "shipping-build.stdout.log",
+      "stderr": "shipping-build.stderr.log"
+    }
+  ],
+  "retries": [],
+  "affected_tests": [
+    {
+      "name": "editor.native_scene_tools",
+      "classname": "editor.native_scene_tools",
+      "time": "1.4435",
+      "status": "run"
+    },
+    {
+      "name": "editor.play_input_state",
+      "classname": "editor.play_input_state",
+      "time": "2.64319",
+      "status": "run"
+    },
+    {
+      "name": "editor.linux_prefab_isolation",
+      "classname": "editor.linux_prefab_isolation",
+      "time": "137.321",
+      "status": "run"
+    },
+    {
+      "name": "editor.linux_native_scene_preview",
+      "classname": "editor.linux_native_scene_preview",
+      "time": "26.7022",
+      "status": "run"
+    },
+    {
+      "name": "editor.linux_play_host_memory",
+      "classname": "editor.linux_play_host_memory",
+      "time": "1.81666",
+      "status": "run"
+    },
+    {
+      "name": "editor.play_twod_services",
+      "classname": "editor.play_twod_services",
+      "time": "0.107321",
+      "status": "run"
+    },
+    {
+      "name": "editor.linux_packaged_play",
+      "classname": "editor.linux_packaged_play",
+      "time": "39.1968",
+      "status": "run"
+    }
+  ],
+  "parallelism": {
+    "build_jobs": 2,
+    "development_shipping_build_overlap": false,
+    "ctest": 1
+  },
+  "oom_events": 0,
+  "oom_kill_events": 0,
+  "residual_process_check": {
+    "matches": [],
+    "ps_exit_code": 0,
+    "check_exit_code": 0
+  },
+  "prior_archive_sha256_unchanged": {
+    "754": "f8f719ec430558c936b93865aa1f3d5768822d0faa3c28ae0ff7fcfe2a421209",
+    "756": "05ef561d2fbf742680ed1928678f1c4c34206128f985a78f6762aff438f0c848",
+    "758": "6ab758ffdf8b5569937cce488ae6db734398152fbbd3564bb6a0350883c50e71",
+    "759": "2fe20c077a83033779ad09dc47f358186e1657952ca4af5aaec939b69b2f01d0",
+    "758-fix1": "a3b5f2b120cb03b78b3d4014f5a9259bad8292ab3504210d7254fc0289210e38",
+    "758-fix2": "08e61d10bbd1ec7108a8550e2bc6a5cc5acd47a16d355ed85f7178b06fe6cbcc",
+    "759-fix1": "96a4d97579bf59b1a012b791b97b9bdfda3a81a08851bcf3dcba211ba189b8b5"
+  },
+  "environment": "Reused validation-758 isolated tools/dependencies and writable XDG/Zig caches; no installs or proxy/CA changes.",
+  "shipping_testing": "Shipping testing OFF, Editor and graphical shell OFF per existing product contract. No Shipping Editor/CTest claim. Runtime/native Player configured and built with Zig/Slang/Vulkan/ProjectPlayer/native ON; graphical shell OFF.",
+  "platform_scope": "Linux x86_64, Debian 13, Xvfb/software Vulkan only; no Windows/macOS execution.",
+  "source_or_shared_mutations": "None: no source/test/assertion/deadline/dataset edits, commits, pushes, PR/GitHub or Beads operations.",
+  "archive": {
+    "path": "/workspace/validation-759-fix2-evidence.tar.gz",
+    "bytes": 416712,
+    "sha256": "d65da145378d69740f1e5360b4d4cd845cd0cba68e4a3c3b274afb4bcab3c73d"
+  },
+  "postflight": {
+    "SOURCE": {
+      "commit": "c9f1717085078b216913cd1096427c5aa42c6946",
+      "tree": "84b3867ea2e9014bead151dec733d210f6bfc8ef",
+      "source_clean": true,
+      "status_porcelain": ""
+    },
+    "ARCHIVE": {
+      "path": "/workspace/validation-759-fix2-evidence.tar.gz",
+      "bytes": 416712,
+      "sha256": "d65da145378d69740f1e5360b4d4cd845cd0cba68e4a3c3b274afb4bcab3c73d"
+    },
+    "PROCESS_CHECK": {
+      "matches": [],
+      "count": 0,
+      "ps_exit_code": 0,
+      "check_exit_code": 0
+    }
+  },
+  "native_evidence_manifest": [
+    {
+      "test": "gameplay.zig_twod_static",
+      "path": "native-evidence/gameplay.zig_twod_static.log",
+      "bytes": 2073,
+      "sha256": "76753060f75b3347375cf4ee14e4ecd3030520a7513374961a68bf850dcb2fd2"
+    },
+    {
+      "test": "gameplay.zig_twod_dynamic",
+      "path": "native-evidence/gameplay.zig_twod_dynamic.log",
+      "bytes": 2162,
+      "sha256": "5ed42a97a3ef14b59aa33dc469de41bfdbd01a6324738b6835e9a2588436633a"
+    },
+    {
+      "test": "gameplay.zig_twod_wire_layout",
+      "path": "native-evidence/gameplay.zig_twod_wire_layout.log",
+      "bytes": 366,
+      "sha256": "9c8d695bc224219e09e350b9477ea86d7abf25092f9ae35e7f90889c09982521"
+    },
+    {
+      "test": "twod.gameplay_bridge",
+      "path": "native-evidence/twod.gameplay_bridge.log",
+      "bytes": 355,
+      "sha256": "c02167c6200efa3cd8a8e1f4788e9e65e1918b47a8639a9804ecdb9274b15b2f"
+    },
+    {
+      "test": "twod.project_play_assets",
+      "path": "native-evidence/twod.project_play_assets.log",
+      "bytes": 461,
+      "sha256": "edc9e1edf0142e38fbda2f0176f5e1911b4547e9c0f290adbf6b25729b12b010"
+    },
+    {
+      "test": "twod.play_assets",
+      "path": "native-evidence/twod.play_assets.log",
+      "bytes": 440,
+      "sha256": "b653c307efcf22c6d6a33975a229b4008b8f5bf7ab175f20075d8138c6cece0b"
+    },
+    {
+      "test": "twod.play_context",
+      "path": "native-evidence/twod.play_context.log",
+      "bytes": 458,
+      "sha256": "dbf6dbbbe8c4abe5a53fa72fc2f15f05c7d87926cd7ecc257d65e6f92c15f562"
+    },
+    {
+      "test": "twod.play_context_native",
+      "path": "native-evidence/twod.play_context_native.log",
+      "bytes": 1485,
+      "sha256": "440028541245ce02747b3227417256df34bdd5bf0d5d0696d5b08a4b04cfa861"
+    },
+    {
+      "test": "gameplay.zig_twod_native",
+      "path": "native-evidence/gameplay.zig_twod_native.log",
+      "bytes": 2908,
+      "sha256": "55e7a4a58b7ba6625af90f11eca80dce76f6d72afeb0b24932c9c5b80182458a"
+    },
+    {
+      "test": "twod.gameplay_ui",
+      "path": "native-evidence/twod.gameplay_ui.log",
+      "bytes": 349,
+      "sha256": "09b5901122131ae4385c6d594bb7ee10f18853b9137b02d899dc43b8ee34a4e1"
+    },
+    {
+      "test": "twod.gameplay_content",
+      "path": "native-evidence/twod.gameplay_content.log",
+      "bytes": 359,
+      "sha256": "3ff8c40b254c806cc49e1d44e256e4386f67e7a3d76914c98ad9fc66b73b9056"
+    },
+    {
+      "test": "twod.gameplay_display",
+      "path": "native-evidence/twod.gameplay_display.log",
+      "bytes": 359,
+      "sha256": "9476da8ea7dac26379b71d61fd2f22f674a9d42b889744cb0e402b3ef99d5074"
+    },
+    {
+      "test": "twod.gameplay_ui_draw",
+      "path": "native-evidence/twod.gameplay_ui_draw.log",
+      "bytes": 358,
+      "sha256": "7984ed00d8776e640fcab127da8ebc4b19afa1b38202f8ed886f4f4994120c60"
+    },
+    {
+      "test": "twod.gameplay_assets",
+      "path": "native-evidence/twod.gameplay_assets.log",
+      "bytes": 357,
+      "sha256": "6443dc3267d5b13aa39cedfd0c776b2361a0db5da82fc9e3dd79513d108178ae"
+    },
+    {
+      "test": "twod.gameplay_effects",
+      "path": "native-evidence/twod.gameplay_effects.log",
+      "bytes": 359,
+      "sha256": "9be1f7a299a69cc67a1014145082a641a2889858f896fbd16fb0c6ca3f6a0d02"
+    },
+    {
+      "test": "editor.native_scene_tools",
+      "path": "native-evidence/editor.native_scene_tools.log",
+      "bytes": 427,
+      "sha256": "cf60f692ff9590be137fe81c984765ab94fd80f56824b43e6d88a441de9b4e33"
+    },
+    {
+      "test": "editor.play_input_state",
+      "path": "native-evidence/editor.play_input_state.log",
+      "bytes": 433,
+      "sha256": "64f32acd9e62971d9a683a1fc236fb531dd288bdae00bac6144545978f84f12a"
+    },
+    {
+      "test": "editor.linux_prefab_isolation",
+      "path": "native-evidence/editor.linux_prefab_isolation.log",
+      "bytes": 319682,
+      "sha256": "bc8d6825073e30fcd05ad90da02447f8ae700136b1cb3dd9b11bd2335a19a941"
+    },
+    {
+      "test": "editor.linux_native_scene_preview",
+      "path": "native-evidence/editor.linux_native_scene_preview.log",
+      "bytes": 191072,
+      "sha256": "1067e881b31b7cf3a80089ce75ed2447c7b034dfdcd805f7a411f8f0771df47d"
+    },
+    {
+      "test": "editor.linux_play_host_memory",
+      "path": "native-evidence/editor.linux_play_host_memory.log",
+      "bytes": 1056,
+      "sha256": "3084916d6dec4e3c3d239411e8da67f3e3c8b5b2b94dec8b7a781ee183ece68b"
+    },
+    {
+      "test": "editor.play_twod_services",
+      "path": "native-evidence/editor.play_twod_services.log",
+      "bytes": 483,
+      "sha256": "b54e2e48847544453a51f2ceb5be9e25bf8fd81d0299a7ca7964ef0b2ae04fee"
+    },
+    {
+      "test": "editor.play_twod_native",
+      "path": "native-evidence/editor.play_twod_native.log",
+      "bytes": 1185,
+      "sha256": "ab35b76416bbeac9cc087e65e18c615a3ce1a9fb3c4f6c14d6be1472a7044fe4"
+    },
+    {
+      "test": "editor.linux_packaged_play",
+      "path": "native-evidence/editor.linux_packaged_play.log",
+      "bytes": 3308,
+      "sha256": "5071749139f0fe879c87550f57c98149a247ae101adefbb90ae48b4fc5a01a65"
+    }
+  ],
+  "exact_commands": [
+    {
+      "gate": "development-configure",
+      "argv": [
+        "cmake",
+        "--preset",
+        "linux-development",
+        "-DNEXORA_ENABLE_ZIG_GAMEPLAY=ON",
+        "-DNEXORA_ENABLE_SLANG=ON",
+        "-DNEXORA_ENABLE_VULKAN_BACKEND=ON",
+        "-DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON",
+        "-DNEXORA_BUILD_PROJECT_PLAYER=ON",
+        "-DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON",
+        "-DNEXORA_CRYPTOGRAPHY_BACKEND=OPENSSL"
+      ],
+      "state": "completed",
+      "exit_code": 0,
+      "duration_seconds": 2.032,
+      "reason": null
+    },
+    {
+      "gate": "development-build",
+      "argv": [
+        "cmake",
+        "--build",
+        "--preset",
+        "linux-development"
+      ],
+      "state": "completed",
+      "exit_code": 0,
+      "duration_seconds": 51.215,
+      "reason": null
+    },
+    {
+      "gate": "development-ctest",
+      "argv": [
+        "ctest",
+        "--preset",
+        "linux-development",
+        "-V",
+        "--output-junit",
+        "/workspace/validation-759-fix2/development-junit.xml"
+      ],
+      "state": "completed",
+      "exit_code": 0,
+      "duration_seconds": 1890.404,
+      "reason": null
+    },
+    {
+      "gate": "shipping-configure",
+      "argv": [
+        "cmake",
+        "--preset",
+        "linux-shipping",
+        "-DNEXORA_ENABLE_ZIG_GAMEPLAY=ON",
+        "-DNEXORA_ENABLE_SLANG=ON",
+        "-DNEXORA_ENABLE_VULKAN_BACKEND=ON",
+        "-DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=OFF",
+        "-DNEXORA_BUILD_PROJECT_PLAYER=ON",
+        "-DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON",
+        "-DNEXORA_CRYPTOGRAPHY_BACKEND=OPENSSL"
+      ],
+      "state": "completed",
+      "exit_code": 0,
+      "duration_seconds": 0.981,
+      "reason": null
+    },
+    {
+      "gate": "shipping-build",
+      "argv": [
+        "cmake",
+        "--build",
+        "--preset",
+        "linux-shipping"
+      ],
+      "state": "completed",
+      "exit_code": 0,
+      "duration_seconds": 26.022,
+      "reason": null
+    }
+  ],
+  "overall_input_acceptance": "Cloud and all exact-head CI passed; implementation merged in PR #760. Acceptance documentation publication is a separate follow-up; final nine-order delivery remains open.",
+  "transport": {
+    "thread_id": "01a191d8-5c8a-7575-9bfb-f032dced30a6",
+    "postflight_turn": "01a195eb-55cd-7785-a648-cf67b19910de",
+    "readonly": true
+  }
+}

@@ -1,20 +1,22 @@
 # Nexora Graphical Editor Roadmap
 
-### Unity-style Editor input (in progress)
+### ✅ Unity-style Editor input (supported scope accepted)
 
-[Issue #759](https://github.com/jimlee1972/Nexora/issues/759) tracks Unity-style Scene navigation,
-global Q Hand/WER tools, X/Z modes, Space navigation, supported command/window shortcuts and input ownership. Legacy
-F5/F6/F10 and P pivot aliases remain; Prefab isolation moves to Ctrl+Alt+Shift+P. Local input
-implementation passes scoped Windows10/10; [input evidence](../../Tools/Build/evidence/EditorWorkflow/Unity-Input.md)
-keeps full Cloud/native acceptance, PR and final ZIP pending.
-Follow-up repairs defer tools until auxiliary text ownership resolves and preserve Ctrl/Command
-Play chords through Game capture without firing P-bound game actions. The first Cloud candidate
-failed three native tests and an invalid Shipping Editor configuration; its evidence is retained.
-The next candidate also fixes a reproduced reserved-P leak through the actual 2D services Input
-API, sharing the legacy filter and retaining consumption across capture acquisition. New acceptance
-must cover both providers and the reserved function-key aliases; prior passing ZIPs are candidates.
-See [Editor input behavior](../../Apps/Editor/README.md#unity-style-editor-input-issue-759).
+[Issue #759](https://github.com/jimlee1972/Nexora/issues/759) is implemented by
+[PR #760](https://github.com/jimlee1972/Nexora/pull/760), merged as `92ae6bc7447c` with the
+same tree as validated `c9f171708507`. Global Q Hand/WER, X/Z modes, Scene orbit/pan/look/fly/zoom,
+framing/follow, supported command/window shortcuts and text/modal/Game input ownership passed.
+Both legacy and 2D services providers consume reserved Play chords without firing game actions.
+Legacy F5/F6/F10 and P aliases remain; Prefab isolation uses Ctrl+Alt+Shift+P.
+[Input evidence](../../Tools/Build/evidence/EditorWorkflow/Unity-Input.md) records Cloud 495/495,
+supported Shipping linkage, all 42 CI checks, native Windows 436 passed/one optional font skip,
+macOS 410 passed/one optional font skip, Linux Xvfb 246/246 and package startup 5/5.
+Superseded failures and their repairs remain recorded. Rect/combined tools, vertex snapping,
+orientation widget, maximized view and a new XY 2D mode remain outside this change.
+Physical clean-host acceptance is NOT_RUN; the validated input ZIP is not the final workflow ZIP.
+See [Editor controls](../../Apps/Editor/README.md#unity-style-editor-input-issue-759).
 This supporting task does not alter the 4/9 workflow count or 0/8 Editor milestone count.
+
 
 
 ### Script workflow and Sprite integration work orders (2026-10-31)

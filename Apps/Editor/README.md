@@ -2,7 +2,9 @@
 
 ## Unity-style Editor input (issue #759)
 
-Implementation is in progress; full Cloud/native validation and delivery remain pending.
+Supported input changes are validated and merged in [PR #760](https://github.com/jimlee1972/Nexora/pull/760).
+See [acceptance evidence](../../Tools/Build/evidence/EditorWorkflow/Unity-Input.md) for Cloud,
+native Windows/macOS CI, package checks, and the remaining final workflow delivery scope.
 
 | Context | Input | Behavior |
 | --- | --- | --- |
@@ -312,10 +314,11 @@ real 1x/2x tests verify the workflow. The X/Z target persists with the
 overview camera; target height, orbit angle, and distance persist in a separate per-scene camera file on
 writable shutdown. Invalid camera files are preserved for inspection.
 
-Native Scene X toggles existing Global/Local axes (Scale keeps Local); P toggles Pivot/Center.
-Focused canvas shortcuts resolve before same-frame click/drag setup and wait during held or pending
-gestures. Modifier/text/modal/focus gates preserve authoring; read-only mode navigation is available.
-Home/P center gestures now share Q/W/E/R's real-hover guard. Real 1x/2x input and Linux Xvfb proxy/OBJ
+Native Scene X toggles existing Global/Local axes (Scale keeps Local); Z/P toggles Pivot/Center.
+Q/W/E/R and mode keys work across Editor panels when no text/item edit, modifier, modal, Game
+capture or gesture owns input. Initial Scene-click shortcuts resolve before picking/drag setup;
+ordinary global keys resolve at EndFrame after auxiliary windows establish ownership. Home requires
+Scene navigation ownership; read-only mode navigation remains available. Real 1x/2x input and Linux Xvfb proxy/OBJ
 center gestures verify unchanged history and one-step Undo; full gizmo target-host acceptance stays open.
 
 Move now adds paired-color XY/XZ/YZ plane handles in Global or Local axes, at the existing Pivot/Center.

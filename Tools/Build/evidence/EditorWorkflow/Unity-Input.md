@@ -2,7 +2,9 @@
 
 Related work: [issue #759](https://github.com/jimlee1972/Nexora/issues/759), Beads `nexora-mhh`.
 This supports the workflow epic; the nine-work-order denominator and 0/8 Editor milestones remain
-unchanged. Status: implementation and scoped Windows tests pass; complete validation is pending.
+unchanged. Status: ✅ supported input implementation accepted and merged in
+[PR #760](https://github.com/jimlee1972/Nexora/pull/760). The final nine-order Editor delivery
+remains open; these controls do not complete the broader workflow epic.
 
 ## Behavior
 
@@ -25,7 +27,7 @@ activation and character delivery are tested at 1x/2x. Scene initial-click selec
 pre-pick ordering.
 The Scene initial-click path still resolves tool selection before authoring starts. Normal no-project
 interactive startup prefers native3D, with one-time Unsupported fallback; explicit native/CLI choices
-keep their existing admission. This new startup behavior still needs native/CI acceptance.
+keep their existing admission. The final candidate passed native and package startup acceptance below.
 
 Unity Play chords (Ctrl+P, Ctrl+Shift+P, Ctrl+Alt+P), Ctrl+1..5 panel focus, Ctrl+Shift+C Console,
 Ctrl+R Project refresh, Ctrl+Shift+B Build Settings and Ctrl+B scoped Build & Run join existing
@@ -61,10 +63,35 @@ after widgets. The original text assertion passes at both DPIs. Overview Hand/Al
 Hierarchy tools/Space clutch are also exercised. Final assertions remain present. Initial
 build invocations named two nonexistent test targets; the corrected final build exited 0.
 
-Full Codex Cloud development configure/build/CTest, applicable Shipping linkage, exact-head CI,
-native Scene/Prefab interaction and final ZIP extraction/relocation remain pending. The input
-changes are separate from immutable PR #758 Runtime validation and must not use its old results
-as acceptance of these new controls. No new completion marker is earned yet.
+## Final immutable acceptance
+
+Validated commit `c9f1717085078b216913cd1096427c5aa42c6946`, tree
+`84b3867ea2e9014bead151dec733d210f6bfc8ef`, merged by squash
+`92ae6bc7447ce35a9abc8f3887b07d57db55b197`; the merged tree equals the validated tree.
+[Cloud receipt](Unity-Input-Cloud.json) records exact argv, exit codes, inventory and log hashes.
+Development configure/build/full CTest all exited 0: **495/495 passed, zero skips/failures**,
+1890.31s. Supported Shipping Runtime/Player configure/build also exited 0; Shipping disables
+Editor and testing, and is not Editor acceptance. No test retries or inventory changes occurred.
+Postflight found zero residual validation processes and no OOM kill; older evidence archives stayed unchanged.
+
+[CI receipt](Unity-Input-CI.json) records **42/42 successful checks** at that same head. All four
+workflows completed successfully before merge, including both shader-preview jobs. Native Windows
+ran 437 registered cases: 436 passed, one existing optional portable-font dependency skip, zero
+failures (1455.99s). Native macOS ran 411: 410 passed, the same optional skip, zero failures
+(928.55s). The skip requests `Tools/TwoD/font-requirements.txt`; it is not an input-test skip.
+Linux Xvfb Editor acceptance ran **246/246**, zero skips/failures (1447.68s), including real Scene,
+Prefab, Play memory, rendering, scene-byte isolation and save/reopen interactions. These native
+results are separate from the Cloud full gate and from historical PR #758 results.
+
+The Windows package job passed **5/5** startup/branding/GUI-entry tests (28.50s), including actual
+extracted/relocated Editor and Player, two no-argument startup cycles and no attached console.
+The inner ZIP `NexoraEditor-Windows-x64-c9f171708507.zip` is 115761152 bytes, SHA256
+`0133f51f51c0470aa235e1457c81d7103dd8203a58b4650cf305bcf92d1eb1ae`.
+All 22697 inventory files passed hash/CRC/path verification; no missing or foreign files were found.
+Only `NexoraEditor.exe` is at the root; required private Runtime/SDK tools remain. No engine/game
+source checkout is included. This is the accepted input candidate, **not the final nine-order ZIP**.
+Physical clean-host/device acceptance remains NOT_RUN. Historical failures below remain preserved;
+their statements about pending reruns describe those superseded candidates, not this final result.
 
 ## First immutable candidate failures and repairs
 
