@@ -81,5 +81,75 @@
         "sha256": "db15f421a0de0c924d84865fc1ec0940d1dadb9adfba3e9624f374bb97eff6d8"
       }
     ]
+  },
+  "fix2": {
+    "source": "4c3a53added709a7b5808048d848faabc676555e",
+    "tree": "7b08c3ebb7af7ce640209800a2409f459388fef4",
+    "status": "UNACCEPTED",
+    "result": "Both Runtime fixture translation units now compile on GNU15.2; next dangling-pointer failure is the existing PrefabPlacementSourceTests nested temporary opaque-component vector.",
+    "repair": "Named owning default-constructed expected opaque record, exact type 43, type_name Kept missing, data byte 13. Original conservation assertions retained. Preserve SaveAs error details. Add failure-only Ninja -k 0 diagnostics after the original strict Linux build; the failed required step remains failed.",
+    "local": {
+      "build_exit_code": 0,
+      "ctest_exit_code": 0,
+      "passed": 1,
+      "failed": 0,
+      "elapsed_seconds": 2.55,
+      "case": "editor.prefab_instance_source_apply",
+      "workflow_contract_cases": 16,
+      "workflow_contract_exit_code": 0,
+      "initial_failures": "Sandboxed Prefab path canonicalization returned Access denied before the modified assertion. Normal-permission final run passed. Workflow Python first lacked markdown_it, then python3 resolved to an inaccessible Windows alias; pinned existing task dependencies and python3 launcher passed all 16 cases."
+    },
+    "logs": [
+      {
+        "path": "build/editor-workflow-native/ed-wf05-linux-4c3a53ad-job-124870094013-failed.log",
+        "bytes": 154922,
+        "sha256": "47ffdda4191b06dea8833db6e0cad61787e11f75914e618e828c4a9cd67d15d6"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-linux-4c3a53ad-job-124870078474-failed.log",
+        "bytes": 152038,
+        "sha256": "3664c110d631177e46365e4d0e0d7619a157ae7870071162b16d2d13c943c31b"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-gcc-prefab-coordinator-test.log",
+        "bytes": 711,
+        "sha256": "a7d9957e6f739a57f4902c4d6910e41300a9536838da5f4efaeb43744b147675"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-gcc-prefab-diagnostic-test.log",
+        "bytes": 635,
+        "sha256": "9dbd2308a5664da91073701dc473525b9b46abfc96041508a3fd91a6501bf5a4"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-gcc-prefab-utf8-test.log",
+        "bytes": 767,
+        "sha256": "978916cd6f1febc6ba83b5547819f0713ea58e189a5696337a1428f4481cda09"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-gcc-prefab-final-build.log",
+        "bytes": 1780,
+        "sha256": "78f886c99b8487a19721c3bca84164e052bc91358e7754f17a0990f1a273b54d"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-gcc-prefab-final-test.log",
+        "bytes": 439,
+        "sha256": "f1389e4a35e188c14141800ea356d1f324df3a3acae16bcc3e3b54ab8ad14671"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-ci-diagnostics-contract-test.log",
+        "bytes": 404,
+        "sha256": "e13a1fb5056a57d17a1686f2d1ef37fde7ca1f5d800e60cdc03e057707235068"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-ci-diagnostics-contract-final-test.log",
+        "bytes": 6482,
+        "sha256": "eda831bdda83dd4f45f492e3e648d7fad72994ea2b25e057401dcc20da6e2c0c"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-ci-diagnostics-contract-fixed-test.log",
+        "bytes": 2528,
+        "sha256": "f4da4981708e97445fdca73e35cfdfbaee61c7565d327cbca91d30de411201ea"
+      }
+    ]
   }
 }

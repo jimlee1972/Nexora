@@ -56,6 +56,16 @@ generation/residency and the original 10k-cook deadline remain. Native Windows b
 the two Runtime contract cases pass (exit 0,2/2,0.48s). Both candidates' original logs are retained
 in the failure receipt. Full repaired-head Linux gates and CI remain mandatory; no result is waived.
 
+Repair `4c3a53ad` clears both Runtime fixture translation units and exposes the next GNU 15.2
+warning in the existing Prefab source-apply expected opaque-component vector. Its replacement
+uses an owning, default-constructed record with the same type, name and payload byte.
+The final native target build and normal-permission CTest pass (exit 0,1/1); earlier sandboxed
+path canonicalization failed with Access denied before the changed assertion, and is retained.
+The workflow contract suite passes all 16 cases after using the existing pinned Python dependencies
+and task-local python3 launcher. Linux desktop CI now collects remaining Ninja diagnostics only
+after its original required build fails; strict warnings and the original failed status remain.
+This is diagnostic collection, not an acceptance retry. Full repaired-head gates remain required.
+
 ## Verified integration gaps
 
 Observations use commit `c9f1717085078b216913cd1096427c5aa42c6946`:
