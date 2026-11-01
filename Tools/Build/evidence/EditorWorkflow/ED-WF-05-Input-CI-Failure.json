@@ -1,0 +1,33 @@
+{
+  "status": "UNACCEPTED_SUPERSEDED_CANDIDATE",
+  "source": "201d73e14c4a3363fdf644fceae83de1f0af94b6",
+  "tree": "6478423423182f09a289ae24730749367b8ac170",
+  "job": 124879398563,
+  "scope": "Hosted Linux Xvfb Editor native acceptance; not physical hardware",
+  "build_result": "Full graphical native build completes; prior GNU15 temporary-fixture errors cleared.",
+  "ctest": {
+    "registered": 247,
+    "passed": 231,
+    "failed": 16,
+    "skipped": 0,
+    "exit_code": 8,
+    "elapsed_seconds": 1307.53
+  },
+  "failure": "F5 delivered with Alt active (keys=010000000,play_keys=100,play_allowed=1,play_requests=0). All failures are Play entry/native Game families; runtime never enters Play.",
+  "inference": "xdotool keysym resolution adds a modifier recipe on the updated keyboard environment. Exact legacy F5 aliases require unmodified F5. This needs repaired-head native verification, not warning suppression or a wider Editor shortcut.",
+  "repair": "Query X11/XKB for the unmodified F5/F6/F10 physical keycodes; validate group0/level0 keysym; inject explicit decimal keycodes through the same XTEST xdotool path. Record requested/resolved input; require no unexpected modifiers at GUI acknowledgement. Preserve request-count/runtime/pixel/source/32-cycle/RSS assertions and all deadlines.",
+  "upstream_source": "https://github.com/jordansissel/xdotool/blob/master/xdo.c#L1415-L1437",
+  "local_validation": {
+    "python_ast_sources": 5,
+    "passed": true,
+    "native_linux": false
+  },
+  "pending": "Exact repaired-head full Cloud Development/Shipping, all applicable CI and native display verification. No work-order acceptance or merge.",
+  "logs": [
+    {
+      "path": "build/editor-workflow-native/ed-wf05-linux-201d73e1-job-124879398563-display-failed.log",
+      "bytes": 3313084,
+      "sha256": "fe76cebfd2c1934800894bcd279ef5c764dc63bd80cefd4f821ec7173a622e67"
+    }
+  ]
+}

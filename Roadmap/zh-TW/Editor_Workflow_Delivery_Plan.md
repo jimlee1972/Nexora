@@ -46,6 +46,11 @@ PR #762 首版 Linux CI 在 runner 改為 Ubuntu 26／GNU 15.2 後未通過：�
 場景 session／儲存及反射／比較 GUI fixture 觸發懸空指標警告。修正改用持有資料的具名 fixture，
 保留全部斷言、payload 及警告設定。僅於失敗後蒐集完整編譯診斷，保留原 gate 失敗狀態；
 仍須重新通過修正版本的完整 Cloud／CI。Editor 資源隔離及整合驗收仍待完成。
+後續原生建置已清除這些編譯失敗，但 `201d73e1` 的 hosted display gate 仍未驗收
+（231/247 通過、16 失敗）：注入 F5 時同時帶入 Alt，Play 未啟動。
+[原生輸入修正](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Input-CI-Failure.md)
+改用已驗證的 X11 實體功能鍵代碼，保留全部 Runtime／畫面／期限斷言；仍須重跑修正版原生與
+完整 gate，不增加已驗收數。
 [ED-WF-02 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02.md)及[雲端收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02-Cloud.json)記錄已驗收的 PR #754：42 項 CI 成功、雲端 490/490 與 Shipping 建置通過，保留初次環境／本機畫面擷取失敗。Beads 已安全採用既有歷史並恢復同步；Epic `nexora-whr` 與 `.1`～`.9` 對應連結的 GitHub 工單。
 已驗收的 [ED-WF-03 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03.md)、[雲端收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03-Cloud.json)及[CI 清單](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03-CI.json)記錄 PR #756：原生 GUI／核心通過、雲端 490/490 與 Shipping、42 項 CI 全數通過，且合併 tree 相同。ED-WF-04 已由 PR #758 驗收。
 已驗收的 [ED-WF-04 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04.md)、

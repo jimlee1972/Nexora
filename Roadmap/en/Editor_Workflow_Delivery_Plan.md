@@ -50,6 +50,11 @@ existing Runtime, Prefab, scene-session/save and reflected/comparison GUI fixtur
 dangling-pointer warnings. Named owning-fixture repairs preserve all assertions, payloads and
 warnings. Failure-only full compiler diagnostics retain the original failed gate; repaired-head
 full Cloud/CI is still required. Editor resource isolation and integrated acceptance remain open.
+The subsequent native build clears those compiler failures, but the `201d73e1` hosted display
+gate remains unaccepted (231/247 pass,16 fail): injected F5 also carries Alt and Play never starts.
+The [native input repair](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Input-CI-Failure.md)
+uses validated physical X11 function-key codes and retains all original runtime/pixel/deadline
+checks. Repaired-head native/full gates remain required; no accepted-count change.
 The [ED-WF-02 evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02.md) and [Cloud receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02-Cloud.json) record accepted PR #754: 42 successful CI checks, 490/490 Cloud tests and Shipping build, with initial environment/local-capture failures retained. Beads synchronization recovered by adopting existing history; Epic `nexora-whr` and children `.1` through `.9` map to the linked GitHub work orders.
 The accepted [ED-WF-03 evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03.md), [Cloud receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03-Cloud.json) and [CI inventory](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03-CI.json) record PR #756: native GUI/core passes, 490/490 Cloud tests and Shipping, all 42 CI checks and unchanged merged tree. ED-WF-04 is accepted in PR #758.
 The accepted [ED-WF-04 evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04.md),
