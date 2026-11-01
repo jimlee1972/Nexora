@@ -77,25 +77,60 @@ void ObservePlayShortcuts(float dpi) {
                 up.play_command == down.play_command && host.TakePlayCommand() == Command::None,
             "Play key release repeated a request or cleared its last-command observation");
   };
+  const auto unity_press = [&](KeyModifiers modifiers, Command expected) {
+    const auto before = Access::SceneShortcutInput(host).play_shortcut_requests;
+    auto event = KeyEvent(Key::P, true);
+    event.modifiers = modifiers;
+    host.ProcessEvents(std::array{event});
+    draw();
+    const auto actual = host.TakePlayCommand();
+    const auto observed = Access::SceneShortcutInput(host);
+    if (actual != expected ||
+        observed.play_shortcut_requests != before + (expected == Command::None ? 0U : 1U))
+      std::cerr << "Unity chord modifiers=" << static_cast<unsigned>(modifiers)
+                << " expected=" << static_cast<unsigned>(expected)
+                << " actual=" << static_cast<unsigned>(actual) << " before=" << before
+                << " after=" << observed.play_shortcut_requests
+                << " admitted=" << observed.play_allowed << '\n';
+    Require(actual == expected &&
+                observed.play_shortcut_requests == before + (expected == Command::None ? 0U : 1U),
+            "Unity Play chord was lost, duplicated, or bypassed admission");
+    event = KeyEvent(Key::P, false);
+    host.ProcessEvents(std::array{event});
+    draw();
+    Require(host.TakePlayCommand() == Command::None, "Unity chord repeated on release");
+  };
+  const auto ctrl = KeyModifiers::Control;
+  const auto pause_chord = static_cast<KeyModifiers>(static_cast<unsigned>(ctrl) |
+                                                     static_cast<unsigned>(KeyModifiers::Shift));
+  const auto step_chord = static_cast<KeyModifiers>(static_cast<unsigned>(ctrl) |
+                                                    static_cast<unsigned>(KeyModifiers::Alt));
+  unity_press(ctrl, Command::Start);
+  unity_press(pause_chord, Command::None);
+  unity_press(step_chord, Command::None);
   press(Key::F6, 1, Command::None);
   press(Key::F10, 2, Command::None);
   press(Key::F5, 0, Command::Start);
   Require(play.Start(1.0 / 60.0, [](runtime::World &, double) { return true; }),
           "Observed Play Start could not be applied by its owner");
   draw();
+  unity_press(pause_chord, Command::Pause);
   press(Key::F6, 1, Command::Pause);
   Require(play.Pause(), "Observed Pause could not be applied by its owner");
   draw();
+  unity_press(step_chord, Command::Step);
   press(Key::F10, 2, Command::Step);
   press(Key::F6, 1, Command::Resume);
   Require(play.Resume(), "Observed Resume could not be applied by its owner");
   draw();
+  unity_press(ctrl, Command::Stop);
   press(Key::F5, 0, Command::Stop);
   Require(play.Stop(), "Observed Stop could not be applied by its owner");
   attached = false;
   draw();
   Require(!Access::SceneShortcutInput(host).play_allowed,
           "Missing Play owner retained shortcut admission");
+  unity_press(ctrl, Command::None);
   press(Key::F5, 0, Command::None);
   attached = true;
   draw();
@@ -109,6 +144,7 @@ void ObservePlayShortcuts(float dpi) {
   const auto modal = Access::SceneShortcutInput(host);
   Require(modal.want_text && !modal.play_allowed && Access::HierarchyRenameOpen(host),
           "Real Rename text input retained Play shortcut admission");
+  unity_press(ctrl, Command::None);
   press(Key::F5, 0, Command::None);
   host.ProcessEvents(std::array{KeyEvent(Key::Escape, true)});
   draw();
@@ -373,6 +409,19 @@ int main() {
             "captured input blocked the reserved Pause shortcut");
     host.ProcessEvents(std::array{KeyEvent(Key::F6, false)});
     draw();
+    auto unity_pause = KeyEvent(Key::P, true);
+    unity_pause.modifiers = static_cast<KeyModifiers>(3);
+    host.ProcessEvents(std::array{unity_pause});
+    draw();
+    Require(host.TakePlayCommand() == imgui::PlayCommand::Pause && host.GameInputFocused() &&
+                document.Nodes().empty(),
+            "Game capture blocked Unity Pause or leaked authoring input");
+    host.ProcessEvents(std::array{KeyEvent(Key::P, false)});
+    draw();
+    Require(host.TakePlayCommand() == imgui::PlayCommand::None &&
+                !Access::SceneShortcutInput(host).keys[0] &&
+                !Access::SceneShortcutInput(host).keys[2],
+            "Unity chord release left captured modifiers latched");
     host.ProcessEvents(std::array{KeyEvent(Key::Escape, true)});
     draw();
     Require(!host.GameInputFocused(), "Escape did not release UI capture");

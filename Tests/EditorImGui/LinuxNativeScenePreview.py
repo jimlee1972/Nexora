@@ -579,20 +579,18 @@ def main() -> int:
                       "native proxy drag did not undo before vertical movement",
                           (display, window, viewport, baseline_move_pixels), shortcut=driver.chord)
         viewport = driver.settled_viewport(viewport)
-        point = selected_proxy_pixel(display, window, viewport)
+        point = axis_handle_pixels(display, window, viewport)[1]
         if point is None:
-            raise RuntimeError("selected proxy surface missing before Shift free Move")
+            raise RuntimeError("world Y Move handle missing before vertical movement")
         center_x, center_y = point
         driver.send("mousemove", "--window", str(window),
                     str(center_x), str(center_y))
-        driver.send("keydown", "Shift_L")
         driver.send("mousedown", "1")
         time.sleep(0.1)
         driver.send("mousemove", "--window", str(window),
                     str(center_x), str(center_y - 48))
         time.sleep(0.15)
         driver.send("mouseup", "1")
-        driver.send("keyup", "Shift_L")
         driver.send("key", "--delay", "80", "ctrl+s")
         deadline = time.monotonic() + 5
         before = first_entity_position(initial_scene)
@@ -602,7 +600,7 @@ def main() -> int:
             after = first_entity_position(scene_file.read_text())
         if (abs(after[1] - before[1]) < 0.1 or abs(after[0] - before[0]) > 1e-6 or
                 abs(after[2] - before[2]) > 1e-6):
-            raise RuntimeError(f"Shift-drag did not move only world Y: {before} -> {after}")
+            raise RuntimeError(f"Y handle drag did not move only world Y: {before} -> {after}")
         before_rotation = scene_file.read_text()
         viewport = driver.settled_viewport(viewport)
         center_x = viewport[0] + viewport[2] // 2

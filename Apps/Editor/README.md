@@ -1,5 +1,47 @@
 # Nexora Editor
 
+## Unity-style Editor input (issue #759)
+
+Implementation is in progress; full Cloud/native validation and delivery remain pending.
+
+| Context | Input | Behavior |
+| --- | --- | --- |
+| Scene | Q / W / E / R | Hand / Move / Rotate / Scale |
+| Scene | X / Z | Global-local axes / Pivot-center; P remains a pivot alias |
+| Native Scene | Alt + left drag | Orbit the selection/view pivot |
+| Scene | Middle drag; Alt + Ctrl + left drag | Pan in the view plane |
+| Native Scene | Right drag | Look around without moving the eye |
+| Native Scene | Hold right + WASD / QE | Fly forward-back-left-right / down-up; Shift accelerates |
+| Native Scene | Wheel while holding right | Adjust fly speed; release right to wheel zoom |
+| Native Scene | Alt + right drag | Dolly zoom |
+| Transform handle | Hold Ctrl while dragging | Incremental movement/rotation/scale snapping; ordinary Ctrl/Shift-click toggles selection |
+| Scene | F / Shift + F / Home | Frame selected / follow selection / frame all (follow is native-preview only) |
+| Overview | Q + left drag; right or middle drag | Pan the existing X/Z overview; wheel zooms |
+| Editor | Ctrl + P / Ctrl + Shift + P / Ctrl + Alt + P | Play-stop / pause-resume / step |
+| Editor | Ctrl + N / O / S / Shift + S | New scene / open / save / save as |
+| Editor | Ctrl + Z / Y; Ctrl + Shift + Z | Undo / redo |
+| Editor | Ctrl + Shift + N / Ctrl + D / Delete | Create object / duplicate / delete |
+| Editor | Ctrl + 1 / 2 / 3 / 4 / 5 | Focus Scene / Game / Inspector / Hierarchy / Project |
+| Editor | Ctrl + Shift + C / Ctrl + R | Focus Console / refresh Project files |
+| Editor | Ctrl + Shift + B / Ctrl + B | Build Settings / Build & Run with current saved settings |
+
+F5/F6/F10 remain compatible Play aliases. Prefab isolation moves to Ctrl+Alt+Shift+P so it no
+longer intercepts Unity's Step chord. Existing Save/Discard/Cancel and build ownership still apply.
+Commands are admitted by actual application/window focus, text input, modal and Game capture rules.
+Navigation never changes selection, scene bytes, or undo history. Native picking cancels tentative
+Ctrl/Shift drags that hit no transform handle through `CancelNativeSceneTransform` in the issuing GUI
+frame; the application owns actual hit testing and scene mutations. Read-only camera navigation works.
+Play chords remain available while Game captures input; unrelated authoring chords do not.
+
+This aligns supported commands and view navigation. Rect/combined Transform tools, vertex snapping,
+Scene orientation widget, a new XY 2D authoring mode, and maximized-view layout are not implemented
+by mapping keys. Existing orthographic overview remains X/Z; camera distance is bounded 2-100 world
+units, pitch -1.55 to +1.55 radians and position +/-100,000. Fly speed is session-local (0.1-1000
+units/sec); existing per-scene camera persistence keeps pose and framing, with no scene format change.
+
+Reference: [Unity Scene view navigation](https://docs.unity3d.com/6000.0/Documentation/Manual/SceneViewNavigation.html).
+
+
 Windows graphical builds use the GUI subsystem and Unicode wWinMain entrypoint, so opening the
 Editor from Explorer creates no command console. CLI arguments and redirected stdout/stderr still
 use the common command path. Console-only builds retain wmain. The opt-in
@@ -238,7 +280,8 @@ wait for GPU work before releasing it. Native call-tracing/pixel tests cover reu
 Authored geometry uses exact sheared world matrices. [Scalar opaque PBR materials](#authored-scalar-pbr-scene-materials)
 now execute in Scene View; complete texture/shader workflows, persistent per-asset GPU caching and
 full Scene View acceptance remain open.
-Right drag orbits the preview camera, middle drag pans its X/Z target, the wheel zooms, and F or
+Alt+left drag orbits the preview camera, middle drag pans in its view plane, right drag looks around
+with WASD/QE flight, the wheel zooms (or changes flight speed), and F or
 Frame selected centers on selected forests in X/Y/Z, using exact world-transformed mesh bounds
 and rotated proxy bounds, including descendants once. The narrower horizontal/vertical viewport
 FOV determines distance (2–100 world units); F and the button use the same current framebuffer
@@ -263,7 +306,7 @@ center gestures verify unchanged history and one-step Undo; full gizmo target-ho
 
 Move now adds paired-color XY/XZ/YZ plane handles in Global or Local axes, at the existing Pivot/Center.
 Drawing and picking share numeric boxes; a hit captures both axes and retains selection. Explicit planes
-override Shift's free-drag Y mode. Preview/release share bounded ray-plane intersections and per-plane-axis
+override the free-drag plane. Ctrl/Shift-click on ordinary geometry toggles selection; use the Y handle for vertical movement. Preview/release share bounded ray-plane intersections and per-plane-axis
 world-unit snapping, then one generation-checked selected-root translation. Scale/Rotate remain separate;
 Escape and existing focus/modal gates cancel without authoring. Numeric helpers own no World/GPU data.
 Contract tests cover snapping, malformed rays, mirrored/nonuniform parents, descendants and Redo/Undo;
@@ -277,8 +320,8 @@ clear selection; stale, malformed, duplicate or over-budget packets preserve it.
 candidate cap excludes invisible tails. Read-only projects work. Text/modal/focus/backend and
 active/pending-drag gates protect the action; same-frame native framing waits for a later input.
 Real 1x/2x, 4,001-node and native proxy/OBJ inputs verify the workflow without source IO.
-Select (Q) removes all transform handles from native drawing and picking and suppresses transform
-preview/commit requests, while ordinary and Ctrl-toggle entity picking remain available. W/E/R return
+Select (toolbar) removes all transform handles from native drawing and picking and suppresses transform
+preview/commit requests, while ordinary and Ctrl/Shift-toggle entity picking remain available. W/E/R return
 to Move/Rotate/Scale. Tool keys require focused Scene/canvas input and respect text/modal/focus and
 active/pending-drag guards; keyboard navigation after Home does not mask the actual canvas hover.
 Read-only picking works. Real 1x/2x input and native proxy/OBJ saved-byte tests cover this path.
@@ -666,7 +709,7 @@ hierarchy composition as commit. Rotated and nonuniform ancestors therefore prod
 prospective and committed proxy poses, including unselected descendants; Escape only discards the
 preview snapshot.
 
-The native canvas offers Center pivot (P). Pivot rotates/scales each selected root in place;
+The native canvas offers Center pivot (Z; P alias). Pivot rotates/scales each selected root in place;
 Center places handles at the mean selected-root origin and rotates/scales root offsets around that
 point. Selected descendants do not weight the center twice, and local axes follow the first selected
 root rotation. Tool, axes, pivot, and camera controls stay fixed during a left-button gesture.

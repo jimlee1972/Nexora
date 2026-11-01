@@ -1,0 +1,201 @@
+{
+  "issue": "https://github.com/jimlee1972/Nexora/issues/759",
+  "beads": "nexora-mhh",
+  "status": "in_progress",
+  "source_base": "278fea636750d9aa2065c2a0075ca4c6791ae859",
+  "scope": "Native Windows/MSVC real ImGui event processing; no physical clean-host or complete workflow acceptance",
+  "toolchain": {
+    "cmake": "3.31.6-msvc6",
+    "msvc": "19.44.35228.0",
+    "configuration": "Development",
+    "backend": "DX12 ON, Vulkan OFF, graphical Editor ON, Showcase OFF, Cryptography unavailable/fail-closed"
+  },
+  "build": {
+    "command": "cmake --build build/editor-workflow-native --config Development --target NexoraNativeSceneToolTests NexoraEditorSceneFrameTests NexoraEditorImGuiTests NexoraProjectBuildSettingsUiTests NexoraPlayInputStateTests NexoraEditor --parallel 2",
+    "exit_code": 0,
+    "log": {
+      "path": "build/editor-workflow-native/unity-input-build-8.log",
+      "bytes": 13097,
+      "sha256": "6423be2d2fd273497f7bc8593e3c466c20d000d11d8b2cdb91494f459916877b"
+    }
+  },
+  "ctest": {
+    "command": "ctest --test-dir build/editor-workflow-native -C Development -R '^editor\\.(native_scene_tools|play_input_state|imgui_contract|project_build_settings_ui|scene_mesh_frame_selection|scene_select_all|camera_scene_view_alignment|game_camera_selection)$' --output-on-failure --output-junit unity-input-windows.xml",
+    "exit_code": 0,
+    "tests": 8,
+    "passed": 8,
+    "failed": 0,
+    "skipped": 0,
+    "elapsed_seconds": 70.19,
+    "cases": [
+      {
+        "name": "editor.imgui_contract",
+        "time_seconds": 22.4711,
+        "status": "run"
+      },
+      {
+        "name": "editor.scene_mesh_frame_selection",
+        "time_seconds": 10.5438,
+        "status": "run"
+      },
+      {
+        "name": "editor.native_scene_tools",
+        "time_seconds": 4.89123,
+        "status": "run"
+      },
+      {
+        "name": "editor.scene_select_all",
+        "time_seconds": 12.1526,
+        "status": "run"
+      },
+      {
+        "name": "editor.play_input_state",
+        "time_seconds": 4.62149,
+        "status": "run"
+      },
+      {
+        "name": "editor.game_camera_selection",
+        "time_seconds": 4.28913,
+        "status": "run"
+      },
+      {
+        "name": "editor.camera_scene_view_alignment",
+        "time_seconds": 6.10913,
+        "status": "run"
+      },
+      {
+        "name": "editor.project_build_settings_ui",
+        "time_seconds": 4.91453,
+        "status": "run"
+      }
+    ],
+    "log": {
+      "path": "build/editor-workflow-native/unity-input-test-4.log",
+      "bytes": 1273,
+      "sha256": "e46805ae86789f2047c0ac4d582d9968b21c16efac0ce20a70fdacba32dd9fa5"
+    },
+    "junit": {
+      "path": "build/editor-workflow-native/unity-input-windows.xml",
+      "bytes": 2050,
+      "sha256": "c0dd9df1529ba9182eab537b97df1216a925ee274ff1cf5fc31c896b92ccb6f8"
+    }
+  },
+  "sources": [
+    {
+      "path": "Apps/Editor/main.cpp",
+      "bytes": 232732,
+      "sha256": "e03d0dd7e863849a84e7493a27b0de900b347ef0c34125400b0632bd26d85ec9"
+    },
+    {
+      "path": "Engine/EditorImGui/include/Nexora/EditorImGui/EditorImGui.h",
+      "bytes": 31380,
+      "sha256": "653e6ac979b53f27a0a06503cc891238087186b55f2420dca31893a9c47ee7fe"
+    },
+    {
+      "path": "Engine/EditorImGui/src/EditorIcons.h",
+      "bytes": 17427,
+      "sha256": "d64a8e4c11fb7d7985cbf7dff68fc0e289b71c6592c2aeb193dea2a1b4aa3519"
+    },
+    {
+      "path": "Engine/EditorImGui/src/EditorImGui.cpp",
+      "bytes": 531215,
+      "sha256": "6cde5f8774d0d5470fd4c241ec6aa001cd5d271e4f3356f97d432788666f8aa3"
+    },
+    {
+      "path": "Engine/EditorImGui/src/SceneNavigation.inl",
+      "bytes": 4163,
+      "sha256": "ef589ae8f558c6867540b160c1f2a6cf70492604c2d54bd77861fbe135051b7f"
+    },
+    {
+      "path": "Tests/EditorImGui/EditorImGuiTests.cpp",
+      "bytes": 87597,
+      "sha256": "828a12bbd4065ca8e7a4e36ffe14c14ee2a41b27863d88bb0d1983ff5855da32"
+    },
+    {
+      "path": "Tests/EditorImGui/LinuxNativeSceneCenter.py",
+      "bytes": 17569,
+      "sha256": "c2b28c9e4e66bd6fef6ee939b2925929dd0bff7cd3dd50a1401fc0124acff410"
+    },
+    {
+      "path": "Tests/EditorImGui/LinuxNativeScenePreview.py",
+      "bytes": 46708,
+      "sha256": "31d0152c0e3802bd468607f0d848b0adbdeeb683869ae8b8e784e04d70e5a868"
+    },
+    {
+      "path": "Tests/EditorImGui/LinuxPrefabIsolation.py",
+      "bytes": 32892,
+      "sha256": "c7f2e3ff2823282120781102e0c0818dc644ef40ea0ea55f1b14f9c8d03da3f5"
+    },
+    {
+      "path": "Tests/EditorImGui/NativeSceneToolTests.cpp",
+      "bytes": 15456,
+      "sha256": "bf5f7bb2d5b76c8cd3b5b981593d4f1643912c18efe73e34431cfcd6a68f172b"
+    },
+    {
+      "path": "Tests/EditorImGui/PlayInputStateTests.cpp",
+      "bytes": 22527,
+      "sha256": "12b1011a2a89da952484095087b445c44bd5371fe40e56d34a0a41f0048aae5a"
+    },
+    {
+      "path": "Tests/EditorImGui/ProjectBuildSettingsTests.cpp",
+      "bytes": 10090,
+      "sha256": "657ae24638823e587d854d0f9934fd0726dfa94617376faa1465adc565ea3ca5"
+    },
+    {
+      "path": "Tests/EditorImGui/SceneFrameTests.cpp",
+      "bytes": 24483,
+      "sha256": "d1eb423ed72cb1aef6a8a2f17970404a87fff12f2789f93556bed92ce5a9c7d4"
+    }
+  ],
+  "binaries": [
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraEditor.exe",
+      "bytes": 2444288,
+      "sha256": "467106d96708c47f3e3b86b0834bd18059062ea52768c81b980846c04fd3c21b"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraEditorImGui.dll",
+      "bytes": 2805760,
+      "sha256": "229921e1bd1b813cff5040f595e83cdadb3b6f24d2052729a05d9acd09fb57c4"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraNativeSceneToolTests.exe",
+      "bytes": 173056,
+      "sha256": "2b297a378603406b161c0d3c7595be487c60f7ec7fd688aad5b8c03a23368ff5"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraEditorSceneFrameTests.exe",
+      "bytes": 363008,
+      "sha256": "65cb4cf94a722b6d0b95aa8589711b2df32836f0241f4636b873c9db1583f75d"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraPlayInputStateTests.exe",
+      "bytes": 114688,
+      "sha256": "50d149ac0f11c19f37ab060933512bed3c49e5d332772b1d5d48e1009afa549b"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraProjectBuildSettingsUiTests.exe",
+      "bytes": 186880,
+      "sha256": "6710d4eb7a73c6967311bb4cf2ca805311406635fa3c84842b8c5667e47501f0"
+    }
+  ],
+  "resolved_failures": [
+    {
+      "attempt": "unity-input-test-1.log",
+      "failure": "Select toolbar did not select",
+      "resolution": "Synthetic test released the pointer after moving off the button; corrected real pointer release order, retained selection assertions."
+    },
+    {
+      "attempt": "unity-input-test-2.log",
+      "failure": "Unity Play chord was lost, duplicated, or bypassed admission",
+      "resolution": "Existing Prefab isolation intercepted Ctrl+Alt+P; moved Prefab to Ctrl+Alt+Shift+P and retained reserved Step chord tests."
+    }
+  ],
+  "pending": [
+    "Full exact-source Codex Cloud development configure/build/CTest",
+    "Applicable linux-shipping and final-head CI",
+    "Actual native Linux Scene/Prefab interaction tests with changed shortcuts",
+    "Integrated final Editor ZIP extraction and relocation"
+  ],
+  "workflow_acceptance": "3/9; supporting input work does not alter denominator"
+}

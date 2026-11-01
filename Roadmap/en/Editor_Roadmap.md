@@ -1,5 +1,15 @@
 # Nexora Graphical Editor Roadmap
 
+### Unity-style Editor input (in progress)
+
+[Issue #759](https://github.com/jimlee1972/Nexora/issues/759) tracks Unity-style Scene navigation,
+Q Hand/WER tools, X/Z modes, supported command/window shortcuts and input ownership. Legacy
+F5/F6/F10 and P pivot aliases remain; Prefab isolation moves to Ctrl+Alt+Shift+P. Local input
+implementation and tests are underway; full Cloud/native acceptance, PR and final ZIP are pending.
+See [Editor input behavior](../../Apps/Editor/README.md#unity-style-editor-input-issue-759).
+This supporting task does not alter the 3/9 workflow count or 0/8 Editor milestone count.
+
+
 ### Script workflow and Sprite integration work orders (2026-10-31)
 
 The approved [delivery plan](Editor_Workflow_Delivery_Plan.md) and
@@ -681,7 +691,7 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
   coverage. Tests retain unknown bytes, clipboard and Redo, reject stale/malformed/duplicate packets
   and cover 4,001 nodes. Linux Xvfb selects both proxy/OBJ roots. Full Scene View acceptance stays open.
 
-- ✅ Native Scene Select (Q) keeps ordinary/Ctrl picking while hiding transform handles and
+- ✅ Native Scene Select (toolbar) keeps ordinary/Ctrl picking while hiding transform handles and
   suppressing drag previews/commits. W/E/R restore Move/Rotate/Scale. Real 1x/2x input tests cover
   same-frame Q/click, toolbar parity, Home navigation, active/pending drag gates, read-only,
   panel/focus/modal/text guards and retained Redo. Linux Xvfb verifies proxy/OBJ picking, hidden

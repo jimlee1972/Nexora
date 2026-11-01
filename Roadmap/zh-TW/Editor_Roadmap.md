@@ -1,5 +1,15 @@
 # Nexora 圖形化 Editor Roadmap
 
+### Unity 風格的 Editor 操作（施工中）
+
+[工單 #759](https://github.com/jimlee1972/Nexora/issues/759) 追蹤 Unity 風格 Scene 導覽、
+Q 手形／WER 工具、X／Z 模式、現有指令／視窗快捷鍵及輸入所有權。保留 F5／F6／F10 與
+P pivot 舊別名；Prefab isolation 改用 Ctrl＋Alt＋Shift＋P。本機實作與輸入測試進行中，
+完整 Cloud／原生驗收、PR 與最後 ZIP 尚待完成。
+操作細節見 [Editor 文件](../../Apps/Editor/README.md#unity-style-editor-input-issue-759)。
+此支援工單不改變工作流程 3/9 與 Editor 里程碑 0/8 完成度。
+
+
 ### 腳本工作流程與 Sprite 整合工單（2026-10-31）
 
 核准的[交付計畫](Editor_Workflow_Delivery_Plan.md)及
@@ -631,7 +641,7 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
   測試保留 unknown bytes、clipboard 與 Redo，拒絕 stale／malformed／duplicate packet，並涵蓋
   4,001 個節點。Linux Xvfb 選取兩個 proxy／OBJ root；完整 Scene View 驗收仍待完成。
 
-- ✅ Native Scene Select（Q）保留一般／Ctrl picking，隱藏變形把手並停止 drag preview／commit。
+- ✅ Native Scene Select（工具列）保留一般／Ctrl picking，隱藏變形把手並停止 drag preview／commit。
   W／E／R 回到 Move／Rotate／Scale。真正 1×／2× 輸入測試涵蓋同 frame Q／click、toolbar
   一致性、Home 導覽、active／pending drag、唯讀、panel／focus／modal／text gate 及保留 Redo。
   Linux Xvfb 驗證 proxy／OBJ picking、隱藏把手、Select 拖曳後 saved bytes 不變，再切回變形工具。

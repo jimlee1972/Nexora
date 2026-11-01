@@ -357,7 +357,9 @@ NativeScenePickHit PickNativeSceneProxy(const nexora::editor::SceneDocument &sce
       proxy = nexora::editor::PickHit{candidate.entity, *distance};
   }
   const auto handles =
-      tool == nexora::editor::imgui::NativeSceneTool::Select ? std::vector<NativeSceneAxisHandle>{}
+      (tool == nexora::editor::imgui::NativeSceneTool::Select ||
+       tool == nexora::editor::imgui::NativeSceneTool::Hand)
+          ? std::vector<NativeSceneAxisHandle>{}
       : tool == nexora::editor::imgui::NativeSceneTool::Rotate
           ? NativeSceneRotationHandles(scene, candidates, local_axes, center_pivot)
       : tool == nexora::editor::imgui::NativeSceneTool::Scale
@@ -576,7 +578,9 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
   const auto palette = nexora::editor::preview::PrepareMaterialPalette(scene, materials, generation,
                                                                        material_entities);
   const auto handles =
-      tool == nexora::editor::imgui::NativeSceneTool::Select ? std::vector<NativeSceneAxisHandle>{}
+      (tool == nexora::editor::imgui::NativeSceneTool::Select ||
+       tool == nexora::editor::imgui::NativeSceneTool::Hand)
+          ? std::vector<NativeSceneAxisHandle>{}
       : tool == nexora::editor::imgui::NativeSceneTool::Rotate
           ? NativeSceneRotationHandles(scene, candidates, local_axes, center_pivot)
       : tool == nexora::editor::imgui::NativeSceneTool::Scale
@@ -2912,8 +2916,11 @@ int RunGraphical(std::optional<ProjectState> project,
               active_scene(), *viewport, ui.GetSceneOverviewCamera(), ui.GetNativeSceneOrbit(),
               *request, ui.NativeSceneLocalAxes(), ui.NativeSceneCenterPivot(),
               ui.GetNativeSceneTool(), *native_scene_meshes);
-          native_scene_drag_axis = request->additive ? std::nullopt : hit.axis;
-          native_scene_drag_plane = request->additive ? std::nullopt : hit.plane;
+          const bool additive = request->additive && !hit.axis && !hit.plane && !hit.scale_axis;
+          if (additive)
+            ui.CancelNativeSceneTransform();
+          native_scene_drag_axis = hit.axis;
+          native_scene_drag_plane = hit.plane;
           native_scene_drag_rotate =
               native_scene_drag_axis &&
               ui.GetNativeSceneTool() == nexora::editor::imgui::NativeSceneTool::Rotate;
@@ -2926,16 +2933,16 @@ int RunGraphical(std::optional<ProjectState> project,
             const bool already_selected =
                 std::find(active_scene().Selection().begin(), active_scene().Selection().end(),
                           *hit.entity) != active_scene().Selection().end();
-            if (request->additive || already_selected)
+            if (additive || already_selected)
               selection.assign(active_scene().Selection().begin(),
                                active_scene().Selection().end());
             const auto existing = std::find(selection.begin(), selection.end(), *hit.entity);
             if (existing == selection.end())
               selection.push_back(*hit.entity);
-            else if (request->additive)
+            else if (additive)
               selection.erase(existing);
             static_cast<void>(active_scene().Select(selection));
-          } else if (!hit.axis && !hit.plane && !request->additive) {
+          } else if (!hit.axis && !hit.plane && !hit.scale_axis && !additive) {
             static_cast<void>(active_scene().Select(std::span<const nexora::runtime::Id>{}));
           }
         }
@@ -3698,6 +3705,10 @@ int RunGraphical(std::optional<ProjectState> project,
         if (point)
           geometry << ' ' << name << '=' << (*point)[0] * dpi << ',' << (*point)[1] * dpi;
       };
+      record("scene_select_tool",
+             Access::NativeSceneToolPosition(ui, nexora::editor::imgui::NativeSceneTool::Select));
+      record("scene_hand_tool",
+             Access::NativeSceneToolPosition(ui, nexora::editor::imgui::NativeSceneTool::Hand));
       record("appearance_settings", Access::AppearancePosition(ui, 0));
       record("appearance_menu", Access::AppearancePosition(ui, 1));
       record("appearance_dark", Access::AppearancePosition(ui, 2));

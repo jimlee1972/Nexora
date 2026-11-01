@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
@@ -78,21 +79,37 @@ void Run(float dpi) {
     ui.ProcessEvents(std::array{key(value, false)});
     draw();
   };
-  // Q and click are deliberately one input batch: tools resolve before drag setup.
+  // Q must pan the view without picking, authoring, or producing a transform gesture.
+  const auto camera_before = ui.GetSceneOverviewCamera();
   ui.ProcessEvents(std::array{pointer, key(Key::Q, true), button});
   draw();
-  Require(ui.GetNativeSceneTool() == Tool::Select && ui.NativeScenePick().has_value() &&
-              !ui.NativeScenePick()->additive,
-          "same-frame Q/click lost selection picking");
+  Require(ui.GetNativeSceneTool() == Tool::Hand && !ui.NativeScenePick(),
+          "same-frame Q/click did not enter the Hand tool");
   pointer.value0 += static_cast<int>(40 * dpi);
   pointer.value1 += static_cast<int>(20 * dpi);
   ui.ProcessEvents(std::array{pointer, key(Key::Q, false)});
   draw();
-  Require(!ui.NativeSceneDragPreview(), "Select created a transform preview");
+  Require(!ui.NativeSceneDragPreview() && ui.GetSceneOverviewCamera().x != camera_before.x,
+          "Hand did not pan or created a transform preview");
   button.value1 = 0;
   ui.ProcessEvents(std::array{button});
   draw();
-  Require(!ui.NativeSceneDrag(), "Select created a released transform transaction");
+  Require(!ui.NativeSceneDrag(), "Hand created a released transform transaction");
+  // The explicit Select toolbar remains available for picking without a transform.
+  const auto select_initial = Access::NativeSceneToolPosition(ui, Tool::Select);
+  Require(select_initial.has_value(), "Select toolbar position missing");
+  auto toolbar_pointer = pointer;
+  toolbar_pointer.value0 = static_cast<int>((*select_initial)[0] * dpi);
+  toolbar_pointer.value1 = static_cast<int>((*select_initial)[1] * dpi);
+  button.value1 = 1;
+  ui.ProcessEvents(std::array{toolbar_pointer, button});
+  draw();
+  button.value1 = 0;
+  ui.ProcessEvents(std::array{button});
+  draw();
+  Require(ui.GetNativeSceneTool() == Tool::Select, "Select toolbar did not select");
+  ui.ProcessEvents(std::array{pointer});
+  draw();
   ui.ProcessEvents(std::array{key(Key::LeftControl, true)});
   button.value1 = 1;
   ui.ProcessEvents(std::array{button});
@@ -102,15 +119,106 @@ void Run(float dpi) {
   button.value1 = 0;
   ui.ProcessEvents(std::array{button, key(Key::LeftControl, false)});
   draw();
+  const auto eye = [&] {
+    const auto center = ui.GetSceneOverviewCamera();
+    const auto orbit = ui.GetNativeSceneOrbit();
+    return std::array{center.x + orbit.distance * std::sin(orbit.yaw) * std::cos(orbit.pitch),
+                      orbit.target_y + orbit.distance * std::sin(orbit.pitch),
+                      center.z + orbit.distance * std::cos(orbit.yaw) * std::cos(orbit.pitch)};
+  };
+  const auto near = [](const auto &a, const auto &b) {
+    for (std::size_t i = 0; i < a.size(); ++i)
+      if (std::abs(a[i] - b[i]) > 0.0001)
+        return false;
+    return true;
+  };
+  const auto initial_eye = eye();
+  auto right = button;
+  right.value0 = 1;
+  right.value1 = 1;
+  ui.ProcessEvents(std::array{right});
+  draw();
+  const auto look_before = ui.GetNativeSceneOrbit();
+  pointer.value0 += static_cast<int>(24 * dpi);
+  pointer.value1 -= static_cast<int>(18 * dpi);
+  ui.ProcessEvents(std::array{pointer});
+  draw();
+  Require(near(initial_eye, eye()) && ui.GetNativeSceneOrbit().yaw != look_before.yaw &&
+              ui.GetNativeSceneOrbit().pitch < look_before.pitch,
+          "RMB look moved the eye or turned vertically in the wrong direction");
+  const auto fly_distance = ui.GetNativeSceneOrbit().distance;
+  Event wheel{};
+  wheel.type = EventType::Wheel;
+  wheel.value1 = 120;
+  ui.ProcessEvents(std::array{wheel});
+  draw();
+  Require(ui.GetNativeSceneOrbit().distance == fly_distance && near(initial_eye, eye()),
+          "fly wheel zoomed the camera instead of changing speed");
+  const auto look_eye = eye();
+  ui.ProcessEvents(std::array{key(Key::W, true), key(Key::Q, true)});
+  draw();
+  Require(ui.GetNativeSceneTool() == Tool::Select && !near(look_eye, eye()) &&
+              !ui.NativeScenePick() && !ui.NativeSceneDragPreview(),
+          "fly keys changed tools, failed to move, or entered authoring");
+  right.value1 = 0;
+  ui.ProcessEvents(std::array{right, key(Key::W, false), key(Key::Q, false)});
+  draw();
+  auto alt = key(Key::LeftAlt, true);
+  alt.modifiers = Nexora::Window::KeyModifiers::Alt;
+  ui.ProcessEvents(std::array{alt});
+  draw();
+  const auto orbit_center = ui.GetSceneOverviewCamera();
+  const auto orbit_height = ui.GetNativeSceneOrbit().target_y;
+  button.value1 = 1;
+  ui.ProcessEvents(std::array{button});
+  draw();
+  pointer.value0 -= static_cast<int>(22 * dpi);
+  ui.ProcessEvents(std::array{pointer});
+  draw();
+  Require(ui.GetSceneOverviewCamera().x == orbit_center.x &&
+              ui.GetSceneOverviewCamera().z == orbit_center.z &&
+              ui.GetNativeSceneOrbit().target_y == orbit_height && !ui.NativeScenePick(),
+          "Alt+LMB orbit moved the pivot or selected an entity");
+  button.value1 = 0;
+  ui.ProcessEvents(std::array{button});
+  draw();
+  const auto zoom_distance = ui.GetNativeSceneOrbit().distance;
+  right.value1 = 1;
+  ui.ProcessEvents(std::array{right});
+  draw();
+  pointer.value0 += static_cast<int>(18 * dpi);
+  ui.ProcessEvents(std::array{pointer});
+  draw();
+  Require(ui.GetNativeSceneOrbit().distance > zoom_distance && !ui.NativeScenePick(),
+          "Alt+RMB did not zoom without picking");
+  right.value1 = 0;
+  ui.ProcessEvents(std::array{right, key(Key::LeftAlt, false)});
+  draw();
+  auto middle = button;
+  middle.value0 = 2;
+  middle.value1 = 1;
+  ui.ProcessEvents(std::array{middle});
+  draw();
+  const auto pan_height = ui.GetNativeSceneOrbit().target_y;
+  const auto pan_yaw = ui.GetNativeSceneOrbit().yaw;
+  pointer.value1 += static_cast<int>(17 * dpi);
+  ui.ProcessEvents(std::array{pointer});
+  draw();
+  Require(ui.GetNativeSceneOrbit().target_y > pan_height &&
+              ui.GetNativeSceneOrbit().yaw == pan_yaw && !ui.NativeSceneDragPreview(),
+          "MMB did not pan in the camera plane");
+  middle.value1 = 0;
+  ui.ProcessEvents(std::array{middle});
+  draw();
   press(Key::Home); // ImGui navigation must not replace the actual canvas hover check.
   press(Key::W);
   Require(ui.GetNativeSceneTool() == Tool::Move, "W did not restore Move");
   press(Key::X);
-  press(Key::P);
+  press(Key::Z);
   Require(ui.NativeSceneLocalAxes() && ui.NativeSceneCenterPivot(),
           "Home navigation blocked gizmo mode shortcuts");
   press(Key::X);
-  press(Key::P);
+  press(Key::Z);
   Require(!ui.NativeSceneLocalAxes() && !ui.NativeSceneCenterPivot(),
           "gizmo mode shortcuts did not toggle back");
   // Resolve both modes before the same-frame press starts a gesture.
@@ -145,6 +253,31 @@ void Run(float dpi) {
           "R did not retain Scale local axes");
   press(Key::X);
   Require(ui.NativeSceneLocalAxes(), "X enabled unsupported world-axis Scale");
+  // Ctrl can snap a transform handle from the initial press. Native hit testing owns
+  // admission; a Ctrl-click on an ordinary entity cancels the tentative gesture.
+  ui.ProcessEvents(std::array{key(Key::LeftControl, true)});
+  draw();
+  button.value1 = 1;
+  ui.ProcessEvents(std::array{button});
+  draw();
+  Require(ui.NativeScenePick() && ui.NativeScenePick()->additive,
+          "Ctrl transform press lost its selection intent");
+  pointer.value0 += static_cast<int>(20 * dpi);
+  ui.ProcessEvents(std::array{pointer});
+  draw();
+  Require(ui.NativeSceneDragPreview() && ui.NativeSceneDragPreview()->vertical &&
+              ui.NativeSceneDragPreview()->snap_step > 0,
+          "Ctrl did not enable incremental transform snapping");
+  ui.CancelNativeSceneTransform();
+  Require(!ui.NativeSceneDragPreview() && !ui.NativeSceneDrag(),
+          "ordinary Ctrl pick did not cancel the tentative transform");
+  pointer.value0 += static_cast<int>(10 * dpi);
+  ui.ProcessEvents(std::array{pointer});
+  draw();
+  Require(!ui.NativeSceneDragPreview(), "canceled Ctrl gesture restarted while held");
+  button.value1 = 0;
+  ui.ProcessEvents(std::array{button, key(Key::LeftControl, false)});
+  draw();
   // Actual toolbar pointer input follows the same tool state as Q.
   const auto select = Access::NativeSceneToolPosition(ui, Tool::Select);
   Require(select.has_value(), "Select toolbar widget missing");
@@ -165,9 +298,9 @@ void Run(float dpi) {
   workspace = &reader;
   press(Key::W);
   press(Key::Q);
-  Require(ui.GetNativeSceneTool() == Tool::Select, "read-only tool navigation was rejected");
+  Require(ui.GetNativeSceneTool() == Tool::Hand, "read-only tool navigation was rejected");
   press(Key::X);
-  press(Key::P);
+  press(Key::Z);
   Require(!ui.NativeSceneLocalAxes() && !ui.NativeSceneCenterPivot(),
           "read-only gizmo mode navigation was rejected");
   for (const auto modifier :
@@ -186,7 +319,7 @@ void Run(float dpi) {
           "modified shortcuts toggled gizmo settings");
   const auto blocked_modes = [&] {
     press(Key::X);
-    press(Key::P);
+    press(Key::Z);
     Require(!ui.NativeSceneLocalAxes() && !ui.NativeSceneCenterPivot(),
             "blocked input changed gizmo settings");
   };
@@ -194,7 +327,7 @@ void Run(float dpi) {
   draw();
   press(Key::W);
   blocked_modes();
-  Require(ui.GetNativeSceneTool() == Tool::Select, "Scene hover stole another panel's key");
+  Require(ui.GetNativeSceneTool() == Tool::Hand, "Scene hover stole another panel's key");
   Access::FocusScene(ui);
   draw();
   focus.value0 = 0;
@@ -202,7 +335,7 @@ void Run(float dpi) {
   draw();
   press(Key::W);
   blocked_modes();
-  Require(ui.GetNativeSceneTool() == Tool::Select, "unfocused W changed the Scene tool");
+  Require(ui.GetNativeSceneTool() == Tool::Hand, "unfocused W changed the Scene tool");
   focus.value0 = 1;
   ui.ProcessEvents(std::array{focus});
   draw();
@@ -210,7 +343,7 @@ void Run(float dpi) {
   draw();
   press(Key::W);
   blocked_modes();
-  Require(ui.GetNativeSceneTool() == Tool::Select, "modal W changed the Scene tool");
+  Require(ui.GetNativeSceneTool() == Tool::Hand, "modal W changed the Scene tool");
   press(Key::Escape);
   Require(ui.TakeCloseChoice() == editor::imgui::CloseChoice::Cancel,
           "tool close fixture did not cancel");
@@ -220,7 +353,7 @@ void Run(float dpi) {
   draw();
   press(Key::W);
   blocked_modes();
-  Require(ui.GetNativeSceneTool() == Tool::Select, "text input changed the Scene tool");
+  Require(ui.GetNativeSceneTool() == Tool::Hand, "text input changed the Scene tool");
   Require(world.SaveScene(scene_id) == baseline && !scene.Dirty() &&
               std::ranges::equal(scene.Selection(), std::array{entity}) && scene.Redo() &&
               scene.Name(redo) == "Retained Redo",

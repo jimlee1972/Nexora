@@ -203,7 +203,7 @@ def main():
             send('windowsize', '--sync', window, '1600', '1200')
             send('windowfocus', '--sync', window)
             wait_ui(lambda value: value['focused'] == '1', 'GUI did not acknowledge focus')
-            key('ctrl+alt+p')
+            key('ctrl+alt+shift+p')
             wait_ui(lambda value: 'c0' in value, 'Prefab panel did not open')
             return window
 
@@ -532,7 +532,7 @@ def main():
         require(placement_before == {p.relative_to(root): p.read_bytes()
                                     for p in root.rglob('*') if p.is_file()},
                 'Native scene instantiation published files before explicit Scene Save')
-        key('ctrl+alt+p')  # Hide the clean panel through its actual toggle shortcut.
+        key('ctrl+alt+shift+p')  # Hide the clean panel through its actual toggle shortcut.
         click(window, 397, 29)  # Restore original Scene focus for ordinary Save/Undo/Redo.
         scene_shortcut('s')
         placed_scene = wait_scene(lambda value: value.startswith(b'NEXORA_EDITOR_SCENE 4\n'),
