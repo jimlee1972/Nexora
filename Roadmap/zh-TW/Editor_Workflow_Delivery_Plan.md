@@ -13,7 +13,9 @@ ED-WF-04 整合基底：main `a21c1ca2293e4200de8dcaa4b892ffef34687c9c`，包含
 
 Editor 已透過共用 producer 提供腳本勾選、manifest、Build 與 Cancel。Runtime 已擁有 V3
 模組世代及可選 save/load callbacks；計畫基線的型別化 Zig game adapter 尚未發布遷移 callbacks。
-ED-WF-04 的有界型別化 codec 已通過限縮單元驗證，完整重載交易仍在施工中。
+ED-WF-04 的有界型別化 codec 及真實 32 次切換 Runtime fixture 已有 Windows 限縮通過證據。
+候選 #758 的 macOS 卸載斷言發現 Zig panic 隱含 TLS；SDK／嚴格 loader 修復仍須重跑原生
+驗證及完整 Cloud／CI gates，工單尚未驗收。
 Sprite source 已有不可變 metadata、C++ 來源感知擷取及 NX2S schema 3 場景持久化。
 以上屬於基礎，不代表下列完整工作流程已驗收；現有 CLI 與 `.bat` 開發流程持續可用。
 

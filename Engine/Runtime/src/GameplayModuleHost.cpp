@@ -20,6 +20,10 @@
 #else
 #include <dlfcn.h>
 #endif
+#if defined(__APPLE__)
+#include <mach-o/getsect.h>
+#include <mach-o/loader.h>
+#endif
 
 namespace nexora::runtime {
 namespace {
@@ -56,6 +60,7 @@ template <typename Function> Function FunctionCast(void *symbol) noexcept {
 } // namespace
 
 struct GameplayModuleHost::DynamicLibrary final {
+  bool unloadable{true};
 #if defined(_WIN32)
   HMODULE handle{};
 #else
@@ -81,6 +86,27 @@ struct GameplayModuleHost::DynamicLibrary final {
     result->handle = LoadLibraryW(path.c_str());
 #else
     result->handle = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
+#endif
+#if defined(__APPLE__)
+    // Reject known dyld-pinned images before handing them a host/context. Releasing
+    // such an image does not run its finalizers, so they cannot participate in a
+    // bounded generation transaction. Static-loader callers own their code lifetime.
+    if (result->handle) {
+      Dl_info info{};
+      const auto symbol = dlsym(result->handle, kLoaderSymbol);
+      if (symbol) {
+        result->unloadable = dladdr(symbol, &info) && info.dli_fbase;
+      }
+      if (symbol && result->unloadable) {
+        const auto *header = static_cast<const mach_header_64 *>(info.dli_fbase);
+        result->unloadable =
+            header->magic == MH_MAGIC_64 && !(header->flags & MH_HAS_TLV_DESCRIPTORS);
+        if (result->unloadable)
+          for (const auto *segment : {"__DATA", "__DATA_CONST", "__DATA_DIRTY"})
+            if (getsectbynamefromheader_64(header, segment, "__objc_imageinfo"))
+              result->unloadable = false;
+      }
+    }
 #endif
     return result->handle == nullptr ? nullptr : std::move(result);
   }
@@ -188,6 +214,10 @@ bool GameplayModuleHost::Load(const std::filesystem::path &library) {
 bool GameplayModuleHost::LoadLocked(NexoraGameModuleLoadV3Fn load, DynamicLibrary *library) {
   if (loaded_ || generation_ == std::numeric_limits<std::uint64_t>::max())
     return false;
+  if (strict_transaction_ && library && !library->unloadable) {
+    reload_failure_ = ReloadFailure::RestartRequired;
+    return false;
+  }
   auto candidate_host = std::make_unique<NexoraGameplayHostV3>(host_);
   struct CloseCandidate final {
     DynamicLibrary *library;
@@ -297,6 +327,9 @@ bool GameplayModuleHost::ReloadLocked(NexoraGameModuleLoadV3Fn load,
   if (generation_ == std::numeric_limits<std::uint64_t>::max())
     return reject(ReloadFailure::ResourceExhausted);
   try {
+    if (strict_transaction_ && ((library_ && !library_->unloadable) ||
+                                (candidate_library && !candidate_library->unloadable)))
+      return reject(ReloadFailure::RestartRequired);
     NexoraGameModuleV3 candidate{};
     if (!ReadModuleTable(load, candidate))
       return reject(ReloadFailure::InvalidCandidate);

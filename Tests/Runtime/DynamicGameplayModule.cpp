@@ -13,7 +13,11 @@ struct State final {
   std::uint32_t value{NEXORA_TEST_GENERATION};
 };
 
+#if defined(NEXORA_TEST_TLS_STATE)
+thread_local State state;
+#else
 State state;
+#endif
 
 #if defined(NEXORA_TEST_HOST_FINALIZER)
 const NexoraGameplayHostV3 *retained_host{};

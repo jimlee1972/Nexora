@@ -143,3 +143,71 @@ The Runtime/data foundation has scoped passes above. Rebuilt Editor/Player regre
 Codex Cloud Development configure/build/CTest, linkage-sensitive Shipping configure/build,
 exact-head CI and a merged PR are required before acceptance. Editor background watcher/build
 coordination belongs to ED-WF-05; Sprite/pool integrated acceptance remains ED-WF-06–09.
+
+## Published candidate 9547cc8a: retained Windows passes and macOS failure
+
+Draft [PR #758](https://github.com/jimlee1972/Nexora/pull/758) initially published commit
+`9547cc8afa1e4c69d5dd79b5e54e5c358cf152da`, tree `3f9ae84f244ee7e4e27e1007cdfa4a569c9d98f9`.
+All 21 scoped Windows consumer targets built. The first current-main aggregate retained a splash
+capture failure on the isolated desktop (20 passed/1 failed, exit 1, 197.32s). On the Default
+desktop, the unchanged splash test passed separately (1.04s total), then the unchanged complete
+scoped gate passed **21/21, exit 0, 166.08s**. The exact commands, toolchain, test inventory and
+binary/source hashes are in [the scoped Windows receipt](ED-WF-04-Windows.json).
+
+[Hosted Windows package evidence](ED-WF-04-Windows-CI.json) is separate from that local scope:
+run `41226660454`, job `124612117854` passed native branding/startup/input/no-console checks
+**5/5, exit 0, 21.27s**, including startup integration 18.97s. The actual extracted/relocated
+Editor and game passed as well; extracted Play rendered 1,200 frames with three scene commits
+and unchanged source hashes. The captured Dark WindowBg is RGB (56,56,56), matching the intended
+display gray rather than the over-dark decoded value. The package root has only NexoraEditor.exe.
+Artifact `13052765182` has SHA256 `eab5c490a1d220952d4fa6e6346248dd8b71bff86821db5eadb2ca9d8e8ddaa4`;
+the inner Editor ZIP is 115756541 bytes, SHA256
+`ef3929c63e6f7bfb5e5cbc445a50f7f1cc67faa508e6746ee7f7affd4e59a8ba`.
+This is a work-order candidate, not the final delivery or physical/clean-host acceptance.
+
+The [initial candidate's complete Cloud receipt](ED-WF-04-Cloud-Initial.json) records all five
+gates first-attempt exit 0: Development configure 2.326s/build 517.542s/CTest 1991.496s,
+Shipping configure 0.737s/build 67.244s. CTest itself reports **495/495 passed, no failure/skip,
+1991.38s**; the real Zig transaction took 6.56422s. Source remained clean, OOM count was zero,
+and prior #754/#756 archives were unchanged. The 379114-byte archive has SHA256
+`6ab758ffdf8b5569937cce488ae6db734398152fbbd3564bb6a0350883c50e71`.
+Shipping testing is OFF. This Linux-only pass does not override the macOS failure below or
+validate the subsequent repair. The [initial full CI inventory](ED-WF-04-CI-Initial.json) has
+42 completed checks: both macOS desktop events and their two result aggregators failed;
+the remaining checks succeeded. No failed check is bypassed.
+
+macOS desktop job `124612286930` then finished **exit 8, 409 passed/1 skipped/1 failed of 411,
+885.22s**. The unchanged portable-font fixture skipped for its optional Python dependencies.
+`runtime.zig_reload_transaction` aborted at the retained-candidate mapping assertion (0.34s).
+The original decoded log is preserved locally as `ed-wf04-macos-ci-9547-failure.log`; the
+[failure/probe receipt](ED-WF-04-MacOS.json) records its hash and scope. The failed gate is not
+treated as an accepted platform result.
+
+## macOS unloadability repair: native verification pending
+
+Apple's [dlclose manual](https://github.com/apple-oss-distributions/dyld/blob/main/doc/man/man3/dlclose.3)
+documents TLS/Objective-C images as non-unloadable. A Windows-hosted **cross-compilation only**
+of the real Zig SDK entry for aarch64-macos found `__thread_bss`/`__thread_vars` from the default
+panic recursion counter. A probe using Zig's standard message-and-trap panic namespace removed
+both sections. The SDK now uses that handler only for non-test macOS entries; safety checks and
+fatal panic behavior remain, while tests/other platforms keep the full handler. This object-file
+probe does not substitute for actual macOS loading/unloading.
+
+Strict Runtime dynamic transactions now reject known TLS/Objective-C-pinned macOS images before
+initial creation or replacement staging, reporting restart required. Legacy constructors retain
+their loading/reload contract. The added C++ TLS library fixture requires initial rejection without
+host allocation and rejected replacement with the old World/generation still callable; execution
+of that additional macOS fixture remains pending. The existing
+32 replacements, 224 ordinary rejections, unload/finalizer assertions and deadlines remain intact;
+failure diagnostics now identify the round/case/mapping. No failing assertion was removed.
+
+Applicable native regression, full exact-source Cloud Development/Shipping and all CI must pass
+again for this repair before PR #758 can merge. Progress remains **3/9**.
+
+The repaired source's [scoped Windows core receipt](ED-WF-04-Windows-Fix.json) now records
+**6/6 passed, exit 0, 142.81s** after successful native rebuilds. Real Zig reload took 11.26s,
+codec 8.17s and authored external project 121.97s. This is native Windows module/World/SDK proof,
+not execution of the additional Apple-only fixture. The actual modified SDK entry also compiled
+to an aarch64-macos object with no TLS sections (1116784 bytes; SHA256
+`a69fe848e3747f0830082867192aefc576d374efb1bbcda4fcd84aa61c26f6f5`).
+Native macOS, complete repaired-source Cloud gates and CI remain pending.

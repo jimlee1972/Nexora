@@ -28,6 +28,14 @@ both hooks keep those slots null and do not advertise migration.
 
 ## Typed reload state
 
+The engine-owned macOS library entry uses Zig's standard message-and-trap panic handler instead
+of the default handler's thread-local recursion state. Runtime safety checks remain enabled and
+panic remains fatal; ordinary returned errors retain their existing lifecycle handling. Test
+executables and other platforms keep the full default panic handler. This permits genuine library
+unloading without introducing authored entry/ABI glue. Strict Runtime transactions reject macOS
+images with their own TLS/Objective-C metadata with restart required; no migration or World reset
+is silently substituted. Legacy module-state-only embeddings retain their existing contract.
+
 Provide both hooks and a nonzero `pub const state_version: u32`. A missing partner is a compile error.
 The SDK advertises the existing STATE_MIGRATION capability only for the pair:
 

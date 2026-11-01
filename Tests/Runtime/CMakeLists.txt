@@ -167,6 +167,12 @@ target_compile_definitions(NexoraDynamicGameplaySecond PRIVATE NEXORA_TEST_GENER
 target_compile_definitions(NexoraDynamicGameplayFailing PRIVATE
   NEXORA_TEST_GENERATION=3 NEXORA_TEST_FAIL_RESTORE=1 NEXORA_TEST_HOST_FINALIZER=1)
 target_compile_definitions(NexoraDynamicGameplayBadAbi PRIVATE NEXORA_TEST_BAD_ABI=1)
+if(APPLE)
+  add_library(NexoraDynamicGameplayPinned MODULE DynamicGameplayModule.cpp)
+  target_link_libraries(NexoraDynamicGameplayPinned PRIVATE Nexora::Foundation)
+  target_compile_definitions(NexoraDynamicGameplayPinned PRIVATE NEXORA_TEST_TLS_STATE=1)
+  nexora_apply_defaults(NexoraDynamicGameplayPinned)
+endif()
 
 add_executable(NexoraDynamicGameplayModuleTests DynamicGameplayModuleTests.cpp)
 add_dependencies(NexoraDynamicGameplayModuleTests
@@ -203,10 +209,15 @@ if(NEXORA_ENABLE_ZIG_GAMEPLAY)
   target_link_libraries(NexoraZigReloadTransactionTests PRIVATE Nexora::Runtime ${CMAKE_DL_LIBS})
   add_dependencies(NexoraZigReloadTransactionTests ${reload_script_targets}
     NexoraDynamicGameplayBadAbi NexoraDynamicGameplayFailing)
+  set(reload_pinned_module)
+  if(APPLE)
+    add_dependencies(NexoraZigReloadTransactionTests NexoraDynamicGameplayPinned)
+    list(APPEND reload_pinned_module $<TARGET_FILE:NexoraDynamicGameplayPinned>)
+  endif()
   nexora_apply_defaults(NexoraZigReloadTransactionTests)
   add_test(NAME runtime.zig_reload_transaction COMMAND NexoraZigReloadTransactionTests
     ${reload_script_modules} $<TARGET_FILE:NexoraDynamicGameplayBadAbi>
-    $<TARGET_FILE:NexoraDynamicGameplayFailing>)
+    $<TARGET_FILE:NexoraDynamicGameplayFailing> ${reload_pinned_module})
   set_tests_properties(runtime.zig_reload_transaction PROPERTIES TIMEOUT 120)
 endif()
 

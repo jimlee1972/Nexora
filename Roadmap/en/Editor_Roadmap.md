@@ -281,8 +281,9 @@ satisfy this milestone.
   pixels/save/reopen/read-only acceptance cover the feature; physical-host acceptance and the
   overall milestone remain open.
   [Linux evidence](../../Tools/Build/evidence/EditorAppearance-Linux-2026-10-31.md).
-  ED-WF-04 integration exposed an over-dark Windows UNORM palette; actual-attachment encoding
-  and secondary-text contrast repair are under verification in the
+  ED-WF-04 integration exposed an over-dark Windows UNORM palette. Candidate #758 passed hosted
+  Windows startup/relocation with actual-attachment encoding and secondary-text contrast repair;
+  its macOS loader repair remains unaccepted. See the
   [work-order evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04.md).
 - ✅ The feature-gated Dear ImGui host implements the portable docking, theme/DPI, input/IME,
   live-panel, recovery UX, and accessibility-direction contracts described by

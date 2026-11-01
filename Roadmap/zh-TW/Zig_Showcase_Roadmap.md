@@ -18,7 +18,8 @@ descriptor/callback coverage 與 Linux sanitizer preset 已完成 ZS-M0。Runtim
 資料、實際註冊工作的 barrier，以及由 embedding 擁有的嚴格 World／資源交易。
 限縮 Windows fixture 已通過 32 次真實 Zig library 切換及 224 次候選拒絕；完整 Cloud／CI／Editor
 整合仍待驗收。這擴充上述歷史 module-state contract，不代表 Editor 背景重載或動畫／pool 流程
-已驗收。詳見[工單證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04.md)。
+已驗收。macOS SDK／嚴格 loader 的卸載安全修復仍待原生驗證，原有重載／卸載斷言均保留。
+詳見[工單證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04.md)。
 
 **本機施工狀態（2026-09-23）：** 已提供 deterministic headless/static 與 Development-dynamic
 的 ZS-M1 驗證 slice，

@@ -89,7 +89,11 @@ void Verify(const Owner &owner, std::uint64_t expected, runtime::Id scene, runti
 } // namespace
 
 int main(int argc, char **argv) {
+#if defined(__APPLE__)
+  assert(argc == 10);
+#else
   assert(argc == 9);
+#endif
   Directory directory;
   const Path normal{argv[1]};
   std::array<Path, 7> failures;
@@ -109,6 +113,7 @@ int main(int argc, char **argv) {
   const bool loaded = host.Load(current);
   if (!loaded)
     std::cerr << "Initial module failed: inspected=" << inspected
+              << " failure=" << static_cast<unsigned>(host.GetReloadFailure())
               << " allocations=" << owner.allocations << " frees=" << owner.frees
               << " blocks=" << owner.blocks.size() << " entity=" << owner.entity
               << " active=" << owner.world.ActiveEntityCount() << '\n';
@@ -120,12 +125,38 @@ int main(int argc, char **argv) {
   Verify(owner, counter, scene, entity);
   assert(!host.Reload(current) && host.GetReloadFailure() == Host::ReloadFailure::RestartRequired);
   Verify(owner, counter, scene, entity);
+#if defined(__APPLE__)
+  const auto pinned = Copy(Path{argv[9]}, directory.path, "pinned-tls");
+  {
+    Owner fresh(false);
+    Host strict(fresh.Api(), fresh.Barrier(), fresh.Transaction());
+    assert(!strict.Load(pinned));
+    assert(strict.GetReloadFailure() == Host::ReloadFailure::RestartRequired);
+    assert(fresh.allocations == 0 && fresh.world.ActiveEntityCount() == 0);
+  }
+  assert(!host.Reload(pinned));
+  assert(host.GetReloadFailure() == Host::ReloadFailure::RestartRequired && host.Generation() == 1);
+  Verify(owner, counter, scene, entity);
+  assert(host.Update(0.1));
+  Verify(owner, ++counter, scene, entity);
+#endif
   for (unsigned index = 0; index < 32; ++index) {
     const auto generation = host.Generation();
     for (std::size_t failure = 0; failure < failures.size(); ++failure) {
-      assert(!host.Reload(failures[failure]));
-      assert(host.GetReloadFailure() == reasons[failure]);
-      assert(host.Generation() == generation && !Loaded(failures[failure]));
+      const bool replaced = host.Reload(failures[failure]);
+      const auto reason = host.GetReloadFailure();
+      if (replaced || reason != reasons[failure])
+        std::cerr << "Candidate rejection mismatch: round=" << index << " case=" << failure
+                  << " replaced=" << replaced << " reason=" << static_cast<unsigned>(reason)
+                  << " expected=" << static_cast<unsigned>(reasons[failure]) << '\n';
+      assert(!replaced);
+      assert(reason == reasons[failure]);
+      const bool candidate_loaded = Loaded(failures[failure]);
+      if (host.Generation() != generation || candidate_loaded)
+        std::cerr << "Rejected candidate retained: round=" << index << " case=" << failure
+                  << " generation=" << host.Generation() << " expected=" << generation
+                  << " mapped=" << candidate_loaded << '\n';
+      assert(host.Generation() == generation && !candidate_loaded);
       Verify(owner, counter, scene, entity);
       // The old Zig implementation remains callable after every rejected candidate.
       assert(host.Update(0.1));

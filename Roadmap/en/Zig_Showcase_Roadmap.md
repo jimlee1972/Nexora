@@ -19,7 +19,8 @@ Zig save/load data, an actual registered-work barrier and strict embedding-owned
 transactions. A scoped Windows fixture passed 32 real Zig library replacements and 224 rejected
 candidates; complete Cloud/CI/Editor integration is still pending. This extends the historical
 module-state contract above without accepting Editor background reload or animation/pool workflows.
-See [the work-order evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04.md).
+The macOS SDK/strict-loader unloadability repair remains under native verification; the original
+reload/unload assertions are retained. See [the work-order evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04.md).
 
 **Local implementation status (2026-09-23):** Deterministic headless/static and
 Development-dynamic ZS-M1 verification is now available as `NexoraShowcase.exe`. C++ owns `main`, engine lifecycle, a small

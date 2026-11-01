@@ -1,5 +1,13 @@
 //! Engine-owned entry; never copied into an authored game project.
 const std = @import("std");
+const builtin = @import("builtin");
+// dyld retains images with TLS. The default panic recursion counter would pin every
+// otherwise unloadable gameplay library. Keep safety checks and fatal panic behavior,
+// but use the standard message-and-trap handler without TLS for macOS libraries.
+pub const panic = if (builtin.os.tag == .macos and !builtin.is_test)
+    std.debug.simple_panic
+else
+    std.debug.FullPanic(std.debug.defaultPanic);
 const nx = @import("nexora");
 const script = @import("game");
 const Adapter = nx.game.Module(script.Game);

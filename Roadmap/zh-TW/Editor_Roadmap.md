@@ -264,8 +264,9 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
   真實 1x／2x 選單測試及 Linux X11／Vulkan 畫面、儲存、重啟、唯讀驗收已涵蓋此功能；
   physical-host acceptance 與整體里程碑仍維持 open。
   [Linux 證據](../../Tools/Build/evidence/EditorAppearance-Linux-2026-10-31.md)。
-  ED-WF-04 整合時發現 Windows UNORM 配色過暗；依實際 attachment 編碼及補強次要文字對比
-  的修復仍在驗證，詳見[工單證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04.md)。
+  ED-WF-04 整合時發現 Windows UNORM 配色過暗；候選 #758 的 attachment 編碼／次要文字對比
+  修復已通過 hosted Windows 啟動／搬移驗證，macOS loader 修復仍未驗收。
+  詳見[工單證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04.md)。
 - ✅ Feature-gated Dear ImGui host 已實作
   [Editor_ImGui_Integration_Plan.md](Editor_ImGui_Integration_Plan.md) 所述的 portable docking、
   theme／DPI、input／IME、live panel、recovery UX 與 accessibility-direction contract。

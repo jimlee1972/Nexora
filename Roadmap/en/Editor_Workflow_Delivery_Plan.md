@@ -14,7 +14,9 @@ acceptance remains **0/8**; this plan does not accept physical-device or clean-h
 The Editor already exposes a script checkbox/manifest, Build and Cancel through the shared
 producer. Runtime already owns V3 module generations and optional save/load callbacks. At the plan
 baseline, the typed Zig game adapter did not publish migration callbacks. ED-WF-04's bounded typed
-codec now has a scoped unit pass; the complete reload transaction is still in progress. Sprite sources already have immutable
+codec and real 32-replacement Runtime fixture have scoped Windows passes. Candidate #758's
+macOS unload assertion exposed implicit Zig panic TLS; the SDK/strict-loader repair requires native
+reverification and complete Cloud/CI gates. The work order remains unaccepted. Sprite sources already have immutable
 metadata, source-aware C++ extraction and NX2S schema 3 scene persistence. These are foundations,
 not evidence of the complete workflow below. Existing CLI and `.bat` development remains usable.
 

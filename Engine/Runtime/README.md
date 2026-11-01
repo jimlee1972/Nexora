@@ -523,6 +523,16 @@ The owned table advertises at most its actual known allocation size, including a
 supplies a candidate host. An older negotiated prefix stays its original size; an oversized future
 suffix cannot be copied through this by-value C++ boundary and is not falsely advertised.
 
+On macOS, strict dynamic owners reject known dyld-pinned TLS/Objective-C images before initial
+creation, or report restart required before staging a replacement. No host/context is handed to
+an initially rejected image. Embedders must not independently retain loader handles; static-loader
+callers own their code lifetime. This admission rule is scoped to the strict overload: legacy
+module-state-only constructors retain their existing loading/reload behavior. The SDK's macOS
+library entry uses Zig's message-and-trap panic namespace to avoid the default handler's implicit
+TLS while retaining runtime safety checks and fatal panic behavior. Authored TLS/Objective-C code
+is not made unloadable by that handler. Module cleanup remains explicit in destroy; modules must
+not retain host pointers for delayed thread/process-exit callbacks.
+
 World/resource embeddings use the strict three-argument constructor with `ReloadTransaction`.
 All four nonthrowing hooks are required; absent isolation reports restart required. `begin` stages
 unpublished World/resource state and may replace the candidate host context/services; rollback
