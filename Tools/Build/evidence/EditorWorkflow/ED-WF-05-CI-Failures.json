@@ -1,0 +1,52 @@
+{
+  "status": "UNACCEPTED_SUPERSEDED_CANDIDATE",
+  "source": "de0204cfc8d0f2c612ae141ef8ccf6ed258c62d4",
+  "tree": "09e548f370a15ff3f1f59a511f8e1ff7d69c88bb",
+  "failure": "GNU15.2 -Werror=dangling-pointer in existing RuntimeTests.cpp empty-dependency temporary asset vectors, before full CTest",
+  "environment": {
+    "current": "GitHub ubuntu26/20261025.179, GNU15.2.0",
+    "previous_c9": "GitHub ubuntu24/20261025.353, GNU13.3.0"
+  },
+  "repair": "Named owning vectors; default-construct empty dependency records, then set fields. Same cycle, activation, pinning and rollback assertions. No warning suppression, retries, disabled tests or relaxed limits.",
+  "local_repair_check": {
+    "build_exit_code": 0,
+    "ctest_exit_code": 0,
+    "case": "runtime.v1_m4_m11_contracts",
+    "passed": 1,
+    "failed": 0,
+    "elapsed_seconds": 0.2
+  },
+  "logs": [
+    {
+      "path": "build/editor-workflow-native/ed-wf05-linux-de0204cf-job-124862507194-failed.log",
+      "bytes": 138701,
+      "sha256": "26c9872a2a607a8f04df7bfd63010ce4910332f06abab87e900cdd0b0262b6b7"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-linux-de0204cf-job-124862507178-failed.log",
+      "bytes": 164732,
+      "sha256": "f0e74f50c31a6750a308c9f07e3e445eae0e2343775628dc44b9df6dc18b36e2"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-linux-de0204cf-job-124862560056-failed.log",
+      "bytes": 137659,
+      "sha256": "e8ad928c7b34ce507e7503555555d532c4257c0aa2862323fb6a0d7310a20265"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-linux-de0204cf-job-124862507280-failed.log",
+      "bytes": 75220,
+      "sha256": "683e0e8970e49c46ad5f2ad95c8aa243eb9612b0bb426e47ae2fba35e8a52c85"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-gcc-owned-fixture-build.log",
+      "bytes": 985,
+      "sha256": "cc2641a739980ca417f99209c90419e611ac6ccacff836171639e4045f41ffa3"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-gcc-owned-fixture-test.log",
+      "bytes": 426,
+      "sha256": "0f7cdf2341f37b650b7461ff41f1e223771392ad7668287d9d8a05d8468ec32d"
+    }
+  ],
+  "scope": "Windows targeted repair check does not prove GCC15 build. Full repaired-head Cloud and CI remain required."
+}

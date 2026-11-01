@@ -45,6 +45,9 @@ The [ED-WF-05 technical baseline](../../Tools/Build/evidence/EditorWorkflow/ED-W
 verified SDK lifecycle, compiler ownership and resource-isolation gaps. The first SDK lifecycle
 slice is in progress with scoped Windows evidence; compiler coordination, Editor resource isolation
 and complete acceptance remain pending. It does not change the accepted count.
+PR #762's first Linux CI candidate is unaccepted after the Ubuntu 26/GNU 15.2 runner change:
+the existing Runtime asset fixture triggers a dangling-pointer warning. The owning-fixture repair
+preserves all assertions and warnings; repaired-head full Cloud/CI is still required.
 The [ED-WF-02 evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02.md) and [Cloud receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02-Cloud.json) record accepted PR #754: 42 successful CI checks, 490/490 Cloud tests and Shipping build, with initial environment/local-capture failures retained. Beads synchronization recovered by adopting existing history; Epic `nexora-whr` and children `.1` through `.9` map to the linked GitHub work orders.
 The accepted [ED-WF-03 evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03.md), [Cloud receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03-Cloud.json) and [CI inventory](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03-CI.json) record PR #756: native GUI/core passes, 490/490 Cloud tests and Shipping, all 42 CI checks and unchanged merged tree. ED-WF-04 is accepted in PR #758.
 The accepted [ED-WF-04 evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04.md),

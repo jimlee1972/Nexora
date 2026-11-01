@@ -36,6 +36,19 @@ This accepts the local scoped compiler gate, not integrated Editor hot reload. I
 scoped Runtime/SDK receipt above and does not accept
 Editor compile coordination or the work order.
 
+## First Cloud/CI candidate
+
+PR #762 candidate `de0204cfc8d0f2c612ae141ef8ccf6ed258c62d4` is unaccepted: multiple Linux
+CI builds fail at the existing Runtime asset fixtures with GNU 15.2's dangling-pointer warning.
+Those runners use Ubuntu 26, while the prior c9 Linux display job used Ubuntu 24/GNU 13.3.
+[Original failure receipt](ED-WF-05-CI-Failures.json) retains full-log hashes. The repair uses named,
+owning asset vectors without temporary empty-dependency aggregates, preserving every cycle,
+activation, pinning and rollback assertion and all warning flags. Its Windows target build and
+contract CTest pass (exit 0,1/1,0.20s), which does not substitute for repaired-head GCC/Cloud/CI gates.
+The old Cloud run is allowed to finish its current live gate and retains its original evidence;
+only the repaired exact head can receive final acceptance. The compiler coordinator is separate
+local WIP and is not part of this candidate repair.
+
 ## Verified integration gaps
 
 Observations use commit `c9f1717085078b216913cd1096427c5aa42c6946`:
