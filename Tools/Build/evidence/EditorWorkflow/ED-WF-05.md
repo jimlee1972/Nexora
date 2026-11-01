@@ -66,6 +66,16 @@ and task-local python3 launcher. Linux desktop CI now collects remaining Ninja d
 after its original required build fails; strict warnings and the original failed status remain.
 This is diagnostic collection, not an acceptance retry. Full repaired-head gates remain required.
 
+Repair `aba81782` clears the original Runtime/Prefab failures. Its failure-only Ninja diagnostic
+step finds the remaining additive-session, scene-save-batch, scene-comparison GUI and reflected
+Inspector nested-temporary fixtures in one completed compile pass. Those now have explicitly
+owned opaque/component/field data with all original bytes, kinds, offsets, choices and assertions.
+A matching composition fixture adopts the same ownership. Native scene targets build and pass
+3/3 (exit0,121.60s); both actual ImGui cases build and pass (7.38s/6.10s). These local builds also
+contain separate, uncommitted Runtime/pool prework, excluded from this fixture publication; they
+do not prove an immutable full gate. Original failed build/logs remain in the receipt and every
+new head still requires full Cloud and CI.
+
 ## Verified integration gaps
 
 Observations use commit `c9f1717085078b216913cd1096427c5aa42c6946`:

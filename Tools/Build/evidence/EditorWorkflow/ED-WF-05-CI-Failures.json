@@ -151,5 +151,64 @@
         "sha256": "f4da4981708e97445fdca73e35cfdfbaee61c7565d327cbca91d30de411201ea"
       }
     ]
+  },
+  "fix3": {
+    "source": "aba81782a80dacc5f64208ee1398448e509322a7",
+    "tree": "f2d0a22db004eee09c143146edc99ed7837035ac",
+    "status": "UNACCEPTED",
+    "result": "Required strict desktop build fails at AdditiveSceneSessionTests. Failure-only Ninja -k0 completes remaining translation units and retains errors in SceneSaveBatchTests, EditorImGui SceneComparisonTests and ReflectedInspectorTests. Original Runtime/Prefab compile failures cleared.",
+    "repair": "Named default-constructed owning opaque/component/field fixtures, exact type/name/payload/kind/offset/array/choice data and original assertions retained. Matching additive composition fixture uses the same ownership. No warning suppression, missing tests, relaxed limits or required-check bypass.",
+    "local": {
+      "scene_target_build_exit_code": 0,
+      "scene_ctest_exit_code": 0,
+      "scene_passed": 3,
+      "scene_failed": 0,
+      "scene_elapsed_seconds": 121.6,
+      "gui_target_build_exit_code": 0,
+      "gui_ctest_exit_code": 0,
+      "gui_passed": 2,
+      "gui_failed": 0,
+      "gui_cases": [
+        "editor.semantic_scene_comparison_ui",
+        "editor.reflected_inspector_ui"
+      ],
+      "gui_case_seconds": [
+        7.38,
+        6.1
+      ],
+      "scope": "Local builds also contain uncommitted Runtime capture and TwoD pool prework; these target checks do not accept an immutable source head. That prework is excluded from the CI fixture repair publication. Full exact-head Cloud and CI remain required."
+    },
+    "logs": [
+      {
+        "path": "build/editor-workflow-native/ed-wf05-linux-aba81782-job-124875104031-failed.log",
+        "bytes": 183153,
+        "sha256": "f9a08c49ce9daca551ad0da2db6906fdd954df64d9d2d60cbf5675328e4f07bc"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-linux-aba81782-job-124875104153-failed.log",
+        "bytes": 254851,
+        "sha256": "a35515de55ca4c15edb0f7288fe755f428bea9091aa63be651e92848d3c0b361"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-gcc-scene-fixture-build.log",
+        "bytes": 5649,
+        "sha256": "def07c625405dc2b6014bc120ad45c8621d6d93b43b4875f50bbc99094c12f0e"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-gcc-scene-fixture-test.log",
+        "bytes": 671,
+        "sha256": "98f2137b57a4a15a9abede6a5e770dd3f7673e48bb97fab46230d9c969d83ef6"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-pool-ui-fixtures-final-build.log",
+        "bytes": 6829,
+        "sha256": "7a1af0a63cfb5e081a8581a38cc05173a80211ba5581cd7cc6a00a0a53847233"
+      },
+      {
+        "path": "build/editor-workflow-native/ed-wf05-pool-ui-fixtures-final-test.log",
+        "bytes": 678,
+        "sha256": "1e86c09fd0fb0e4c288d21e7751a5f55fb9bacbb1db68bfedde3185635bcc8d3"
+      }
+    ]
   }
 }
