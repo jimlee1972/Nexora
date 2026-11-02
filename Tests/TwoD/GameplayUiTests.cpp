@@ -73,7 +73,77 @@ void RegistrationWire() {
   auto frame = ui.Frame();
   assert(frame.uploads[0].pixels[0] == std::byte{255});
 }
+void ReloadUi() {
+  twod::GameplayUi ui, reference, foreign;
+  assert(ui.RegisterFont(Font()) && reference.RegisterFont(Font()));
+  const auto draw = [](twod::GameplayUi &owner, twod::GameplayUiInput input) {
+    auto api = Api(owner);
+    owner.BeginInput(input);
+    std::uint32_t a{}, b{};
+    assert(api.begin_frame(api.context, 100, 100) == 0);
+    assert(api.button(api.context, 1, first, "A", 1, 1, 16, 1, &a) == 0 &&
+           api.button(api.context, 2, second, "A", 1, 1, 16, 1, &b) == 0 &&
+           api.end_frame(api.context) == 0);
+    return std::array{a, b};
+  };
+  twod::GameplayUiInput press{};
+  press.pointer_x = press.pointer_y = 5;
+  press.pointer_down = press.pointer_pressed = true;
+  assert(draw(ui, press) == draw(reference, press));
+  assert(!ui.SwapReloadState(foreign));
+  for (unsigned generation = 1; generation <= 32; ++generation) {
+    auto rejected = ui.ForkForReload();
+    assert(rejected);
+    rejected->CancelFrame();
+    assert(!ui.Frame().commands.empty());
+    rejected.reset();
+    auto branch = ui.ForkForReload();
+    assert(branch && branch->Frame().commands.size() == ui.Frame().commands.size());
+    std::thread other([&] { assert(!ui.ForkForReload() && !ui.SwapReloadState(*branch)); });
+    other.join();
+    auto pending = Api(*branch);
+    assert(pending.begin_frame(pending.context, 100, 100) == 0 && !branch->ForkForReload() &&
+           !ui.SwapReloadState(*branch));
+    assert(pending.end_frame(pending.context) == 0);
+    // The admitted branch preserves the original capture and previous-frame navigation order.
+    // The open-frame rejection probe must not become the state used for that comparison.
+    branch = ui.ForkForReload();
+    twod::GameplayUiInput next{};
+    if (generation == 1) {
+      next.pointer_x = next.pointer_y = 5;
+      next.pointer_released = true;
+    } else {
+      next.navigate = 1;
+      next.activate = true;
+    }
+    const auto expected = draw(reference, next);
+    assert(draw(*branch, next) == expected);
+    if (generation == 1)
+      assert(expected[0] & NEXORA_UI_ACTIVATED);
+    const auto retained = branch->Frame();
+    auto retired_api = Api(ui);
+    NexoraGameplayUiDrawApiV1 retired_draw{};
+    retired_draw.struct_size = sizeof(retired_draw);
+    retired_draw.abi_version = 1;
+    assert(ui.GetDrawApi(&retired_draw) == 0);
+    const auto candidate_api = Api(*branch);
+    assert(ui.SwapReloadState(*branch));
+    auto active_api = Api(ui);
+    assert(active_api.context == candidate_api.context &&
+           Api(*branch).context == retired_api.context);
+    // Cleanup through an old cached C API affects only retired state and cannot retire a
+    // shared live texture. The candidate frame also keeps immutable payload ownership.
+    assert(retired_draw.remove_font(retired_draw.context, 1) == 0);
+    branch->CancelFrame();
+    assert(branch->CollectRetiredTextures().empty());
+    std::uint64_t font{};
+    assert(active_api.get_font(active_api.context, 0, &font) == 0 && font == 1 &&
+           ui.Frame().commands.size() == retained.commands.size() &&
+           retained.uploads.back().pixels[0] == std::byte{255});
+  }
+}
 int main() {
+  ReloadUi();
   RegistrationWire();
   twod::GameplayUiFrame retained;
   {

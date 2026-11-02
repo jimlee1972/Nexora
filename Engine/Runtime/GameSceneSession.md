@@ -14,6 +14,18 @@ pending work and rejects new requests; status/info queries remain available duri
 Destroy the module before destroying its borrowed session. All service calls are owner-thread
 only. `View`, `Stats` and render capture have that same C++ caller precondition.
 
+For stateful module replacement, `ForkForReload` copies a quiescent session over an identical,
+unpublished `GameWorld`: catalog/instance owners and authored-to-live mappings, pending/completed
+requests, monotonic request IDs, primary scene and bounded diagnostics. It neither processes a
+request nor opens native resources. Aliased Worlds, stopped/processing sessions and foreign
+threads reject; allocation failure leaves the source unchanged. The GameWorld copy includes its
+CPU audio/physics/character bindings, rather than only its internal entity/scene storage.
+`RebindForReload` retargets identical moved storage while preserving each generation's cached C API
+context. The embedding guards cached scene requests during state capture and keeps old/new session
+and World owners alive through module callbacks and library finalizers. Final admission precedes
+all World movement; retirement/commit are allocation-free. These methods do not schedule module
+reload, validate migration payloads, acquire a device or establish native GUI acceptance.
+
 One request may be pending. A second request reports Busy without changing its output. Request
 IDs are monotonic and never reused in the session. Scene/entity IDs come from the live World's
 monotonic allocator; authored IDs and parents are remapped even when source scenes overlap.

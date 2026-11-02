@@ -34,6 +34,32 @@ one owning World pose snapshot per frame. InstancePool instead owns independent 
 instances; it does not copy or cache entities from a World. `ExtractSprites` consumes their
 validated affine matrices through the same extraction and native rendering path.
 
+For an embedding reload transaction, `InstancePool::ForkForReload` copies slot values, free-slot
+order, live membership and generations into an unpublished branch with the same handle owner.
+Ordinary constructed pools still have distinct owners. Source UUID, Pivot and sorting metadata
+are copied with each Sprite. Branch allocation can fail without changing the live pool.
+`SwapReloadState` exchanges only branches of that owner without allocation, preserving the
+live pool object's address and handle identities; borrowed Find pointers expire on success.
+The other branch then owns retired storage, so its destruction/removal cannot erase transferred
+live instances. Fork and either direction of exchange reject during ForEach; all access remains
+serialized on the owner thread. The embedding must keep candidate handles/state private before
+commit and drain all users before exchanging storage. This copies no World, animation bridge,
+native resources or module callbacks by itself; integrated Editor reload remains a separate gate.
+
+`SpriteScene::ForkForReload` copies Sprite/collider metadata into an already cloned, distinct Play
+World and validates that all metadata IDs still belong to that scene. It never edits either World.
+`RebindForReload` validates membership without allocation before redirecting to the identical
+state moved by the embedding at commit/retirement. Editor Worlds reject these reload operations;
+normal Editor snapshot/Restore ownership is unchanged. `GameplayBridge` can fork its camera,
+owned animation clocks/clip values and query snapshots over these isolated bindings. It requires
+distinct mutable scene/tile/pool storage; pooled branches retain the same handle owner. Its
+rebind operation preserves existing API context addresses while redirecting moved World/scene
+state. Fork rejects callback reentry and foreign threads before reading supplied bindings.
+Host-owned resolver captures and every borrowed World/scene/tile/pool must outlive their bridges.
+The caller supplies identical cloned state and keeps every branch private until admission; these
+operations do not copy native IO, authorize cross-thread service access, or replace the Runtime
+barrier and complete Editor transaction. Public C++ consumers rebuild; C/Zig layouts are unchanged.
+
 Source-aware extraction has one implementation in `Scene.cpp`; the source-free overload delegates
 to it. Optional source UUIDs are checked before dereference, and `SpriteGeometry` is defined in
 its declared `detail` namespace. The Sprite asset codec/standalone resolver does not define a

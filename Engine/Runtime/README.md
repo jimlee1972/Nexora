@@ -555,6 +555,21 @@ state may escape before commit. Runtime does not infer or copy opaque embedding 
 The older constructors preserve the original module-state-only contract for existing consumers;
 they do not promise rollback of arbitrary host/World/resource side effects. The Editor integration
 must use the strict constructor; that integrated workflow remains ED-WF-05 acceptance work.
+
+`ReloadTransaction` also accepts an optional all-or-none `capture_begin` / `capture_valid` /
+`capture_end` group. A partial group rejects before closing dispatch or calling save. After the
+actual barrier and work leases drain, begin protects live host writes before either state-size
+query or state write. End runs after partial begin, rejected/oversized/inconsistent state, or
+allocation failure, and before candidate begin or work resumes. Valid rejects a module that
+ignores a host-side-effect error and still returns a well-formed state blob. The embedding owns
+write rejection/staging, violation tracking and restoration of its host's access; these hooks
+alone cannot roll back arbitrary module-memory mutations or sandbox native code. Existing
+transactions with no capture group retain their prior contract. An optional `validate` hook
+rejects staged service errors after candidate start and before retirement; candidate destroy,
+library finalizers and rollback still execute against unpublished state. Every hook is
+nonthrowing and must not re-enter lifecycle methods. This additive C++ hook layout requires
+consumer rebuilds and does not change C/Zig ABI tables.
+
 Strict dynamic reload also requires a distinct loader identity: publish each candidate under a
 unique generation filename. Reopening the active DLL/shared-object handle rejects before calling
 its loader/create, so failed replacement cannot overwrite the old generation's module globals.

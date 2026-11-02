@@ -51,6 +51,10 @@ PR #762 首版 Linux CI 在 runner 改為 Ubuntu 26／GNU 15.2 後未通過：�
 [原生輸入修正](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Input-CI-Failure.md)
 改用已驗證的 X11 實體功能鍵代碼，保留全部 Runtime／畫面／期限斷言；仍須重跑修正版原生與
 完整 gate，不增加已驗收數。
+PR #762 已合併為 `f7537be874d8`，tree 與 `d093841b` 相同。
+[Cloud 收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Cloud-d093841b.json)記錄496/496
+及五個 gate 均 exit0；[CI 清單](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-CI-d093841b.json)
+記錄41項成功檢查／三個 workflow。此基礎修正不代表 ED-WF-05 已驗收，完成度維持4/9。
 [ED-WF-02 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02.md)及[雲端收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02-Cloud.json)記錄已驗收的 PR #754：42 項 CI 成功、雲端 490/490 與 Shipping 建置通過，保留初次環境／本機畫面擷取失敗。Beads 已安全採用既有歷史並恢復同步；Epic `nexora-whr` 與 `.1`～`.9` 對應連結的 GitHub 工單。
 已驗收的 [ED-WF-03 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03.md)、[雲端收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03-Cloud.json)及[CI 清單](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03-CI.json)記錄 PR #756：原生 GUI／核心通過、雲端 490/490 與 Shipping、42 項 CI 全數通過，且合併 tree 相同。ED-WF-04 已由 PR #758 驗收。
 已驗收的 [ED-WF-04 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04.md)、
@@ -115,3 +119,13 @@ GitHub README 維持讀者導向，整體 milestone 未變時不加入逐工單�
 
 依 Beads skill 使用固定 CLI 與外部任務路徑。同步失敗則保留資料並記錄精確阻礙，不初始化、
 替換或 force 共享歷史；GitHub 工單維持可見，不能將失敗同步回報為成功。
+
+本機未提交的後續整合已串接實際 Play 2D 資源分支與場景服務配額；32 次交接保留動畫時間、
+物件池 handle、輸入邊緣狀態與貼圖識別。此為 Windows 程序範圍證據，未包含於 PR762；
+主程式交易與 watcher 結果准入、實際 Editor 腳本修改及完整精確版本驗證仍待完成，不調整完成度。
+
+[Editor 主交易檢查點](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Transaction-Windows.md)
+加入裸 World／設定專案／2D 的嚴格世代交易。14個原生 target 建置、23項 Windows 範圍測試
+及兩次真實無參數 GUI 啟動通過；主程式 C++ fixture 記錄96次成功交接／576次預期拒絕。
+實際腳本修改的 watcher／compiler 准入與完整精確版本 Cloud／Shipping／CI 仍待完成；
+ED-WF-05 尚未驗收，完成度維持4/9。

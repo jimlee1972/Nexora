@@ -11,13 +11,40 @@ std::int32_t Code(GameSceneError error) { return static_cast<std::int32_t>(error
 } // namespace
 GameSceneSession::GameSceneSession(game::GameWorld &world,
                                    std::shared_ptr<const LoadedGameProject> project)
-    : game_(world), project_(std::move(project)) {
-  if (game_.InternalWorld().Kind() != WorldKind::Play || !project_)
+    : game_(&world), project_(std::move(project)) {
+  if (game_->InternalWorld().Kind() != WorldKind::Play || !project_)
     throw std::invalid_argument(
         "Game scene sessions require a Play World and an owning verified catalog.");
 }
 GameSceneSession::~GameSceneSession() { Stop(); }
 bool GameSceneSession::Owner() const noexcept { return owner_ == std::this_thread::get_id(); }
+std::unique_ptr<GameSceneSession> GameSceneSession::ForkForReload(game::GameWorld &world) const {
+  if (!Owner() || processing_ || stopped_ || &world == game_ ||
+      world.InternalWorld().Kind() != WorldKind::Play)
+    return {};
+  auto branch = std::make_unique<GameSceneSession>(world, project_);
+  branch->instances_ = instances_;
+  branch->pending_ = pending_;
+  branch->status_ = status_;
+  branch->completed_ = completed_;
+  branch->error_ = error_;
+  branch->next_request_ = next_request_;
+  branch->primary_ = primary_;
+  if (!branch->RebindForReload(world))
+    return {};
+  return branch;
+}
+bool GameSceneSession::RebindForReload(game::GameWorld &world) noexcept {
+  if (!Owner() || processing_ || stopped_ || world.InternalWorld().Kind() != WorldKind::Play)
+    return false;
+  for (const auto &instance : instances_) {
+    const auto *scene = world.InternalWorld().FindScene(instance.scene);
+    if (!scene || scene->state != SceneState::Active)
+      return false;
+  }
+  game_ = &world;
+  return true;
+}
 void GameSceneSession::Error(std::string_view text) noexcept {
   error_.fill('\0');
   if (!foundation::IsValidUtf8(text))
@@ -56,7 +83,7 @@ GameSceneError GameSceneSession::RequestUnload(Id scene, std::uint64_t &request)
   if (pending_ || processing_)
     return GameSceneError::Busy;
   const auto instance = std::ranges::find(instances_, scene, &GameSceneInstance::scene);
-  const auto *live = game_.InternalWorld().FindScene(scene);
+  const auto *live = game_->InternalWorld().FindScene(scene);
   if (instance == instances_.end() || !live || live->state != SceneState::Active)
     return GameSceneError::NotFound;
   if (live->persistent || instances_.size() == 1)
@@ -77,21 +104,21 @@ Id GameSceneSession::Camera(const World &world, Id scene) const noexcept {
   return 0;
 }
 GameSceneView GameSceneSession::View() const {
-  return {game_.InternalWorld(), instances_, primary_, Camera(game_.InternalWorld(), primary_)};
+  return {game_->InternalWorld(), instances_, primary_, Camera(game_->InternalWorld(), primary_)};
 }
 GameSceneStats GameSceneSession::Stats() const noexcept {
-  GameSceneStats result{game_.world_.scenes_.size(),
+  GameSceneStats result{game_->world_.scenes_.size(),
                         instances_.size(),
                         0,
-                        game_.entity_audio_.size(),
-                        game_.playing_audio_.size(),
+                        game_->entity_audio_.size(),
+                        game_->playing_audio_.size(),
                         0,
                         0};
-  for (const auto &scene : game_.world_.scenes_)
+  for (const auto &scene : game_->world_.scenes_)
     result.stored_entities += scene.entities.size();
 #if NEXORA_GAMEPLAY_SIMULATION_ENABLED
-  result.physics_bindings = game_.physics_entities_.size();
-  result.character_bindings = game_.characters_.size();
+  result.physics_bindings = game_->physics_entities_.size();
+  result.character_bindings = game_->characters_.size();
 #endif
   return result;
 }
@@ -140,7 +167,7 @@ bool GameSceneSession::Process(const Prepare &prepare) {
     return false;
   };
   try {
-    auto &live = game_.InternalWorld();
+    auto &live = game_->InternalWorld();
     for (const auto &instance : instances_) {
       const auto *scene = live.FindScene(instance.scene);
       if (!scene || scene->state != SceneState::Active)
@@ -211,7 +238,7 @@ bool GameSceneSession::Process(const Prepare &prepare) {
     // All allocations, validation and native preparation precede this no-throw publication block.
     static_assert(std::is_nothrow_move_assignable_v<World>);
     for (const auto entity : retired)
-      game_.RemoveBindings(entity);
+      game_->RemoveBindings(entity);
     live = std::move(candidate);
     instances_.swap(instances);
     primary_ = selected;
@@ -306,7 +333,7 @@ NexoraGameplaySceneApiV1 GameSceneSession::Api() noexcept {
         if (info->struct_size < sizeof(*info))
           return Code(GameSceneError::Unsupported);
         const auto found = std::ranges::find(self->instances_, scene, &GameSceneInstance::scene);
-        const auto *live = self->game_.InternalWorld().FindScene(scene);
+        const auto *live = self->game_->InternalWorld().FindScene(scene);
         if (found == self->instances_.end() || !live || live->state != SceneState::Active)
           return Code(GameSceneError::NotFound);
         *info = {sizeof(*info),
@@ -315,7 +342,7 @@ NexoraGameplaySceneApiV1 GameSceneSession::Api() noexcept {
                  scene,
                  found->asset.high,
                  found->asset.low,
-                 self->primary_ == scene ? self->Camera(self->game_.InternalWorld(), scene) : 0};
+                 self->primary_ == scene ? self->Camera(self->game_->InternalWorld(), scene) : 0};
         return 0;
       }};
 }

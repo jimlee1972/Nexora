@@ -4,6 +4,7 @@
 #include <array>
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <thread>
 #include <tuple>
 #include <vector>
@@ -23,8 +24,13 @@ public:
   bool SubmitPointer(std::uint32_t user, double x, double y, double wheelX = 0, double wheelY = 0);
   bool SetFocused(bool focused);
   bool Disconnect(std::uint32_t device, std::uint32_t device_id);
+  // Owner-thread, unpublished reload branch. Copies bindings, held/edge/pointer state,
+  // focus, active device and sequence; no native input is acquired. Allocation may throw.
+  [[nodiscard]] std::unique_ptr<GameplayInput> ForkForReload() const;
 
 private:
+  struct ReloadCopy final {};
+  GameplayInput(const GameplayInput &, ReloadCopy);
   struct Action {
     std::vector<NexoraGameplayInputBindingV1> bindings;
     float value{};

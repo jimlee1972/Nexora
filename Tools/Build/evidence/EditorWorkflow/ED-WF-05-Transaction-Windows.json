@@ -1,0 +1,591 @@
+{
+  "status": "LOCAL_NATIVE_SLICE_PASS_FULL_IMMUTABLE_HEAD_GATES_PENDING",
+  "work_order": "ED-WF-05",
+  "source_base": "9c5c507a6523b281368375823a44a14ded361405",
+  "integrated_main": "f7537be874d83b5bcc50c2140c30089623c56749",
+  "source_state": "Uncommitted source inventory below; not a claim of final immutable-head acceptance.",
+  "build": {
+    "exit_code": 0,
+    "affected_targets": 14,
+    "log": "ed-wf05-main-transaction-reviewed-build.log"
+  },
+  "ctest": {
+    "exit_code": 0,
+    "passed": 23,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 58.31,
+    "cases": [
+      {
+        "name": "runtime.gameplay_reload_transaction",
+        "seconds": 1.54
+      },
+      {
+        "name": "runtime.zig_reload_transaction",
+        "seconds": 34.48
+      },
+      {
+        "name": "runtime.game_scene_session",
+        "seconds": 0.22
+      },
+      {
+        "name": "runtime.game_scene_zig_module",
+        "seconds": 0.13
+      },
+      {
+        "name": "runtime.gameplay_action_input",
+        "seconds": 0.23
+      },
+      {
+        "name": "runtime.gameplay_audio",
+        "seconds": 0.72
+      },
+      {
+        "name": "twod.runtime_contracts",
+        "seconds": 1.05
+      },
+      {
+        "name": "twod.gameplay_bridge",
+        "seconds": 0.75
+      },
+      {
+        "name": "twod.gameplay_ui",
+        "seconds": 0.68
+      },
+      {
+        "name": "editor.game_script_compiler",
+        "seconds": 0.45
+      },
+      {
+        "name": "editor.play_api_proxy",
+        "seconds": 0.21
+      },
+      {
+        "name": "editor.play_gameplay_module",
+        "seconds": 0.42
+      },
+      {
+        "name": "editor.reloadable_play",
+        "seconds": 5.12
+      },
+      {
+        "name": "editor.packaged_play_services",
+        "seconds": 0.35
+      },
+      {
+        "name": "editor.play_diagnostics",
+        "seconds": 0.16
+      },
+      {
+        "name": "editor.play_host_allocations",
+        "seconds": 0.15
+      },
+      {
+        "name": "editor.play_host_memory_ui",
+        "seconds": 7.4
+      },
+      {
+        "name": "editor.play_debug_lines",
+        "seconds": 0.19
+      },
+      {
+        "name": "editor.play_scene_services",
+        "seconds": 0.21
+      },
+      {
+        "name": "editor.play_physics_services",
+        "seconds": 0.28
+      },
+      {
+        "name": "editor.play_mesh_assets",
+        "seconds": 0.15
+      },
+      {
+        "name": "editor.play_pointer_input",
+        "seconds": 0.17
+      },
+      {
+        "name": "editor.play_twod_services",
+        "seconds": 0.86
+      }
+    ],
+    "log": "ed-wf05-main-transaction-reviewed-test.log"
+  },
+  "main_transaction": {
+    "successful_reloads": 96,
+    "expected_rejections": 576,
+    "creates": 451,
+    "destroys": 451,
+    "stops": 99,
+    "paths": [
+      "bare Play World",
+      "configured packaged GameWorld/GameSceneSession",
+      "2D resource services"
+    ],
+    "coverage": [
+      "actual work lease drain before capture",
+      "ignored capture/old-cache/external storage writes reject",
+      "restore/start/ABI and unfinished UI frame rejection preserves old dispatch/state",
+      "stable scene/entity/pool handles and animation/input/UI state",
+      "pending scene requests and audio/physics/character bindings retained",
+      "immediate closed reloaded-hook UI frame without gameplay tick",
+      "private retirement and allocator cleanup",
+      "session memory peaks/counters persist without false session teardown",
+      "inspection-only input remains available"
+    ]
+  },
+  "windows_startup": {
+    "exit_code": 0,
+    "status": "PASS",
+    "launches": [
+      {
+        "argv": [],
+        "normal_recent_store": true,
+        "events": [
+          "splash-show",
+          "main-create-observed",
+          "main-show"
+        ],
+        "splash_responsive_probes": 1462,
+        "main_responsive": true,
+        "foreground_input": true,
+        "white_fraction": 0,
+        "normal_close_exit": 0,
+        "orphan_windows": false
+      },
+      {
+        "argv": [],
+        "normal_recent_store": true,
+        "events": [
+          "splash-show",
+          "main-create-observed",
+          "main-show"
+        ],
+        "splash_responsive_probes": 1097,
+        "main_responsive": true,
+        "foreground_input": true,
+        "white_fraction": 0,
+        "normal_close_exit": 0,
+        "orphan_windows": false
+      }
+    ],
+    "startup_timeout_seconds": 35,
+    "message_timeout_ms": 500,
+    "shutdown_timeout_seconds": 10,
+    "desktop": {
+      "original_thread_matches_input": true,
+      "selected_existing_input_desktop": false,
+      "user_input_desktop_switched": false,
+      "thread_matches_input": true
+    },
+    "initial_failures": [
+      {
+        "exit_code": 1,
+        "reason": "Screen capture observed pixels from another desktop; retained locally, unrelated desktop imagery excluded from publication."
+      },
+      {
+        "exit_code": 1,
+        "reason": "Owned-window visibility precondition rejected isolated desktop capture; no thresholds or original event/response checks waived."
+      }
+    ],
+    "scope": "Two real no-argument launches of the actual built Editor; no helper HWND, forced frames, console hiding or global-topmost splash. Input desktop was already matching in the passing run; optional thread-selection branch is not claimed exercised."
+  },
+  "limits": [
+    "Native Windows process/CPU fixtures and actual no-argument GUI startup only.",
+    "No32 actual Editor Zig source edits or background watcher/compiler admission yet.",
+    "No physical audible output, GPU source-reimport continuity, clean-host or final ZIP acceptance.",
+    "Full exact-head Codex Cloud Development/Shipping and applicable CI remain required.",
+    "Overall accepted work orders remain4/9 and Editor milestones0/8."
+  ],
+  "sources": [
+    {
+      "path": "Apps/Editor/PackagedPlayContext.h",
+      "bytes": 8387,
+      "sha256": "c92a87245956eb9fc67245e28b1929bc6a49056680f5d9eabfe2c640701e0c24"
+    },
+    {
+      "path": "Apps/Editor/PlayGameplayModule.h",
+      "bytes": 25726,
+      "sha256": "a83d33922a14df887ec14dc8c252273f81449b22ee3fd9e38e1bb9f402a58970"
+    },
+    {
+      "path": "Apps/Editor/PlayHostMemoryPresenter.h",
+      "bytes": 2064,
+      "sha256": "8b2f624ae7b293578c7c93c6144dec481a80c11c06290d314c7b41fc0e6eb637"
+    },
+    {
+      "path": "Apps/Editor/PlayInputForwarding.h",
+      "bytes": 963,
+      "sha256": "5fd3d0cbf11fd59857e6ecc4d49c5d6447fd592b95b0daa2fe8c99b965c94bb9"
+    },
+    {
+      "path": "Apps/Editor/PlaySceneServices.h",
+      "bytes": 12634,
+      "sha256": "5db7f370ac6a6dea35757b0f5ead26b5efed9956fc86c20ad27109824c5dc87f"
+    },
+    {
+      "path": "Apps/Editor/PlayTwoDServices.h",
+      "bytes": 27458,
+      "sha256": "718ac6995141c6b2a84ab6ddccca1bad86dc9704002275aba92292d30eac006a"
+    },
+    {
+      "path": "Apps/Editor/README.md",
+      "bytes": 142524,
+      "sha256": "4409daed0a21361549aed765f66bc24160f52609c7b20923249f0ad6d3720486"
+    },
+    {
+      "path": "Apps/Editor/main.cpp",
+      "bytes": 233262,
+      "sha256": "61400cbda8c0d0ca046d9bd4d5ef336e7534e627e90807d005a972c69610bca9"
+    },
+    {
+      "path": "Engine/Runtime/GameSceneSession.md",
+      "bytes": 7058,
+      "sha256": "d97a91645602be30abd4f78c5498fb901ac511fcc4032516814310cc421d14c0"
+    },
+    {
+      "path": "Engine/Runtime/GameplayAudio.md",
+      "bytes": 10348,
+      "sha256": "06a9d0c97b3d7f66db4e0e1ab024c17cc462848833020b1e980056417e18e3f7"
+    },
+    {
+      "path": "Engine/Runtime/GameplayInput.md",
+      "bytes": 12073,
+      "sha256": "434fb84398c4031166c379eb10f5a8f9906e6e6140ca93bfb690cd09f54052d4"
+    },
+    {
+      "path": "Engine/Runtime/README.md",
+      "bytes": 104334,
+      "sha256": "057e25e9b4bcf6e0a4ca5a097f1fd5274bdb00e2e048cea1748dd1ba662470c4"
+    },
+    {
+      "path": "Engine/Runtime/include/Nexora/Runtime/GameSceneSession.h",
+      "bytes": 4260,
+      "sha256": "9b82a5f19e006f4a9754cc60d34cea5adc9ecb4ee95f84db50d471e5f065a0cc"
+    },
+    {
+      "path": "Engine/Runtime/include/Nexora/Runtime/GameplayAudio.h",
+      "bytes": 3155,
+      "sha256": "631bd50a102058ae501e2edef23b21cb702991cfdee85ef9d340380b888e2f55"
+    },
+    {
+      "path": "Engine/Runtime/include/Nexora/Runtime/GameplayInput.h",
+      "bytes": 2236,
+      "sha256": "07059abd447f9c7fde99bdd96baad958d212436a969e3800d6b6f279a0c656ad"
+    },
+    {
+      "path": "Engine/Runtime/include/Nexora/Runtime/GameplayModuleHost.h",
+      "bytes": 7454,
+      "sha256": "fa90e4d0b4388988741951f612dd630248ef6c63ca3a1e1dd4c09e5b26801dce"
+    },
+    {
+      "path": "Engine/Runtime/src/GameSceneSession.cpp",
+      "bytes": 17514,
+      "sha256": "fec377babd02323c7be33a54cf4f1b98fb9de51bbe4ef1b51a972a6320c4cea1"
+    },
+    {
+      "path": "Engine/Runtime/src/GameplayAudio.cpp",
+      "bytes": 26198,
+      "sha256": "ce1490256af872b711c74d77741c8c1f749595c47ada4d176d7db793c5ccbe8c"
+    },
+    {
+      "path": "Engine/Runtime/src/GameplayInput.cpp",
+      "bytes": 10033,
+      "sha256": "ab99a2ef97d83e950f2500dd1a414478480f3506d70dbd70e56c4b1fec8dbbdc"
+    },
+    {
+      "path": "Engine/Runtime/src/GameplayModuleHost.cpp",
+      "bytes": 21355,
+      "sha256": "c0809709ea2d728b687e59fd7fe0829e5a35d8e03a4f7eb3f4f4c7cbd9788188"
+    },
+    {
+      "path": "Engine/TwoD/GameplayUi.md",
+      "bytes": 8953,
+      "sha256": "f002c3f9c097d87a558462f45182811fc239c8506a0afc01515d2f6baf7e00e6"
+    },
+    {
+      "path": "Engine/TwoD/README.md",
+      "bytes": 26544,
+      "sha256": "34c65a246ccb6d6e5827d87020a0fc896ea1dac9ae3588ab06b29964c8ac8891"
+    },
+    {
+      "path": "Engine/TwoD/include/Nexora/TwoD/GameplayBridge.h",
+      "bytes": 2178,
+      "sha256": "bc2df038a5cf5e2af696fa5e4e938cf21c939f1fe6749e48b55966c5d4b8cca4"
+    },
+    {
+      "path": "Engine/TwoD/include/Nexora/TwoD/GameplayUi.h",
+      "bytes": 3447,
+      "sha256": "ee17c7ee0b220a6a675136c4a6f96ed080da9e90a324d44904e0268589603b97"
+    },
+    {
+      "path": "Engine/TwoD/include/Nexora/TwoD/Lifecycle.h",
+      "bytes": 2602,
+      "sha256": "307e5d7f74588123d80dd0cce1fb3f86461f8c48e6b92c7519e421140e5be2d9"
+    },
+    {
+      "path": "Engine/TwoD/include/Nexora/TwoD/Scene.h",
+      "bytes": 7134,
+      "sha256": "6ae0305af19da8e62168f9bd201bbca5c81870f8c24a3808de6781d53fe988d4"
+    },
+    {
+      "path": "Engine/TwoD/src/GameplayBridge.cpp",
+      "bytes": 21122,
+      "sha256": "479e726ef4f9e14aa8f312e85bb711cc9afb68aac701cd14ca87aa37113bff79"
+    },
+    {
+      "path": "Engine/TwoD/src/GameplayUi.cpp",
+      "bytes": 28837,
+      "sha256": "87a0dd5056dd6cdba872b622ec4f93e2b1bd013bf85e108ee2cb00f860037127"
+    },
+    {
+      "path": "Engine/TwoD/src/Lifecycle.cpp",
+      "bytes": 4455,
+      "sha256": "78e8755f8b732fffcd3431f51703daa0ba3a65541f8fa3dfe26460974ce83228"
+    },
+    {
+      "path": "Engine/TwoD/src/Scene.cpp",
+      "bytes": 26214,
+      "sha256": "47dc6c72250e98e8dceb3c0753129bb5cee90c18e4f79d8a79692189a614cf2a"
+    },
+    {
+      "path": "Roadmap/en/Editor_Workflow_Delivery_Plan.md",
+      "bytes": 12693,
+      "sha256": "9177b61ec0d5521f865e7f208d7a3ebd07c1fa8ec42276315974b08b2450537a"
+    },
+    {
+      "path": "Roadmap/zh-TW/Editor_Workflow_Delivery_Plan.md",
+      "bytes": 11653,
+      "sha256": "f4e239760e976263342620c630586e7828009f46fdf6f05dd91353e46fe2e2a4"
+    },
+    {
+      "path": "Tests/Editor/CMakeLists.txt",
+      "bytes": 41221,
+      "sha256": "a043723bac4f29af99d49d958b1871a520fe0d8cb4cef144f80c0f7574ae20e1"
+    },
+    {
+      "path": "Tests/Editor/WindowsStartupIntegration.py",
+      "bytes": 18698,
+      "sha256": "4bce54d2ab3d50468118524198435ff81fcf1d1483f413eb09512c4c031aad69"
+    },
+    {
+      "path": "Tests/EditorImGui/CMakeLists.txt",
+      "bytes": 66721,
+      "sha256": "ce57147ad25755066ce3686d7237faf88f5e840bcaa2ab6f9263951ead4e2e8f"
+    },
+    {
+      "path": "Tests/EditorImGui/PlayGameplayModuleTests.cpp",
+      "bytes": 13685,
+      "sha256": "9b435cedfa9c5e46aa4b24dfe21869eb32623bb4d238d5653a6c5a30643f39e9"
+    },
+    {
+      "path": "Tests/EditorImGui/PlaySceneServicesTests.cpp",
+      "bytes": 15246,
+      "sha256": "6f817718ca5db4f41468a25f173eefb5ac14e6c56c4321b1c019c95e2e5a6d83"
+    },
+    {
+      "path": "Tests/EditorImGui/PlayTwoDServicesTests.cpp",
+      "bytes": 36749,
+      "sha256": "46d363b0b30ec617b35ccd245f4172598290e4e225215d1fb07859d80b2e03d9"
+    },
+    {
+      "path": "Tests/Runtime/GameplayAudioTests.cpp",
+      "bytes": 10957,
+      "sha256": "d8f1b8d193a3661384c6f30283e2eb5574239d7389e0de2562d732c3b6af63ea"
+    },
+    {
+      "path": "Tests/Runtime/GameplayInputTests.cpp",
+      "bytes": 10976,
+      "sha256": "c114fecc03d567ba9f3f579286376920a87340dc3522cceff0ac438e9ebff8d7"
+    },
+    {
+      "path": "Tests/Runtime/GameplayReloadFixture.h",
+      "bytes": 8673,
+      "sha256": "9836960e30c7d192a87f0298c73cf37323d80ce0e6431abbf16afacbb4323fb1"
+    },
+    {
+      "path": "Tests/Runtime/GameplayReloadTransactionTests.cpp",
+      "bytes": 16092,
+      "sha256": "de0c23f04732f37e4ff4eb6a38993d0f1cfa8a86b2e5a31e6b90739662cca8d1"
+    },
+    {
+      "path": "Tests/TwoD/GameplayBridgeTests.cpp",
+      "bytes": 15246,
+      "sha256": "af1383ecf7b8e710a3970b01b8dd697bfeef9ed7d900c505b377d3776e0fa924"
+    },
+    {
+      "path": "Tests/TwoD/GameplayUiTests.cpp",
+      "bytes": 11443,
+      "sha256": "271b557ee1c5f88f4828e64c772aa4de482de3633d50f443c963ee2ef7d98a11"
+    },
+    {
+      "path": "Tests/TwoD/TwoDTests.cpp",
+      "bytes": 26804,
+      "sha256": "c460b78717eef67e3fbbbde8f8ae8350e03a9466bf6eb3e8a327c86488e651fb"
+    },
+    {
+      "path": "Tools/Build/evidence/EditorWorkflow/ED-WF-05.md",
+      "bytes": 15732,
+      "sha256": "bc4fa2c42d7f756835ca38ff1bd4740d2d2172ce32812269e1a4083e44c9e6ba"
+    },
+    {
+      "path": "Apps/Editor/GameScriptCompiler.h",
+      "bytes": 5911,
+      "sha256": "09b9ba44a6d821cf4f64f4e83f19eec89797e9913ba24b7b9ff6417a676d684a"
+    },
+    {
+      "path": "Apps/Editor/PlayApiProxy.h",
+      "bytes": 5972,
+      "sha256": "a5f306455d5ed5ce74441038ed0d6cd3e0688ba8821c34c99cfcf6a4631910b8"
+    },
+    {
+      "path": "Apps/Editor/PlayWorldReload.h",
+      "bytes": 1173,
+      "sha256": "bd949c97f6bd1d3c0fb3f2c53e55aea509cb98c874b39dea0cbe5cb7cf2cbcc9"
+    },
+    {
+      "path": "Apps/Editor/ReloadablePlayGameplayModule.h",
+      "bytes": 18262,
+      "sha256": "7f8233ed0beb05f2fa7e9472a26bfbd3a38ab6e7e3a2a1071b3fa557da3e9695"
+    },
+    {
+      "path": "Tests/Editor/GameScriptCompilerTests.cpp",
+      "bytes": 5371,
+      "sha256": "1e8745d381023ef306fa21af6f51b0515713de8958a0ed6c47f071da469f5fc9"
+    },
+    {
+      "path": "Tests/Editor/PlayApiProxyTests.cpp",
+      "bytes": 8515,
+      "sha256": "80d9cb56e88f39265daf3cfd29bb158c0370fb9663f3e0f7248abbe13d7cf235"
+    },
+    {
+      "path": "Tests/EditorImGui/ReloadablePlayTests.cpp",
+      "bytes": 23853,
+      "sha256": "7a6427745f1d9d5895b73f384448b68466bf7b91b34c38b04e39aec0d2d3fd03"
+    },
+    {
+      "path": "Tools/Build/evidence/EditorWorkflow/ED-WF-05-Transaction-Windows.md",
+      "bytes": 3265,
+      "sha256": "414cc372bf1def76d7af71682cc948143dc16a8ab59f506435a2bae4f1302aaa"
+    }
+  ],
+  "logs": [
+    {
+      "path": "build/editor-workflow-native/ed-wf05-main-startup-interactive-test.log",
+      "bytes": 89,
+      "sha256": "1ad4a091459d98372012840598041b182ea2e8d3864777e0ef06e9ba75236143"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-main-startup-owned-test.log",
+      "bytes": 1282,
+      "sha256": "234d52bc0fb3fa49799640020122dfa582c8d190d034874a4769a1f6e147aae1"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-main-startup-test.log",
+      "bytes": 1099,
+      "sha256": "32fdd7a4cd6e32f426322b97c30db9c68deac85eaaf9efd0eaba2196eb375e12"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-main-transaction-2d-build.log",
+      "bytes": 2065,
+      "sha256": "82c14112dd9f4dd18ac47edb1ba57a5f810ca8a8ad741682d4b2c148ada1e4cf"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-main-transaction-2d-configure.log",
+      "bytes": 330,
+      "sha256": "b3be124d2018059db49bc28aa793114501ea793357c5607d54f1727632d69315"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-main-transaction-2d-test.log",
+      "bytes": 421,
+      "sha256": "b22c414f5434a99ec5faa576248809a2928740cb0091bc8b6c612398da9c3abe"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-main-transaction-admission-build.log",
+      "bytes": 29086,
+      "sha256": "197c698cdd3bbc2600df632e2d8c2e279099e2df455f9522e40c9d5164e36a9d"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-main-transaction-build.log",
+      "bytes": 6346,
+      "sha256": "357d3dafdabf36e3f92dc68bca10bc6603d200bd5b8a4b956347f555b8c5ac82"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-main-transaction-configure.log",
+      "bytes": 330,
+      "sha256": "477608c1623b384d605f1d2dc40a0deb03100bda19598049e4d90e4c7356ccad"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-main-transaction-final-build.log",
+      "bytes": 28043,
+      "sha256": "c53c7de6fb28100eb5d47f60e1a14848b369471b9359069694c71b34a10649c8"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-main-transaction-memory-test.log",
+      "bytes": 425,
+      "sha256": "b8e5fe3784b98c48536011cea755faaa4dc90c6ebefb90f48f3778c03aa8f9d0"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-main-transaction-regression-build.log",
+      "bytes": 10798,
+      "sha256": "d8bad8f18fce2cdcf95f7e6e714187fdf12bd23fe0b179278832ca02c1510d3b"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-main-transaction-regression-test.log",
+      "bytes": 5004,
+      "sha256": "86cd7b946a2aea7eb4854908c64ade7b605107f2e8cb8c275a4c7d7bab59268a"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-main-transaction-reviewed-build.log",
+      "bytes": 28075,
+      "sha256": "f5a411d061ec6d608a29812f0c2e453ef1fbf846722e381431c8f3deb9cf7a0b"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-main-transaction-reviewed-test.log",
+      "bytes": 15522,
+      "sha256": "f0a81dd3f9e342c4b5a0852a768fedf3fcf58679502c6729cd549f5100d755af"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-main-transaction-snapshot-build.log",
+      "bytes": 28166,
+      "sha256": "f7dca4d54abb2bd37bc53b5eb51b03e03af658fcd627bd86fc42ffcc0989e631"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-main-transaction-test.log",
+      "bytes": 536,
+      "sha256": "7f0bd444694620e7b9e6c7a71cea15029059f873dec82c3dfbe9df83ca2f8393"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-main-transaction-tests-build.log",
+      "bytes": 2178,
+      "sha256": "6e220965fb8160dbbe9b800e93c543d0ecf8a2cce65b2c61ab25c2e6fd5eab01"
+    }
+  ],
+  "binaries": [
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraEditor.exe",
+      "bytes": 2591744,
+      "sha256": "c07dfc82e4d62ddb53e490c4788dde2cf4d43aea79af8111c0368682f6a3d8af"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraRuntime.dll",
+      "bytes": 4264960,
+      "sha256": "5b1badf07d2dc9db4bd4ca66785fb04fd74ac5a3638d636b36d6767fac6bb535"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraTwoD.dll",
+      "bytes": 1563648,
+      "sha256": "1a515c38104fe8bf215eab88183b5a2acf1c03727b5a71f602e2af63ac6ccb68"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraEditorCore.dll",
+      "bytes": 6531584,
+      "sha256": "01909b5c96aa6fd91827934e67a5059be940907f0297ea59ae4653080918bc81"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraEditorImGui.dll",
+      "bytes": 2807296,
+      "sha256": "eea3987b12fb758735d57b060ef3e1fed058d5df48cd1fc89132947cedfa2863"
+    }
+  ]
+}

@@ -55,6 +55,57 @@ NexoraEntitySpawnDescriptor Descriptor() {
   wire.material.value = UINT64_MAX - 1;
   return wire;
 }
+void ReloadServices(runtime::World &authoring) {
+  auto world = authoring.CloneForPlay();
+  auto live = std::make_unique<Services>();
+  Require(live->Bind(world), "reload scene binding");
+  Require(!live->ForkForReload(world) && !live->ForkForReload(authoring),
+          "reload scene admitted the live/editor World");
+  std::uint64_t last_scene{}, last_entity{};
+  const auto descriptor = Descriptor();
+  for (unsigned generation = 0; generation < 32; ++generation) {
+    const auto previous_scene = last_scene;
+    runtime::World staged_world = world;
+    auto candidate = live->ForkForReload(staged_world);
+    Require(bool(candidate), "reload scene fork");
+    constexpr std::string_view name = "Reload scene";
+    Require(candidate->Load(name.data(), static_cast<std::uint32_t>(name.size()), 0, &last_scene) ==
+                    0 &&
+                candidate->Activate(last_scene) == 0 &&
+                candidate->Spawn(last_scene, &descriptor, &last_entity) == 0,
+            "candidate scene/spawn quotas reset or live World was not cloned");
+    Require(!world.FindScene(last_scene) && !world.FindEntity(last_entity),
+            "candidate scene mutations escaped staging");
+    runtime::World retired_world = std::move(world);
+    world = std::move(staged_world);
+    Require(live->RebindForReload(retired_world) && candidate->RebindForReload(world),
+            "reload scene rebind");
+    // Old teardown can create/destroy objects only in its quarantined World.
+    if (previous_scene) {
+      std::uint64_t retired_entity{};
+      Require(retired_world.FindScene(previous_scene) &&
+                  live->Spawn(previous_scene, &descriptor, &retired_entity) == 0 &&
+                  live->Despawn(retired_entity) == 0,
+              "retired scene cleanup");
+    }
+    live = std::move(candidate);
+    Require(world.FindScene(last_scene) && world.FindEntity(last_entity),
+            "retired cleanup deleted the admitted scene/entity");
+  }
+  std::uint64_t unchanged = UINT64_MAX;
+  Require(live->Load("overflow", 8, 0, &unchanged) == NEXORA_GAMEPLAY_ERROR_LIFECYCLE &&
+              unchanged == UINT64_MAX,
+          "scene quota replenished across reloads");
+  for (std::size_t count = 32; count < Services::kMaximumSpawns; ++count)
+    Require(live->Spawn(last_scene, &descriptor, &last_entity) == 0, "retained spawn budget");
+  runtime::World final_world = world;
+  auto final = live->ForkForReload(final_world);
+  Require(final &&
+              final->Spawn(last_scene, &descriptor, &unchanged) ==
+                  NEXORA_GAMEPLAY_ERROR_LIFECYCLE &&
+              unchanged == UINT64_MAX,
+          "spawn quota replenished across reloads");
+}
 } // namespace
 int main() {
   try {
@@ -63,6 +114,9 @@ int main() {
     Require(world.Activate(authored_scene), "activate authored scene failed");
     const auto authored_entity = world.CreateEntity(authored_scene).id;
     const auto baseline = *world.SaveScene(authored_scene);
+    ReloadServices(world);
+    Require(world.SaveScene(authored_scene) == baseline,
+            "reload scene staging changed authored World");
     runtime::PlaySession play(world);
     editor::preview::PlayGameplayModule module;
     Require(!module.Load(world, Loader) && world.SaveScene(authored_scene) == baseline,

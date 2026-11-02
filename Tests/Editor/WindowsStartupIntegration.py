@@ -13,7 +13,7 @@ import tempfile
 import time
 
 
-def verify_startup(editor, evidence, environment=None):
+def _verify_startup(editor, evidence, environment=None):
     evidence = Path(evidence).resolve()
     evidence.mkdir(parents=True, exist_ok=True)
     user = C.WinDLL('user32', use_last_error=True)
@@ -27,6 +27,11 @@ def verify_startup(editor, evidence, environment=None):
     user.GetWindow.argtypes = [W.HWND, W.UINT]
     user.GetForegroundWindow.restype = W.HWND
     user.SetForegroundWindow.argtypes = [W.HWND]
+    user.SetWindowPos.argtypes = [W.HWND, W.HWND, C.c_int, C.c_int, C.c_int, C.c_int, W.UINT]
+    user.WindowFromPoint.argtypes = [W.POINT]
+    user.WindowFromPoint.restype = W.HWND
+    user.GetAncestor.argtypes = [W.HWND, W.UINT]
+    user.GetAncestor.restype = W.HWND
     user.IsWindowVisible.argtypes = [W.HWND]
     user.GetWindowThreadProcessId.argtypes = [W.HWND, C.POINTER(W.DWORD)]
     user.GetWindowTextW.argtypes = [W.HWND, W.LPWSTR, C.c_int]
@@ -68,12 +73,23 @@ def verify_startup(editor, evidence, environment=None):
         return bool(user.SendMessageTimeoutW(hwnd, 0, 0, 0, 2, 500, C.byref(result)))
 
     def capture(hwnd, path, splash=False):
+        # Screen pixels must belong to this real Editor window, rather than an unrelated
+        # foreground application. Raise only its normal Z-order: preserve NOACTIVATE and
+        # the existing assertion that the splash must never become globally topmost.
+        require(user.SetWindowPos(hwnd, None, 0, 0, 0, 0, 0x1 | 0x2 | 0x10),
+                'Cannot expose the owned Editor window for native pixel observation')
+        C.WinDLL('dwmapi').DwmFlush()
         rect = W.RECT()
         user.GetClientRect(hwnd, C.byref(rect))
         origin = W.POINT()
         user.ClientToScreen(hwnd, C.byref(origin))
         width, height = rect.right, rect.bottom
         require(width > 0 and height > 0, 'Empty main client')
+        for x, y in ((1, 1), (width-2, 1), (1, height-2), (width-2, height-2),
+                     (width//2, height//2)):
+            visible = user.WindowFromPoint(W.POINT(origin.x+x, origin.y+y))
+            require(visible and user.GetAncestor(visible, 2) == hwnd,
+                    'Editor client is occluded; desktop pixels cannot verify its rendering')
         dc = user.GetDC(None)
         memory = gdi.CreateCompatibleDC(dc)
         bitmap = gdi.CreateCompatibleBitmap(dc, width, height)
@@ -210,6 +226,9 @@ def verify_startup(editor, evidence, environment=None):
                     # Actual native mouse input on the title bar, without selecting/opening a project.
                     rect = W.RECT()
                     user.GetWindowRect(main, C.byref(rect))
+                    target = user.WindowFromPoint(W.POINT(rect.left+200, rect.top+12))
+                    require(target and user.GetAncestor(target, 2) == main,
+                            'Editor title bar is occluded; refusing input to another application')
                     user.SetCursorPos(rect.left+200, rect.top+12)
                     user.mouse_event(2, 0, 0, 0, 0)
                     user.mouse_event(4, 0, 0, 0, 0)
@@ -247,6 +266,60 @@ def verify_startup(editor, evidence, environment=None):
               'message_timeout_ms': 500, 'shutdown_timeout_seconds': 10}
     (evidence/'result.json').write_text(json.dumps(result, indent=2)+'\n')
     return result
+
+
+def verify_startup(editor, evidence, environment=None):
+    # A managed command may run on an isolated, non-input desktop. Screen DCs cannot prove
+    # visibility there. Explicit opt-in selects the existing input desktop for THIS thread
+    # and its children; it never switches the user's desktop or manipulates other windows.
+    user = C.WinDLL('user32', use_last_error=True)
+    kernel = C.WinDLL('kernel32')
+    user.GetThreadDesktop.argtypes = [W.DWORD]
+    user.GetThreadDesktop.restype = W.HANDLE
+    user.OpenInputDesktop.argtypes = [W.DWORD, W.BOOL, W.DWORD]
+    user.OpenInputDesktop.restype = W.HANDLE
+    user.SetThreadDesktop.argtypes = [W.HANDLE]
+    user.CloseDesktop.argtypes = [W.HANDLE]
+    user.GetUserObjectInformationW.argtypes = [W.HANDLE, C.c_int, C.c_void_p, W.DWORD,
+                                              C.POINTER(W.DWORD)]
+
+    def name(handle):
+        value = C.create_unicode_buffer(256)
+        needed = W.DWORD()
+        if not handle or not user.GetUserObjectInformationW(
+                handle, 2, value, C.sizeof(value), C.byref(needed)):
+            raise RuntimeError('Cannot identify the native test desktop')
+        return value.value
+
+    previous = user.GetThreadDesktop(kernel.GetCurrentThreadId())
+    # Read/write objects, create our own windows and install/remove this test's event hook.
+    active = user.OpenInputDesktop(0, False, 0x1 | 0x2 | 0x8 | 0x40 | 0x80)
+    if not active:
+        raise RuntimeError('Interactive native input desktop is unavailable')
+    selected = False
+    try:
+        same = name(previous) == name(active)
+        if not same:
+            if os.environ.get('NEXORA_NATIVE_TEST_INPUT_DESKTOP') != '1':
+                raise RuntimeError('Native test is on an isolated desktop; explicitly opt in '
+                                   'with NEXORA_NATIVE_TEST_INPUT_DESKTOP=1 for visible UI testing')
+            if not user.SetThreadDesktop(active):
+                raise RuntimeError('Cannot select the existing input desktop for the native test')
+            selected = True
+        Path(evidence).mkdir(parents=True, exist_ok=True)
+        Path(evidence, 'desktop.json').write_text(json.dumps({
+            'original_thread_matches_input': same,
+            'selected_existing_input_desktop': selected,
+            'user_input_desktop_switched': False,
+            'thread_matches_input': name(user.GetThreadDesktop(kernel.GetCurrentThreadId())) ==
+                                    name(active),
+        }, indent=2)+'\n')
+        return _verify_startup(editor, evidence, environment)
+    finally:
+        restored = not selected or bool(user.SetThreadDesktop(previous))
+        user.CloseDesktop(active)
+        if not restored:
+            raise RuntimeError('Native test could not restore its original thread desktop')
 
 
 if __name__ == '__main__':

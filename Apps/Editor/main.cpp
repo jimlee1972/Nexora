@@ -44,10 +44,10 @@
 #include "Nexora/Presentation/RenderSurface.h"
 #include "Nexora/RHI/Device.h"
 #include "Nexora/Runtime/EditorSdk.h"
-#include "PlayGameplayModule.h"
 #include "PlayHostMemoryPresenter.h"
 #include "PlayInputForwarding.h"
 #include "ProjectFiles.h"
+#include "ReloadablePlayGameplayModule.h"
 #include "SceneFileContinuation.h"
 #include "SceneMeshPreview.h"
 #include "SceneMovePlanes.h"
@@ -991,7 +991,7 @@ int RunGraphical(std::optional<ProjectState> project,
     }
     core_logs.Write(level, std::move(category), std::move(message));
   };
-  nexora::editor::preview::PlayGameplayModule gameplay(
+  nexora::editor::preview::ReloadablePlayGameplayModule gameplay(
       [&](std::uint32_t level, std::string message) {
         core_logs.Write(static_cast<nexora::core::LogLevel>(level), "Gameplay", std::move(message));
       },
@@ -3989,7 +3989,7 @@ int RunGraphical(std::optional<ProjectState> project,
           packaged_module_pending = false;
           if (!gameplay.LoadRelative(*play.PlayWorld(), project->workspace.Root(),
                                      ui.GameplayLibrary(), error, {}, {},
-                                     packaged_play->Scenes().Api())) {
+                                     packaged_play->Scenes().Api(), packaged_play->ReloadHooks())) {
             stop_play();
             ui.SetGameplayStatus(error);
           } else

@@ -345,6 +345,11 @@ bool GameplayModuleHost::ReloadLocked(NexoraGameModuleLoadV3Fn load,
         transaction_.begin && transaction_.rollback && transaction_.retire && transaction_.commit;
     if (strict_transaction_ && !isolated)
       return reject(ReloadFailure::RestartRequired);
+    const bool capture_guarded =
+        transaction_.capture_begin && transaction_.capture_valid && transaction_.capture_end;
+    if (!capture_guarded &&
+        (transaction_.capture_begin || transaction_.capture_valid || transaction_.capture_end))
+      return reject(ReloadFailure::Isolation);
 
     // Close new work and drain actual jobs/callbacks BEFORE reading module state. Update/Fixed
     // are already serialized by mutex_; registered work releases through a separate mutex.
@@ -353,12 +358,28 @@ bool GameplayModuleHost::ReloadLocked(NexoraGameModuleLoadV3Fn load,
       GameplayModuleHost &host;
       ~Reopen() { host.OpenWorkLocked(); }
     } reopen{*this};
-    const auto required = module_.save_state(module_.module_state, nullptr, 0);
-    if (!required || required > kMaximumStateBytes)
-      return reject(ReloadFailure::SaveState);
-    std::vector<std::byte> saved_state(required);
-    if (module_.save_state(module_.module_state, saved_state.data(), required) != required)
-      return reject(ReloadFailure::SaveState);
+    std::vector<std::byte> saved_state;
+    {
+      struct CaptureGuard final {
+        ReloadTransaction &hooks;
+        bool active;
+        ~CaptureGuard() {
+          if (active)
+            hooks.capture_end(hooks.context);
+        }
+      } capture{transaction_, capture_guarded};
+      if (capture_guarded && !transaction_.capture_begin(transaction_.context))
+        return reject(ReloadFailure::Isolation);
+      const auto required = module_.save_state(module_.module_state, nullptr, 0);
+      if (!required || required > kMaximumStateBytes)
+        return reject(ReloadFailure::SaveState);
+      saved_state.resize(required);
+      if (module_.save_state(module_.module_state, saved_state.data(), required) != required)
+        return reject(ReloadFailure::SaveState);
+      if (capture_guarded && !transaction_.capture_valid(transaction_.context))
+        return reject(ReloadFailure::Isolation);
+    }
+    const auto required = static_cast<std::uint32_t>(saved_state.size());
 
     // A raw V3 module may retain the host table pointer, not just a copy of its fields. Keep
     // every generation's table at a stable address through destroy and library finalizers.
@@ -405,6 +426,8 @@ bool GameplayModuleHost::ReloadLocked(NexoraGameModuleLoadV3Fn load,
       return reject(ReloadFailure::RestoreState);
     if (candidate.on_start(state) != NEXORA_GAMEPLAY_OK)
       return reject(ReloadFailure::Initialization);
+    if (transaction_.validate && !transaction_.validate(transaction_.context))
+      return reject(ReloadFailure::Isolation);
 
     // From this point only nonthrowing publication/retirement operations remain. Keep retired
     // World/resources isolated until both module callbacks and library finalizers have ended.

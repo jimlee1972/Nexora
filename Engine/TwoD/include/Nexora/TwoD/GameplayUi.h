@@ -56,8 +56,18 @@ public:
   void BeginInput(GameplayUiInput); // once before module UI commands; clears focus on loss
   void CancelFrame();               // host recovery after a failed/stopped module callback
   [[nodiscard]] GameplayUiFrame Frame() const; // owning snapshot; empty before end_frame
+  // Nonallocating final admission: owner thread and no unfinished begin_frame transaction.
+  [[nodiscard]] bool ReloadReady() const noexcept;
+  // Serialized reload branch after end_frame: owns copied focus/capture, handles, counters
+  // and frame commands, sharing only immutable font/image payloads. Allocation may throw.
+  [[nodiscard]] std::unique_ptr<GameplayUi> ForkForReload() const;
+  // Exchange closed-frame branches of one owner without allocation. Existing API contexts
+  // stay at their original addresses, now owned by the opposite branch, through retirement.
+  [[nodiscard]] bool SwapReloadState(GameplayUi &branch) noexcept;
+
 private:
   struct State;
+  explicit GameplayUi(std::unique_ptr<State>) noexcept;
   std::unique_ptr<State> state_;
 };
 } // namespace nexora::twod

@@ -55,6 +55,10 @@ gate remains unaccepted (231/247 pass,16 fail): injected F5 also carries Alt and
 The [native input repair](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Input-CI-Failure.md)
 uses validated physical X11 function-key codes and retains all original runtime/pixel/deadline
 checks. Repaired-head native/full gates remain required; no accepted-count change.
+PR #762 is now merged as `f7537be874d8`, with the same tree as `d093841b`.
+The [Cloud receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Cloud-d093841b.json)
+records496/496 and all five gates exit0; the [CI inventory](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-CI-d093841b.json)
+records41 successful checks/three workflows. This foundation does not accept ED-WF-05 or change4/9.
 The [ED-WF-02 evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02.md) and [Cloud receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02-Cloud.json) record accepted PR #754: 42 successful CI checks, 490/490 Cloud tests and Shipping build, with initial environment/local-capture failures retained. Beads synchronization recovered by adopting existing history; Epic `nexora-whr` and children `.1` through `.9` map to the linked GitHub work orders.
 The accepted [ED-WF-03 evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03.md), [Cloud receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03-Cloud.json) and [CI inventory](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03-CI.json) record PR #756: native GUI/core passes, 490/490 Cloud tests and Shipping, all 42 CI checks and unchanged merged tree. ED-WF-04 is accepted in PR #758.
 The accepted [ED-WF-04 evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04.md),
@@ -127,3 +131,14 @@ Keep the repository README reader-facing and unchanged unless an overall milesto
 Follow the Beads skill with pinned CLI and external task paths. On synchronization failure preserve
 data and record the exact blocker, without initializing/replacing/forcing shared history. GitHub
 work orders remain visible; failed Beads synchronization is never reported as successful.
+
+Local uncommitted follow-up coordinates production Play 2D resource branches and scene-service
+quotas; 32 handoff cycles preserve animation clocks, pool handles, input edges and texture identity.
+This is scoped Windows process evidence, excluded from PR762; main transaction/watcher admission,
+actual Editor source edits and the full immutable-head gates remain required. No count change.
+
+The [main Editor transaction checkpoint](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Transaction-Windows.md)
+adds strict bare/configured/2D World and service generations. Fourteen native targets build;
+23 scoped Windows tests and two real no-argument GUI launches pass. The main C++ fixture records
+96 replacements/576 expected rejections. Automatic source-edit/watcher/compiler admission and
+full immutable-head Cloud/Shipping/CI remain pending; ED-WF-05 is unaccepted and4/9 is unchanged.

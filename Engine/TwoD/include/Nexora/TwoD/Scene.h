@@ -122,6 +122,12 @@ public:
                                                        std::span<const std::byte> snapshot);
   [[nodiscard]] runtime::Id SceneId() const noexcept { return scene_; }
   [[nodiscard]] runtime::World &WorldOwner() const noexcept { return *world_; }
+  // Copies only metadata into an unpublished, already cloned Play World; no World writes.
+  // Allocation can throw. Rejects an absent scene/entity or an Editor World.
+  [[nodiscard]] std::optional<SpriteScene> ForkForReload(runtime::World &world) const;
+  // Retarget after the embedding moves the identical World state during commit/retirement.
+  // Validates membership without allocation; metadata/Find pointers remain unchanged.
+  [[nodiscard]] bool RebindForReload(runtime::World &world) noexcept;
 
 private:
   runtime::World *world_;

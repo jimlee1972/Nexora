@@ -36,6 +36,19 @@ This accepts the local scoped compiler gate, not integrated Editor hot reload. I
 scoped Runtime/SDK receipt above and does not accept
 Editor compile coordination or the work order.
 
+## Verified foundation checkpoint
+
+[PR #762](https://github.com/jimlee1972/Nexora/pull/762) is squash-merged as
+`f7537be874d83b5bcc50c2140c30089623c56749`. The merged tree is identical to validated
+`d093841b032376f98ccfef4766289a176418341a`: `4c8b642abd3e0209246a0f16142a0c7d9e6386fa`.
+The [complete Cloud receipt](ED-WF-05-Cloud-d093841b.json) records five actual exit0 gates,
+496/496 Development CTests with zero failures/skips/retries, and supported Shipping linkage
+(Editor/testing OFF). The [CI inventory](ED-WF-05-CI-d093841b.json) records all41 successful
+checks/three completed workflows and exact-head/merged-tree proof. Original failed sources,
+compiler/XKB logs and earlier Cloud archives remain retained. This verifies the common compiler,
+explicit restored Zig lifecycle and harness repairs only. It does not accept ED-WF-05, include
+local uncommitted integration, accept physical devices or provide a final Editor ZIP.
+
 ## First Cloud/CI candidate
 
 PR #762 candidate `de0204cfc8d0f2c612ae141ef8ccf6ed258c62d4` is unaccepted: multiple Linux
@@ -136,4 +149,58 @@ tests; integrated Sprite animation/pool continuity remains required in ED-WF-08/
 
 Run the full Codex Cloud `linux-development` configure/build/CTest and applicable supported
 `linux-shipping` configure/build, followed by exact-head CI and separate native platform checks.
-No implementation, full gate or native acceptance result has been earned by this baseline.
+The foundation checkpoint above has full-gate evidence; the remaining integrated Editor workflow
+has not earned those gates or native acceptance.
+
+## Local integration prework (historical checkpoint before main transaction)
+
+[Scoped Windows receipt](ED-WF-05-Integration-Windows.json) retains exact local source/log hashes.
+Runtime capture protection/final candidate validation builds and passes the existing C++/real Zig
+reload cases (2/2,exit0,18.32s), including a real old-code work lease before capture and rejection
+of ignored save-phase writes. Private pool branches pass 32 commit/retirement cycles.
+SpriteScene/GameplayBridge branches copy metadata, camera, owned animation clocks and queries,
+then rebind moved Play World state without resetting IDs or allowing old cleanup into live state.
+UI branches preserve focus/capture/navigation and immutable resource ownership, including cached
+C API contexts through state exchange. Final resource target build and three CTests pass (exit0,
+zero skips/failures). Original final-fixture compile and concurrently locked DLL failures are kept.
+
+This is separate local prework, excluded from the currently validating PR source. The later
+local follow-up below supplies generation proxies and resource branches. Editor watcher/epoch
+admission, complete World transaction wiring and real source-edit reload acceptance remain open.
+The compiler coordinator unit uses an injected producer; its pass is not an actual GUI build.
+Keep ED-WF-05 unaccepted and the nine-order progress at 4/9.
+
+Local follow-up adds input branches and independently accounted PCM mixer branches; source
+usage/peak and the existing native output remain unchanged during candidate preparation. Their
+32-cycle regression pairs pass (exit0,2/2,0.37s). The initial byte-type warning/build failure and
+unbuilt audio executable/NotRun are retained and are not counted as passes. Generation-owned
+proxies now cover the actual main Play Host and its optional 2D/Input/UI/Audio/Storage tables.
+Cached callbacks cannot bypass capture or external-write guards; raw table prefixes and Storage
+error codes remain distinct. Final relevant targets build and all18 scoped CTests pass (exit0,
+zero skips/failures,23.04s), including actual Host/2D wiring and original Play regressions.
+Strict World generation transfer, reload phase transitions, automatic watcher/compiler UI and
+real native source-edit acceptance still remain; this is uncommitted prework excluded from PR762.
+
+Coordinated production Play resource branches now preserve pool handles, animation phase, camera,
+query snapshots, input edges, UI frames and existing texture identities over identical staged Worlds.
+Commit transfers the existing native audio owner while rerouting both cached proxies before old
+cleanup; exact parent-generation identity rejects obsolete branches. No new native output or
+texture registration is created during candidate preparation. Scene-service branches also retain
+scene/spawn quotas instead of resetting via Bind. Source/destination World ownership, failed
+branches, retired cleanup and final texture retirement are exercised locally; complete main
+transaction hooks and source-edit reload still remain unimplemented and unaccepted.
+
+The final coordinated-service regression rebuild passes ten targets;18 scoped native Windows
+CTests pass (exit0,zero failures/skips,24.45s). The new fixture initially omitted the existing
+query-source argument; the failed build remains retained and was corrected without API or
+assertion changes. This local source remains outside the merged foundation.
+
+## Current main transaction batch
+
+The [main transaction checkpoint](ED-WF-05-Transaction-Windows.md) supersedes the implementation
+gaps in the earlier uncommitted local checkpoint: the main facade now installs strict generation
+World/resource/scene-service hooks. Fourteen affected targets build and23 scoped cases pass
+(exit0,58.31s); its main C++ fixture has96 successful replacements/576 expected rejections.
+Two real no-argument Windows GUI launches also pass with the original visibility/response/order
+assertions; isolated-desktop failures are retained. Automatic source-edit/compiler/watcher
+admission and full immutable-head Cloud/Shipping/CI remain pending. Work-order acceptance stays4/9.
