@@ -521,7 +521,7 @@ fork. The main Editor now uses `ReloadablePlayGameplayModule` to coordinate stri
 World transfer and capture/candidate/retired/live phases.
 These proxies do not authorize arbitrary native side effects or replace registered-work draining.
 Input/audio and 2D resource fork contracts describe the unpublished state they will coordinate.
-Editor watcher/compiler admission and native source-edit seamless-reload acceptance
+Immutable-head validation of Editor watcher/compiler admission and native source-edit seamless-reload acceptance
 remain required; the work-order count is unchanged.
 
 `PlayTwoDServices::ForkForReload` now coordinates the actual resource owners over an
@@ -568,8 +568,40 @@ counters survive accepted generations. Final Unload alone advances the session t
 The bounded C++ transaction fixture covers32 successes per plain/configured/2D path and576 expected
 rejections, real lease draining, cached old-host/capture and external storage attempts, animation/pool
 /input/UI/texture continuity, retained scene requests and GameWorld audio/physics/character state.
-These are process/CPU fixtures, not native source edits or physical device acceptance. Background
-watcher/compiler UI admission and the final complete gates remain required; ED-WF-05 is unaccepted.
+These are process/CPU fixtures, not native source edits or physical device acceptance. Native
+watcher/compiler workflow acceptance and the final complete gates remain required; ED-WF-05 is unaccepted.
+
+### Background scripts during configured Play
+
+Saved ScriptProject mode now selects the canonical SDK compiler when the user starts Play.
+The configured scene starts in an isolated Play World; its first compiled module waits for the
+ordinary scene/render boundary to be ready. SceneOnly settings and existing manual DLL/batch
+workflows keep their prior behavior. No compilation or project code starts merely by opening a project.
+
+`LiveGameScript` observes owning source snapshots on one background worker every 500 ms, reuses
+`WatcherDebouncer` with 250 ms settling, and submits only the latest project/Play/source generation
+to `GameScriptCompiler`. Detection uses content fingerprints and sorted inventory, including same-size
+changes with preserved timestamps; generated Zig/cache/Git directories are excluded. Repeated compiler
+errors do not rebuild indefinitely; another observed edit retries. Invalid observation revokes a pending
+result. Project identity or saved Build Settings changes suspend replacement until the scope is restored
+or Play restarts. Compiler phases appear in Game status; bounded sanitized output reaches Console.
+
+The old module keeps dispatching while compilation runs. At an owner-frame boundary, the main
+application checks scope and exact prepared sources/artifact again, then calls LoadPrepared or the
+strict ReloadPrepared transaction. Paused Play can accept a replacement without ticking. Failures
+retain the active generation; modules without safe migration require restart. Stop, project close/change
+and shutdown cancel both workers, drain their real futures/tool processes and discard results before
+releasing gameplay/World ownership. Prepared libraries stay owned through module finalizers.
+
+The source observer shares the build producer's canonical dedicated-subtree policy. It bounds file
+count, aggregate bytes and directory traversal; it is a cooperative edit detector, not code signing.
+See [build contracts](../../Engine/Editor/GameBuild.md). Optional `NEXORA_SCRIPT_RELOAD_EVIDENCE=1`
+records real module diagnostics, compilation phases and admitted generations for native verification;
+it is off by default. [The Windows harness](../../Tests/Editor/WindowsScriptReload.py) drives the
+actual Ctrl+P command and edits authored Zig while the same Editor remains open. Its generated
+fixture/evidence is private build output; a short smoke does not accept the required 32-cycle gate.
+Full immutable-head Cloud/Shipping/CI, actual 32 source replacements, cancellation/project-switch
+coverage and subsequent Sprite integration remain required; ED-WF-05 is not accepted.
 
 ### Bounded 2D Game View
 

@@ -5,13 +5,65 @@ from pathlib import Path
 import tempfile
 import unittest
 import json
+import subprocess
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from PackageWindowsEditor import (dependency_closure, relocated_environment, stage_game_build_runtime,
-                                  require_gui_subsystem, require_package_inventory, digest)
+                                  require_gui_subsystem, require_package_inventory, digest,
+                                  verify_script_reload)
 
 
 class Dependencies(unittest.TestCase):
+    def test_reload_receipt_rejects_partial_cycles_reset_state_and_live_children(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            evidence = root / 'reload'
+            evidence.mkdir()
+            receipt = {'status': 'PASS', 'cycles': 32, 'full_32_cycle_gate': True,
+                       'actual_ctrl_p': True, 'preserved_mtime_edits': True,
+                       'stop_cancelled_real_compilation': True, 'exit': 0,
+                       'remaining_owned_job_processes': 0,
+                       'observed_children_terminated': [{'pid': 123, 'name': 'cmake.exe'}],
+                       'sequence': [{'version': i, 'counter': i * 100, 'scene': 1, 'entity': 4}
+                                    for i in range(33)]}
+            result = subprocess.CompletedProcess([], 0, b'native stdout', b'native stderr')
+            with patch('PackageWindowsEditor.subprocess.run', return_value=result):
+                (evidence / 'receipt.json').write_text(json.dumps(receipt))
+                verify_script_reload(root / 'NexoraEditor.exe', evidence, 32)
+                self.assertEqual((root / 'script-reload.stdout.log').read_bytes(), b'native stdout')
+                sequence = receipt['sequence']
+                receipt['sequence'] = sequence[:12]
+                (evidence / 'receipt.json').write_text(json.dumps(receipt))
+                with self.assertRaisesRegex(RuntimeError, 'incomplete'):
+                    verify_script_reload(root / 'NexoraEditor.exe', evidence, 32)
+                receipt['sequence'] = sequence
+                sequence[16]['counter'] = 0
+                (evidence / 'receipt.json').write_text(json.dumps(receipt))
+                with self.assertRaisesRegex(RuntimeError, 'state/handles'):
+                    verify_script_reload(root / 'NexoraEditor.exe', evidence, 32)
+                sequence[16]['counter'] = 1600
+                receipt['remaining_owned_job_processes'] = 1
+                (evidence / 'receipt.json').write_text(json.dumps(receipt))
+                with self.assertRaisesRegex(RuntimeError, 'incomplete'):
+                    verify_script_reload(root / 'NexoraEditor.exe', evidence, 32)
+
+    def test_reload_failure_and_timeout_preserve_output_and_cannot_admit(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            evidence = root / 'reload'
+            with patch('PackageWindowsEditor.subprocess.run', return_value=
+                       subprocess.CompletedProcess([], 1, b'failed stdout', b'failed stderr')):
+                with self.assertRaisesRegex(RuntimeError, 'failed'):
+                    verify_script_reload(root / 'NexoraEditor.exe', evidence, 32)
+            self.assertEqual((root / 'script-reload.stderr.log').read_bytes(), b'failed stderr')
+            with patch('PackageWindowsEditor.subprocess.run', side_effect=
+                       subprocess.TimeoutExpired([], 4200, output=b'partial stdout', stderr=b'partial stderr')):
+                with self.assertRaisesRegex(RuntimeError, 'timed out'):
+                    verify_script_reload(root / 'NexoraEditor.exe', evidence, 32)
+            self.assertEqual((root / 'script-reload.stdout.log').read_bytes(), b'partial stdout')
+            self.assertEqual((root / 'script-reload.stderr.log').read_bytes(), b'partial stderr')
+
     def test_actual_archive_inventory_rejects_tamper_and_extra_public_apps(self):
         with tempfile.TemporaryDirectory() as temporary:
             package = Path(temporary)

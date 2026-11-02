@@ -154,3 +154,26 @@ Game.exe directly with no arguments and ordinary flags. It monitors one responsi
 no console or child process, waits for real successful native presents, sends WM_CLOSE, then checks
 actual frames/gameplay updates, drain and exit 0. Staged and extracted installations repeat this
 check alongside the unchanged 100-frame/three-commit game and 1,200-frame Editor Play admissions.
+
+## Extracted Editor source-edit reload gate
+
+`PackageWindowsEditor.py --script-reload-cycles=32` adds the actual Windows Editor source-edit
+workflow after existing real-ZIP extraction/relocation admission. It requires the complete private
+SDK/toolchain. The Windows Editor package workflow enables this gate automatically on the active
+`build/editor-logo-splash` implementation branch and for explicit workflow_dispatch runs (90-minute
+job limit). Other push packaging retains its existing35-minute job limit and passes0 cycles. The full gate must be run and pass before accepting the script-reload delivery.
+
+The native harness uses the real Ctrl+P command, preserves source timestamps while changing Zig
+bytes and requires32 consecutive accepted replacements in the same Play session. Counter and
+Scene/entity handles must survive; the old code keeps dispatching during compilation. Stop occurs
+while an observed owned compiler process is active; retained process handles and Windows Job
+accounting prove the tree drained. The harness owns a kill-on-close Job for only its Editor/SDK
+children, including abnormal helper termination. Ordinary Editor close/input behavior is unchanged.
+
+The per-candidate120-second, startup35-second, responsiveness500-ms and normal-close10-second
+limits remain. An aggregate one-hour harness bound leaves room for cleanup before its70-minute
+packager bound. The packager rejects a nonzero/timeout child, incomplete32-cycle receipt, reset
+state/handles or residual owned processes, and verifies installation inventory again afterward.
+Any failure removes the ZIP rather than publishing it. Wrapper stdout/stderr and native logs
+remain under `verification/extracted/script-reload*`. Hosted Windows evidence remains separate
+from Linux gates and from physical-device/clean-host acceptance.

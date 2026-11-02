@@ -204,3 +204,57 @@ World/resource/scene-service hooks. Fourteen affected targets build and23 scoped
 Two real no-argument Windows GUI launches also pass with the original visibility/response/order
 assertions; isolated-desktop failures are retained. Automatic source-edit/compiler/watcher
 admission and full immutable-head Cloud/Shipping/CI remain pending. Work-order acceptance stays4/9.
+
+## Live script workflow checkpoint (unaccepted)
+
+The main configured ScriptProject Play path now connects the existing source-only SDK compiler
+to owning background content observation, watcher debouncing and strict prepared-generation
+admission. Stop cancels and drains observation/compiler workers before releasing World/module
+owners. SceneOnly/manual DLL behavior remains available. Compiler phases use readable stage
+labels and sanitized output reaches Console; paused Play can admit current results.
+
+The local three-case gate passed with real exit 0: compiler/coordinator 2.97s, actual SDK game
+build/publication 289.26s and script-only compilation/source guards 156.27s (448.64s total,
+zero failures). Its observer tests cover equal-size/time edits, generated-cache exclusion,
+addition/rename/deletion, saved settings changes, content budget and cancellation.
+
+A real Windows Editor Ctrl+P smoke admitted one authored Zig replacement while old code continued
+ticking: counter4027, Scene1/entity4 retained, ordinary close exit0 and authored baseline unchanged.
+Its original receipt describes cancellation as real compilation, but the retained log only proves
+ScriptSnapshot-stage preparation cancellation; active compiler-child termination was not observed
+in that smoke. The strengthened 32-cycle harness now waits for CompileAndTest and retains handles
+to owned compiler descendants to verify they terminate after Stop. That original run was interrupted after11 replacements during the next compile. The operator
+subsequently confirmed in this chat that they manually closed the Editor. Classify this as
+operator-interrupted, not a product crash/regression; it is still not a32-cycle pass. The original
+logs/exit1 remain preserved, and no child numeric exit code was recorded in that older harness.
+New harness failure receipts record the actual child exit code and the main opt-in diagnostic
+records its loop-exit reason. Source/binary snapshot and logs remain under
+`build/editor-workflow-native/ed-wf05-live-script-*`.
+
+The diagnostic PR763 Windows CI still fails the unchanged 35-second startup gate. At `c3a65497`,
+the splash responds to6478 probes, BeginFrame returns, and no first-UI checkpoint follows. The
+root cause is not established. Additional opt-in checkpoints narrow display/event/metrics work;
+no deadline/assertion is relaxed. These live-script results were captured as uncommitted local work and must still
+pass immutable-head Cloud/Shipping/CI, remaining native scenarios and final package acceptance.
+Accepted work stays4/9 and Editor0/8.
+
+A packaging follow-up enables the actual32-cycle harness against the extracted ZIP on explicit
+Windows package workflow runs and automatically on the active implementation branch. It owns the Editor/SDK process tree, preserves timeout/failure
+output and rejects partial receipts; it cannot publish a ZIP after that gate fails. Portable
+package admission now passes9/9 synthetic tests, which do not establish native GUI acceptance.
+
+The immutable `0f901cb3` Cloud run is complete and FAIL: Development configure/build exit0,
+full CTest exit8 (498/499 pass,zero skip/retry), supported Shipping configure/build exit0. The
+sole failure is pointer_buttons: after a successful button2 press and drawframes59..66, the
+original0.15-second release window received no new consumer/draw bytes. Existing evidence cannot
+distinguish input delay, frame stall and observation scheduling; no deadline/assertion is relaxed.
+The archive is532675 bytes, SHA256 `fc0ff88d8377596db13c37ef5b9ba29dac33cbaaa583c06476822412565de771`.
+All old archives remain unchanged. This blocks merge; it does not erase the local slice evidence.
+
+Operator clarification: the11-replacement local run was deliberately closed by the user. This
+explains the interruption; it does not change its retained wrapper exit1 or supply the remaining
+21 replacements. Full32-cycle acceptance moves to isolated hosted Windows.
+
+[Live-script Windows receipt](ED-WF-05-Live-Scripts-Windows.json) records the scoped/native
+commands, source/binary/log hashes, real cancellation/job drain and the operator interruption.
+[Cloud0f901cb3 receipt](ED-WF-05-Cloud-0f901cb3.json) records the failed full gate separately.

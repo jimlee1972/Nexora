@@ -2776,3 +2776,10 @@ record through the existing atomic writer; an occupied staging path preserves bo
 The graphical application stores `appearance` beside `RecentProjectStore::DefaultPath()` (or its
 configured recent-project path), separate from project layout, locks and read-only permissions.
 Calls run on the application owner thread; UI widgets emit values and perform no IO.
+
+The main configured Play workflow now uses background `ObserveGameScriptSources` plus the same
+`PrepareGameScript` entry for explicit ScriptProject settings. Source observation owns bounded content
+fingerprints and inventory, with no compiler/source writes or Editor/World borrow. The application
+owns debouncing, project/Play/source keys, final byte admission, strict reload transactions and actual
+worker cancellation/drain before project teardown. See [build contracts](GameBuild.md); native workflow
+and complete immutable-head acceptance remain pending.

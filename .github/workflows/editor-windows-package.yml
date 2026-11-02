@@ -20,7 +20,9 @@ permissions:
 jobs:
   package:
     runs-on: windows-latest
-    timeout-minutes: 35
+    timeout-minutes: ${{ (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/build/editor-logo-splash') && 90 || 35 }}
+    env:
+      NEXORA_EDITOR_RELOAD_CYCLES: ${{ (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/build/editor-logo-splash') && '32' || '0' }}
     permissions:
       contents: read
       actions: write
@@ -82,7 +84,8 @@ jobs:
             --imgui-license build/editor-package/_deps/nexora_imgui-src/LICENSE.txt `
             --game-runtime-profile $profiles[0].FullName --cmake-root $cmakeRoot `
             --ninja $ninja --zig-root $zigRoot --ninja-license $ninjaLicense `
-            --commit $env:GITHUB_SHA --output build/editor-delivery
+            --commit $env:GITHUB_SHA --output build/editor-delivery `
+            --script-reload-cycles=$env:NEXORA_EDITOR_RELOAD_CYCLES
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Upload verified package
         uses: actions/upload-artifact@v4

@@ -133,3 +133,17 @@ ED-WF-05 尚未驗收，完成度維持4/9。
 [啟動診斷追蹤](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Startup-Diagnostic.md)
 保留 PR763 Windows 打包啟動失敗，加入有界的首幀紀錄。本機兩次無參數啟動仍通過；
 CI 根因與精確版本完整驗證待完成。此為診斷檢查點，尚未驗收修復，完成度維持4/9。
+
+[即時腳本檢查點](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05.md#live-script-workflow-checkpoint-unaccepted)
+已將實際設定式 Play 接到背景內容觀察、共用編譯入口與保留狀態的准入交易。
+本機 SDK／建置／協調器回歸3/3通過，真實 Editor 一次來源修改與替換通過。
+加強的32次原生驗收仍在執行，啟動 CI 仍失敗；精確版本完整驗證及其他情境待完成，
+驗收維持4/9、Editor0/8。
+
+後續證據：本機32次嘗試在11次替換後因 Editor 提前退出而失敗，不能驗收。
+0f901cb3 的 Cloud 也為 FAIL（498/499，按鍵釋放／pose 觀察失敗）。
+已將實際解壓 ZIP 的 Windows32次驗收接到目前施工分支的自動包裝及手動 workflow；原輸入／啟動期限保留。
+見[目前證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05.md)，完成度不變。
+
+操作人員已確認：本機11次替換後是使用者手動關閉 Editor，分類為使用者中斷，
+不是產品崩潰；仍未滿足32次驗收。隔離 Windows CI 驗收待完成，獨立的 Cloud 按鍵失敗仍待處理。

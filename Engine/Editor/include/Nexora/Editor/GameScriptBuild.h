@@ -10,6 +10,21 @@ struct GameScriptBuildRequest final {
   GameBuildProgressSink progress;
 };
 
+struct GameScriptSourceEntry final {
+  std::filesystem::path relative;
+  std::size_t bytes{};
+  std::string fingerprint;
+  bool present{};
+  bool operator==(const GameScriptSourceEntry &) const = default;
+};
+using GameScriptSources = std::vector<GameScriptSourceEntry>;
+// Owning, bounded content observation for background watchers. Includes project identity/settings
+// and the canonical script subtree; no compiler, source writes, or Editor/World borrows. Hashes
+// detect cooperative edits, not authenticity. PreparedGameScript::Current still gates admission.
+[[nodiscard]] NEXORA_EDITOR_API std::optional<GameScriptSources>
+ObserveGameScriptSources(const GameScriptBuildRequest &, const core::CancellationToken & = {},
+                         std::string *error = nullptr);
+
 // Owns frozen sources, canonical SDK/tool logs and one uniquely named compiled library.
 // Keep this owner alive until all module code/finalizers have unloaded. Compilation does not
 // instantiate gameplay; Current checks exact sources/inventory and FNV-size artifact integrity

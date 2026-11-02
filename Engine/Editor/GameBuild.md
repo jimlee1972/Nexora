@@ -7,7 +7,7 @@ trusted host toolchain and physical temporary parent outside the authored projec
 materializes the canonical embedded SDK in a private operation; no scene capture/cooking or engine
 checkout is required. Game Build uses this same entry with its remaining combined byte/file budget,
 then carries the script baselines into its existing final publication guard and external records.
-There is one CMake/Zig compiler path for installed Build and future Editor Play coordination.
+There is one CMake/Zig compiler path for installed Build and Editor Play coordination.
 Game publication staging retains its output-filesystem ownership for atomic replacement. If that
 staging is inside the authored project, its nested script compiler instead uses the canonical system
 temporary directory and copies the verified library back; compiler sources/tools stay outside the project.
@@ -23,7 +23,20 @@ Preparation is synchronous worker work with owning progress/diagnostic values an
 It uses the existing managed process runner and independent one-worker job pool, with cancellation
 and drain before private cleanup. Ordinary filesystem/allocation/progress-observer exceptions retain
 the existing propagation contract. Publication, source/project/Play epoch admission and strict Runtime
-World/service transaction ownership remain the Editor's responsibility; that integration is pending.
+World/service transaction ownership remain the Editor's responsibility. The main LiveGameScript owner
+now coordinates those boundaries; native workflow and immutable-head acceptance remain required.
+
+`ObserveGameScriptSources` is an owning read-only worker API using the same canonical subtree
+selector as compilation. It detects same-size/time edits, additions, removals and renames by sorted
+relative paths, size and FNV content fingerprints. It also observes the project descriptor and saved
+build settings (including absence for SDK-only callers). Script files are bounded by the request
+file/byte limits (at most 16384 files and 256 MiB); the two descriptor observations share the byte
+budget and have individual 256 KiB limits. Recursive enumeration admits at most 32768 visited
+entries, including directories, so empty directory trees cannot grow unbounded. Zig/cache/Git
+subtrees remain excluded. Enumeration and per-file reads check cooperative cancellation between
+entries. Inventory is checked again after observation. Concurrent edit snapshots are not publication
+capabilities: the main owner must still recheck prepared bytes/artifact and project/Play/source keys.
+No compiler, workspace borrow, source write or World access occurs in observation.
 
 ## Game capture and publication
 

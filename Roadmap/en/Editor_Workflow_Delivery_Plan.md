@@ -147,3 +147,18 @@ The [startup diagnostic follow-up](../../Tools/Build/evidence/EditorWorkflow/ED-
 retains PR763 Windows package startup failure and adds bounded first-frame evidence. Two local
 no-argument launches still pass; the CI root cause and exact-head full gates remain pending.
 This is a diagnostic checkpoint, not an accepted fix; completion remains 4/9.
+
+The [live-script checkpoint](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05.md#live-script-workflow-checkpoint-unaccepted)
+now wires actual configured Play to background observation/shared compilation and state-preserving
+admission. Local SDK/build/coordinator regression passes3/3; one real Editor source replacement
+passes. The strengthened32-cycle native run is executing, and startup CI still fails. Full
+immutable-head gates and remaining scenarios are pending; acceptance stays4/9, Editor0/8.
+
+Follow-up evidence: the local32-cycle attempt stopped after11 replacements when Editor exited;
+it is FAIL, not accepted. Cloud at0f901cb3 is also FAIL (498/499, pointer release/pose observation).
+The extracted-ZIP Windows32-cycle gate now runs automatically on the active implementation branch and on explicit package workflow runs; original
+input/startup deadlines remain. See [current evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05.md).
+
+Operator clarification: the11-replacement local run was manually closed by the user. It is
+operator-interrupted rather than a product crash, and still does not satisfy32-cycle acceptance.
+The isolated hosted Windows gate remains required; the unrelated Cloud pointer failure stays open.
