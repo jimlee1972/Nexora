@@ -1,5 +1,8 @@
 # Nexora Graphical Editor Roadmap
 
+Local crash/game-log persistence is tracked in [Crash Logging Delivery](Crash_Logging_Delivery_Plan.md). It includes native gameplay callback capture and keeps platform/physical-host gates separate; it does not complete this roadmap’s broader milestones.
+
+
 ### ✅ Unity-style Editor input (supported scope accepted)
 
 [Issue #759](https://github.com/jimlee1972/Nexora/issues/759) is implemented by

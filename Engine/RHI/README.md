@@ -1191,3 +1191,8 @@ at each dispatch under the device mutex. CPU writes advance revisions; Submit re
 recreated resource before native Close/queue acceptance. Accepted GPU writes publish revisions;
 immutable shared inputs preserve theirs. This reference bookkeeping is per command list. Callers
 still retain resources until completion under the existing synchronous ownership contract.
+
+Successful `CreateDeviceWithOptions` records the latest created backend/vendor/device/driver in
+the active Core diagnostic session's bounded `context.txt`. This is a last-creation observation
+(including probes), not proof that the device is currently presenting. Diagnostic I/O cannot
+propagate an exception or change device ownership, lifetime or admission behavior.

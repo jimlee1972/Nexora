@@ -1,4 +1,5 @@
 #include "Nexora/Renderer/RenderGraph.h"
+#include "Nexora/Core/Diagnostics.h"
 
 #include <algorithm>
 #include <exception>
@@ -308,6 +309,7 @@ void RenderGraph::Execute(rhi::Device &device, const ExecutionOptions &options) 
       bool succeeded{};
     };
     const auto record = [&](std::size_t index, Recorded &result) {
+      core::DiagnosticScope diagnostic_scope(passes_[index].name);
       for (const auto &barrier : texture_barriers_[index]) {
         result.commands->Transition({handles[barrier.texture.id], barrier.before, barrier.after,
                                      barrier.source_queue, barrier.destination_queue});
@@ -508,6 +510,7 @@ void RenderGraph::ExecuteExternal() {
   statistics_.completed_pass_count = 0;
   for (const auto index : execution_order_) {
     const auto &pass = passes_[index];
+    core::DiagnosticScope diagnostic_scope(pass.name);
     std::vector<ExternalTextureTransition> transitions;
     for (const auto &barrier : texture_barriers_[index])
       transitions.push_back({barrier.texture, barrier.before, barrier.after});

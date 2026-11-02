@@ -290,3 +290,13 @@ The interactive module has no capture delays. The separate automated validation 
 144 frames and uses two 1.5-second capture holds. Its wall-clock timing is not a performance test.
 White HUD, synthetic test sprites and Noto font output are explicitly DEV ONLY. Native readbacks
 and synthetic input do not establish physical Windows appearance, input or formal game acceptance.
+
+## Crash and game logs
+
+Application entry starts persistent diagnostics before gameplay loading and retains it through
+module teardown and caught-error reporting. Each launch creates a unique run directory containing
+`game.log`, `crash.log`, `context.txt`, `modules.txt`, and a best-effort Windows `crash.dmp`. Windows defaults to
+`%LOCALAPPDATA%\Nexora\Logs`; Linux uses `$XDG_STATE_HOME/Nexora/Logs` or
+`~/.local/state/Nexora/Logs`; Apple uses `~/Library/Logs/Nexora`. Set `NEXORA_LOG_DIR` to select a
+writable root; the selected run path is printed to stderr. Keep the whole run directory when
+reporting a failure. See [capture/retention/platform limits](../../Roadmap/en/Crash_Logging_Delivery_Plan.md).

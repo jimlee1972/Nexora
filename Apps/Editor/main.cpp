@@ -1,4 +1,5 @@
 #include "GameBuildCommand.h"
+#include "Nexora/Core/Diagnostics.h"
 #include "Nexora/Core/JobSystem.h"
 #include "Nexora/Editor/AssetImport.h"
 #include "Nexora/Editor/EditorWorkspace.h"
@@ -4310,7 +4311,7 @@ std::string JsonString(std::string_view text) {
   return result + '"';
 }
 
-int Run(int argc, char **argv) try {
+int RunImpl(int argc, char **argv) try {
   if (argc > 1 && std::string_view(argv[1]).starts_with("--build-game="))
     return nexora::editor::preview::RunGameBuildCommand(argc, argv);
   std::filesystem::path project;
@@ -4480,8 +4481,12 @@ int Run(int argc, char **argv) try {
   }
   return 0;
 } catch (const std::exception &error) {
+  nexora::core::WriteDiagnostic(nexora::core::LogLevel::Error, "Editor", error.what());
   std::cerr << "Editor command failed: " << error.what() << '\n';
   return 1;
+}
+int Run(int argc, char **argv) {
+  return nexora::core::RunDiagnosed("NexoraEditor", [&] { return RunImpl(argc, argv); });
 }
 } // namespace
 

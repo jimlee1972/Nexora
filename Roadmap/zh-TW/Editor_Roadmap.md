@@ -1,5 +1,8 @@
 # Nexora 圖形化 Editor Roadmap
 
+本機 crash/game log 持久化與原生 gameplay callback 捕捉見 [Crash Logging Delivery](Crash_Logging_Delivery_Plan.md)。平台與實體主機 gate 仍分開驗收，此 supporting slice 不代表本 roadmap 的整體里程碑完成。
+
+
 ### ✅ Unity 風格的 Editor 操作（支援範圍已驗收）
 
 [工單 #759](https://github.com/jimlee1972/Nexora/issues/759) 由

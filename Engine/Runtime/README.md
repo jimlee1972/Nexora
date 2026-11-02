@@ -1239,3 +1239,20 @@ GameplayServices appends an independently negotiated effects getter while preser
 old prefix copies. Runtime owns no effects state or GPU resources and adds no TwoD dependency.
 A missing registration returns UNSUPPORTED without altering the caller's table. See the
 [effects contract](../TwoD/GameplayEffects.md).
+
+## Native gameplay failure persistence
+
+Application-owned Core diagnostics now journal Player V3 log callbacks and GameplayModuleHost
+load/create/start/update/fixed-update/migration/stop/destroy/library-finalizer contexts. Nonzero
+callback results record callback/result and update failures include generation. Exceptions are
+recorded before retaining existing propagation semantics; throwing across the gameplay C boundary
+remains forbidden. PlaySession callback errors and explicit runtime failures are journaled without
+changing pause/input/failure-state ownership. Core workers record captured job exceptions while
+preserving Failed/Wait behavior. A native fault inside an authorized module terminates the process
+after best-effort capture; it is not caught as an ordinary error or treated as plugin isolation.
+
+`Shipping::CrashReporter` remains the caller-supplied bounded portable report builder; it is not
+renamed into a native crash handler. The application/Core process session supplies actual local
+capture and persistence. See [Crash Logging Delivery](../../Roadmap/en/Crash_Logging_Delivery_Plan.md).
+`runtime.crash_diagnostics` kills real child processes and a dynamically loaded gameplay fixture to
+verify surviving logs; platform claims are limited to recorded native test evidence.

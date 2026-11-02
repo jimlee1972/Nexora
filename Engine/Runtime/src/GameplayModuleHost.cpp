@@ -1,4 +1,5 @@
 #include "Nexora/Runtime/GameplayModuleHost.h"
+#include "Nexora/Core/Diagnostics.h"
 
 #include <algorithm>
 #include <chrono>
@@ -10,6 +11,7 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -28,6 +30,29 @@
 namespace nexora::runtime {
 namespace {
 
+template <typename Function>
+decltype(auto) InvokeGameplay(std::string_view callback, Function &&fn) {
+  core::DiagnosticScope scope(callback);
+  try {
+    if constexpr (std::is_same_v<std::invoke_result_t<Function>, std::int32_t>) {
+      const auto result = fn();
+      if (result != NEXORA_GAMEPLAY_OK)
+        core::WriteDiagnostic(core::LogLevel::Error, callback,
+                              "callback result=" + std::to_string(result));
+      return result;
+    } else {
+      return fn();
+    }
+  } catch (const std::exception &error) {
+    core::WriteDiagnostic(core::LogLevel::Fatal, callback, error.what());
+    throw;
+  } catch (...) {
+    core::WriteDiagnostic(core::LogLevel::Fatal, callback,
+                          "non-standard exception crossed gameplay ABI");
+    throw;
+  }
+}
+
 constexpr std::size_t kRequiredHostSize = NEXORA_GAMEPLAY_HOST_V3_BASE_SIZE;
 constexpr std::size_t kRequiredModuleSize = sizeof(NexoraGameModuleV3);
 constexpr auto kLoaderSymbol = "NexoraGameModuleLoad";
@@ -44,7 +69,8 @@ bool ReadModuleTable(NexoraGameModuleLoadV3Fn load, NexoraGameModuleV3 &module) 
   module = {};
   module.struct_size = sizeof(module);
   module.abi_version = NEXORA_GAMEPLAY_ABI_VERSION;
-  return load(NEXORA_GAMEPLAY_ABI_VERSION, &module) == 0 &&
+  return InvokeGameplay("Gameplay.load-table",
+                        [&] { return load(NEXORA_GAMEPLAY_ABI_VERSION, &module); }) == 0 &&
          module.struct_size >= kRequiredModuleSize &&
          module.abi_version == NEXORA_GAMEPLAY_ABI_VERSION && module.create && module.on_start &&
          module.update && module.on_stop && module.destroy;
@@ -70,6 +96,7 @@ struct GameplayModuleHost::DynamicLibrary final {
   ~DynamicLibrary() { Close(); }
 
   void Close() noexcept {
+    core::DiagnosticScope scope("Gameplay.unload-library");
     if (handle == nullptr)
       return;
 #if defined(_WIN32)
@@ -81,12 +108,17 @@ struct GameplayModuleHost::DynamicLibrary final {
   }
 
   static std::unique_ptr<DynamicLibrary> Open(const std::filesystem::path &path) {
+    core::DiagnosticScope scope("Gameplay.load-library");
+    const auto utf8 = path.u8string();
+    core::WriteDiagnostic(core::LogLevel::Info, "Gameplay.module",
+                          {reinterpret_cast<const char *>(utf8.data()), utf8.size()});
     auto result = std::make_unique<DynamicLibrary>();
 #if defined(_WIN32)
     result->handle = LoadLibraryW(path.c_str());
 #else
     result->handle = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
 #endif
+    core::RefreshDiagnosticModules();
 #if defined(__APPLE__)
     // Reject known dyld-pinned images before handing them a host/context. Releasing
     // such an image does not run its finalizers, so they cannot participate in a
@@ -185,7 +217,8 @@ bool GameplayModuleHost::Create(NexoraGameModuleLoadV3Fn load, NexoraGameModuleV
     return false;
 
   void *state = nullptr;
-  if (module.create(&state, &host) != NEXORA_GAMEPLAY_OK)
+  if (InvokeGameplay("Gameplay.create", [&] { return module.create(&state, &host); }) !=
+      NEXORA_GAMEPLAY_OK)
     return false;
   module.module_state = state;
   return true;
@@ -232,8 +265,10 @@ bool GameplayModuleHost::LoadLocked(NexoraGameModuleLoadV3Fn load, DynamicLibrar
   NexoraGameModuleV3 candidate{};
   if (!Create(load, candidate, *candidate_host))
     return false;
-  if (candidate.on_start(candidate.module_state) != NEXORA_GAMEPLAY_OK) {
-    candidate.destroy(candidate.module_state);
+  if (InvokeGameplay("Gameplay.on_start", [&] {
+        return candidate.on_start(candidate.module_state);
+      }) != NEXORA_GAMEPLAY_OK) {
+    InvokeGameplay("Gameplay.destroy", [&] { candidate.destroy(candidate.module_state); });
     return false;
   }
   module_ = candidate;
@@ -353,11 +388,15 @@ bool GameplayModuleHost::ReloadLocked(NexoraGameModuleLoadV3Fn load,
       GameplayModuleHost &host;
       ~Reopen() { host.OpenWorkLocked(); }
     } reopen{*this};
-    const auto required = module_.save_state(module_.module_state, nullptr, 0);
+    const auto required = InvokeGameplay("Gameplay.save_state", [&] {
+      return module_.save_state(module_.module_state, nullptr, 0);
+    });
     if (!required || required > kMaximumStateBytes)
       return reject(ReloadFailure::SaveState);
     std::vector<std::byte> saved_state(required);
-    if (module_.save_state(module_.module_state, saved_state.data(), required) != required)
+    if (InvokeGameplay("Gameplay.save_state", [&] {
+          return module_.save_state(module_.module_state, saved_state.data(), required);
+        }) != required)
       return reject(ReloadFailure::SaveState);
 
     // A raw V3 module may retain the host table pointer, not just a copy of its fields. Keep
@@ -390,7 +429,9 @@ bool GameplayModuleHost::ReloadLocked(NexoraGameModuleLoadV3Fn load,
         candidate_host->abi_version != NEXORA_GAMEPLAY_ABI_VERSION)
       return reject(ReloadFailure::Isolation);
     void *state{};
-    if (candidate.create(&state, candidate_host.get()) != NEXORA_GAMEPLAY_OK)
+    if (InvokeGameplay("Gameplay.create", [&] {
+          return candidate.create(&state, candidate_host.get());
+        }) != NEXORA_GAMEPLAY_OK)
       return reject(ReloadFailure::Initialization);
     candidate.module_state = state;
     struct CandidateGuard final {
@@ -398,12 +439,15 @@ bool GameplayModuleHost::ReloadLocked(NexoraGameModuleLoadV3Fn load,
       bool active{true};
       ~CandidateGuard() {
         if (active)
-          module.destroy(module.module_state);
+          InvokeGameplay("Gameplay.destroy", [&] { module.destroy(module.module_state); });
       }
     } candidate_guard{candidate};
-    if (candidate.load_state(state, saved_state.data(), required) != NEXORA_GAMEPLAY_OK)
+    if (InvokeGameplay("Gameplay.load_state", [&] {
+          return candidate.load_state(state, saved_state.data(), required);
+        }) != NEXORA_GAMEPLAY_OK)
       return reject(ReloadFailure::RestoreState);
-    if (candidate.on_start(state) != NEXORA_GAMEPLAY_OK)
+    if (InvokeGameplay("Gameplay.on_start", [&] { return candidate.on_start(state); }) !=
+        NEXORA_GAMEPLAY_OK)
       return reject(ReloadFailure::Initialization);
 
     // From this point only nonthrowing publication/retirement operations remain. Keep retired
@@ -412,8 +456,8 @@ bool GameplayModuleHost::ReloadLocked(NexoraGameModuleLoadV3Fn load,
       transaction_.retire(transaction_.context);
     auto retired_host = std::move(module_host_);
     auto *retired_library = library_;
-    module_.on_stop(module_.module_state);
-    module_.destroy(module_.module_state);
+    InvokeGameplay("Gameplay.on_stop", [&] { module_.on_stop(module_.module_state); });
+    InvokeGameplay("Gameplay.destroy", [&] { module_.destroy(module_.module_state); });
     delete retired_library;
     module_ = candidate;
     module_host_ = std::move(candidate_host);
@@ -466,9 +510,14 @@ bool GameplayModuleHost::Update(double delta_seconds) {
   std::scoped_lock lock(mutex_);
   if (!loaded_)
     return false;
-  const auto result = module_.update(module_.module_state, delta_seconds);
-  if (result != NEXORA_GAMEPLAY_OK)
+  const auto result = InvokeGameplay(
+      "Gameplay.update", [&] { return module_.update(module_.module_state, delta_seconds); });
+  if (result != NEXORA_GAMEPLAY_OK) {
     failure_state_ = {CallbackFailure::Update, result, generation_};
+    core::WriteDiagnostic(core::LogLevel::Error, "Gameplay.update",
+                          "callback failed result=" + std::to_string(result) +
+                              " generation=" + std::to_string(generation_));
+  }
   return result == NEXORA_GAMEPLAY_OK;
 }
 
@@ -479,17 +528,23 @@ bool GameplayModuleHost::FixedUpdate(double fixed_delta_seconds) {
   if (!loaded_ || module_.fixed_update == nullptr ||
       (module_.capabilities & NEXORA_GAMEPLAY_CAPABILITY_FIXED_UPDATE) == 0)
     return false;
-  const auto result = module_.fixed_update(module_.module_state, fixed_delta_seconds);
-  if (result != NEXORA_GAMEPLAY_OK)
+  const auto result = InvokeGameplay("Gameplay.fixed_update", [&] {
+    return module_.fixed_update(module_.module_state, fixed_delta_seconds);
+  });
+  if (result != NEXORA_GAMEPLAY_OK) {
     failure_state_ = {CallbackFailure::FixedUpdate, result, generation_};
+    core::WriteDiagnostic(core::LogLevel::Error, "Gameplay.fixed_update",
+                          "callback failed result=" + std::to_string(result) +
+                              " generation=" + std::to_string(generation_));
+  }
   return result == NEXORA_GAMEPLAY_OK;
 }
 
 void GameplayModuleHost::ShutdownLocked() noexcept {
   if (loaded_) {
     QuiesceLocked();
-    module_.on_stop(module_.module_state);
-    module_.destroy(module_.module_state);
+    InvokeGameplay("Gameplay.on_stop", [&] { module_.on_stop(module_.module_state); });
+    InvokeGameplay("Gameplay.destroy", [&] { module_.destroy(module_.module_state); });
   }
   module_ = {};
   loaded_ = false;

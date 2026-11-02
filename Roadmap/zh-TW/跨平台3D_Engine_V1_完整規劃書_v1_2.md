@@ -20078,7 +20078,7 @@ Audio Scope Fade/Release Policy  ✅
 Networking Framework             ❌
 Low-level Network Interface      △ Future boundary / transport plugin
 
-Crash Infrastructure             ✅
+Crash Infrastructure             Partial (see Crash_Logging_Delivery_Plan.md)
 Cloud Crash Backend              △ Optional
 Memory Budget System             ✅
 Automated Tests                  ✅
@@ -20558,6 +20558,8 @@ MSDF
 不強制所有語言使用同一 rendering mode。
 
 ## Crash Reporting / MiniDump / Symbolication
+
+本機捕捉交付與平台限制：[Crash Logging Delivery](Crash_Logging_Delivery_Plan.md)。
 
 Crash Infrastructure 採 Backend abstraction，不把 Engine Core 綁死單一第三方 SDK。
 

@@ -1,4 +1,5 @@
 #include "GameEntry.h"
+#include "Nexora/Core/Diagnostics.h"
 #include "TwoDPlayer.h"
 #include <cstdint>
 #if defined(__APPLE__)
@@ -13,7 +14,7 @@
 #endif
 
 namespace {
-int Run(const std::filesystem::path &executable, std::vector<std::string> arguments) {
+int RunImpl(const std::filesystem::path &executable, std::vector<std::string> arguments) {
   auto strings =
       nexora::player::GameArguments(executable, std::move(arguments), NEXORA_2D_GAME_PROJECT);
   std::vector<char *> pointers;
@@ -21,10 +22,14 @@ int Run(const std::filesystem::path &executable, std::vector<std::string> argume
     pointers.push_back(value.data());
   return nexora::player::RunTwoDPlayer(static_cast<int>(pointers.size()), pointers.data());
 }
+int Run(const std::filesystem::path &executable, std::vector<std::string> arguments) {
+  return nexora::core::RunDiagnosed("NexoraGame",
+                                    [&] { return RunImpl(executable, std::move(arguments)); });
+}
 } // namespace
 
 #if defined(_WIN32)
-int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
+int WINAPI GameWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
   bool diagnostics = false;
   int result = 2;
   try {
@@ -52,15 +57,18 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     LocalFree(wide);
     result = Run(std::filesystem::path(executable), std::move(arguments));
   } catch (const std::exception &error) {
+    nexora::core::WriteDiagnostic(nexora::core::LogLevel::Error, "Game", error.what());
     std::cerr << error.what() << '\n';
   }
-  if (result && !diagnostics)
-    MessageBoxW(nullptr, L"The game could not start. Keep the complete game folder together.",
-                L"Game startup failed", MB_OK | MB_ICONERROR);
+  if (result && !diagnostics) {
+    const auto message = L"The game could not start. Diagnostic logs:\n" +
+                         nexora::core::DiagnosticSession::Directory().wstring();
+    MessageBoxW(nullptr, message.c_str(), L"Game startup failed", MB_OK | MB_ICONERROR);
+  }
   return result;
 }
 #else
-int main(int argc, char **argv) try {
+int GameMain(int argc, char **argv) try {
 #if defined(__linux__)
   const auto executable = std::filesystem::read_symlink("/proc/self/exe");
 #elif defined(__APPLE__)
@@ -78,7 +86,19 @@ int main(int argc, char **argv) try {
 #endif
   return Run(executable, {argv, argv + argc});
 } catch (const std::exception &error) {
+  nexora::core::WriteDiagnostic(nexora::core::LogLevel::Error, "Game", error.what());
   std::cerr << error.what() << '\n';
   return 2;
+}
+#endif
+
+#if defined(_WIN32)
+int WINAPI wWinMain(HINSTANCE instance, HINSTANCE previous, PWSTR command, int show) {
+  return nexora::core::RunDiagnosed("NexoraGame",
+                                    [&] { return GameWinMain(instance, previous, command, show); });
+}
+#else
+int main(int argc, char **argv) {
+  return nexora::core::RunDiagnosed("NexoraGame", [&] { return GameMain(argc, argv); });
 }
 #endif

@@ -1,3 +1,4 @@
+#include "Nexora/Core/Diagnostics.h"
 #include "Nexora/Network/ServerRuntime.h"
 
 #include <chrono>
@@ -20,11 +21,15 @@ private:
 
 } // namespace
 
-int main() {
+int RunServer() {
   EmptySimulation simulation;
   nexora::network::ServerRuntime server({}, simulation);
   server.Advance(std::chrono::milliseconds(17));
   std::cout << "Nexora dedicated server ready (protocol 1, build nexora-dev)\n";
   server.RequestShutdown();
   return server.State() == nexora::network::ServerRunState::Stopped ? 0 : 1;
+}
+
+int main() {
+  return nexora::core::RunDiagnosed("NexoraDedicatedServer", [&] { return RunServer(); });
 }
