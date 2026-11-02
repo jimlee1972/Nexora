@@ -177,3 +177,10 @@ state/handles or residual owned processes, and verifies installation inventory a
 Any failure removes the ZIP rather than publishing it. Wrapper stdout/stderr and native logs
 remain under `verification/extracted/script-reload*`. Hosted Windows evidence remains separate
 from Linux gates and from physical-device/clean-host acceptance.
+
+Startup pixel tests use an owned one-pixel foreground launcher as a controlled interactive-parent
+precondition. It is not an Editor HWND, has no taskbar entry and is never used for pixel/input
+acceptance. The real Editor child retains its PID/class, hidden-first-frame, pixels, response and
+shutdown checks; the splash constructor/preparation must still avoid stealing focus. Foreign
+application content/topmost state and desktop/display configuration are not changed. The hidden
+Editor itself now fits its outer bounds to the monitor work area before its first real draw.

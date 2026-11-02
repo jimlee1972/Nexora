@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from WindowsNativeTestDesktop import foreground_launcher
 
 
 def _verify_startup(editor, evidence, environment=None):
@@ -89,7 +90,10 @@ def _verify_startup(editor, evidence, environment=None):
                      (width//2, height//2)):
             visible = user.WindowFromPoint(W.POINT(origin.x+x, origin.y+y))
             require(visible and user.GetAncestor(visible, 2) == hwnd,
-                    'Editor client is occluded; desktop pixels cannot verify its rendering')
+                    'Editor client is occluded; desktop pixels cannot verify its rendering; '
+                    f'origin=({origin.x},{origin.y}), client=({width},{height}), '
+                    f'point=({origin.x+x},{origin.y+y}), virtual_screen='
+                    f'{tuple(user.GetSystemMetrics(index) for index in (76,77,78,79))}')
         dc = user.GetDC(None)
         memory = gdi.CreateCompatibleDC(dc)
         bitmap = gdi.CreateCompatibleBitmap(dc, width, height)
@@ -316,7 +320,8 @@ def verify_startup(editor, evidence, environment=None):
             'thread_matches_input': name(user.GetThreadDesktop(kernel.GetCurrentThreadId())) ==
                                     name(active),
         }, indent=2)+'\n')
-        return _verify_startup(editor, evidence, environment)
+        with foreground_launcher():
+            return _verify_startup(editor, evidence, environment)
     finally:
         restored = not selected or bool(user.SetThreadDesktop(previous))
         user.CloseDesktop(active)

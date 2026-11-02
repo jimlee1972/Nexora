@@ -147,3 +147,8 @@ CI 根因與精確版本完整驗證待完成。此為診斷檢查點，尚未�
 
 操作人員已確認：本機11次替換後是使用者手動關閉 Editor，分類為使用者中斷，
 不是產品崩潰；仍未滿足32次驗收。隔離 Windows CI 驗收待完成，獨立的 Cloud 按鍵失敗仍待處理。
+
+[啟動工作區／可見性收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Startup-Fit-Windows.json)
+記錄 Windows 原生啟動／品牌／入口5/5通過（26.58秒）。隱藏主視窗先適配螢幕工作區；
+測試自己的啟動器建立前景父程序情境，不替代 Editor，不放寬像素／回應／NoActivate／期限。
+新精確版本 CI／Cloud 與解壓 ZIP32次仍待驗收，工單與里程碑計數不變。

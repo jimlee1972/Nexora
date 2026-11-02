@@ -162,3 +162,9 @@ input/startup deadlines remain. See [current evidence](../../Tools/Build/evidenc
 Operator clarification: the11-replacement local run was manually closed by the user. It is
 operator-interrupted rather than a product crash, and still does not satisfy32-cycle acceptance.
 The isolated hosted Windows gate remains required; the unrelated Cloud pointer failure stays open.
+
+The [startup fit/exposure receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Startup-Fit-Windows.json)
+records5/5 native Windows startup/branding/entry passes (26.58s). Hidden outer bounds fit the monitor
+work area; an owned test launcher establishes foreground-parent context without substituting for
+the Editor or relaxing pixels/response/NoActivate/deadlines. Fresh immutable-head CI/Cloud and
+extracted-ZIP32 remain pending; no work-order/milestone count changes.
