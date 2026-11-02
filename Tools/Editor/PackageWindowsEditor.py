@@ -269,7 +269,12 @@ def verify(package, evidence, editor_play=False):
                 use_recents=False, timeout=180))
             if result['status'] != 'PUBLISHED_GAME':
                 raise RuntimeError('Installed script game was not published')
-            commands = (output / 'Build.commands').read_text(encoding='utf-8')
+            records = Path(result['records']).resolve()
+            if records.is_relative_to(authored) or records.is_relative_to(output) or not Path(result['receipt']).is_file():
+                raise RuntimeError('Build receipt was not published outside the project and game')
+            if any((output / name).exists() for name in ('Build.commands', 'Build.sources', 'Build.tools', 'Game.inventory')):
+                raise RuntimeError('Development records leaked into game output')
+            commands = (records / 'Build.commands').read_text(encoding='utf-8')
             if not all(name in commands for name in ('Tools/cmake/bin/cmake.exe', 'Tools/ninja.exe',
                                                        'Tools/zig/zig.exe')):
                 raise RuntimeError('Game build did not use the shipped tools')

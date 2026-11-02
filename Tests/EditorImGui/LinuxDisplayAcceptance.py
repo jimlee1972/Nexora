@@ -3,6 +3,7 @@
 
 import argparse
 import ctypes
+import functools
 import os
 from pathlib import Path
 import re
@@ -12,6 +13,41 @@ import signal
 import subprocess
 import tempfile
 import time
+
+
+@functools.lru_cache(maxsize=32)
+def _physical_function_key(name, display_name):
+    """Resolve an unmodified physical F-key, not xdotool's keysym modifier recipe."""
+    x11 = ctypes.CDLL("libX11.so.6")
+    x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
+    x11.XOpenDisplay.restype = ctypes.c_void_p
+    x11.XCloseDisplay.argtypes = [ctypes.c_void_p]
+    x11.XStringToKeysym.argtypes = [ctypes.c_char_p]
+    x11.XStringToKeysym.restype = ctypes.c_ulong
+    x11.XKeysymToKeycode.argtypes = [ctypes.c_void_p, ctypes.c_ulong]
+    x11.XKeysymToKeycode.restype = ctypes.c_ubyte
+    x11.XkbKeycodeToKeysym.argtypes = [ctypes.c_void_p, ctypes.c_ubyte, ctypes.c_int, ctypes.c_int]
+    x11.XkbKeycodeToKeysym.restype = ctypes.c_ulong
+    display = x11.XOpenDisplay(display_name.encode())
+    if not display:
+        raise RuntimeError(f"Cannot inspect native keyboard on {display_name}")
+    try:
+        symbol = x11.XStringToKeysym(name.encode('ascii'))
+        code = x11.XKeysymToKeycode(display, symbol)
+        if not symbol or not code or x11.XkbKeycodeToKeysym(display, code, 0, 0) != symbol:
+            raise RuntimeError(f"No unmodified physical {name} key on {display_name}")
+        print(f"native function key: name={name} keycode={code} unmodified=1", flush=True)
+        # xdotool accepts an explicit decimal keycode without a keysym modifier mask.
+        return f"{code:03d}"
+    finally:
+        x11.XCloseDisplay(display)
+
+
+def physical_key_arguments(arguments, environment):
+    if arguments and arguments[0] in ('key', 'keydown', 'keyup'):
+        return tuple(_physical_function_key(value, environment['DISPLAY'])
+                     if value in ('F5', 'F6', 'F10') else value for value in arguments)
+    return arguments
 
 
 def collect_output(editor: subprocess.Popen[str] | subprocess.Popen[bytes], timeout: float, *,
@@ -406,13 +442,17 @@ def main() -> int:
         time.sleep(0.5)
         subprocess.run([args.xdotool, "key", "--delay", "100", "ctrl+shift+n"], env=environment, check=True)
         time.sleep(0.2)
-        subprocess.run([args.xdotool, "key", "--delay", "100", "F5"], env=environment, check=True)
+        subprocess.run([args.xdotool, *physical_key_arguments(("key", "--delay", "100", "F5"), environment)],
+                       env=environment, check=True)
         time.sleep(0.3)
-        subprocess.run([args.xdotool, "key", "--delay", "100", "F6"], env=environment, check=True)
+        subprocess.run([args.xdotool, *physical_key_arguments(("key", "--delay", "100", "F6"), environment)],
+                       env=environment, check=True)
         time.sleep(0.2)
-        subprocess.run([args.xdotool, "key", "--delay", "100", "F10"], env=environment, check=True)
+        subprocess.run([args.xdotool, *physical_key_arguments(("key", "--delay", "100", "F10"), environment)],
+                       env=environment, check=True)
         time.sleep(0.2)
-        subprocess.run([args.xdotool, "key", "--delay", "100", "F5"], env=environment, check=True)
+        subprocess.run([args.xdotool, *physical_key_arguments(("key", "--delay", "100", "F5"), environment)],
+                       env=environment, check=True)
         time.sleep(0.2)
         # The initial Scene Root is unsaved. Native close must keep the window alive until the
         # user decides; Escape cancels the prompt and permits subsequent editing and saving.

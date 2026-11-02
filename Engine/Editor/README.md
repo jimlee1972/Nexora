@@ -6,15 +6,25 @@
 build worker and explicit owner-thread publication. The same producer backs the Editor CLI;
 runtime packages contain no authored sources or SDK/compiler. Publication rechecks exact source
 bytes, cancellation, staged/previous inventories and the embedding host's authoring guard.
+Runtime output excludes development records. Owning publication receipts/inventories live in
+separate engine user data; the trusted host may override that location outside the project/game.
+Runtime and receipt replacement share a recoverable transaction, including verified legacy
+migration and retained prior metadata; games do not need these receipts to execute or relocate.
 See the [complete build contract](GameBuild.md) for limits, ownership, script-directory policy,
 recoverable directory replacement and the remaining graphical/Play/delivery acceptance gates.
 
 ## Project build-scene settings
 
-`ProjectBuildSettings.h` supplies the owning schema-1 `project.build.json` codec and a project-scoped
+`ProjectBuildSettings.h` supplies the owning schema-1/2 `project.build.json` codec and a project-scoped
 `ProjectBuildSettingsSession`. Settings select one enabled startup UUID and a bounded list of
-scene UUIDs, canonical project-relative paths and enabled flags. They are independent of the
-project identity descriptor, script manifest and `.nexora/scene-session.ini` Editor restore state.
+scene UUIDs, canonical project-relative paths and enabled flags. Schema 2 also records explicit
+SceneOnly/ScriptProject mode, script manifest locator and output directory; all are portable,
+bounded project-relative paths. The manifest must be a .json file in a dedicated source directory.
+Manifest contents and installed tool paths are not part of this settings file. Legacy settings
+retain SceneOnly, `Scripts/project.json` and `Build/Game` defaults without writes during reading.
+The writer retains canonical schema 1 for the complete default configuration. Settings remain
+independent of project identity and `.nexora/scene-session.ini` Editor restore state. Public C++
+consumers rebuild for the appended settings fields; C/Zig gameplay descriptors are unchanged.
 The pure codec has no filesystem/UI dependency and is shared by subsequent build producers.
 Limits are 256 KiB, 256 scene records and 1024 UTF-8 path bytes. Unknown/duplicate keys, invalid
 Unicode/surrogate escapes, duplicate IDs/case-alias paths and unsafe portable scene paths reject.
@@ -2117,7 +2127,9 @@ POSIX creates a new managed process group through posix_spawn; hosts must retain
 wait policy and must not externally reap runner-owned children or change that policy while active.
 The direct child remains unreaped until cleanup, reserving process-group identity. Windows starts
 suspended, assigns a kill-on-close Job Object before execution and restricts inherited handles to
-its output pipe and null stdin. Cancellation, exceptional cleanup and shutdown stop managed
+its output pipe and null stdin. BackgroundTool suppresses a command console. Application uses
+ordinary GUI process flags for the directly launched native game; it does not hide a console
+executable or introduce a launcher. Cancellation, exceptional cleanup and shutdown stop managed
 descendants and join the direct child/worker. Deliberately detached POSIX groups are outside this
 cooperative policy. Mobile platforms without a backend explicitly report Unsupported.
 
@@ -2753,3 +2765,14 @@ path accepts `std::nullopt`; an empty optional is not a present zero UUID. The u
 TwoD scene supports source UUID snapshots and source-aware extraction; see
 [the source contract](../TwoD/SpriteAssets.md#persistent-scene-and-pool-source-bindings).
 Project import, frozen Play capture and Player catalogs still require explicit source admission.
+
+## User appearance preference
+
+`LoadEditorColorTheme` / `SaveEditorColorTheme` read and atomically write the user-owned
+`schema=1` record with `theme=dark` or `theme=light`. Reads are bounded to 64 bytes, accept LF/CRLF,
+reject symbolic links and malformed/unsupported records, and never write. Absence selects Dark;
+other failures return no value with a diagnostic. Explicit selection permits replacing a malformed
+record through the existing atomic writer; an occupied staging path preserves both files.
+The graphical application stores `appearance` beside `RecentProjectStore::DefaultPath()` (or its
+configured recent-project path), separate from project layout, locks and read-only permissions.
+Calls run on the application owner thread; UI widgets emit values and perform no IO.

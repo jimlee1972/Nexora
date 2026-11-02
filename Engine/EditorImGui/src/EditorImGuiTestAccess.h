@@ -120,9 +120,15 @@ struct EditorHierarchyStorageTestState final {
 
 class NEXORA_EDITOR_IMGUI_API EditorImGuiTestAccess final {
 public:
+  // Settings, Appearance, Dark, Light; submitted logical menu-item centers only.
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  AppearancePosition(const EditorImGuiHost &, std::size_t);
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ProjectBuildSettingsPosition(const EditorImGuiHost &, std::size_t);
   [[nodiscard]] static bool ProjectGameBuildBusy(const EditorImGuiHost &);
+  [[nodiscard]] static bool ProjectGameRunBusy(const EditorImGuiHost &);
+  [[nodiscard]] static std::optional<GameBuildStage> ProjectGameBuildStage(const EditorImGuiHost &);
+  [[nodiscard]] static std::size_t ProjectGameBuildDiagnosticCount(const EditorImGuiHost &);
   [[nodiscard]] static std::optional<std::array<float, 2>>
   SavedGameDecisionPosition(const EditorImGuiHost &, std::size_t);
   // Host-local owning override for deterministic font tests, applied before a new SetDisplay.
@@ -166,6 +172,7 @@ public:
   // Deterministic event batches default to portable Ctrl semantics; production OS policy is
   // untouched.
   static void ConfigureSyntheticInput(EditorImGuiHost &host, bool macos_behaviors = false) noexcept;
+  [[nodiscard]] static bool SuperModifierDown(const EditorImGuiHost &host) noexcept;
   static void InvokeImeCallback(EditorImGuiHost &host, float x, float y, bool visible) noexcept;
   [[nodiscard]] static std::vector<std::byte> NativeTexturePixels(const EditorImGuiHost &host,
                                                                   std::uint64_t texture_id);

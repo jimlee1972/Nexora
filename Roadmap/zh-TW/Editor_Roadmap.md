@@ -1,5 +1,31 @@
 # Nexora 圖形化 Editor Roadmap
 
+### ✅ Unity 風格的 Editor 操作（支援範圍已驗收）
+
+[工單 #759](https://github.com/jimlee1972/Nexora/issues/759) 由
+[PR #760](https://github.com/jimlee1972/Nexora/pull/760) 實作，已合併為 `92ae6bc7447c`，
+與驗收版本 `c9f171708507` 的 tree 相同。全域 Q 手形／WER、X／Z 模式、Scene 環繞／平移／
+視角／飛行／縮放、聚焦／跟隨、支援的指令／視窗快捷鍵與文字／modal／Game 輸入所有權已通過。
+舊輸入與 2D services 兩條路徑均會消耗保留的 Play 快捷鍵，不觸發遊戲動作。
+保留 F5／F6／F10 與 P 別名；Prefab isolation 使用 Ctrl＋Alt＋Shift＋P。
+[輸入驗收證據](../../Tools/Build/evidence/EditorWorkflow/Unity-Input.md)記錄 Cloud 495/495、
+支援的 Shipping 連結、42 項 CI、原生 Windows 436 通過／一項可選字型略過、macOS 410 通過／
+同一項可選字型略過、Linux Xvfb 246/246 與封裝啟動 5/5。舊版失敗及修正證據均保留。
+Rect／整合工具、頂點吸附、方向元件、最大化視窗與新的 XY 2D 模式不在本次範圍。
+乾淨實機驗收仍為 NOT_RUN；本次輸入驗收 ZIP 並非最後工作流程交付版。
+操作細節見 [Editor 文件](../../Apps/Editor/README.md#unity-style-editor-input-issue-759)。
+此支援工單不改變工作流程 4/9 與 Editor 里程碑 0/8 完成度。
+
+
+
+### 腳本工作流程與 Sprite 整合工單（2026-10-31）
+
+核准的[交付計畫](Editor_Workflow_Delivery_Plan.md)及
+[Epic #741](https://github.com/jimlee1972/Nexora/issues/741) 追蹤九張相依工單，涵蓋腳本 Build UI、
+乾淨遊戲成品、有狀態熱重載及來源感知 Editor／Player／Zig 整合。驗收為 4/9（44.4%）：ED-WF-01 ✅ PR #751，ED-WF-02 ✅ PR #754，ED-WF-03 ✅ PR #756、ED-WF-04 ✅ PR #758；
+既有 supporting capabilities 不直接算完整流程完成；完整 Editor 里程碑維持 0/8。
+現有 CLI 與 `.bat` 開發流程持續可用。
+
 ### Windows 匯出遊戲入口（2026-10-30）
 
 ✅ Windows native Player 與共用 Editor Build 輸出改用 GUI subsystem 2 及 Unicode GUI 入口，
@@ -249,6 +275,16 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
   （docking/multi-viewport），透過 `Nexora::RHI` 渲染而非另帶一套視窗系統，並點名 ED-M7 仍要展開
   的無障礙缺口。這份 ADR 只確定了 framework 選型，不等於圖形化 docking、theme、DPI、IME、
   accessibility 或 crash UX 已完成。
+- ✅ Settings > Appearance 現可選 Unity 風格的 Dark／Light 中性灰配色與藍色選取效果。
+  Request 於 frame 間套用，保存於使用者層 appearance 紀錄，跨專案／layout 保留，唯讀專案
+  亦可切換。有界讀取拒絕無效紀錄並保留原檔；儲存失敗保留本次主題且顯示可重試警告。
+  配色先解碼再交給原生 sRGB 輸出，圖示、狀態文字與 Transform 軸色保持可讀，DPI 幾何不變。
+  真實 1x／2x 選單測試及 Linux X11／Vulkan 畫面、儲存、重啟、唯讀驗收已涵蓋此功能；
+  physical-host acceptance 與整體里程碑仍維持 open。
+  [Linux 證據](../../Tools/Build/evidence/EditorAppearance-Linux-2026-10-31.md)。
+  ED-WF-04 整合時發現 Windows UNORM 配色過暗；候選 #758 的 attachment 編碼／次要文字對比
+  修復已通過 hosted Windows 啟動／搬移驗證，macOS loader 修復仍未驗收。
+  詳見[工單證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04.md)。
 - ✅ Feature-gated Dear ImGui host 已實作
   [Editor_ImGui_Integration_Plan.md](Editor_ImGui_Integration_Plan.md) 所述的 portable docking、
   theme／DPI、input／IME、live panel、recovery UX 與 accessibility-direction contract。
@@ -613,7 +649,7 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
   測試保留 unknown bytes、clipboard 與 Redo，拒絕 stale／malformed／duplicate packet，並涵蓋
   4,001 個節點。Linux Xvfb 選取兩個 proxy／OBJ root；完整 Scene View 驗收仍待完成。
 
-- ✅ Native Scene Select（Q）保留一般／Ctrl picking，隱藏變形把手並停止 drag preview／commit。
+- ✅ Native Scene Select（工具列）保留一般／Ctrl picking，隱藏變形把手並停止 drag preview／commit。
   W／E／R 回到 Move／Rotate／Scale。真正 1×／2× 輸入測試涵蓋同 frame Q／click、toolbar
   一致性、Home 導覽、active／pending drag、唯讀、panel／focus／modal／text gate 及保留 Redo。
   Linux Xvfb 驗證 proxy／OBJ picking、隱藏把手、Select 拖曳後 saved bytes 不變，再切回變形工具。

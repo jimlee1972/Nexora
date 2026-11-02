@@ -407,11 +407,15 @@ void RunMerge(float dpi) {
   runtime::World world;
   editor::SceneDocument merged(world, world.LoadScene("UI candidate"));
   const auto entity = f.scene.Nodes().front().id;
+  std::vector<editor::OpaqueComponent> expected_opaque(1);
+  expected_opaque.front().type = 701;
+  expected_opaque.front().type_name = "Unavailable.Provider";
+  expected_opaque.front().data.push_back(0);
+  expected_opaque.front().data.push_back(255);
+  expected_opaque.front().data.push_back(17);
   Require(merged.ReloadBytes(*f.candidate.result->bytes) && merged.Name(entity) == "Local" &&
               merged.PrefabPlacements().empty() &&
-              merged.OpaqueComponents(*merged.Key(entity)) ==
-                  std::optional<std::vector<editor::OpaqueComponent>>(
-                      {{701, "Unavailable.Provider", {0, 255, 17}}}) &&
+              merged.OpaqueComponents(*merged.Key(entity)) == expected_opaque &&
               f.scene.MatchesPreparedSave(*original) && disk_bytes() == original_disk,
           "UI candidate lost literal selections/unknown data or changed source/history");
   f.Click(Access::SceneMergeChoicePosition(f.ui, row, 2));

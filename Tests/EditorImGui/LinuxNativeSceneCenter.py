@@ -177,8 +177,14 @@ def main():
             time.sleep(0.05)
         else:
             raise RuntimeError("Home did not restore all-scene framing without selection")
+        # Q now owns Hand navigation. Select remains an explicit toolbar operation.
         send("key", "--delay", "100", "q")
-        time.sleep(0.2)
+        driver.wait(lambda value: value.get('native_tool') == '4', 'Q did not select Hand')
+        observed = driver.wait(lambda value: 'scene_select_tool' in value,
+                               'Select toolbar position is missing')
+        driver.click(tuple(map(float, observed['scene_select_tool'].split(','))))
+        driver.wait(lambda value: value.get('native_tool') == '3', 'Select toolbar did not select')
+        move((viewport[0] + viewport[2] // 2, viewport[1] + viewport[3] // 2))
         send("key", "--delay", "100", "ctrl+a")
         time.sleep(0.2)
         viewport = driver.settled_viewport(viewport)
@@ -213,12 +219,12 @@ def main():
         if point is None:
             raise RuntimeError("second root proxy is not visible")
         move(point)
-        send("keydown", "Control_L")
+        send("keydown", "Shift_L")
         send("click", 1)
-        send("keyup", "Control_L")
+        send("keyup", "Shift_L")
         time.sleep(0.2)
-        # Home leaves ImGui navigation focus on the canvas. P must still resolve from real hover.
-        send("key", "Home", "p", "r", "f")
+        # Home leaves ImGui navigation focus on the canvas. Z must still resolve from real hover.
+        send("key", "Home", "z", "r", "f")
         time.sleep(0.2)
         viewport = driver.settled_viewport(viewport)
         send("key", "--delay", "80", "ctrl+s")

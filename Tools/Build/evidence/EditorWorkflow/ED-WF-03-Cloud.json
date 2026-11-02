@@ -1,0 +1,157 @@
+{
+  "status": "PASS",
+  "commit": "f8e701a98e94686e8e20b2dbba02cf3674e305b2",
+  "tree": "907c7c23635dc2eb0b72cd3aeb304230d743ef43",
+  "working_tree_clean": true,
+  "registered": 490,
+  "executed": 490,
+  "passed": 490,
+  "failed": 0,
+  "skipped": 0,
+  "failure_reasons": [],
+  "skip_reasons": [],
+  "registration_changes": {
+    "added": [],
+    "removed": []
+  },
+  "ctest_duration_seconds": 1988.66,
+  "gates": [
+    {
+      "command": [
+        "cmake",
+        "--preset",
+        "linux-development",
+        "-DNEXORA_ENABLE_ZIG_GAMEPLAY=ON",
+        "-DNEXORA_ENABLE_SLANG=ON",
+        "-DNEXORA_ENABLE_VULKAN_BACKEND=ON",
+        "-DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON",
+        "-DNEXORA_BUILD_PROJECT_PLAYER=ON",
+        "-DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON",
+        "-DNEXORA_CRYPTOGRAPHY_BACKEND=OPENSSL"
+      ],
+      "cwd": "/workspace/Nexora",
+      "commit": "f8e701a98e94686e8e20b2dbba02cf3674e305b2",
+      "tree": "907c7c23635dc2eb0b72cd3aeb304230d743ef43",
+      "start": 1793457202.5467033,
+      "state": "completed",
+      "exit_code": 0,
+      "end": 1793457205.3790267,
+      "name": "development-configure",
+      "duration_seconds": 2.832,
+      "stdout": "development-configure.stdout.log",
+      "stderr": "development-configure.stderr.log"
+    },
+    {
+      "command": [
+        "cmake",
+        "--build",
+        "--preset",
+        "linux-development"
+      ],
+      "cwd": "/workspace/Nexora",
+      "commit": "f8e701a98e94686e8e20b2dbba02cf3674e305b2",
+      "tree": "907c7c23635dc2eb0b72cd3aeb304230d743ef43",
+      "start": 1793457223.1123989,
+      "state": "completed",
+      "exit_code": 0,
+      "end": 1793457272.728215,
+      "name": "development-build",
+      "duration_seconds": 49.616,
+      "stdout": "development-build.stdout.log",
+      "stderr": "development-build.stderr.log"
+    },
+    {
+      "command": [
+        "ctest",
+        "--preset",
+        "linux-development",
+        "-V",
+        "--output-junit",
+        "/workspace/validation-756/development-junit.xml"
+      ],
+      "cwd": "/workspace/Nexora",
+      "commit": "f8e701a98e94686e8e20b2dbba02cf3674e305b2",
+      "tree": "907c7c23635dc2eb0b72cd3aeb304230d743ef43",
+      "start": 1793457281.7072773,
+      "state": "completed",
+      "exit_code": 0,
+      "end": 1793459270.4944365,
+      "name": "development-ctest",
+      "duration_seconds": 1988.787,
+      "stdout": "development-ctest.stdout.log",
+      "stderr": "development-ctest.stderr.log"
+    },
+    {
+      "command": [
+        "cmake",
+        "--preset",
+        "linux-shipping",
+        "-DNEXORA_ENABLE_ZIG_GAMEPLAY=ON"
+      ],
+      "cwd": "/workspace/Nexora",
+      "commit": "f8e701a98e94686e8e20b2dbba02cf3674e305b2",
+      "tree": "907c7c23635dc2eb0b72cd3aeb304230d743ef43",
+      "start": 1793457209.5342221,
+      "state": "completed",
+      "exit_code": 0,
+      "end": 1793457210.3419075,
+      "name": "shipping-configure",
+      "duration_seconds": 0.808,
+      "stdout": "shipping-configure.stdout.log",
+      "stderr": "shipping-configure.stderr.log"
+    },
+    {
+      "command": [
+        "cmake",
+        "--build",
+        "--preset",
+        "linux-shipping"
+      ],
+      "cwd": "/workspace/Nexora",
+      "commit": "f8e701a98e94686e8e20b2dbba02cf3674e305b2",
+      "tree": "907c7c23635dc2eb0b72cd3aeb304230d743ef43",
+      "start": 1793457229.588163,
+      "state": "completed",
+      "exit_code": 0,
+      "end": 1793457257.9060192,
+      "name": "shipping-build",
+      "duration_seconds": 28.318,
+      "stdout": "shipping-build.stdout.log",
+      "stderr": "shipping-build.stderr.log"
+    }
+  ],
+  "retries": [],
+  "affected_tests": [
+    {
+      "name": "editor.game_build",
+      "time": "110.322",
+      "status": "run"
+    },
+    {
+      "name": "editor.linux_packaged_play",
+      "time": "44.059",
+      "status": "run"
+    }
+  ],
+  "gui_evidence": {
+    "graphical_script_build_exit": 0,
+    "script_abi_verified": true,
+    "runtime_only": true,
+    "external_receipt_preserved": "editor-packaged-play/user-data/nexora/editor/build-records/c334f934-3121-3a99-7430-dc79b6ab7ee9-b1d9e1e2fe874c4a/Publication.receipt"
+  },
+  "parallelism": {
+    "development_build": 2,
+    "shipping_build": 2,
+    "ctest": 1
+  },
+  "oom_events": 0,
+  "environment": "Reused validation-754 isolated tools/dependencies and writable XDG/Zig caches without installing or changing proxy/CA.",
+  "shipping_testing": "Not applicable: unchanged linux-shipping preset sets BUILD_TESTING=OFF.",
+  "platform_scope": "Linux x86_64, Debian 13, Xvfb/software Vulkan; no Windows/macOS verification.",
+  "source_or_shared_mutations": "None: no source edits, commits, pushes, PR/GitHub operations, Beads database/tasks/history changes.",
+  "archive": {
+    "path": "/workspace/validation-756-evidence.tar.gz",
+    "bytes": 359044,
+    "sha256": "05ef561d2fbf742680ed1928678f1c4c34206128f985a78f6762aff438f0c848"
+  }
+}

@@ -55,6 +55,12 @@ const editorPackageSessionBranches = Object.freeze(['build/editor-windows-packag
 // Logo delivery owns only this branch, separately from the earlier packaging task.
 const logoPackageSessionBranches = Object.freeze(['build/editor-logo-splash']);
 
+// Exact branches owned by this HD2D delivery. Never cancel main or a current-head run.
+const hd2dSessionBranches = Object.freeze([
+  'feat/hd2d-soft-shadows', 'feat/hd2d-selective-bloom',
+  'feat/hd2d-zig-diagnostics', 'feat/hd2d-sdk-020',
+]);
+
 async function cleanup({github, context, core}) {
   const {owner, repo} = context.repo;
   const repository = `${owner}/${repo}`;
@@ -67,9 +73,10 @@ async function cleanup({github, context, core}) {
   const thumbnailSession = thumbnailSessionBranches.includes(branch);
   const editorPackageSession = editorPackageSessionBranches.includes(branch);
   const logoPackageSession = logoPackageSessionBranches.includes(branch);
-  const ownerSession = currentSession || twoDSession || graphicsSession || thumbnailSession || editorPackageSession || logoPackageSession;
+  const hd2dSession = hd2dSessionBranches.includes(branch);
+  const ownerSession = hd2dSession || currentSession || twoDSession || graphicsSession || thumbnailSession || editorPackageSession || logoPackageSession;
   if (ownerSession && (!context.actor || context.actor !== owner)) return;
-  const branches = logoPackageSession ? logoPackageSessionBranches : editorPackageSession ? editorPackageSessionBranches : thumbnailSession ? thumbnailSessionBranches : graphicsSession ? graphicsSessionBranches : twoDSession ? twoDSessionBranches : currentSession ? currentSessionBranches :
+  const branches = hd2dSession ? hd2dSessionBranches : logoPackageSession ? logoPackageSessionBranches : editorPackageSession ? editorPackageSessionBranches : thumbnailSession ? thumbnailSessionBranches : graphicsSession ? graphicsSessionBranches : twoDSession ? twoDSessionBranches : currentSession ? currentSessionBranches :
     sessionBranches.includes(branch) ? sessionBranches :
     branch.startsWith('codex/ed-m0-') ? legacyBranches : [];
   for (const candidate of branches) {

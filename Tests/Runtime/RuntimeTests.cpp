@@ -68,11 +68,19 @@ int RunTests() {
   }
 
   AssetRegistry assets;
-  Require(!assets.Stage({{1, "a", {2}, 1}, {2, "b", {1}, 1}}), "M5 accepted an asset cycle");
-  Require(assets.Stage({{1, "a", {}, 1}}) && assets.ActivateStaged(),
+  const std::vector<AssetRecord> cyclic_assets{{1, "a", {2}, 1}, {2, "b", {1}, 1}};
+  std::vector<AssetRecord> first_generation(1);
+  first_generation.front().id = 1;
+  first_generation.front().hash = "a";
+  first_generation.front().generation = 1;
+  auto second_generation = first_generation;
+  second_generation.front().hash = "b";
+  second_generation.front().generation = 2;
+  Require(!assets.Stage(cyclic_assets), "M5 accepted an asset cycle");
+  Require(assets.Stage(first_generation) && assets.ActivateStaged(),
           "M5 generation activation failed");
   assets.PinGeneration(1);
-  Require(assets.Stage({{1, "b", {}, 2}}) && assets.ActivateStaged() && assets.IsPinned(1),
+  Require(assets.Stage(second_generation) && assets.ActivateStaged() && assets.IsPinned(1),
           "M5 pinning failed");
   Require(assets.Rollback() && assets.ActiveGeneration() == 1, "M5 rollback failed");
 

@@ -110,6 +110,9 @@ bool BuildProcess::Start(BuildProcessRequest request, std::string *error) {
   };
   if (impl.stopped || Busy() || impl.next == std::numeric_limits<std::uint64_t>::max())
     return reject("Build process is busy, stopped or exhausted.");
+  if (request.presentation != BuildProcessPresentation::BackgroundTool &&
+      request.presentation != BuildProcessPresentation::Application)
+    return reject("Invalid process presentation policy.");
   if (request.executable.native().size() > kMaximumCommandBytes ||
       request.working_directory.native().size() > kMaximumCommandBytes)
     return reject("Build process paths exceed the command budget.");
@@ -543,9 +546,12 @@ void BuildProcess::Implementation::Operation::Run(const core::CancellationToken 
   startup.lpAttributeList = attributes.value;
   PROCESS_INFORMATION launched{};
   ChildHandles cleanup{process, job};
-  if (!CreateProcessW(request.executable.c_str(), command.data(), nullptr, nullptr, TRUE,
-                      CREATE_SUSPENDED | CREATE_NO_WINDOW | EXTENDED_STARTUPINFO_PRESENT, nullptr,
-                      request.working_directory.c_str(), &startup.StartupInfo, &launched)) {
+  if (!CreateProcessW(
+          request.executable.c_str(), command.data(), nullptr, nullptr, TRUE,
+          CREATE_SUSPENDED | EXTENDED_STARTUPINFO_PRESENT |
+              (request.presentation == BuildProcessPresentation::BackgroundTool ? CREATE_NO_WINDOW
+                                                                                : 0),
+          nullptr, request.working_directory.c_str(), &startup.StartupInfo, &launched)) {
     Set(BuildProcessPhase::Failed, "Could not launch build executable or working directory.");
     return;
   }

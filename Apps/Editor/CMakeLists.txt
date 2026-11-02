@@ -1,4 +1,10 @@
 add_executable(NexoraEditor main.cpp StartupSplash.cpp)
+# The installed script producer always uses Ninja, independently of the generator building
+# the Editor itself (which may be Visual Studio/MSBuild or Xcode).
+get_filename_component(nexora_editor_cmake_bin "${CMAKE_COMMAND}" DIRECTORY)
+get_filename_component(nexora_editor_make_bin "${CMAKE_MAKE_PROGRAM}" DIRECTORY)
+find_program(NEXORA_EDITOR_GAME_NINJA_EXECUTABLE NAMES ninja ninja-build
+  HINTS "${nexora_editor_make_bin}" "${nexora_editor_cmake_bin}/../../Ninja")
 function(nexora_generate_editor_game_tools)
   set(nexora_editor_game_runtime_profile "")
   if(TARGET NexoraProjectPlayer AND NEXORA_ENABLE_PROJECT_PLAYER_NATIVE)
@@ -6,7 +12,7 @@ function(nexora_generate_editor_game_tools)
     set(nexora_editor_game_runtime_profile "$<TARGET_FILE_DIR:NexoraProjectPlayer>/GameRuntime.profile")
   endif()
   file(GENERATE OUTPUT "$<TARGET_PROPERTY:NexoraEditor,BINARY_DIR>/generated/$<CONFIG>/EditorGameTools.h" CONTENT
-    "#pragma once\n#include <string_view>\nnamespace nexora::editor::preview {\ninline constexpr std::string_view kConfiguredGameCmake = R\"nxtools(${CMAKE_COMMAND})nxtools\";\ninline constexpr std::string_view kConfiguredGameNinja = R\"nxtools(${CMAKE_MAKE_PROGRAM})nxtools\";\ninline constexpr std::string_view kConfiguredGameZig = R\"nxtools(${NEXORA_ZIG_EXECUTABLE})nxtools\";\ninline constexpr std::string_view kConfiguredGameRuntimeProfile = R\"nxtools(${nexora_editor_game_runtime_profile})nxtools\";\n}\n")
+    "#pragma once\n#include <string_view>\nnamespace nexora::editor::preview {\ninline constexpr std::string_view kConfiguredGameCmake = R\"nxtools(${CMAKE_COMMAND})nxtools\";\ninline constexpr std::string_view kConfiguredGameNinja = R\"nxtools(${NEXORA_EDITOR_GAME_NINJA_EXECUTABLE})nxtools\";\ninline constexpr std::string_view kConfiguredGameZig = R\"nxtools(${NEXORA_ZIG_EXECUTABLE})nxtools\";\ninline constexpr std::string_view kConfiguredGameRuntimeProfile = R\"nxtools(${nexora_editor_game_runtime_profile})nxtools\";\n}\n")
 endfunction()
 # Gameplay/Zig discovers its compiler after the Editor target on a clean configure.
 # Read that canonical tool path only once all root subdirectories have completed.

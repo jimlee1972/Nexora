@@ -92,6 +92,12 @@ Keep the existing identity descriptor and Zig script manifest readable; do not d
 build/ABI glue in authored projects. Settings are shared by Editor/CLI and belong in version control.
 Editor session metadata remains private and separate.
 
+The schema-1 scene table below stays compatible. The separately tracked
+[script workflow](Editor_Workflow_Delivery_Plan.md) extends settings with schema 2 for explicit
+mode/manifest/output configuration; legacy/default settings retain SceneOnly and schema 1.
+This extension does not change startup scene identity or implicit scene selection. Its current
+validation/acceptance is recorded in [ED-WF-02 evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02.md).
+
 Proposed schema 1:
 
 ```json

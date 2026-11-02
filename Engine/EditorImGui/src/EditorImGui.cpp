@@ -1,6 +1,7 @@
 #include "Nexora/EditorImGui/EditorImGui.h"
 #include "EditorIcons.h"
 #include "EditorSystemFont.h"
+#include "EditorTheme.h"
 #include "Nexora/Editor/InspectorRotation.h"
 #include "Nexora/Editor/PrefabAssets.h"
 #include "Nexora/Editor/ViewportMath.h"
@@ -101,6 +102,7 @@ struct EditorImGuiHost::State final {
     ImGui::SetCurrentContext(context);
     surface = nullptr;
     ImGui::GetIO().BackendPlatformUserData = nullptr;
+    ImGui::GetIO().UserData = nullptr;
     ImGui::DestroyContext(context);
     if (previous != context)
       ImGui::SetCurrentContext(previous);
@@ -180,7 +182,10 @@ struct EditorImGuiHost::State final {
   std::array<char, ProjectBuildSettings::kMaximumPathBytes + 1> build_settings_path{};
   std::optional<std::size_t> build_settings_selected;
   std::optional<ProjectBuildSettingsRequest> build_settings_request;
-  bool game_build_busy{}, game_build_script{}, saved_game_decision_pending{};
+  bool game_build_busy{}, game_build_script{}, saved_game_decision_pending{}, game_run_busy{};
+  std::string game_run_status;
+  GameBuildProgress game_build_progress;
+  bool game_build_progress_available{};
   std::string game_build_status;
   char game_build_output[1025] = "Build/Game";
   char game_build_manifest[1025] = "Scripts/project.json";
@@ -315,6 +320,11 @@ struct EditorImGuiHost::State final {
   bool close_prompt_requested = false;
   std::array<std::optional<std::array<float, 2>>, 3> close_positions{};
   bool recovery_prompt_opened = false;
+  EditorColorTheme color_theme{EditorColorTheme::Dark};
+  detail::ThemeOutput theme_output;
+  std::optional<EditorColorTheme> color_theme_request;
+  std::string color_theme_status;
+  std::array<std::optional<std::array<float, 2>>, 4> appearance_positions{};
   bool initial_dock_layout_built = false;
   bool focus_initial_content = false;
   bool focus_initial_scene = false;
@@ -363,7 +373,7 @@ struct EditorImGuiHost::State final {
   std::optional<std::array<float, 2>> scene_frame_position;
   std::optional<std::array<float, 2>> scene_frame_all_position, scene_select_all_position;
   std::optional<SceneFileToken> native_scene_select_all_request;
-  std::array<std::optional<std::array<float, 2>>, 4> native_scene_tool_positions;
+  std::array<std::optional<std::array<float, 2>>, 5> native_scene_tool_positions;
   std::optional<SceneFileToken> scene_frame_token;
   std::optional<SceneFileToken> native_scene_frame_all_request, native_scene_frame_all_apply;
   std::optional<Nexora::Presentation::SceneViewport> native_game_viewport;
@@ -410,8 +420,10 @@ struct EditorImGuiHost::State final {
   bool native_scene_preview = false;
   bool native_scene_preview_available = true;
   NativeSceneOrbit native_scene_orbit{};
+  double native_scene_fly_speed{5.0};
   NativeSceneTool native_scene_tool{NativeSceneTool::Move};
   bool native_scene_center_pivot{};
+  bool native_scene_follow_selection{};
   bool native_scene_local_axes{};
   std::optional<NativeScenePickRequest> native_scene_pick;
   std::optional<std::array<std::int32_t, 2>> native_scene_drag_origin;
@@ -433,6 +445,7 @@ struct EditorImGuiHost::State final {
   };
   std::optional<SceneDrag> scene_drag;
   std::uint64_t scene_gesture_document_generation{};
+  bool scene_tool_shortcuts_allowed{};
   struct InspectorTransformRequest final {
     std::vector<SceneDocument::NodeKey> entities;
     std::vector<runtime::Transform> transforms;
@@ -778,13 +791,6 @@ template <typename StateT> void CancelInspectorDrafts(StateT &state) {
   state.inspector_camera_request.reset();
   state.inspector_light_request.reset();
   state.inspector_material_request.reset();
-}
-
-void ApplyTheme() {
-  ImGui::StyleColorsDark();
-  auto &style = ImGui::GetStyle();
-  style.WindowRounding = 4.0F;
-  style.FrameRounding = 3.0F;
 }
 
 float DpiBucket(float scale) {
@@ -2292,7 +2298,8 @@ void DrawSceneOverview(StateT &state, SceneDocument &scene, bool editable,
   const auto available = ImGui::GetContentRegionAvail();
   const ImVec2 size{std::max(available.x, 1.0F), std::max(available.y, 160.0F)};
   ImGui::InvisibleButton("##scene-overview", size,
-                         ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonMiddle);
+                         ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonMiddle |
+                             ImGuiButtonFlags_MouseButtonRight);
   const auto min = ImGui::GetItemRectMin();
   const auto max = ImGui::GetItemRectMax();
   CaptureCanvasViewport(state.scene_canvas_viewport, min, max);
@@ -2338,14 +2345,32 @@ void DrawSceneOverview(StateT &state, SceneDocument &scene, bool editable,
       state.scene_drag.reset();
     }
   }
-  if (ImGui::IsItemHovered()) {
-    if (!state.scene_drag && ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0F)) {
+  const bool overview_navigation =
+      navigation_allowed && !io.WantTextInput && (ImGui::IsItemHovered() || ImGui::IsItemActive());
+  if (overview_navigation) {
+    if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !io.KeyCtrl &&
+        !io.KeyAlt && !io.KeySuper) {
+      if (ImGui::IsKeyPressed(ImGuiKey_Q, false))
+        state.native_scene_tool = NativeSceneTool::Hand;
+      else if (ImGui::IsKeyPressed(ImGuiKey_W, false))
+        state.native_scene_tool = NativeSceneTool::Move;
+    }
+    const bool hand = state.native_scene_tool == NativeSceneTool::Hand || io.KeyAlt ||
+                      ImGui::IsKeyDown(ImGuiKey_Space);
+    const bool drag_zoom =
+        ImGui::IsItemActive() && io.KeyAlt && ImGui::IsMouseDown(ImGuiMouseButton_Right);
+    if (!state.scene_drag && !drag_zoom && ImGui::IsItemActive() &&
+        (ImGui::IsMouseDown(ImGuiMouseButton_Middle) ||
+         ImGui::IsMouseDown(ImGuiMouseButton_Right) ||
+         (hand && ImGui::IsMouseDown(ImGuiMouseButton_Left)))) {
       state.scene_center_world.x -= io.MouseDelta.x / state.scene_pixels_per_unit;
       state.scene_center_world.y -= io.MouseDelta.y / state.scene_pixels_per_unit;
     }
-    if (!state.scene_drag && io.MouseWheel != 0.0F) {
+    if (!state.scene_drag && (io.MouseWheel != 0.0F || drag_zoom)) {
       const auto old_scale = state.scene_pixels_per_unit;
-      const auto new_scale = std::clamp(old_scale * std::pow(1.15F, io.MouseWheel), 4.0F, 256.0F);
+      const auto zoom = drag_zoom ? std::exp(-(io.MouseDelta.x + io.MouseDelta.y) * 0.01F)
+                                  : std::pow(1.15F, io.MouseWheel);
+      const auto new_scale = std::clamp(old_scale * zoom, 4.0F, 256.0F);
       state.scene_center_world.x +=
           (io.MousePos.x - center.x) * (1.0F / old_scale - 1.0F / new_scale);
       state.scene_center_world.y +=
@@ -2459,7 +2484,7 @@ void DrawSceneOverview(StateT &state, SceneDocument &scene, bool editable,
   const auto handle = std::ranges::find_if(state.scene_markers, [&](const auto &marker) {
     return std::ranges::find(scene.Selection(), marker.entity.id) != scene.Selection().end();
   });
-  if (handle != state.scene_markers.end()) {
+  if (handle != state.scene_markers.end() && state.native_scene_tool != NativeSceneTool::Hand) {
     const auto position = handle->position;
     draw->AddLine({position.x + 12.0F, position.y}, {position.x + 42.0F, position.y},
                   IM_COL32(225, 99, 99, 255), 3.0F);
@@ -2473,7 +2498,9 @@ void DrawSceneOverview(StateT &state, SceneDocument &scene, bool editable,
                             {position.x + 5.0F, position.y + 39.0F}, IM_COL32(99, 150, 225, 255));
   }
   draw->PopClipRect();
-  if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+  if (navigation_allowed && !io.KeyAlt && !ImGui::IsKeyDown(ImGuiKey_Space) &&
+      state.native_scene_tool != NativeSceneTool::Hand &&
+      ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
     std::optional<SceneDocument::NodeKey> picked;
     auto axis = StateT::SceneDrag::Axis::Free;
     if (handle != state.scene_markers.end()) {
@@ -2510,7 +2537,8 @@ void DrawSceneOverview(StateT &state, SceneDocument &scene, bool editable,
       if (!already_selected || io.KeyCtrl || io.KeyShift)
         static_cast<void>(
             ApplyHierarchySelection(state, scene, visible, *picked, io.KeyCtrl, io.KeyShift));
-      if (editable && !io.KeyCtrl && !io.KeyShift) {
+      if (editable && state.native_scene_tool == NativeSceneTool::Move && !io.KeyCtrl &&
+          !io.KeyShift) {
         std::vector<SceneDocument::NodeKey> keys;
         for (const auto id : scene.Selection()) {
           const auto key = scene.Key(id);
@@ -2912,6 +2940,8 @@ void ComparisonCell(const std::optional<std::string> &value) {
     ImGui::EndTooltip();
   }
 }
+#include "SceneNavigation.inl"
+
 template <typename StateT> void DrawSceneComparisonPanel(StateT &state) {
   const auto &snapshot = state.scene_comparison;
   ImGui::TextWrapped("%s", snapshot.message.empty() ? "Preparing scene comparison..."
@@ -3585,8 +3615,6 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
   };
   constexpr std::array row_labels{"Position", "Rotation", "Scale"};
   constexpr std::array axis_labels{"X", "Y", "Z"};
-  constexpr std::array axis_colors{ImVec4(0.95F, 0.35F, 0.35F, 1), ImVec4(0.40F, 0.85F, 0.40F, 1),
-                                   ImVec4(0.40F, 0.65F, 1.0F, 1)};
   const auto &style = ImGui::GetStyle();
   const float row_width = ImGui::GetContentRegionAvail().x;
   const float label_width = ImGui::CalcTextSize("Rotation").x + style.ItemSpacing.x;
@@ -3610,7 +3638,7 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
       if (axis != 0)
         ImGui::SameLine(0, style.ItemSpacing.x);
       ImGui::AlignTextToFramePadding();
-      ImGui::TextColored(axis_colors[axis], "%s", axis_labels[axis]);
+      ImGui::TextColored(detail::AxisColor(axis), "%s", axis_labels[axis]);
       ImGui::SameLine(0, gap);
       ImGui::SetNextItemWidth(input_width);
       if (row == 1)
@@ -4071,6 +4099,8 @@ void DrawProjectBuildSettings(StateT &state, const ProjectWorkspace *workspace,
     return;
   }
   const auto capture = [&](std::size_t index) {
+    if (!ImGui::IsItemVisible())
+      return;
     const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
     state.build_settings_positions[index] =
         std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
@@ -4172,17 +4202,28 @@ void DrawProjectBuildSettings(StateT &state, const ProjectWorkspace *workspace,
         "Startup scene must remain enabled. Reload discards unsaved setting edits.");
     ImGui::Separator();
     ImGui::TextUnformatted("Build standalone game");
-    if (!state.game_build_status.empty())
-      ImGui::TextWrapped("%s", state.game_build_status.c_str());
-    ImGui::BeginDisabled(state.game_build_busy || blocked || !workspace->Writable());
-    ImGui::InputText("Output folder (project-relative)", state.game_build_output,
-                     sizeof(state.game_build_output));
+    if (!state.game_build_status.empty() || !state.game_run_status.empty()) {
+      ImGui::BeginChild("Game build status", {0, 64}, ImGuiChildFlags_Borders);
+      if (!state.game_build_status.empty())
+        ImGui::TextWrapped("%s", state.game_build_status.c_str());
+      if (!state.game_run_status.empty())
+        ImGui::TextWrapped("%s", state.game_run_status.c_str());
+      ImGui::EndChild();
+    }
+    ImGui::BeginDisabled(state.game_build_busy || state.game_run_busy || blocked ||
+                         !workspace->Writable());
+    if (ImGui::InputText("Output folder (project-relative)", state.game_build_output,
+                         sizeof(state.game_build_output)))
+      state.build_settings.build.output = state.game_build_output;
     capture(10);
-    ImGui::Checkbox("Include gameplay script", &state.game_build_script);
+    if (ImGui::Checkbox("Include gameplay script", &state.game_build_script))
+      state.build_settings.build.mode =
+          state.game_build_script ? GameBuildMode::ScriptProject : GameBuildMode::SceneOnly;
     capture(11);
     if (state.game_build_script) {
-      ImGui::InputText("Script manifest", state.game_build_manifest,
-                       sizeof(state.game_build_manifest));
+      if (ImGui::InputText("Script manifest", state.game_build_manifest,
+                           sizeof(state.game_build_manifest)))
+        state.build_settings.build.script_manifest = state.game_build_manifest;
       capture(12);
     }
     if (detail::IconButton("Build Game", detail::EditorIcon::Build)) {
@@ -4192,14 +4233,53 @@ void DrawProjectBuildSettings(StateT &state, const ProjectWorkspace *workspace,
       state.build_settings_request->output = state.game_build_output;
     }
     capture(13);
+    ImGui::SameLine();
+    if (detail::IconButton("Build & Run", detail::EditorIcon::Play)) {
+      request(state.game_build_script ? ProjectBuildSettingsAction::BuildScript
+                                      : ProjectBuildSettingsAction::BuildSceneOnly,
+              state.game_build_script ? state.game_build_manifest : "");
+      state.build_settings_request->output = state.game_build_output;
+      state.build_settings_request->run_after_build = true;
+    }
+    capture(15);
     ImGui::EndDisabled();
     ImGui::SameLine();
-    ImGui::BeginDisabled(!state.game_build_busy);
-    if (detail::IconButton("Cancel Build", detail::EditorIcon::Cancel))
-      request(ProjectBuildSettingsAction::CancelBuild);
+    ImGui::BeginDisabled(!state.game_build_busy && !state.game_run_busy);
+    if (detail::IconButton(state.game_run_busy ? "Stop Game" : "Cancel Build",
+                           detail::EditorIcon::Cancel))
+      request(state.game_run_busy ? ProjectBuildSettingsAction::StopGame
+                                  : ProjectBuildSettingsAction::CancelBuild);
     capture(14);
     ImGui::EndDisabled();
     ImGui::TextDisabled("Build uses saved settings and scenes; output contains no project source.");
+    if (state.game_build_progress_available) {
+      const auto label = GameBuildStageLabel(state.game_build_progress.stage);
+      ImGui::Text("Phase: %.*s", static_cast<int>(label.size()), label.data());
+      if (!state.game_build_progress.diagnostics.empty()) {
+        ImGui::BeginChild("Build diagnostics", {0, 100}, ImGuiChildFlags_Borders);
+        for (const auto &diagnostic : state.game_build_progress.diagnostics) {
+          const auto color = diagnostic.severity == GameBuildDiagnosticSeverity::Error
+                                 ? detail::ErrorColor()
+                             : diagnostic.severity == GameBuildDiagnosticSeverity::Warning
+                                 ? detail::WarningColor()
+                                 : ImGui::GetStyleColorVec4(ImGuiCol_Text);
+          if (!diagnostic.file.empty())
+            ImGui::TextColored(color, "%s:%u:%u", diagnostic.file.c_str(), diagnostic.line,
+                               diagnostic.column);
+          ImGui::TextWrapped("%s", diagnostic.message.c_str());
+        }
+        if (state.game_build_progress.diagnostics_truncated)
+          ImGui::TextDisabled("Additional diagnostics omitted.");
+        ImGui::EndChild();
+      }
+      if (!state.game_build_progress.output.empty() && ImGui::CollapsingHeader("Build output")) {
+        ImGui::BeginChild("Build output text", {0, 120}, ImGuiChildFlags_Borders);
+        ImGui::TextUnformatted(state.game_build_progress.output.c_str());
+        if (state.game_build_progress.output_truncated)
+          ImGui::TextDisabled("Showing the most recent output.");
+        ImGui::EndChild();
+      }
+    }
   }
   ImGui::End();
 }
@@ -4305,8 +4385,7 @@ void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
     ImGui::Text("Root: %s", PathLabel(workspace->Root()).c_str());
     ImGui::Text("Schema: %u / %u", workspace->Project().schema_version,
                 ProjectDescriptor::kSchemaVersion);
-    ImGui::TextColored(workspace->Writable() ? ImVec4(0.45F, 0.85F, 0.45F, 1.0F)
-                                             : ImVec4(1.0F, 0.75F, 0.3F, 1.0F),
+    ImGui::TextColored(workspace->Writable() ? detail::SuccessColor() : detail::WarningColor(),
                        "Access: %s", workspace->Writable() ? "Read-write" : "Read-only");
     if (workspace->UpgradeState() == ProjectUpgradeState::Applied)
       ImGui::TextUnformatted("Project descriptor upgraded during this session.");
@@ -4885,8 +4964,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
       std::min<std::size_t>(dependency_cycle.size(), std::numeric_limits<std::uint32_t>::max()));
   if (!dependency_cycle.empty()) {
     ImGui::SeparatorText("Dependency cycle");
-    ImGui::TextColored(ImVec4(1.0F, 0.45F, 0.35F, 1.0F),
-                       "Cyclic dependencies block artifact publication.");
+    ImGui::TextColored(detail::ErrorColor(), "Cyclic dependencies block artifact publication.");
     for (const auto asset : dependency_cycle) {
       const auto *item = browser.Find(asset);
       const auto asset_label = item != nullptr ? PathLabel(item->path) : asset.ToString();
@@ -5073,16 +5151,40 @@ EditorImGuiHost::EditorImGuiHost() : state_(std::make_unique<State>()) {
   io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
   io.IniFilename = nullptr;
   io.BackendPlatformUserData = state_.get();
+  io.UserData = &state_->theme_output;
   io.Fonts->SetTexID(static_cast<ImTextureID>(TextureId(0, 1)));
   ImGui::GetPlatformIO().Platform_SetImeDataFn = &State::SetImeData;
   constexpr std::string_view default_project_name = "New Project";
   std::ranges::copy(default_project_name, state_->selector_name.begin());
-  ApplyTheme();
+  detail::ApplyTheme(state_->color_theme);
 }
 
 EditorImGuiHost::~EditorImGuiHost() = default;
 EditorImGuiHost::EditorImGuiHost(EditorImGuiHost &&) noexcept = default;
 EditorImGuiHost &EditorImGuiHost::operator=(EditorImGuiHost &&) noexcept = default;
+
+void EditorImGuiHost::SetUiOutputSrgb(bool target_encodes_srgb) {
+  if (state_->theme_output.targetEncodesSrgb == target_encodes_srgb)
+    return;
+  Activate(state_->context);
+  state_->theme_output.targetEncodesSrgb = target_encodes_srgb;
+  detail::ApplyTheme(state_->color_theme);
+}
+
+void EditorImGuiHost::SetColorTheme(EditorColorTheme theme, std::string status) {
+  if (theme != EditorColorTheme::Dark && theme != EditorColorTheme::Light)
+    return;
+  Activate(state_->context);
+  state_->color_theme = theme;
+  state_->color_theme_status = std::move(status);
+  detail::ApplyTheme(theme);
+}
+
+EditorColorTheme EditorImGuiHost::GetColorTheme() const noexcept { return state_->color_theme; }
+
+std::optional<EditorColorTheme> EditorImGuiHost::TakeColorThemeRequest() {
+  return std::exchange(state_->color_theme_request, std::nullopt);
+}
 
 void EditorImGuiHost::SetDisplay(float width, float height, float dpi_scale) {
   Activate(state_->context);
@@ -5174,7 +5276,7 @@ void EditorImGuiHost::SetDisplay(float width, float height, float dpi_scale) {
     ++state_->font_generation;
   }
   state_->dpi_scale = dpi_scale;
-  ApplyTheme();
+  detail::ApplyTheme(state_->color_theme);
 }
 
 void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent> events) {
@@ -5204,7 +5306,20 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
           break;
         }
         if (physical_key != Nexora::Window::Key::F5 && physical_key != Nexora::Window::Key::F6 &&
-            physical_key != Nexora::Window::Key::F10)
+            physical_key != Nexora::Window::Key::F10 &&
+            physical_key != Nexora::Window::Key::LeftControl &&
+            physical_key != Nexora::Window::Key::RightControl &&
+            physical_key != Nexora::Window::Key::LeftShift &&
+            physical_key != Nexora::Window::Key::RightShift &&
+            physical_key != Nexora::Window::Key::LeftAlt &&
+            physical_key != Nexora::Window::Key::RightAlt &&
+            physical_key != Nexora::Window::Key::LeftSuper &&
+            physical_key != Nexora::Window::Key::RightSuper &&
+            !(physical_key == Nexora::Window::Key::P &&
+              ((static_cast<unsigned>(event.modifiers) &
+                (static_cast<unsigned>(Nexora::Window::KeyModifiers::Control) |
+                 static_cast<unsigned>(Nexora::Window::KeyModifiers::Super))) != 0 ||
+               ImGui::IsKeyDown(ImGuiKey_P))))
           break;
       }
       const auto modifiers = static_cast<unsigned>(event.modifiers);
@@ -5270,6 +5385,7 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
 
 void EditorImGuiHost::BeginFrame(float delta_seconds) {
   Activate(state_->context);
+  state_->scene_tool_shortcuts_allowed = false;
   state_->scene_file_positions = {};
   state_->hierarchy_create_positions = {};
   state_->scene_canvas_viewport.reset();
@@ -5762,8 +5878,10 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     state_->inspect_play_selection = false;
   }
   const auto scene_generation = scene == nullptr ? 0 : scene->Generation();
-  if (scene_generation != state_->scene_gesture_document_generation)
+  if (scene_generation != state_->scene_gesture_document_generation) {
     CancelSceneGestures(*state_);
+    state_->native_scene_follow_selection = false;
+  }
   state_->scene_gesture_document_generation = scene_generation;
   if (scene)
     state_->scene_frame_token =
@@ -5835,7 +5953,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                          state_->scene_file_output || tab_modal;
   if (ImGui::BeginMainMenuBar()) {
     if (state_->app_focused && !ImGui::GetIO().WantTextInput &&
-        ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_P,
+        ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiMod_Shift | ImGuiKey_P,
                         ImGuiInputFlags_RouteGlobal | ImGuiInputFlags_RouteOverFocused))
       state_->prefab_isolation_open = !state_->prefab_isolation_open;
     if (state_->app_focused && !ImGui::GetIO().WantTextInput &&
@@ -5881,7 +5999,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       if (ImGui::MenuItem("Cancel StaticView export", nullptr, false, state_->static_export_busy))
         state_->static_export_request = StaticExportRequest{state_->scene_file_token, true};
       capture_position(2);
-      if (ImGui::MenuItem("Project Build Settings...", nullptr, false, !game_running))
+      if (ImGui::MenuItem("Project Build Settings...", "Ctrl+Shift+B", false, !game_running))
         state_->build_settings_open = true;
       {
         const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
@@ -5901,8 +6019,29 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         state_->project_window_requested = true;
       ImGui::EndMenu();
     }
-    if (ImGui::BeginMenu("Settings")) {
-      ImGui::MenuItem("Prefab isolation", "Ctrl+Alt+P", &state_->prefab_isolation_open);
+    const auto observe_appearance = [&](std::size_t index) {
+      const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+      state_->appearance_positions[index] =
+          std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+    };
+    state_->appearance_positions = {};
+    const bool settings_open = ImGui::BeginMenu("Settings");
+    observe_appearance(0);
+    if (settings_open) {
+      const bool appearance_open = ImGui::BeginMenu("Appearance");
+      observe_appearance(1);
+      if (appearance_open) {
+        if (ImGui::MenuItem("Dark", nullptr, state_->color_theme == EditorColorTheme::Dark))
+          state_->color_theme_request = EditorColorTheme::Dark;
+        observe_appearance(2);
+        if (ImGui::MenuItem("Light", nullptr, state_->color_theme == EditorColorTheme::Light))
+          state_->color_theme_request = EditorColorTheme::Light;
+        observe_appearance(3);
+        if (!state_->color_theme_status.empty())
+          ImGui::TextWrapped("%s", state_->color_theme_status.c_str());
+        ImGui::EndMenu();
+      }
+      ImGui::MenuItem("Prefab isolation", "Ctrl+Alt+Shift+P", &state_->prefab_isolation_open);
       ImGui::MenuItem("Privacy diagnostics", "Ctrl+Alt+T", &state_->diagnostic_privacy_open);
       ImGui::MenuItem("Extensions", "Ctrl+Alt+E", &state_->extension_manager_open);
       ImGui::MenuItem("Source control", "Ctrl+Alt+G", &state_->git_status_open);
@@ -6021,6 +6160,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     CancelSceneGestures(*state_);
     state_->scene_save_requested = false;
   }
+  if (!state_->app_focused || interaction_blocked)
+    state_->native_scene_follow_selection = false;
   if (interaction_blocked) {
     state_->game_input_focused = false;
     CancelSceneGestures(*state_);
@@ -6035,11 +6176,42 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     static_cast<void>(shell.RouteCommand("editor.scene.save"));
     state_->scene_save_requested = true;
   }
-  const bool play_shortcuts_allowed =
-      play != nullptr && !interaction_blocked && !ImGui::GetIO().WantTextInput;
+  const bool play_shortcuts_allowed = play != nullptr && state_->app_focused &&
+                                      !interaction_blocked && !ImGui::GetIO().WantTextInput;
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
   state_->play_shortcut_allowed = play_shortcuts_allowed;
 #endif
+  std::string focus_panel;
+  if (state_->app_focused && !interaction_blocked && !ImGui::GetIO().WantTextInput &&
+      !state_->game_input_focused) {
+    constexpr std::array keys{ImGuiKey_1, ImGuiKey_2, ImGuiKey_3, ImGuiKey_4, ImGuiKey_5};
+    constexpr std::array panels{"nexora.scene", "nexora.game", "nexora.inspector",
+                                "nexora.hierarchy", "nexora.project"};
+    for (std::size_t i = 0; i < keys.size(); ++i)
+      if (ImGui::Shortcut(ImGuiMod_Ctrl | keys[i], ImGuiInputFlags_RouteGlobal))
+        focus_panel = PanelWindowName(panels[i]);
+    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_C, ImGuiInputFlags_RouteGlobal))
+      focus_panel = PanelWindowName("nexora.console");
+    if (workspace && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_R, ImGuiInputFlags_RouteGlobal))
+      state_->project_files_refresh = true;
+    if (file_context_valid && !game_running &&
+        ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_B, ImGuiInputFlags_RouteGlobal))
+      state_->build_settings_open = true;
+    if (file_context_valid && writable && !game_running && state_->build_settings_ready &&
+        workspace->Root() == state_->build_settings_root &&
+        workspace->Project().id == state_->build_settings_project && !state_->game_build_busy &&
+        !state_->game_run_busy && !state_->static_export_busy && !state_->build_settings_request &&
+        ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_B, ImGuiInputFlags_RouteGlobal)) {
+      const auto script = state_->build_settings.build.mode == GameBuildMode::ScriptProject;
+      state_->build_settings_request = ProjectBuildSettingsRequest{
+          workspace->Project().id, workspace->Root(),
+          script ? ProjectBuildSettingsAction::BuildScript
+                 : ProjectBuildSettingsAction::BuildSceneOnly,
+          state_->build_settings, script ? state_->build_settings.build.script_manifest : ""};
+      state_->build_settings_request->output = state_->build_settings.build.output;
+      state_->build_settings_request->run_after_build = true;
+    }
+  }
   if (play_shortcuts_allowed) {
     const auto request_shortcut = [&](PlayCommand command) {
       state_->play_command = command;
@@ -6048,14 +6220,19 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       state_->last_play_shortcut_command = command;
 #endif
     };
-    if (ImGui::Shortcut(ImGuiKey_F5, ImGuiInputFlags_RouteGlobal))
+    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_P, ImGuiInputFlags_RouteGlobal) ||
+        ImGui::Shortcut(ImGuiKey_F5, ImGuiInputFlags_RouteGlobal))
       request_shortcut(play->State() == runtime::PlayState::Stopped ? PlayCommand::Start
                                                                     : PlayCommand::Stop);
     else if (play->State() != runtime::PlayState::Stopped &&
-             ImGui::Shortcut(ImGuiKey_F6, ImGuiInputFlags_RouteGlobal))
+             (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_P,
+                              ImGuiInputFlags_RouteGlobal) ||
+              ImGui::Shortcut(ImGuiKey_F6, ImGuiInputFlags_RouteGlobal)))
       request_shortcut(play->State() == runtime::PlayState::Playing ? PlayCommand::Pause
                                                                     : PlayCommand::Resume);
-    else if (ImGui::Shortcut(ImGuiKey_F10, ImGuiInputFlags_RouteGlobal) &&
+    else if ((ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_P,
+                              ImGuiInputFlags_RouteGlobal) ||
+              ImGui::Shortcut(ImGuiKey_F10, ImGuiInputFlags_RouteGlobal)) &&
              play->State() == runtime::PlayState::Paused)
       request_shortcut(PlayCommand::Step);
   }
@@ -6212,14 +6389,13 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     ImGui::EndDisabled();
     if (scene != nullptr) {
       if (scene->Dirty())
-        ImGui::TextColored(ImVec4(1.0F, 0.72F, 0.28F, 1.0F), "Unsaved scene changes");
+        ImGui::TextColored(detail::WarningColor(), "Unsaved scene changes");
       else
         ImGui::TextDisabled("Scene saved");
     }
     if (!state_->scene_save_message.empty()) {
       if (!state_->scene_save_success)
-        ImGui::TextColored(ImVec4(1.0F, 0.4F, 0.4F, 1.0F), "%s",
-                           state_->scene_save_message.c_str());
+        ImGui::TextColored(detail::ErrorColor(), "%s", state_->scene_save_message.c_str());
       else
         ImGui::TextUnformatted(state_->scene_save_message.c_str());
     }
@@ -6254,9 +6430,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         state_->scene_select_all_position =
             std::array{(select_min.x + select_max.x) * 0.5F, (select_min.y + select_max.y) * 0.5F};
         ImGui::EndDisabled();
-        ImGui::TextDisabled(
-            "F: selected | Home: all | Ctrl+A: select all | Right: orbit | Wheel: zoom");
-        if (state_->native_scene_tool == NativeSceneTool::Select)
+        ImGui::TextDisabled("F: frame | Shift+F: follow | Alt+Left: orbit | Middle: pan | "
+                            "Right+WASD/QE: fly | Wheel: zoom/speed");
+        if (state_->native_scene_tool == NativeSceneTool::Hand)
+          ImGui::TextDisabled("Left drag: pan | Alt+Left: orbit | Right+WASD/QE: fly");
+        else if (state_->native_scene_tool == NativeSceneTool::Select)
           ImGui::TextDisabled(
               "Click: select | Ctrl+click: toggle | W: move | E: rotate | R: scale");
         else if (state_->native_scene_tool == NativeSceneTool::Rotate)
@@ -6266,16 +6444,20 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           ImGui::TextDisabled(
               "Drag cubes: local/uniform scale | Shift: 0.25 snap | W: move | E: rotate");
         else
-          ImGui::TextDisabled(
-              "Drag axes/planes: move | Free drag: X/Z | Shift+free drag: Y | E/R: rotate/scale");
-        ImGui::TextDisabled("Middle: pan X/Z | Shift+middle: pan Y | Delete: selected");
+          ImGui::TextDisabled("Drag axes/planes: move | Ctrl: snap | Ctrl/Shift+click: toggle "
+                              "selection | E/R: rotate/scale");
+        ImGui::TextDisabled(
+            "Q: hand | W/E/R: move/rotate/scale | X: local/global | Z: pivot/center");
         ImGui::BeginDisabled(!state_->app_focused || interaction_blocked ||
                              state_->native_scene_drag_origin || state_->native_scene_drag);
-        constexpr std::array tools{NativeSceneTool::Select, NativeSceneTool::Move,
-                                   NativeSceneTool::Rotate, NativeSceneTool::Scale};
-        constexpr std::array tool_labels{"Select (Q)", "Move (W)", "Rotate (E)", "Scale (R)"};
-        constexpr std::array tool_icons{detail::EditorIcon::Select, detail::EditorIcon::Move,
-                                        detail::EditorIcon::Rotate, detail::EditorIcon::Scale};
+        constexpr std::array tools{NativeSceneTool::Hand, NativeSceneTool::Select,
+                                   NativeSceneTool::Move, NativeSceneTool::Rotate,
+                                   NativeSceneTool::Scale};
+        constexpr std::array tool_labels{"Hand (Q)", "Select", "Move (W)", "Rotate (E)",
+                                         "Scale (R)"};
+        constexpr std::array tool_icons{detail::EditorIcon::Hand, detail::EditorIcon::Select,
+                                        detail::EditorIcon::Move, detail::EditorIcon::Rotate,
+                                        detail::EditorIcon::Scale};
         for (std::size_t index = 0; index < tools.size(); ++index) {
           if (index != 0)
             ImGui::SameLine();
@@ -6293,7 +6475,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         ImGui::Checkbox("Local axes (X)", &state_->native_scene_local_axes);
         ImGui::EndDisabled();
         ImGui::SameLine();
-        ImGui::Checkbox("Center pivot (P)", &state_->native_scene_center_pivot);
+        ImGui::Checkbox("Center pivot (Z)", &state_->native_scene_center_pivot);
         ImGui::EndDisabled();
         ImGui::SameLine();
         constexpr std::array snap_steps{0.25, 0.5, 1.0, 2.0, 4.0};
@@ -6323,24 +6505,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
             ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
             (ImGui::IsItemHovered(ImGuiHoveredFlags_NoNavOverride) || ImGui::IsItemActive()) &&
             !state_->native_scene_drag_origin && !state_->native_scene_drag && !io.WantTextInput &&
-            !io.KeyCtrl && !io.KeyAlt && !io.KeySuper) {
-          if (ImGui::IsKeyPressed(ImGuiKey_Q, false))
-            state_->native_scene_tool = NativeSceneTool::Select;
-          else if (ImGui::IsKeyPressed(ImGuiKey_W, false))
-            state_->native_scene_tool = NativeSceneTool::Move;
-          else if (ImGui::IsKeyPressed(ImGuiKey_E, false))
-            state_->native_scene_tool = NativeSceneTool::Rotate;
-          else if (ImGui::IsKeyPressed(ImGuiKey_R, false)) {
-            state_->native_scene_tool = NativeSceneTool::Scale;
-            state_->native_scene_local_axes = true;
-          }
-          if (!io.KeyCtrl && !io.KeyAlt && !io.KeySuper) {
-            if (state_->native_scene_tool != NativeSceneTool::Scale &&
-                ImGui::IsKeyPressed(ImGuiKey_X, false))
-              state_->native_scene_local_axes = !state_->native_scene_local_axes;
-            if (ImGui::IsKeyPressed(ImGuiKey_P, false))
-              state_->native_scene_center_pivot = !state_->native_scene_center_pivot;
-          }
+            !io.KeyCtrl && !io.KeyAlt && !io.KeyShift && !io.KeySuper &&
+            ImGui::IsMouseClicked(ImGuiMouseButton_Left) &&
+            !ImGui::IsMouseDown(ImGuiMouseButton_Right) &&
+            !ImGui::IsMouseDown(ImGuiMouseButton_Middle)) {
+          ApplySceneToolKeys(*state_);
         }
         if (scene_editable && !scene->Selection().empty() && !io.WantTextInput &&
             (ImGui::IsItemHovered() || ImGui::IsItemActive()) &&
@@ -6352,14 +6521,15 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           state_->native_scene_drag_preview.reset();
         }
         if (state_->app_focused && !interaction_blocked && state_->scene_canvas_viewport &&
+            !io.KeyAlt && !ImGui::IsKeyDown(ImGuiKey_Space) &&
+            state_->native_scene_tool != NativeSceneTool::Hand &&
             ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
           const auto x = static_cast<std::uint32_t>(io.MousePos.x * io.DisplayFramebufferScale.x);
           const auto y = static_cast<std::uint32_t>(io.MousePos.y * io.DisplayFramebufferScale.y);
           const auto &view = *state_->scene_canvas_viewport;
           if (x >= view.x && y >= view.y && x < view.x + view.width && y < view.y + view.height) {
-            state_->native_scene_pick = NativeScenePickRequest{x, y, io.KeyCtrl};
-            if (scene_editable && !io.KeyCtrl &&
-                state_->native_scene_tool != NativeSceneTool::Select)
+            state_->native_scene_pick = NativeScenePickRequest{x, y, io.KeyCtrl || io.KeyShift};
+            if (scene_editable && state_->native_scene_tool != NativeSceneTool::Select)
               state_->native_scene_drag_origin =
                   std::array{static_cast<std::int32_t>(x), static_cast<std::int32_t>(y)};
             state_->native_scene_drag_snap_step =
@@ -6367,6 +6537,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
             state_->native_scene_drag_vertical = io.KeyShift;
           }
         }
+        const auto drag_snap = io.KeyCtrl ? snap_steps[state_->scene_snap_step_index]
+                                          : state_->native_scene_drag_snap_step;
+        const auto drag_snap_rotation_scale =
+            state_->native_scene_drag_vertical ||
+            (io.KeyCtrl && state_->native_scene_tool != NativeSceneTool::Move);
         if (state_->native_scene_drag_origin && ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
           CancelSceneGestures(*state_);
         }
@@ -6377,12 +6552,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           const auto end_y =
               static_cast<std::int32_t>(io.MousePos.y * io.DisplayFramebufferScale.y);
           if (std::abs(end_x - start[0]) >= 4 || std::abs(end_y - start[1]) >= 4)
-            state_->native_scene_drag = {start[0],
-                                         start[1],
-                                         end_x,
-                                         end_y,
-                                         state_->native_scene_drag_snap_step,
-                                         state_->native_scene_drag_vertical};
+            state_->native_scene_drag = {start[0], start[1],  end_x,
+                                         end_y,    drag_snap, drag_snap_rotation_scale};
           state_->native_scene_drag_origin.reset();
         }
         if (state_->native_scene_drag_origin && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
@@ -6392,48 +6563,19 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           const auto end_y =
               static_cast<std::int32_t>(io.MousePos.y * io.DisplayFramebufferScale.y);
           if (std::abs(end_x - start[0]) >= 4 || std::abs(end_y - start[1]) >= 4)
-            state_->native_scene_drag_preview = {start[0],
-                                                 start[1],
-                                                 end_x,
-                                                 end_y,
-                                                 state_->native_scene_drag_snap_step,
-                                                 state_->native_scene_drag_vertical};
+            state_->native_scene_drag_preview = {start[0], start[1],  end_x,
+                                                 end_y,    drag_snap, drag_snap_rotation_scale};
         }
         if (state_->app_focused && !interaction_blocked &&
             (ImGui::IsItemHovered() || ImGui::IsItemActive()) &&
             !state_->native_scene_drag_origin && !state_->native_scene_drag && !io.WantTextInput) {
-          if (io.MouseWheel != 0.0F)
-            state_->native_scene_orbit.distance =
-                std::clamp(state_->native_scene_orbit.distance *
-                               std::pow(0.85, static_cast<double>(io.MouseWheel)),
-                           2.0, 100.0);
-          if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Right, 0.0F)) {
-            state_->native_scene_orbit.yaw = std::remainder(
-                state_->native_scene_orbit.yaw + io.MouseDelta.x * 0.01, 6.283185307179586);
-            state_->native_scene_orbit.pitch =
-                std::clamp(state_->native_scene_orbit.pitch - io.MouseDelta.y * 0.01, 0.1, 1.45);
-          }
-          if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0F)) {
-            const auto yaw = state_->native_scene_orbit.yaw;
-            const auto speed = state_->native_scene_orbit.distance * 0.003;
-            if (io.KeyShift) {
-              state_->native_scene_orbit.target_y =
-                  std::clamp(state_->native_scene_orbit.target_y +
-                                 static_cast<double>(io.MouseDelta.y) * speed,
-                             -100000.0, 100000.0);
-            } else {
-              const auto dx = static_cast<double>(io.MouseDelta.x) * speed;
-              const auto dz = static_cast<double>(io.MouseDelta.y) * speed;
-              state_->scene_center_world.x =
-                  static_cast<float>(std::clamp(static_cast<double>(state_->scene_center_world.x) -
-                                                    std::cos(yaw) * dx + std::sin(yaw) * dz,
-                                                -100000.0, 100000.0));
-              state_->scene_center_world.y =
-                  static_cast<float>(std::clamp(static_cast<double>(state_->scene_center_world.y) +
-                                                    std::sin(yaw) * dx + std::cos(yaw) * dz,
-                                                -100000.0, 100000.0));
-            }
-          }
+          if (io.MouseWheel != 0.0F || ImGui::IsMouseDown(ImGuiMouseButton_Left) ||
+              ImGui::IsMouseDown(ImGuiMouseButton_Middle) ||
+              ImGui::IsMouseDown(ImGuiMouseButton_Right) || ImGui::IsKeyDown(ImGuiKey_UpArrow) ||
+              ImGui::IsKeyDown(ImGuiKey_DownArrow) || ImGui::IsKeyDown(ImGuiKey_LeftArrow) ||
+              ImGui::IsKeyDown(ImGuiKey_RightArrow))
+            state_->native_scene_follow_selection = false;
+          NavigateNativeScene(*state_);
         }
         const bool frame_keyboard =
             !io.WantTextInput && ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
@@ -6449,10 +6591,12 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         }
         if (state_->app_focused && !interaction_blocked && !state_->native_scene_drag_origin &&
             !state_->native_scene_drag && !state_->native_scene_select_all_request &&
-            state_->scene_canvas_viewport &&
+            state_->native_scene_preview_available && !io.KeyCtrl && !io.KeyAlt && !io.KeySuper &&
+            !io.MouseDown[ImGuiMouseButton_Left] && state_->scene_canvas_viewport &&
             (frame_all || frame_clicked ||
              (frame_keyboard && ImGui::IsKeyPressed(ImGuiKey_F, false)))) {
           const auto &view = *state_->scene_canvas_viewport;
+          state_->native_scene_follow_selection = !frame_all && !frame_clicked && io.KeyShift;
           if (frame_all) {
             state_->native_scene_frame_all_request = state_->scene_frame_token;
             state_->native_scene_frame_all_apply = state_->scene_frame_token;
@@ -6460,6 +6604,16 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
             static_cast<void>(FrameNativeSceneSelection(
                 *state_, *scene, content, meshes, static_cast<double>(view.width) / view.height));
           }
+        }
+        if (state_->native_scene_follow_selection && state_->app_focused && !interaction_blocked &&
+            !state_->native_scene_drag_origin && !state_->native_scene_drag &&
+            state_->scene_canvas_viewport) {
+          const auto distance = state_->native_scene_orbit.distance;
+          const auto &view = *state_->scene_canvas_viewport;
+          if (!FrameNativeSceneSelection(*state_, *scene, content, meshes,
+                                         static_cast<double>(view.width) / view.height))
+            state_->native_scene_follow_selection = false;
+          state_->native_scene_orbit.distance = distance;
         }
         AcceptSceneMeshDrop(*state_, *scene, content, meshes, scene_editable,
                             NativeMeshDropPose(*state_));
@@ -6540,20 +6694,20 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       if (!state_->game_input_binding_status.empty())
         ImGui::TextWrapped("%s", state_->game_input_binding_status.c_str());
       if (state == runtime::PlayState::Stopped) {
-        if (detail::IconButton("Play", detail::EditorIcon::Play, false, "F5"))
+        if (detail::IconButton("Play", detail::EditorIcon::Play, false, "Ctrl+P (F5)"))
           state_->play_command = PlayCommand::Start;
       } else {
-        if (detail::IconButton("Stop", detail::EditorIcon::Stop, false, "F5"))
+        if (detail::IconButton("Stop", detail::EditorIcon::Stop, false, "Ctrl+P (F5)"))
           state_->play_command = PlayCommand::Stop;
         ImGui::SameLine();
         if (state == runtime::PlayState::Playing) {
-          if (detail::IconButton("Pause", detail::EditorIcon::Pause, false, "F6"))
+          if (detail::IconButton("Pause", detail::EditorIcon::Pause, false, "Ctrl+Shift+P (F6)"))
             state_->play_command = PlayCommand::Pause;
         } else {
-          if (detail::IconButton("Resume", detail::EditorIcon::Play, false, "F6"))
+          if (detail::IconButton("Resume", detail::EditorIcon::Play, false, "Ctrl+Shift+P (F6)"))
             state_->play_command = PlayCommand::Resume;
           ImGui::SameLine();
-          if (detail::IconButton("Step", detail::EditorIcon::Step, false, "F10"))
+          if (detail::IconButton("Step", detail::EditorIcon::Step, false, "Ctrl+Alt+P (F10)"))
             state_->play_command = PlayCommand::Step;
         }
         const float apply_width = detail::IconButtonExtent();
@@ -6885,9 +7039,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           std::replace(row.begin(), row.end(), '\r', ' ');
           ImGui::PushID(static_cast<int>(record.sequence));
           if (record.severity >= runtime::RuntimeLogSeverity::Error)
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0F, 0.45F, 0.45F, 1.0F));
+            ImGui::PushStyleColor(ImGuiCol_Text, detail::ErrorColor());
           else if (record.severity == runtime::RuntimeLogSeverity::Warning)
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0F, 0.75F, 0.35F, 1.0F));
+            ImGui::PushStyleColor(ImGuiCol_Text, detail::WarningColor());
           ImGui::Selectable(row.c_str());
           if (ImGui::IsItemHovered())
             ImGui::SetTooltip("%s", row.c_str());
@@ -7773,6 +7927,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     }
     ImGui::EndPopup();
   }
+  // No scene/document borrow survives this call. EndFrame resolves global tools only
+  // after auxiliary windows have also established their text/item ownership.
+  state_->scene_tool_shortcuts_allowed = scene != nullptr && !interaction_blocked;
+  if (!focus_panel.empty())
+    ImGui::SetWindowFocus(focus_panel.c_str());
 }
 
 bool EditorImGuiHost::SetSceneTabs(std::span<const SceneTabItem> items, std::uint64_t active,
@@ -8638,7 +8797,11 @@ std::optional<StaticExportRequest> EditorImGuiHost::TakeStaticExportRequest() {
 void EditorImGuiHost::SetProjectBuildSettings(const ProjectWorkspace &workspace,
                                               ProjectBuildSettings settings, bool ready,
                                               std::string status) {
-  if (settings.scenes.size() > ProjectBuildSettings::kMaximumScenes || status.size() > 4096 ||
+  if (settings.build.output.size() > ProjectBuildSettings::kMaximumPathBytes ||
+      settings.build.script_manifest.size() > ProjectBuildSettings::kMaximumPathBytes ||
+      !foundation::IsValidUtf8(settings.build.output) ||
+      !foundation::IsValidUtf8(settings.build.script_manifest) ||
+      settings.scenes.size() > ProjectBuildSettings::kMaximumScenes || status.size() > 4096 ||
       !foundation::IsValidUtf8(status) ||
       std::ranges::any_of(settings.scenes, [](const auto &entry) {
         return entry.path.size() > ProjectBuildSettings::kMaximumPathBytes ||
@@ -8651,17 +8814,22 @@ void EditorImGuiHost::SetProjectBuildSettings(const ProjectWorkspace &workspace,
     state_->build_settings_request.reset();
     state_->build_settings_selected.reset();
     state_->build_settings_path.fill('\0');
-    state_->game_build_script = false;
     state_->game_build_status.clear();
-    std::fill(std::begin(state_->game_build_output), std::end(state_->game_build_output), '\0');
-    std::copy_n("Build/Game", 10, std::begin(state_->game_build_output));
-    std::fill(std::begin(state_->game_build_manifest), std::end(state_->game_build_manifest), '\0');
-    std::copy_n("Scripts/project.json", 20, std::begin(state_->game_build_manifest));
+    state_->game_run_status.clear();
+    state_->game_build_progress = {};
+    state_->game_build_progress_available = false;
     state_->saved_game_decision_pending = false;
     state_->saved_game_decision.reset();
   }
   state_->build_settings_project = workspace.Project().id;
   state_->build_settings_root = workspace.Root();
+  state_->game_build_script = settings.build.mode == GameBuildMode::ScriptProject;
+  std::fill(std::begin(state_->game_build_output), std::end(state_->game_build_output), '\0');
+  std::copy(settings.build.output.begin(), settings.build.output.end(),
+            std::begin(state_->game_build_output));
+  std::fill(std::begin(state_->game_build_manifest), std::end(state_->game_build_manifest), '\0');
+  std::copy(settings.build.script_manifest.begin(), settings.build.script_manifest.end(),
+            std::begin(state_->game_build_manifest));
   state_->build_settings = std::move(settings);
   state_->build_settings_ready = ready;
   state_->build_settings_status = std::move(status);
@@ -8674,6 +8842,28 @@ void EditorImGuiHost::SetGameBuildStatus(bool busy, std::string message) {
   if (foundation::IsValidUtf8(message) && message.size() <= 8192)
     state_->game_build_status = std::move(message);
 }
+void EditorImGuiHost::SetGameBuildProgress(GameBuildProgress progress) {
+  const auto valid = [](const std::string &value, std::size_t maximum) {
+    return value.size() <= maximum && foundation::IsValidUtf8(value) &&
+           value.find('\0') == value.npos && value.find('\x1b') == value.npos;
+  };
+  if (progress.stage > GameBuildStage::Cancelled ||
+      !valid(progress.output, GameBuildProgress::kMaximumOutputBytes) ||
+      progress.diagnostics.size() > GameBuildProgress::kMaximumDiagnostics ||
+      std::ranges::any_of(progress.diagnostics, [&](const auto &value) {
+        return value.severity > GameBuildDiagnosticSeverity::Error ||
+               !valid(value.file, GameBuildProgress::kMaximumDiagnosticBytes) ||
+               !valid(value.message, GameBuildProgress::kMaximumDiagnosticBytes);
+      }))
+    return;
+  state_->game_build_progress = std::move(progress);
+  state_->game_build_progress_available = true;
+}
+void EditorImGuiHost::SetGameRunStatus(bool running, std::string message) {
+  state_->game_run_busy = running;
+  if (foundation::IsValidUtf8(message) && message.size() <= 8192)
+    state_->game_run_status = std::move(message);
+}
 void EditorImGuiHost::RequestSavedGameDecision() {
   state_->saved_game_decision_pending = true;
   state_->saved_game_decision.reset();
@@ -8685,6 +8875,18 @@ std::optional<SavedGameDecision> EditorImGuiHost::TakeSavedGameDecision() {
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
 bool EditorImGuiTestAccess::ProjectGameBuildBusy(const EditorImGuiHost &host) {
   return host.state_->game_build_busy;
+}
+bool EditorImGuiTestAccess::ProjectGameRunBusy(const EditorImGuiHost &host) {
+  return host.state_->game_run_busy;
+}
+std::optional<GameBuildStage>
+EditorImGuiTestAccess::ProjectGameBuildStage(const EditorImGuiHost &host) {
+  return host.state_->game_build_progress_available
+             ? std::optional{host.state_->game_build_progress.stage}
+             : std::nullopt;
+}
+std::size_t EditorImGuiTestAccess::ProjectGameBuildDiagnosticCount(const EditorImGuiHost &host) {
+  return host.state_->game_build_progress.diagnostics.size();
 }
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::ProjectBuildSettingsPosition(const EditorImGuiHost &host,
@@ -9149,6 +9351,12 @@ void EditorImGuiHost::SetNativeScenePreviewAvailable(bool available) noexcept {
   state_->native_scene_preview_available = available;
 }
 
+void EditorImGuiHost::CancelNativeSceneTransform() noexcept {
+  state_->native_scene_drag_origin.reset();
+  state_->native_scene_drag.reset();
+  state_->native_scene_drag_preview.reset();
+}
+
 NativeSceneOrbit EditorImGuiHost::GetNativeSceneOrbit() const noexcept {
   return state_->native_scene_orbit;
 }
@@ -9167,8 +9375,8 @@ bool EditorImGuiHost::NativeSceneCenterPivot() const noexcept {
 
 bool EditorImGuiHost::SetNativeSceneOrbit(NativeSceneOrbit orbit) noexcept {
   if (!std::isfinite(orbit.yaw) || !std::isfinite(orbit.pitch) || !std::isfinite(orbit.distance) ||
-      !std::isfinite(orbit.target_y) || std::abs(orbit.target_y) > 100000.0 || orbit.pitch < 0.1 ||
-      orbit.pitch > 1.45 || orbit.distance < 2.0 || orbit.distance > 100.0)
+      !std::isfinite(orbit.target_y) || std::abs(orbit.target_y) > 100000.0 ||
+      orbit.pitch < -1.55 || orbit.pitch > 1.55 || orbit.distance < 2.0 || orbit.distance > 100.0)
     return false;
   orbit.yaw = std::remainder(orbit.yaw, 6.283185307179586);
   state_->native_scene_orbit = orbit;
@@ -9359,6 +9567,16 @@ void EditorImGuiHost::UpdateImeCandidate(Nexora::Presentation::RenderSurface &su
 
 FrameMetrics EditorImGuiHost::EndFrame() {
   Activate(state_->context);
+  const auto &tool_io = ImGui::GetIO();
+  if (state_->scene_tool_shortcuts_allowed && state_->app_focused && !tool_io.WantTextInput &&
+      !state_->game_input_focused && !state_->native_scene_drag_origin &&
+      !state_->native_scene_drag && !ImGui::IsAnyItemActive() &&
+      !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel) &&
+      !tool_io.KeyCtrl && !tool_io.KeyAlt && !tool_io.KeyShift && !tool_io.KeySuper &&
+      !ImGui::IsMouseDown(ImGuiMouseButton_Left) && !ImGui::IsMouseDown(ImGuiMouseButton_Right) &&
+      !ImGui::IsMouseDown(ImGuiMouseButton_Middle))
+    ApplySceneToolKeys(*state_);
+  state_->scene_tool_shortcuts_allowed = false;
   state_->game_two_d_frame_open = false;
   ImGui::Render();
   state_->surface = nullptr;
@@ -9398,6 +9616,11 @@ bool EditorImGuiHost::ApplyRecoveryChoice(ProjectWorkspace &workspace, RecoveryC
 std::string_view EditorImGuiHost::RecoveryError() const noexcept { return state_->recovery_error; }
 
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::AppearancePosition(const EditorImGuiHost &host, std::size_t index) {
+  return index < host.state_->appearance_positions.size() ? host.state_->appearance_positions[index]
+                                                          : std::nullopt;
+}
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::DiagnosticPosition(const EditorImGuiHost &host, std::size_t control) {
   return control < host.state_->diagnostic_positions.size()
@@ -9585,6 +9808,11 @@ void EditorImGuiTestAccess::ConfigureSyntheticInput(EditorImGuiHost &host,
   auto &io = ImGui::GetIO();
   io.ConfigInputTrickleEventQueue = false;
   io.ConfigMacOSXBehaviors = macos_behaviors;
+}
+
+bool EditorImGuiTestAccess::SuperModifierDown(const EditorImGuiHost &host) noexcept {
+  Activate(host.state_->context);
+  return ImGui::GetIO().KeySuper;
 }
 
 void EditorImGuiTestAccess::InvokeImeCallback(EditorImGuiHost &host, float x, float y,

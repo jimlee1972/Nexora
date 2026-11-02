@@ -11,6 +11,24 @@ namespace nexora::editor::preview {
 inline std::filesystem::path BuildArgumentPath(std::string_view text) {
   return std::filesystem::path(std::u8string(text.begin(), text.end()));
 }
+inline std::string BuildJsonPath(const std::filesystem::path &path) {
+  const auto bytes = path.generic_u8string();
+  constexpr char hex[] = "0123456789abcdef";
+  std::string value{"\""};
+  for (const auto raw : bytes) {
+    const auto byte = static_cast<unsigned char>(raw);
+    if (byte == '"' || byte == '\\') {
+      value += '\\';
+      value += static_cast<char>(byte);
+    } else if (byte < 0x20) {
+      value += "\\u00";
+      value += hex[byte >> 4];
+      value += hex[byte & 15];
+    } else
+      value += static_cast<char>(byte);
+  }
+  return value + '"';
+}
 // The Editor executable is also the CLI build entry. Both hosts call PrepareGameBuild/Publish;
 // this command supplies no alternate cooker, SDK compiler adapter or publication implementation.
 inline int RunGameBuildCommand(int argc, char **argv) {
@@ -32,7 +50,8 @@ inline int RunGameBuildCommand(int argc, char **argv) {
   for (const auto &[name, value] : options) {
     static_cast<void>(value);
     if (name != "--build-game" && name != "--output" && name != "--runtime-profile" &&
-        name != "--script-project" && name != "--cmake" && name != "--ninja" && name != "--zig") {
+        name != "--script-project" && name != "--cmake" && name != "--ninja" && name != "--zig" &&
+        name != "--build-records") {
       std::cerr << "Unknown game build option: " << name << '\n';
       return 2;
     }
@@ -92,6 +111,7 @@ inline int RunGameBuildCommand(int argc, char **argv) {
   request.temporary_parent = output.parent_path();
   request.capture = std::move(*capture);
   request.tools = *tools;
+  request.records_parent = absolute("--build-records");
   request.mode = scene_only ? GameBuildMode::SceneOnly : GameBuildMode::ScriptProject;
   if (scripted)
     request.script_manifest = BuildArgumentPath(options.at("--script-project"));
@@ -103,7 +123,10 @@ inline int RunGameBuildCommand(int argc, char **argv) {
           [&] { return !workspace.HasRecoveryJournal() && !workspace.HasExternalChange(); },
           &error))
     return fail();
-  std::cout << "{\"status\":\"PUBLISHED_GAME\",\"source_required_at_runtime\":false}\n";
+  const auto &receipt = *prepared->Receipt();
+  std::cout << "{\"status\":\"PUBLISHED_GAME\",\"source_required_at_runtime\":false,\"receipt\":"
+            << BuildJsonPath(receipt.file) << ",\"records\":" << BuildJsonPath(receipt.directory)
+            << "}\n";
   std::cout.flush();
   return std::cout ? 0 : 1;
 }

@@ -47,6 +47,12 @@ def verify(root):
     required = ('bin/NexoraGameHost.exe', 'bin/NexoraTwoDAssetCompiler.exe',
                 'Tools/Ninja/ninja.exe', 'Tools/Zig/build.zig', 'Tools/Zig/game_entry.zig',
                 'Bindings/Zig/nexora.zig', 'CMake/Modules/NexoraGameProject.cmake')
+    if manifest['version'] == '0.2.0':
+        required += ('Bindings/Zig/hd2d_diagnostic.zig', 'Bindings/Zig/twod_effects.zig',
+                     'Bindings/Zig/diagnostic/base.nx2atlas', 'Bindings/Zig/diagnostic/mask.nx2atlas',
+                     'Bindings/Zig/diagnostic/links.nx2emission', 'Bindings/Zig/diagnostic/ui_fixture.nxfont',
+                     'Tools/TwoD/PrepareEmission.py', 'Tools/TwoD/StageHD2D.py',
+                     'licenses/Noto-CJK-OFL.txt', 'licenses/Noto-CJK-NOTICE.md')
     if any(p not in actual for p in required):
         raise ValueError('incomplete SDK')
     return manifest
@@ -73,7 +79,8 @@ def package(args):
     for directory in ('Bindings/Zig', 'Tools/Zig'):
         shutil.copytree(ROOT / directory, root / directory, ignore=shutil.ignore_patterns('__pycache__', '.zig-cache', 'zig-out'))
     for name in ('CMake/Modules/NexoraGameProject.cmake', 'Tools/TwoD/ExportGame.py',
-                 'Tools/TwoD/PrepareAssets.py', 'Tools/SDK/SDK.py', 'Tools/SDK/README.md'):
+                 'Tools/TwoD/PrepareAssets.py', 'Tools/TwoD/PrepareEmission.py',
+                 'Tools/TwoD/StageHD2D.py', 'Tools/SDK/SDK.py', 'Tools/SDK/README.md'):
         target = root / name
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(ROOT / name, target)
@@ -84,6 +91,8 @@ def package(args):
     (root / 'licenses').mkdir()
     shutil.copy2(ROOT / 'LICENSE', root / 'licenses/Nexora-MIT.txt')
     shutil.copy2(args.ninja_license, root / 'licenses/Ninja-Apache-2.0.txt')
+    for original, name in [('OFL.txt', 'Noto-CJK-OFL.txt'), ('NOTICE.md', 'Noto-CJK-NOTICE.md')]:
+        shutil.copy2(ROOT / 'Bindings/Zig/diagnostic' / original, root / 'licenses' / name)
     (root / 'licenses/Microsoft-Runtime.txt').write_text(
         'Microsoft Visual C++ runtime libraries are redistributed under Visual Studio runtime terms.\n'
         'https://visualstudio.microsoft.com/license-terms/\n'
@@ -114,7 +123,7 @@ def main():
     for field in ('build', 'output', 'redist', 'ninja', 'ninja-license'):
         pack.add_argument('--'+field, type=Path, required=True)
     pack.add_argument('--commit', required=True)
-    pack.add_argument('--version', default='0.1.0')
+    pack.add_argument('--version', default='0.2.0')
     args = parser.parse_args()
     if args.command == 'verify':
         print(json.dumps(verify(args.root), indent=2))

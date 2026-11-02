@@ -749,7 +749,10 @@ void TestSceneOverviewCameraState() {
   const auto orbit = host.GetNativeSceneOrbit();
   assert(orbit.yaw == 1.25 && orbit.pitch == 0.7 && orbit.distance == 25.0 &&
          orbit.target_y == 4.5);
-  assert(!host.SetNativeSceneOrbit({0.0, 0.0, 25.0}) &&
+  assert(host.SetNativeSceneOrbit({0.0, 0.0, 25.0}));
+  assert(host.SetNativeSceneOrbit({0.0, -0.7, 25.0}));
+  assert(!host.SetNativeSceneOrbit({0.0, -1.56, 25.0}) &&
+         !host.SetNativeSceneOrbit({0.0, 1.56, 25.0}) &&
          !host.SetNativeSceneOrbit({0.0, 0.7, std::numeric_limits<double>::infinity()}) &&
          !host.SetNativeSceneOrbit({0.0, 0.7, 25.0, 100001.0}));
   assert(host.GetNativeSceneOrbit().distance == 25.0);

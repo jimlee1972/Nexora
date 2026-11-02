@@ -69,6 +69,10 @@ void Run(const std::filesystem::path &fixture) {
                                        "$(touch SHELL_WAS_RUN)", "%VARIABLE% & > < | ;"},
                                       4096};
   std::string error;
+  auto invalid_presentation = request;
+  invalid_presentation.presentation = static_cast<editor::BuildProcessPresentation>(255);
+  Require(!process.Start(invalid_presentation, &error), "invalid process presentation accepted");
+  error.clear();
   Require(process.Start(request, &error) && error.empty() && !process.Start(request),
           "Intake/busy contract failed");
   Finish(process, 42);

@@ -2874,6 +2874,9 @@ private:
                      "vkCreateSwapchainKHR"))
       return false;
     swapchainFormat_ = selected.format;
+    diagnostics_.uiTargetEncodesSrgb = selected.format == VK_FORMAT_R8G8B8A8_SRGB ||
+                                       selected.format == VK_FORMAT_B8G8R8A8_SRGB ||
+                                       selected.format == VK_FORMAT_A8B8G8R8_SRGB_PACK32;
     std::uint32_t imageCount = 0;
     vkGetSwapchainImagesKHR(device_, swapchain_, &imageCount, nullptr);
     images_.resize(imageCount);

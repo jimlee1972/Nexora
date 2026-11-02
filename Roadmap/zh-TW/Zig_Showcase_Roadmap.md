@@ -14,6 +14,14 @@ descriptor/callback coverage 與 Linux sanitizer preset 已完成 ZS-M0。Runtim
 與 generation lifecycle 已完成；Showcase 會建置並選取 Zig Development shared library，Shipping
 則保留相同 ABI 的 static link。
 
+✅ **Editor 工作流程擴充（2026-11-01）：** ED-WF-04 已由合併的
+[PR #758](https://github.com/jimlee1972/Nexora/pull/758)驗收。成對型別化 Zig 狀態、實際註冊工作
+barrier 及嚴格 World／資源交易，保留 32 次成功重載與 224 次預期拒絕。完整 Cloud 495/495、
+Shipping、Windows／macOS 原生及 42 項 CI 均通過，合併 tree 與驗證版相同。
+保留 macOS panic TLS／已棄用 API 的失敗、修正及原卸載斷言，詳見[已驗收證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04.md)。
+這擴充歷史 module-state contract；Editor 背景協調、動畫／pool 與最後交付仍為其他待完成工單。
+既有 ZS 里程碑完成度維持不變。
+
 **本機施工狀態（2026-09-23）：** 已提供 deterministic headless/static 與 Development-dynamic
 的 ZS-M1 驗證 slice，
 輸出 `NexoraShowcase.exe`。C++ 擁有 `main`、Engine lifecycle、小型 `GameWorld`、

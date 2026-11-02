@@ -1,0 +1,14 @@
+{
+  "eager": {
+    "asset_active_bytes": 320,
+    "asset_staging_bytes": 0,
+    "allocations_balanced": true,
+    "ui_frames": 144
+  },
+  "isolated": {
+    "asset_active_bytes": 0,
+    "asset_staging_bytes": 0,
+    "allocations_balanced": true,
+    "ui_frames": 144
+  }
+}

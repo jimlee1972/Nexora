@@ -258,3 +258,5 @@ DirectInput／DS4／Linux 震動仍明確不支援。
 ✅ HD2D-03 在 effects table 尾端加入獨立協商的 pool 識別 callback，保留原有前綴及 Sprite wire。完整 owner／index／generation 與 C／Zig／原生 gate 已由 PR #736／`40c96072` 驗收；證據依 HD2D 工單追蹤。
 
 HD2D-06 施工加入獨立協商的診斷／陰影圖檢視尾端（40／48／56／64-byte 完整前綴）、C／Zig 佈局與相容性防護，以及已完成原生 GPU 觀測；metadata 共 137 exports。原生驗收依 HD2D 工單追蹤。
+
+✅ HD2D-06 診斷／檢視尾端及137-export metadata 已由 PR #739／`67db45d2` 驗收，最終41 項檢查與實際三後端 Zig／CPU 像素通過。完整40／48／56／64-byte 前綴協商仍相容；GPU 計時不可用明確回報。[證據](../../Engine/TwoD/evidence/HD2D-06-Linux-2026-10-31.md)。

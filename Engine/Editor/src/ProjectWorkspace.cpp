@@ -1366,6 +1366,47 @@ bool ProjectWorkspace::HasExternalChange() const {
   return !ec && current != workspace_write_time_;
 }
 
+std::optional<EditorColorTheme> LoadEditorColorTheme(const std::filesystem::path &path,
+                                                     std::string *error) {
+  if (error)
+    error->clear();
+  std::error_code ec;
+  const auto status = std::filesystem::symlink_status(path, ec);
+  if (!path.empty() && (ec == std::errc::no_such_file_or_directory ||
+                        (!ec && status.type() == std::filesystem::file_type::not_found)))
+    return EditorColorTheme::Dark;
+  if (!path.empty() && !ec && std::filesystem::is_regular_file(status) &&
+      std::filesystem::file_size(path, ec) <= 64 && !ec) {
+    std::ifstream input(path, std::ios::binary);
+    std::array<char, 65> bytes{};
+    input.read(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+    const std::string_view text(bytes.data(), static_cast<std::size_t>(input.gcount()));
+    if (input.eof() && !input.bad() && text.size() <= 64) {
+      if (text == "schema=1\ntheme=dark\n" || text == "schema=1\r\ntheme=dark\r\n")
+        return EditorColorTheme::Dark;
+      if (text == "schema=1\ntheme=light\n" || text == "schema=1\r\ntheme=light\r\n")
+        return EditorColorTheme::Light;
+    }
+  }
+  if (error)
+    *error = "Editor appearance could not be loaded; using Dark. Choose a theme to save again.";
+  return std::nullopt;
+}
+
+bool SaveEditorColorTheme(const std::filesystem::path &path, EditorColorTheme theme,
+                          std::string *error) {
+  if (error)
+    error->clear();
+  if (path.empty() || (theme != EditorColorTheme::Dark && theme != EditorColorTheme::Light)) {
+    if (error)
+      *error = "Invalid Editor appearance destination or theme.";
+    return false;
+  }
+  return AtomicWrite(
+      path, theme == EditorColorTheme::Light ? "schema=1\ntheme=light\n" : "schema=1\ntheme=dark\n",
+      error);
+}
+
 std::filesystem::path RecentProjectStore::DefaultPath() {
 #if defined(_WIN32)
   if (const auto local = EnvironmentPath(L"LOCALAPPDATA"))

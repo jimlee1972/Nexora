@@ -64,6 +64,7 @@ int main(int argc, char **argv) {
   {
     std::scoped_lock lock(barrier.mutex);
     barrier.job_running = true;
+    barrier.waited_generation = 0;
   }
   std::atomic_bool reload_finished{};
   std::thread reload([&] {

@@ -1,5 +1,32 @@
 # Nexora Graphical Editor Roadmap
 
+### ✅ Unity-style Editor input (supported scope accepted)
+
+[Issue #759](https://github.com/jimlee1972/Nexora/issues/759) is implemented by
+[PR #760](https://github.com/jimlee1972/Nexora/pull/760), merged as `92ae6bc7447c` with the
+same tree as validated `c9f171708507`. Global Q Hand/WER, X/Z modes, Scene orbit/pan/look/fly/zoom,
+framing/follow, supported command/window shortcuts and text/modal/Game input ownership passed.
+Both legacy and 2D services providers consume reserved Play chords without firing game actions.
+Legacy F5/F6/F10 and P aliases remain; Prefab isolation uses Ctrl+Alt+Shift+P.
+[Input evidence](../../Tools/Build/evidence/EditorWorkflow/Unity-Input.md) records Cloud 495/495,
+supported Shipping linkage, all 42 CI checks, native Windows 436 passed/one optional font skip,
+macOS 410 passed/one optional font skip, Linux Xvfb 246/246 and package startup 5/5.
+Superseded failures and their repairs remain recorded. Rect/combined tools, vertex snapping,
+orientation widget, maximized view and a new XY 2D mode remain outside this change.
+Physical clean-host acceptance is NOT_RUN; the validated input ZIP is not the final workflow ZIP.
+See [Editor controls](../../Apps/Editor/README.md#unity-style-editor-input-issue-759).
+This supporting task does not alter the 4/9 workflow count or 0/8 Editor milestone count.
+
+
+
+### Script workflow and Sprite integration work orders (2026-10-31)
+
+The approved [delivery plan](Editor_Workflow_Delivery_Plan.md) and
+[Epic #741](https://github.com/jimlee1972/Nexora/issues/741) track nine dependent work orders for
+script Build UI, clean game output, stateful reload and source-aware Editor/Player/Zig integration.
+Acceptance is 4/9 (44.4%): ED-WF-01 ✅ [PR #751](https://github.com/jimlee1972/Nexora/pull/751), ED-WF-02 ✅ [PR #754](https://github.com/jimlee1972/Nexora/pull/754), ED-WF-03 ✅ [PR #756](https://github.com/jimlee1972/Nexora/pull/756), ED-WF-04 ✅ [PR #758](https://github.com/jimlee1972/Nexora/pull/758); existing supporting capabilities are not counted as complete workflows.
+The full Editor milestone count remains 0/8. Existing CLI and `.bat` development remains available.
+
 ### Windows exported game entry (2026-10-30)
 
 ✅ Native Windows Player and the shared Editor Build output now use GUI subsystem 2 and Unicode
@@ -264,6 +291,19 @@ satisfy this milestone.
   (docking/multi-viewport), rendered through `Nexora::RHI` rather than a competing windowing
   stack, and names the accessibility gap ED-M7 still has to scope. The ADR settles the framework
   choice only -- it is not itself graphical docking, theme, DPI, IME, accessibility, or crash UX.
+- ✅ Settings > Appearance now offers Unity-inspired Dark / Light neutral palettes with blue
+  selection accents. Requests apply between frames, persist in a user-level appearance record,
+  survive project/layout changes and work in read-only projects. Bounded invalid reads retain
+  the original file; failed saves keep the session theme and expose a retryable warning.
+  Palette swatches decode once for native sRGB output; icons, status text and Transform axes
+  remain readable without changing DPI geometry. Real 1x/2x menu tests and Linux X11/Vulkan
+  pixels/save/reopen/read-only acceptance cover the feature; physical-host acceptance and the
+  overall milestone remain open.
+  [Linux evidence](../../Tools/Build/evidence/EditorAppearance-Linux-2026-10-31.md).
+  ED-WF-04 integration exposed an over-dark Windows UNORM palette. Candidate #758 passed hosted
+  Windows startup/relocation with actual-attachment encoding and secondary-text contrast repair;
+  its macOS loader repair remains unaccepted. See the
+  [work-order evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04.md).
 - ✅ The feature-gated Dear ImGui host implements the portable docking, theme/DPI, input/IME,
   live-panel, recovery UX, and accessibility-direction contracts described by
   [Editor_ImGui_Integration_Plan.md](Editor_ImGui_Integration_Plan.md).
@@ -660,7 +700,7 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
   coverage. Tests retain unknown bytes, clipboard and Redo, reject stale/malformed/duplicate packets
   and cover 4,001 nodes. Linux Xvfb selects both proxy/OBJ roots. Full Scene View acceptance stays open.
 
-- ✅ Native Scene Select (Q) keeps ordinary/Ctrl picking while hiding transform handles and
+- ✅ Native Scene Select (toolbar) keeps ordinary/Ctrl picking while hiding transform handles and
   suppressing drag previews/commits. W/E/R restore Move/Rotate/Scale. Real 1x/2x input tests cover
   same-frame Q/click, toolbar parity, Home navigation, active/pending drag gates, read-only,
   panel/focus/modal/text guards and retained Redo. Linux Xvfb verifies proxy/OBJ picking, hidden

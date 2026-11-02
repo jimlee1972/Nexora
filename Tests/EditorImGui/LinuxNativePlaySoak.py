@@ -10,7 +10,8 @@ import shutil
 import subprocess
 import tempfile
 import time
-from LinuxDisplayAcceptance import request_window_close, start_xvfb, wait_for_window
+from LinuxDisplayAcceptance import (physical_key_arguments, request_window_close,
+                                    start_xvfb, wait_for_window)
 from LinuxNativeScenePreview import scene_region_pixels
 
 CYCLES = 32
@@ -105,9 +106,11 @@ def main():
             raise RuntimeError(message)
 
         def send(*arguments, deadline=None):
+            requested = arguments
+            arguments = physical_key_arguments(arguments, env)
             with (state / 'input.jsonl').open('a', encoding='utf-8') as log:
                 log.write(json.dumps(dict(time=time.monotonic(), cycle=cycle,
-                                          input=arguments)) + '\n')
+                                          input=requested, native_input=arguments)) + '\n')
             remaining = 5 if deadline is None else deadline - time.monotonic()
             if remaining <= 0:
                 raise RuntimeError('Native soak input deadline expired before sending')

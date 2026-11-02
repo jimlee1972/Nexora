@@ -14,7 +14,8 @@ import subprocess
 import tempfile
 import time
 import zlib
-from LinuxDisplayAcceptance import request_window_close, start_xvfb, wait_for_window
+from LinuxDisplayAcceptance import (physical_key_arguments, request_window_close,
+                                    start_xvfb, wait_for_window)
 from LinuxNativeScenePreview import scene_region_pixels
 
 CYCLES = 32
@@ -150,6 +151,7 @@ def main():
             raise RuntimeError(message)
 
         def send(*command):
+            command = physical_key_arguments(command, env)
             subprocess.run([args.xdotool, *map(str, command)], env=env, check=True)
             pump(.05)
 

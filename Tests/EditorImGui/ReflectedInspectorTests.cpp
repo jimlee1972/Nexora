@@ -163,9 +163,16 @@ void Run(float scale) {
     component.data[255] = 99;
     Require(scene.SetOpaqueComponent(typed_key, component), "typed component failed");
     const std::size_t elements = index + 1 == cases.size() ? 2 : 1;
-    Require(metadata.SetComponents(
-                {{id, "Typed.Component", 256, {{"nested.field", test.kind, 0, elements, {}}}}}) &&
-                ui.SetReflectedInspector(metadata),
+    std::vector<editor::ReflectedComponent> typed_metadata(1);
+    typed_metadata.front().type = id;
+    typed_metadata.front().name = "Typed.Component";
+    typed_metadata.front().bytes = 256;
+    typed_metadata.front().fields.resize(1);
+    auto &field_metadata = typed_metadata.front().fields.front();
+    field_metadata.path = "nested.field";
+    field_metadata.kind = test.kind;
+    field_metadata.elements = elements;
+    Require(metadata.SetComponents(typed_metadata) && ui.SetReflectedInspector(metadata),
             "typed metadata failed");
     draw();
     draw();
@@ -194,8 +201,16 @@ void Run(float scale) {
         kind == editor::ReflectedKind::Enum
             ? std::vector<editor::ReflectedChoice>{{0, "Off"}, {1, "On"}}
             : std::vector<editor::ReflectedChoice>{{1, "Read"}, {2, "Write"}};
-    Require(metadata.SetComponents({{id, "Typed.Choice", 16, {{"choice", kind, 0, 1, choices}}}}) &&
-                ui.SetReflectedInspector(metadata),
+    std::vector<editor::ReflectedComponent> choice_metadata(1);
+    choice_metadata.front().type = id;
+    choice_metadata.front().name = "Typed.Choice";
+    choice_metadata.front().bytes = 16;
+    choice_metadata.front().fields.resize(1);
+    auto &choice_field = choice_metadata.front().fields.front();
+    choice_field.path = "choice";
+    choice_field.kind = kind;
+    choice_field.choices = choices;
+    Require(metadata.SetComponents(choice_metadata) && ui.SetReflectedInspector(metadata),
             "choice metadata failed");
     draw();
     draw();
@@ -228,17 +243,22 @@ void Run(float scale) {
   flags_a.data[14] = 255;
   auto flags_b = flags_a;
   flags_b.data[0] = 2;
+  std::vector<editor::ReflectedComponent> flags_metadata(1);
+  flags_metadata.front().type = 303;
+  flags_metadata.front().name = "Mixed.Flags";
+  flags_metadata.front().bytes = 16;
+  flags_metadata.front().fields.resize(1);
+  auto &flags_field = flags_metadata.front().fields.front();
+  flags_field.path = "permissions";
+  flags_field.kind = editor::ReflectedKind::Flags;
+  flags_field.choices.resize(2);
+  flags_field.choices[0].value = 1;
+  flags_field.choices[0].label = "Read";
+  flags_field.choices[1].value = 2;
+  flags_field.choices[1].label = "Write";
   Require(scene.SetOpaqueComponent(keys[0], flags_a) &&
               scene.SetOpaqueComponent(keys[1], flags_b) && scene.Select(keys) &&
-              metadata.SetComponents({{303,
-                                       "Mixed.Flags",
-                                       16,
-                                       {{"permissions",
-                                         editor::ReflectedKind::Flags,
-                                         0,
-                                         1,
-                                         {{1, "Read"}, {2, "Write"}}}}}}) &&
-              ui.SetReflectedInspector(metadata),
+              metadata.SetComponents(flags_metadata) && ui.SetReflectedInspector(metadata),
           "Mixed flags controls fixture failed");
   draw();
   draw();

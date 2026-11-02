@@ -4,6 +4,13 @@
 
 namespace nexora::editor {
 class ContentBrowserModel;
+enum class GameBuildMode : std::uint8_t { SceneOnly, ScriptProject };
+struct GameBuildSettings final {
+  GameBuildMode mode{GameBuildMode::SceneOnly};
+  std::string script_manifest{"Scripts/project.json"};
+  std::string output{"Build/Game"};
+  bool operator==(const GameBuildSettings &) const = default;
+};
 struct BuildScene final {
   runtime::AssetUuid id;
   std::string path;
@@ -16,10 +23,12 @@ struct ProjectBuildSettings final {
   static constexpr std::size_t kMaximumPathBytes = 1024;
   runtime::AssetUuid start_scene;
   std::vector<BuildScene> scenes;
+  GameBuildSettings build{};
   bool operator==(const ProjectBuildSettings &) const = default;
 };
 
-// Pure owning, bounded schema-1 codec shared by graphical and command-line build producers.
+// Pure owning, bounded schema-1/2 codec shared by graphical and command-line build producers.
+// Legacy/default settings retain schema 1; schema 2 persists the explicit build configuration.
 // No filesystem access; callers must resolve paths and catalog identities before building.
 [[nodiscard]] NEXORA_EDITOR_API bool ValidateProjectBuildSettings(const ProjectBuildSettings &,
                                                                   std::string *error = nullptr);

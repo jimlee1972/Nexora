@@ -8,6 +8,7 @@
 #include "BuildConsoleIngress.h"
 #include "CoreConsoleIngress.h"
 #include "GameBuildCoordinator.h"
+#include "GameRunCoordinator.h"
 #include "GameViewPreview.h"
 #if NEXORA_ASSET_PIPELINE_ENABLED
 #include "PackagedPlayContext.h"
@@ -356,7 +357,9 @@ NativeScenePickHit PickNativeSceneProxy(const nexora::editor::SceneDocument &sce
       proxy = nexora::editor::PickHit{candidate.entity, *distance};
   }
   const auto handles =
-      tool == nexora::editor::imgui::NativeSceneTool::Select ? std::vector<NativeSceneAxisHandle>{}
+      (tool == nexora::editor::imgui::NativeSceneTool::Select ||
+       tool == nexora::editor::imgui::NativeSceneTool::Hand)
+          ? std::vector<NativeSceneAxisHandle>{}
       : tool == nexora::editor::imgui::NativeSceneTool::Rotate
           ? NativeSceneRotationHandles(scene, candidates, local_axes, center_pivot)
       : tool == nexora::editor::imgui::NativeSceneTool::Scale
@@ -575,7 +578,9 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
   const auto palette = nexora::editor::preview::PrepareMaterialPalette(scene, materials, generation,
                                                                        material_entities);
   const auto handles =
-      tool == nexora::editor::imgui::NativeSceneTool::Select ? std::vector<NativeSceneAxisHandle>{}
+      (tool == nexora::editor::imgui::NativeSceneTool::Select ||
+       tool == nexora::editor::imgui::NativeSceneTool::Hand)
+          ? std::vector<NativeSceneAxisHandle>{}
       : tool == nexora::editor::imgui::NativeSceneTool::Rotate
           ? NativeSceneRotationHandles(scene, candidates, local_axes, center_pivot)
       : tool == nexora::editor::imgui::NativeSceneTool::Scale
@@ -724,7 +729,7 @@ int RunGraphical(std::optional<ProjectState> project,
                  nexora::editor::ProjectAccess selector_access, std::uint32_t frame_limit,
                  bool native_scene_preview,
                  const std::optional<std::string> &initial_gameplay_library, bool start_play,
-                 nexora::editor::app::StartupSplash &splash) {
+                 nexora::editor::app::StartupSplash &splash, bool fallback_scene_overview = false) {
   splash.Stage(nexora::editor::app::StartupStage::Graphics);
   Nexora::Presentation::RenderSurfaceDescriptor surface_descriptor{
       "Nexora Editor",
@@ -747,6 +752,15 @@ int RunGraphical(std::optional<ProjectState> project,
   splash.PrepareMainWindow();
   splash.Stage(nexora::editor::app::StartupStage::Workspace);
   nexora::editor::imgui::EditorImGuiHost ui;
+  ui.SetUiOutputSrgb(created.surface->Diagnostics().uiTargetEncodesSrgb);
+  const auto appearance_path =
+      recent_projects.Path().empty()
+          ? nexora::editor::RecentProjectStore::DefaultPath().replace_filename("appearance")
+          : std::filesystem::path(recent_projects.Path()).replace_filename("appearance");
+  std::string appearance_status;
+  const auto appearance = nexora::editor::LoadEditorColorTheme(appearance_path, &appearance_status);
+  ui.SetColorTheme(appearance.value_or(nexora::editor::EditorColorTheme::Dark), appearance_status);
+
 #if defined(_WIN32)
   ui.SetProjectLocationPicker(
       [](nexora::editor::imgui::ProjectSelectorAction action, std::string &error) {
@@ -1005,6 +1019,7 @@ int RunGraphical(std::optional<ProjectState> project,
   } play_lifetime{stop_play};
 #if NEXORA_ASSET_PIPELINE_ENABLED
   nexora::editor::preview::GameBuildCoordinator game_builder;
+  nexora::editor::preview::GameRunCoordinator game_runner;
   std::optional<nexora::editor::imgui::ProjectBuildSettingsRequest> saved_build_request;
   bool saved_play_request{}, execute_saved_play{}, execute_saved_build{}, allow_saved_play{},
       allow_saved_build{}, awaiting_game_save{};
@@ -1012,7 +1027,7 @@ int RunGraphical(std::optional<ProjectState> project,
   std::filesystem::path decision_root, game_build_root, game_build_output;
   std::optional<nexora::editor::SceneDocument::PreparedSave> decision_document, game_build_document;
   std::uint64_t game_build_generation{}, game_build_revision{};
-  bool game_build_script{};
+  bool game_build_script{}, game_build_run_after{};
   const auto build_owner_current = [&] {
     return project && project->workspace.Project().id == game_build_project &&
            project->workspace.Root() == game_build_root && project->workspace.Writable() &&
@@ -1470,6 +1485,36 @@ int RunGraphical(std::optional<ProjectState> project,
 #if NEXORA_ASSET_PIPELINE_ENABLED
     if (game_builder.Busy() && !build_owner_current())
       game_builder.Cancel();
+    if (auto observation = game_builder.PollProgress();
+        observation && game_builder.Busy() && project &&
+        project->workspace.Project().id == game_build_project &&
+        project->workspace.Root() == game_build_root)
+      ui.SetGameBuildProgress(std::move(*observation));
+    if (game_runner.Busy() && (!project || !game_runner.Current(project->workspace.Project().id,
+                                                                project->workspace.Root())))
+      game_runner.Stop();
+    if (auto finished = game_runner.Poll()) {
+      if (std::getenv("NEXORA_PROJECT_GAME_BUILD_EVIDENCE")) {
+        std::cerr << "game run output begin\n" << finished->output << "\ngame run output end\n";
+        std::cerr << "game run result: exit="
+                  << (finished->exit_code ? std::to_string(*finished->exit_code) : "none")
+                  << " phase=" << static_cast<unsigned>(finished->phase) << '\n';
+      }
+      const bool current = project && game_runner.Current(project->workspace.Project().id,
+                                                          project->workspace.Root());
+      const bool success = finished->phase == nexora::editor::BuildProcessPhase::Exited;
+      const bool stopped = finished->phase == nexora::editor::BuildProcessPhase::Cancelled;
+      const auto message = success               ? std::string("Game closed normally.")
+                           : stopped             ? std::string("Game stopped.")
+                           : finished->exit_code ? "Game exited with code " +
+                                                       std::to_string(*finished->exit_code) + "."
+                                                 : "Game could not start: " + finished->message;
+      ui.SetGameRunStatus(false, current ? message : "");
+      if (current)
+        log(success || stopped ? nexora::runtime::RuntimeLogSeverity::Info
+                               : nexora::runtime::RuntimeLogSeverity::Warning,
+            "Game Run", message);
+    }
 #endif
     const auto dpi = std::isfinite(frame.dpiScale) ? std::max(frame.dpiScale, 0.25F) : 1.0F;
     ui.SetDisplay(static_cast<float>(frame.width) / dpi, static_cast<float>(frame.height) / dpi,
@@ -1518,6 +1563,7 @@ int RunGraphical(std::optional<ProjectState> project,
       ui.SetGameTwoDAvailable(false);
     ui.SetGameTwoDAvailable(bool(gameplay.TwoDAssets()));
 #endif
+    ui.SetUiOutputSrgb(created.surface->Diagnostics().uiTargetEncodesSrgb);
     ui.BeginFrame();
     if (!project && pending_project) {
       if (const auto snapshot = imports.Snapshot(pending_project->import)) {
@@ -2320,11 +2366,19 @@ int RunGraphical(std::optional<ProjectState> project,
       }
       if (auto finished = game_builder.Poll()) {
         std::string error = std::move(finished->error);
+        auto progress = game_builder.Progress();
+        progress.stage = nexora::editor::GameBuildStage::Publishing;
         const bool published = finished->prepared &&
                                finished->prepared->Publish(game_build_output, game_builder.Token(),
                                                            build_owner_current, &error);
-        if (std::getenv("NEXORA_PROJECT_GAME_BUILD_EVIDENCE"))
+        if (std::getenv("NEXORA_PROJECT_GAME_BUILD_EVIDENCE")) {
           std::cerr << "game build result: " << (published ? "published" : error) << '\n';
+          if (published)
+            std::cerr << "game build receipt: "
+                      << nexora::editor::preview::BuildJsonPath(
+                             finished->prepared->Receipt()->directory)
+                      << '\n';
+        }
         if (published) {
           const auto module = game_build_output / nexora::runtime::kGameModuleFilename;
           const auto relative =
@@ -2332,8 +2386,22 @@ int RunGraphical(std::optional<ProjectState> project,
           ui.SetGameplayLibrary(game_build_script ? std::string(relative.begin(), relative.end())
                                                   : "");
         }
-        ui.SetGameBuildStatus(
-            false, published ? "Game built successfully. Run Game in the output folder." : error);
+        if (published && game_build_run_after) {
+          const bool running =
+              game_runner.Start(game_build_project, game_build_root, game_build_output, &error);
+          ui.SetGameRunStatus(running, running ? "Running the published game."
+                                               : "Game built; launch failed: " + error);
+        }
+        if (project && project->workspace.Project().id == game_build_project &&
+            project->workspace.Root() == game_build_root) {
+          progress.stage = published ? nexora::editor::GameBuildStage::Published
+                           : game_builder.Token().IsCancellationRequested()
+                               ? nexora::editor::GameBuildStage::Cancelled
+                               : nexora::editor::GameBuildStage::Failed;
+          ui.SetGameBuildProgress(std::move(progress));
+          ui.SetGameBuildStatus(false, published ? "Game built successfully." : error);
+        } else
+          ui.SetGameBuildStatus(false, "");
         log(published ? nexora::runtime::RuntimeLogSeverity::Info
                       : nexora::runtime::RuntimeLogSeverity::Warning,
             "Game Build", published ? "Standalone game published." : error);
@@ -2343,16 +2411,21 @@ int RunGraphical(std::optional<ProjectState> project,
         const bool game_action =
             request->action == nexora::editor::imgui::ProjectBuildSettingsAction::BuildSceneOnly ||
             request->action == nexora::editor::imgui::ProjectBuildSettingsAction::BuildScript ||
-            request->action == nexora::editor::imgui::ProjectBuildSettingsAction::CancelBuild;
+            request->action == nexora::editor::imgui::ProjectBuildSettingsAction::CancelBuild ||
+            request->action == nexora::editor::imgui::ProjectBuildSettingsAction::StopGame;
         if (game_action) {
 #if NEXORA_ASSET_PIPELINE_ENABLED
-          if (request->action == nexora::editor::imgui::ProjectBuildSettingsAction::CancelBuild) {
+          if (request->action == nexora::editor::imgui::ProjectBuildSettingsAction::StopGame) {
+            game_runner.Stop();
+            ui.SetGameRunStatus(game_runner.Busy(), "Stopping the published game.");
+          } else if (request->action ==
+                     nexora::editor::imgui::ProjectBuildSettingsAction::CancelBuild) {
             game_builder.Cancel();
             ui.SetGameBuildStatus(game_builder.Busy(),
                                   "Cancelling; waiting for build tools to stop.");
           } else if (request->project != project->workspace.Project().id ||
                      request->root != project->workspace.Root() || game_builder.Busy() ||
-                     play.State() != nexora::runtime::PlayState::Stopped ||
+                     game_runner.Busy() || play.State() != nexora::runtime::PlayState::Stopped ||
                      !project->workspace.Writable() || project->workspace.HasRecoveryJournal()) {
             ui.SetGameBuildStatus(game_builder.Busy(), "Game build scope is unavailable or busy.");
           } else if (active_scene().Dirty() && !allow_saved_build) {
@@ -2392,6 +2465,7 @@ int RunGraphical(std::optional<ProjectState> project,
               game_build_revision = content.Browser().Revision();
               game_build_script =
                   request->action == nexora::editor::imgui::ProjectBuildSettingsAction::BuildScript;
+              game_build_run_after = request->run_after_build;
               nexora::editor::GameBuildRequest operation;
               operation.project_root = game_build_root;
               operation.temporary_parent =
@@ -2404,6 +2478,9 @@ int RunGraphical(std::optional<ProjectState> project,
                   std::filesystem::path(std::u8string(request->path.begin(), request->path.end()));
               const bool started =
                   !output_error && game_build_document && game_builder.Start(std::move(operation));
+              if (started)
+                ui.SetGameBuildProgress(nexora::editor::ObserveGameBuildProgress(
+                    nexora::editor::GameBuildStage::Cooking));
               ui.SetGameBuildStatus(started, started
                                                  ? "Building saved project scenes in background..."
                                                  : "Could not start game build.");
@@ -2839,8 +2916,11 @@ int RunGraphical(std::optional<ProjectState> project,
               active_scene(), *viewport, ui.GetSceneOverviewCamera(), ui.GetNativeSceneOrbit(),
               *request, ui.NativeSceneLocalAxes(), ui.NativeSceneCenterPivot(),
               ui.GetNativeSceneTool(), *native_scene_meshes);
-          native_scene_drag_axis = request->additive ? std::nullopt : hit.axis;
-          native_scene_drag_plane = request->additive ? std::nullopt : hit.plane;
+          const bool additive = request->additive && !hit.axis && !hit.plane && !hit.scale_axis;
+          if (additive)
+            ui.CancelNativeSceneTransform();
+          native_scene_drag_axis = hit.axis;
+          native_scene_drag_plane = hit.plane;
           native_scene_drag_rotate =
               native_scene_drag_axis &&
               ui.GetNativeSceneTool() == nexora::editor::imgui::NativeSceneTool::Rotate;
@@ -2853,16 +2933,16 @@ int RunGraphical(std::optional<ProjectState> project,
             const bool already_selected =
                 std::find(active_scene().Selection().begin(), active_scene().Selection().end(),
                           *hit.entity) != active_scene().Selection().end();
-            if (request->additive || already_selected)
+            if (additive || already_selected)
               selection.assign(active_scene().Selection().begin(),
                                active_scene().Selection().end());
             const auto existing = std::find(selection.begin(), selection.end(), *hit.entity);
             if (existing == selection.end())
               selection.push_back(*hit.entity);
-            else if (request->additive)
+            else if (additive)
               selection.erase(existing);
             static_cast<void>(active_scene().Select(selection));
-          } else if (!hit.axis && !hit.plane && !request->additive) {
+          } else if (!hit.axis && !hit.plane && !hit.scale_axis && !additive) {
             static_cast<void>(active_scene().Select(std::span<const nexora::runtime::Id>{}));
           }
         }
@@ -3498,6 +3578,15 @@ int RunGraphical(std::optional<ProjectState> project,
     }
 #endif
     static_cast<void>(ui.EndFrame());
+    if (const auto theme = ui.TakeColorThemeRequest()) {
+      appearance_status.clear();
+      if (!nexora::editor::SaveEditorColorTheme(appearance_path, *theme, &appearance_status)) {
+        appearance_status = "Theme applied for this session; could not save: " + appearance_status;
+        std::cerr << appearance_status << '\n';
+      }
+      ui.SetColorTheme(*theme, appearance_status);
+    }
+
 #if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
     if (std::getenv("NEXORA_SOURCE_MARKER_TEST_GEOMETRY")) {
       using Access = nexora::editor::imgui::EditorImGuiTestAccess;
@@ -3616,6 +3705,14 @@ int RunGraphical(std::optional<ProjectState> project,
         if (point)
           geometry << ' ' << name << '=' << (*point)[0] * dpi << ',' << (*point)[1] * dpi;
       };
+      record("scene_select_tool",
+             Access::NativeSceneToolPosition(ui, nexora::editor::imgui::NativeSceneTool::Select));
+      record("scene_hand_tool",
+             Access::NativeSceneToolPosition(ui, nexora::editor::imgui::NativeSceneTool::Hand));
+      record("appearance_settings", Access::AppearancePosition(ui, 0));
+      record("appearance_menu", Access::AppearancePosition(ui, 1));
+      record("appearance_dark", Access::AppearancePosition(ui, 2));
+      record("appearance_light", Access::AppearancePosition(ui, 3));
       record("scene_select_all", Access::SceneSelectAllPosition(ui));
       record("diagnostic_consent", Access::DiagnosticPosition(ui, 0));
       record("diagnostic_clear", Access::DiagnosticPosition(ui, 1));
@@ -3697,8 +3794,18 @@ int RunGraphical(std::optional<ProjectState> project,
       using Access = nexora::editor::imgui::EditorImGuiTestAccess;
       static std::string previous_build_observation;
       std::ostringstream observation;
-      observation << "game build ui busy=" << Access::ProjectGameBuildBusy(ui);
-      for (std::size_t index = 0; index < 15; ++index)
+      observation << "game build ui busy=" << Access::ProjectGameBuildBusy(ui)
+                  << " running=" << Access::ProjectGameRunBusy(ui)
+                  << " diagnostics=" << Access::ProjectGameBuildDiagnosticCount(ui);
+#if NEXORA_ASSET_PIPELINE_ENABLED
+      const auto run_output = game_runner.Busy() ? game_runner.Snapshot().output : std::string{};
+      observation << " player_ready="
+                  << (run_output.find("player native ready: presented_frames=2") !=
+                      std::string::npos);
+#endif
+      if (const auto stage = Access::ProjectGameBuildStage(ui))
+        observation << " phase=" << static_cast<unsigned>(*stage);
+      for (std::size_t index = 0; index < 16; ++index)
         if (const auto position = Access::ProjectBuildSettingsPosition(ui, index))
           observation << " p" << index << '=' << (*position)[0] * dpi << ','
                       << (*position)[1] * dpi;
@@ -3822,6 +3929,11 @@ int RunGraphical(std::optional<ProjectState> project,
             *native_scene_meshes, materials, project_generation);
         ui.SetNativeScenePreviewAvailable(scene_status !=
                                           Nexora::Presentation::SurfaceStatus::Unsupported);
+        if (fallback_scene_overview &&
+            scene_status == Nexora::Presentation::SurfaceStatus::Unsupported) {
+          ui.SetNativeScenePreview(false);
+          fallback_scene_overview = false;
+        }
         if (scene_status == Nexora::Presentation::SurfaceStatus::Ready &&
             (!native_scene_viewport_reported || native_scene_viewport_reported->x != viewport->x ||
              native_scene_viewport_reported->y != viewport->y ||
@@ -4074,6 +4186,7 @@ int RunGraphical(std::optional<ProjectState> project,
   scene_merge_candidate.Shutdown();
 #if NEXORA_ASSET_PIPELINE_ENABLED
   game_builder.Shutdown();
+  game_runner.Shutdown();
 #endif
   static_export.Shutdown();
   build_process.Shutdown();
@@ -4206,6 +4319,7 @@ int Run(int argc, char **argv) try {
   bool graphical = false;
   bool read_only = false;
   bool native_scene_preview = false;
+  bool fallback_scene_overview = false;
   bool start_play = false;
   std::optional<std::string> gameplay_library;
   std::optional<std::string> create_project;
@@ -4264,8 +4378,11 @@ int Run(int argc, char **argv) try {
   }
 #if defined(NEXORA_EDITOR_GRAPHICAL_SHELL)
   // Choose the interactive default only after every explicit CLI option has been parsed.
-  if (!has_project && !create_project && report.empty())
+  if (!has_project && !create_project && report.empty()) {
     graphical = true;
+    fallback_scene_overview = !native_scene_preview;
+    native_scene_preview = true;
+  }
 #endif
   if (create_project) {
     if (has_project || read_only || create_project->empty() || !project_name ||
@@ -4335,10 +4452,12 @@ int Run(int argc, char **argv) try {
     return RunGraphical(std::move(project_state), recent_projects,
                         read_only ? nexora::editor::ProjectAccess::ReadOnly
                                   : nexora::editor::ProjectAccess::ReadWrite,
-                        frame_limit, native_scene_preview, gameplay_library, start_play, splash);
+                        frame_limit, native_scene_preview, gameplay_library, start_play, splash,
+                        fallback_scene_overview);
 #else
   static_cast<void>(frame_limit);
   static_cast<void>(native_scene_preview);
+  static_cast<void>(fallback_scene_overview);
 #endif
   if (!project_state) {
     std::cerr << "--project is required\n";

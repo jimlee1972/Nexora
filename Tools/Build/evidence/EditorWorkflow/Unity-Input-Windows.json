@@ -1,0 +1,531 @@
+{
+  "issue": "https://github.com/jimlee1972/Nexora/issues/759",
+  "beads": "nexora-mhh",
+  "status": "in_progress",
+  "source_base": "07afb671f61a0aaf5b52f8045bc716c765feef40",
+  "scope": "Native Windows/MSVC real ImGui event processing; no physical clean-host or complete workflow acceptance",
+  "toolchain": {
+    "cmake": "3.31.6-msvc6",
+    "msvc": "19.44.35228.0",
+    "configuration": "Development",
+    "backend": "DX12 ON, Vulkan OFF, graphical Editor ON, Showcase OFF, Cryptography unavailable/fail-closed"
+  },
+  "build": {
+    "command": "cmake --build build/editor-workflow-native --config Development --target NexoraEditor NexoraPlayInputStateTests NexoraPlayTwoDServicesTests NexoraPackagedPlayServicesTests --parallel 2",
+    "exit_code": 0,
+    "logs": [
+      {
+        "path": "build/editor-workflow-native/unity-input-services-final-build.log",
+        "bytes": 8556,
+        "sha256": "df0c0e5685a9c81179666bd10152c1bbe015f24e8259b2e079fa3cb6fbdc9c04"
+      }
+    ]
+  },
+  "ctest": {
+    "command": "ctest --test-dir build/editor-workflow-native -C Development -R '^editor\\.(imgui_contract|scene_mesh_frame_selection|native_scene_tools|scene_select_all|play_input_state|game_camera_selection|camera_scene_view_alignment|project_build_settings_ui|play_twod_services|packaged_play_services)$' --output-on-failure --output-junit unity-input-windows-services-final.xml",
+    "exit_code": 0,
+    "tests": 10,
+    "passed": 10,
+    "failed": 0,
+    "skipped": 0,
+    "elapsed_seconds": 76.65,
+    "cases": [
+      {
+        "name": "editor.imgui_contract",
+        "time_seconds": 26.7278,
+        "status": "passed"
+      },
+      {
+        "name": "editor.scene_mesh_frame_selection",
+        "time_seconds": 10.4418,
+        "status": "passed"
+      },
+      {
+        "name": "editor.native_scene_tools",
+        "time_seconds": 4.95398,
+        "status": "passed"
+      },
+      {
+        "name": "editor.scene_select_all",
+        "time_seconds": 10.4157,
+        "status": "passed"
+      },
+      {
+        "name": "editor.packaged_play_services",
+        "time_seconds": 0.184587,
+        "status": "passed"
+      },
+      {
+        "name": "editor.play_input_state",
+        "time_seconds": 6.70444,
+        "status": "passed"
+      },
+      {
+        "name": "editor.game_camera_selection",
+        "time_seconds": 4.43084,
+        "status": "passed"
+      },
+      {
+        "name": "editor.camera_scene_view_alignment",
+        "time_seconds": 6.71903,
+        "status": "passed"
+      },
+      {
+        "name": "editor.play_twod_services",
+        "time_seconds": 0.692538,
+        "status": "passed"
+      },
+      {
+        "name": "editor.project_build_settings_ui",
+        "time_seconds": 5.17941,
+        "status": "passed"
+      }
+    ],
+    "log": {
+      "path": "build/editor-workflow-native/unity-input-test-6.log",
+      "bytes": 1273,
+      "sha256": "caabcfdb96a78db6281ead8cbcb719b536051f1a99881b58a5c772235322b783"
+    },
+    "junit": {
+      "path": "build/editor-workflow-native/unity-input-windows-final.xml",
+      "bytes": 2048,
+      "sha256": "4296c87231eca624243996c536f4a2408c9e59fbfd9b68a3e150859e2d87d016"
+    },
+    "logs": [
+      {
+        "path": "build/editor-workflow-native/unity-input-services-final-tests.log",
+        "bytes": 1554,
+        "sha256": "6ddfffe5708a418e733a34cae5f185dde2e5dcc2fc5b72bb0a0d3f3edbcba70e"
+      },
+      {
+        "path": "build/editor-workflow-native/unity-input-windows-services-final.xml",
+        "bytes": 2594,
+        "sha256": "c7019c0b6a79284745c242ac2d23bd6eebf79b795caa026bcb20e6903b8dba42"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "path": "Apps/Editor/PlayInputState.h",
+      "bytes": 8676,
+      "sha256": "914ca40cc6b852a3bb355045399a893af94128fe341d806a6f62cd5beb929009"
+    },
+    {
+      "path": "Apps/Editor/PlayTwoDServices.h",
+      "bytes": 17394,
+      "sha256": "50ae58964c2864b142e1b30b05b7217dcf8d40f5e6122bb2db031404923c328e"
+    },
+    {
+      "path": "Apps/Editor/PrefabWorkflowEvidence.h",
+      "bytes": 2419,
+      "sha256": "6ef425937ee2c8058fad1c85df960b67e6b59775ced52d2f5eecf4e44cf23d0f"
+    },
+    {
+      "path": "Apps/Editor/main.cpp",
+      "bytes": 233212,
+      "sha256": "880176aa223c3442f2796cacf79cbcdf0cd2b85154b620b9d47454d950bc9079"
+    },
+    {
+      "path": "Engine/EditorImGui/include/Nexora/EditorImGui/EditorImGui.h",
+      "bytes": 31380,
+      "sha256": "653e6ac979b53f27a0a06503cc891238087186b55f2420dca31893a9c47ee7fe"
+    },
+    {
+      "path": "Engine/EditorImGui/src/EditorIcons.h",
+      "bytes": 17427,
+      "sha256": "d64a8e4c11fb7d7985cbf7dff68fc0e289b71c6592c2aeb193dea2a1b4aa3519"
+    },
+    {
+      "path": "Engine/EditorImGui/src/EditorImGui.cpp",
+      "bytes": 532239,
+      "sha256": "a3c942defc2e87b48f12e431265d018ce01250913f5d5a36ac59361bc4cb114e"
+    },
+    {
+      "path": "Engine/EditorImGui/src/EditorImGuiTestAccess.h",
+      "bytes": 32182,
+      "sha256": "fe3eebd21c16ed4d9737a424a856c1f4b7fe1c00a3e3756a37f9080542932f7d"
+    },
+    {
+      "path": "Engine/EditorImGui/src/SceneNavigation.inl",
+      "bytes": 5103,
+      "sha256": "1c712ab4525ad53437b964de15213e6346409198841d0ce24d1052c0a133e29f"
+    },
+    {
+      "path": "Tests/EditorImGui/CMakeLists.txt",
+      "bytes": 66077,
+      "sha256": "98de28598837bad8e87a2c44301cd98f4d37b2a32265c1011be60e98de8fd2eb"
+    },
+    {
+      "path": "Tests/EditorImGui/EditorImGuiTests.cpp",
+      "bytes": 87597,
+      "sha256": "828a12bbd4065ca8e7a4e36ffe14c14ee2a41b27863d88bb0d1983ff5855da32"
+    },
+    {
+      "path": "Tests/EditorImGui/LinuxNativeSceneCenter.py",
+      "bytes": 17569,
+      "sha256": "c2b28c9e4e66bd6fef6ee939b2925929dd0bff7cd3dd50a1401fc0124acff410"
+    },
+    {
+      "path": "Tests/EditorImGui/LinuxNativeScenePreview.py",
+      "bytes": 46846,
+      "sha256": "ec65165980e2eb451fa6ef9398244a88a6f6feaab80b8e1397abd3b25b3ec4b3"
+    },
+    {
+      "path": "Tests/EditorImGui/LinuxPlayHostMemory.py",
+      "bytes": 9987,
+      "sha256": "5475dcb59ecefeba3b92e82c291c4ffe5760e938c8c1ff4285e81226e32378a8"
+    },
+    {
+      "path": "Tests/EditorImGui/LinuxPrefabIsolation.py",
+      "bytes": 33106,
+      "sha256": "ba18f70652e5995fa17ae41a313425162c0f8502f7bbcb04e23ce1b1f7753ea9"
+    },
+    {
+      "path": "Tests/EditorImGui/NativeSceneToolTests.cpp",
+      "bytes": 19317,
+      "sha256": "2375cb5dd92b90a966bc6a2077be6fe455c693f2e48a6c1d15946baf108f5aa8"
+    },
+    {
+      "path": "Tests/EditorImGui/PlayInputStateTests.cpp",
+      "bytes": 24918,
+      "sha256": "f7aa566df7b16369c0fb64764c4f7c8576b6b48a8793e4e72652f29598044482"
+    },
+    {
+      "path": "Tests/EditorImGui/PlayTwoDServicesTests.cpp",
+      "bytes": 23808,
+      "sha256": "76b64db1e63fb6e460c4a737fa38fa13ed3540ec6b4d06c13ffef6664c7941eb"
+    },
+    {
+      "path": "Tests/EditorImGui/ProjectBuildSettingsTests.cpp",
+      "bytes": 10090,
+      "sha256": "657ae24638823e587d854d0f9934fd0726dfa94617376faa1465adc565ea3ca5"
+    },
+    {
+      "path": "Tests/EditorImGui/SceneFrameTests.cpp",
+      "bytes": 24483,
+      "sha256": "d1eb423ed72cb1aef6a8a2f17970404a87fff12f2789f93556bed92ce5a9c7d4"
+    }
+  ],
+  "binaries": [
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraEditor.exe",
+      "bytes": 2445312,
+      "sha256": "745ca91e8ae7d858c56b7078877b5a3a2c1d8c274f74eb273fbf952144d7c1d6"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraEditorImGui.dll",
+      "bytes": 2807296,
+      "sha256": "e0c91f5657e3cc2ac0210882d2ec367930e2ab9e6eabb61216eb78544116eb6e"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraEditorSceneFrameTests.exe",
+      "bytes": 363008,
+      "sha256": "65cb4cf94a722b6d0b95aa8589711b2df32836f0241f4636b873c9db1583f75d"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraNativeSceneToolTests.exe",
+      "bytes": 180736,
+      "sha256": "6e20dbcae235a5863b3313e79a16e7a59fac4e7ebc6d5c783bad9628b5c557f7"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraPackagedPlayServicesTests.exe",
+      "bytes": 758784,
+      "sha256": "43cf0eef8f3bc594432914105ac41af1e8a122c0e15bc64ea4cdbe4844936610"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraPlayInputStateTests.exe",
+      "bytes": 118272,
+      "sha256": "3bb59f67ba4faa26cc5f42d1cccbe68e4cfd78c0aedba5d70a4d20aae865339c"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraPlayTwoDServicesTests.exe",
+      "bytes": 713728,
+      "sha256": "6622b900ad3ffa1bda698bf59664a803c20a5661e3388479e92209d01d9bfbce"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraProjectBuildSettingsUiTests.exe",
+      "bytes": 186880,
+      "sha256": "6710d4eb7a73c6967311bb4cf2ca805311406635fa3c84842b8c5667e47501f0"
+    }
+  ],
+  "resolved_failures": [
+    {
+      "attempt": "unity-input-test-1.log",
+      "failure": "Select toolbar did not select",
+      "resolution": "Synthetic test released the pointer after moving off the button; corrected real pointer release order, retained selection assertions."
+    },
+    {
+      "attempt": "unity-input-test-2.log",
+      "failure": "Unity Play chord was lost, duplicated, or bypassed admission",
+      "resolution": "Existing Prefab isolation intercepted Ctrl+Alt+P; moved Prefab to Ctrl+Alt+Shift+P and retained reserved Step chord tests."
+    },
+    {
+      "attempt": "unity-input-test-5.log",
+      "failure": "text input changed the Scene tool; 7/8 passed, exit8",
+      "resolution": "Global tool handling originally ran before widgets established same-frame text ownership. Resolve ordinary global tool keys after widgets; retain Scene initial-click ordering. Original Inspector text assertion now passes at both DPIs."
+    },
+    {
+      "attempt": "unity-input-aux-text-test-2.log",
+      "failure": "A late auxiliary InputText acquired ownership but W still selected Move.",
+      "resolution": "Resolve ordinary global tools at EndFrame after all windows; retained real first-activation and character assertions at 1x/2x."
+    },
+    {
+      "attempt": "unity-input-macos-99db-failure.log",
+      "failure": "Native macOS Game capture dropped Command+P.",
+      "resolution": "Forward Ctrl/Super P chords and all modifier releases; both native policies at both DPIs, release-before-P and P-bound game action consumption tested locally. New macOS CI remains required."
+    },
+    {
+      "attempt": {
+        "path": "build/editor-workflow-native/unity-input-twod-repro-test.log",
+        "bytes": 574,
+        "sha256": "218ff9bbccb163664a5290a0504d4ff0212c439a49136d65bce95b25b7fecb12"
+      },
+      "failure": "Actual 2D services Input API fired a P-bound game action for reserved Ctrl/Command+P; original CTest exit8,0.36s.",
+      "resolution": "Shared Editor-only filter across both providers; real services bindings verify both modifiers, modifier-release repeat, discarded acquisition, physical release/recovery, reserved F5/F6/F10, ordinary F2 and focus revocation across 32 clone lifetimes. Current case passed0.69s; original animation/pool/source-isolation checks retained."
+    }
+  ],
+  "pending": [
+    "Full exact-source Codex Cloud development configure/build/CTest",
+    "Applicable linux-shipping and final-head CI",
+    "Actual native Linux Scene/Prefab interaction tests with changed shortcuts",
+    "Integrated final Editor ZIP extraction and relocation",
+    "Actual native no-argument 3D default/unsupported-backend fallback startup gate"
+  ],
+  "workflow_acceptance": "ED-WF-01 through04 accepted:4/9; supporting input work does not alter denominator",
+  "source_state": "Base plus uncommitted shared Play input admission repairs; exact source hashes below. Scoped native Windows evidence; complete final-head acceptance pending.",
+  "superseded_cloud_candidate": {
+    "commit": "99db277558cb2616850aca9503819e88f99060ff",
+    "tree": "567096d379e786011e5893055d835ee08507ce03",
+    "registered": 495,
+    "passed": 492,
+    "failed": 3,
+    "skipped": 0,
+    "development_exit_codes": [
+      0,
+      0,
+      8
+    ],
+    "shipping_exit_codes": [
+      1,
+      1
+    ],
+    "archive": "/workspace/validation-759-evidence.tar.gz",
+    "archive_bytes": 414063,
+    "archive_sha256": "2fe20c077a83033779ad09dc47f358186e1657952ca4af5aaec939b69b2f01d0",
+    "status": "Failed, preserved; not accepted or merged"
+  },
+  "superseded_macos_failure": {
+    "job_id": 124756081826,
+    "log": {
+      "path": "build/editor-workflow-native/unity-input-macos-99db-failure.log",
+      "bytes": 792584,
+      "sha256": "9672360c418e6847ec11a1940e262c636cc86dfcb09032c9dd4a7f9fd669affa"
+    },
+    "status": "Failed; native macOS rerun on repaired source required"
+  },
+  "shipping_scope": "Supported existing Shipping Runtime/Player only, graphical Editor OFF. Development compiles/links/tests graphical Editor. Initial invalid Shipping Editor-ON failure remains recorded.",
+  "superseded_windows_package": {
+    "status": "SCOPED_PASS_NOT_FINAL_DELIVERY",
+    "source": "07afb671f61a0aaf5b52f8045bc716c765feef40",
+    "run_id": 41278357330,
+    "job_id": 124765029827,
+    "artifact_id": 13071669709,
+    "wrapper": {
+      "path": "build/editor-workflow-native/NexoraEditor-07afb671-CI-wrapper.zip",
+      "bytes": 110312074,
+      "sha256": "82247ac08235df8f9af37598f7727b43222d2b4a31c0e5719b32023a9be7f61f"
+    },
+    "editor_zip": {
+      "path": "build/editor-workflow-native/NexoraEditor-Windows-x64-07afb671f61a.zip",
+      "bytes": 115761001,
+      "sha256": "5bfdb6ebb47fac900906a7e319184e8bfb3bba306b7a5973da4df8adc8d0cdb6"
+    },
+    "decoded_job_log": {
+      "path": "build/editor-workflow-native/unity-input-windows-package-07afb-success.log",
+      "bytes": 166386,
+      "sha256": "e9b38b24db22ab598d1442c23050fcae0f82b88d4f8d4e47ba8d7a8629feb0df"
+    },
+    "startup_brand_entry_ctest": {
+      "registered": 5,
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "elapsed_seconds": 19.45,
+      "exit_code": 0
+    },
+    "hosted_extracted_relocation": {
+      "result.json": {
+        "status": "PASS",
+        "platform": "Windows native process",
+        "editor_subsystem": "Windows GUI (2)",
+        "console_attached": false,
+        "game_build": true,
+        "extracted_editor_play": true,
+        "no_argument_startup": true,
+        "no_argument_game": true,
+        "physical_host_acceptance": "NOT_RUN"
+      },
+      "relocation.json": {
+        "temporary_path": "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\Nexora relocated \u9670\u967d kn8pbnau",
+        "canonical_root": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\Nexora relocated \u9670\u967d kn8pbnau",
+        "working_directory": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\Nexora relocated \u9670\u967d kn8pbnau\\empty working directory"
+      },
+      "no-argument-startup/result.json": {
+        "status": "PASS",
+        "launches": [
+          {
+            "argv": [],
+            "normal_recent_store": true,
+            "events": [
+              "splash-show",
+              "main-create-observed",
+              "main-show"
+            ],
+            "splash_responsive_probes": 310,
+            "main_responsive": true,
+            "foreground_input": true,
+            "white_fraction": 0.04788289018590575,
+            "normal_close_exit": 0,
+            "orphan_windows": false
+          },
+          {
+            "argv": [],
+            "normal_recent_store": true,
+            "events": [
+              "splash-show",
+              "main-create-observed",
+              "main-show"
+            ],
+            "splash_responsive_probes": 294,
+            "main_responsive": true,
+            "foreground_input": true,
+            "white_fraction": 0.04788289018590575,
+            "normal_close_exit": 0,
+            "orphan_windows": false
+          }
+        ],
+        "startup_timeout_seconds": 35,
+        "message_timeout_ms": 500,
+        "shutdown_timeout_seconds": 10
+      },
+      "no-argument-game/result.json": {
+        "status": "PASS",
+        "argv": [],
+        "creationflags": 0,
+        "subsystem": 2,
+        "private_player_matches": true,
+        "standard_handles_absent": false,
+        "console_attached": false,
+        "response_probes": 3,
+        "window_observations": [
+          {
+            "pid": 3540,
+            "class": "Nexora.Window",
+            "visible_windows": 1
+          }
+        ],
+        "child_processes": [],
+        "normal_close_exit": 0,
+        "runtime": {
+          "status": "RENDERED_GAME_PACKAGE",
+          "native_rendering": true,
+          "start_scene": "00000000-0000-0001-0000-000000000002",
+          "active_scene": "00000000-0000-0001-0000-000000000002",
+          "camera": "2",
+          "gameplay_loaded": true,
+          "gameplay_updates": 7,
+          "scene_commits": 1,
+          "rejected_requests": 0,
+          "scene_records": 1,
+          "instances": 1,
+          "stored_entities": 2,
+          "presented_frames": 8,
+          "scene_draw_calls": 8,
+          "geometry_residency_available": true,
+          "geometry_uploads": 1,
+          "geometry_hits": 7,
+          "geometry_native_bytes": 65536,
+          "geometry_cpu_bytes": 150,
+          "scene_texture_uploads": 3,
+          "software_rasterizer": false,
+          "drained": true
+        }
+      },
+      "no-argument-game-no-streams/result.json": {
+        "status": "PASS",
+        "argv": [],
+        "creationflags": 0,
+        "subsystem": 2,
+        "private_player_matches": true,
+        "standard_handles_absent": true,
+        "console_attached": "entry separately verified",
+        "response_probes": 15,
+        "window_observations": [
+          {
+            "pid": 524,
+            "class": "Nexora.Window",
+            "visible_windows": 1
+          }
+        ],
+        "child_processes": [],
+        "normal_close_exit": 0,
+        "runtime": {}
+      }
+    },
+    "build_info": {
+      "schema": 1,
+      "source_commit": "07afb671f61a0aaf5b52f8045bc716c765feef40",
+      "configuration": "Development",
+      "architecture": "x64",
+      "backend": "DX12",
+      "build_testing": true,
+      "game_build_tools": {
+        "runtime_files": 13,
+        "cmake": "Tools/cmake/bin/cmake.exe",
+        "ninja": "Tools/ninja.exe",
+        "zig": "Tools/zig/zig.exe",
+        "resources": "Compiler standard libraries and CMake modules; no Nexora/game source checkout"
+      }
+    },
+    "entries": 23783,
+    "non_tool_engine_or_game_source_files": [],
+    "root_executables": [
+      "NexoraEditor-Windows-x64/NexoraEditor.exe"
+    ],
+    "private_executables": [
+      "NexoraEditor-Windows-x64/Runtime/NexoraProjectPlayer.exe",
+      "NexoraEditor-Windows-x64/Tools/ninja.exe",
+      "NexoraEditor-Windows-x64/Tools/cmake/bin/cmake.exe",
+      "NexoraEditor-Windows-x64/Tools/zig/zig.exe"
+    ],
+    "scope": "Hosted native Windows DX12/package proof; physical host NOT_RUN. Complete exact-head CI/Cloud and remaining workflow/Sprite orders still pending. Compiler standard-library and CMake modules are required private SDK resources, not an engine/game source checkout.",
+    "local_zip_integrity": {
+      "source": "07afb671f61a0aaf5b52f8045bc716c765feef40",
+      "status": "PASS",
+      "hashed_files": 22697,
+      "uncompressed_bytes_verified": 403104892,
+      "uninventoried_files": [],
+      "invalid_paths": [],
+      "elapsed_seconds": 5.273,
+      "scope": "Downloaded inner ZIP manifest/hash/CRC/path integrity only; no local GUI or final workflow acceptance."
+    }
+  },
+  "superseded_shader_download_failure": {
+    "source": "07afb671f61a0aaf5b52f8045bc716c765feef40",
+    "workflow_run_id": 41278360329,
+    "job_id": 124765137921,
+    "job_name": "modern-shaders-preview",
+    "failure": "PrepareD3D12Preview.py SDK network download: urllib.error.URLError / WinError10060 connection timeout before compile",
+    "original_log": {
+      "path": "build/editor-workflow-native/unity-input-shader-download-07afb-failure.log",
+      "bytes": 57362,
+      "sha256": "76622f271f7ade4d971d347a6955edca78d23eca842d442493add1a61226772d"
+    },
+    "retry_request": {
+      "status": "rejected_not_queued",
+      "http": 403,
+      "message": "The workflow run containing this job is already running"
+    },
+    "next_action": "Superseded source; preserve its original failure. Require successful shader job on final repaired source; do not retry obsolete source for merge."
+  }
+}

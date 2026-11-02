@@ -1,5 +1,63 @@
 # Nexora Editor
 
+## Unity-style Editor input (issue #759)
+
+Supported input changes are validated and merged in [PR #760](https://github.com/jimlee1972/Nexora/pull/760).
+See [acceptance evidence](../../Tools/Build/evidence/EditorWorkflow/Unity-Input.md) for Cloud,
+native Windows/macOS CI, package checks, and the remaining final workflow delivery scope.
+
+| Context | Input | Behavior |
+| --- | --- | --- |
+| Editor tools | Q / W / E / R | Hand / Move / Rotate / Scale |
+| Editor tools | X / Z | Global-local axes / Pivot-center; P remains a pivot alias |
+| Native Scene | Alt + left drag | Orbit the selection/view pivot |
+| Scene | Middle drag; Space + left drag; Alt + Ctrl + left drag | Pan in the view plane |
+| Native Scene | Right drag | Look around without moving the eye |
+| Native Scene | Hold right + WASD / QE | Fly forward-back-left-right / down-up; Shift accelerates |
+| Native Scene | Wheel while holding right | Adjust fly speed; release right to wheel zoom |
+| Scene | Alt + right drag | Dolly zoom (overview zooms its orthographic scale) |
+| Transform handle | Hold Ctrl while dragging | Incremental movement/rotation/scale snapping; ordinary Ctrl/Shift-click toggles selection |
+| Scene | F / Shift + F / Home | Frame selected / follow selection / frame all (follow is native-preview only) |
+| Overview | Q + left drag; right or middle drag | Pan the existing X/Z overview; wheel zooms |
+| Editor | Ctrl + P / Ctrl + Shift + P / Ctrl + Alt + P | Play-stop / pause-resume / step |
+| Editor | Ctrl + N / O / S / Shift + S | New scene / open / save / save as |
+| Editor | Ctrl + Z / Y; Ctrl + Shift + Z | Undo / redo |
+| Editor | Ctrl + Shift + N / Ctrl + D / Delete | Create object / duplicate / delete |
+| Editor | Ctrl + 1 / 2 / 3 / 4 / 5 | Focus Scene / Game / Inspector / Hierarchy / Project |
+| Editor | Ctrl + Shift + C / Ctrl + R | Focus Console / refresh Project files |
+| Editor | Ctrl + Shift + B / Ctrl + B | Build Settings / Build & Run with current saved settings |
+
+F5/F6/F10 remain compatible Play aliases. Prefab isolation moves to Ctrl+Alt+Shift+P so it no
+longer intercepts Unity's Step chord. Existing Save/Discard/Cancel and build ownership still apply.
+Tool shortcuts are global across Editor panels when no text/item edit or gesture owns input.
+Ordinary global tool keys resolve in `EndFrame`, after auxiliary windows also establish ownership;
+observe their tool state after that call. Scene initial-click keys still resolve before pick/drag.
+Only a per-frame admission bit is retained, with no scene/document borrow or repeated-EndFrame action.
+Camera navigation belongs to the Scene canvas. Commands retain application focus, text input,
+modal and Game capture admission. Normal no-project interactive startup chooses the native 3D
+Scene view, falling back to the overview when the backend reports Unsupported. Explicit native
+preview requests keep their unavailable status; explicit project CLI workflows retain their preview
+selection. The legacy overview edits positions with Move; it never translates through Rotate/Scale.
+Navigation never changes selection, scene bytes, or undo history. Native picking cancels tentative
+Ctrl/Shift drags that hit no transform handle through `CancelNativeSceneTransform` in the issuing GUI
+frame; the application owns actual hit testing and scene mutations. Read-only camera navigation works.
+Play chords remain available while Game captures input; unrelated authoring chords do not.
+The native macOS shortcut policy uses Command for the primary action modifier. Captured
+Ctrl/Command releases are forwarded even while P is held; a reserved Play press cannot also fire
+a game action bound to P, including autorepeat after the modifier is released.
+Legacy snapshots and the 2D services Input API share the same Editor-only filter. It remembers
+reserved P consumption even in discarded capture-acquisition batches; F5/F6/F10 are also reserved,
+while ordinary P after release and nonreserved function keys remain available to games.
+
+This aligns supported commands and view navigation. Rect/combined Transform tools, vertex snapping,
+Scene orientation widget, a new XY 2D authoring mode, and maximized-view layout are not implemented
+by mapping keys. Existing orthographic overview remains X/Z; camera distance is bounded 2-100 world
+units, pitch -1.55 to +1.55 radians and position +/-100,000. Fly speed is session-local (0.1-1000
+units/sec); existing per-scene camera persistence keeps pose and framing, with no scene format change.
+
+Reference: [Unity Scene view navigation](https://docs.unity3d.com/6000.0/Documentation/Manual/SceneViewNavigation.html).
+
+
 Windows graphical builds use the GUI subsystem and Unicode wWinMain entrypoint, so opening the
 Editor from Explorer creates no command console. CLI arguments and redirected stdout/stderr still
 use the common command path. Console-only builds retain wmain. The opt-in
@@ -11,6 +69,18 @@ and Save Build Settings. Reload Saved Settings discards the draft and rereads di
 scenes use their persistent UUID; an externally added Content file must be imported/opened before
 enrollment. Opening another Scene never changes the game's startup selection. The startup scene
 must remain enabled. Read-only/recovery and external settings changes are protected.
+Build mode, project-relative manifest and output folder are saved by Save Build Settings and
+restored on Reload/project reopen. Legacy scene-only settings remain compatible; a custom build
+configuration uses schema 2. Save or Reload the draft before building. Build & Run continues the
+same saved-scene decision and build transaction, then launches the published Game directly with
+no arguments and its output directory as working directory. Stop Game, project replacement and
+Editor shutdown stop/drain the owned game process group. Rebuilding that output is disabled while
+the owned game is running. Build failures/cancellation/stale sources preserve the prior output.
+Actual worker phases and bounded compiler locations/messages appear in the settings window;
+Build output expands a bounded sanitized tail. No percentage or gameplay success is inferred
+from a running compiler or a completed build. See the [workflow delivery plan](../../Roadmap/en/Editor_Workflow_Delivery_Plan.md)
+for the remaining integration and platform acceptance.
+
 These settings feed the accepted [multi-scene game delivery](../../Roadmap/en/Project_Scene_Delivery_Plan.md)
 producer and Play path. Export StaticView remains a separate command for the current Scene.
 
@@ -22,6 +92,12 @@ NexoraEditor --build-game=PROJECT --output=OUTPUT --runtime-profile=PROFILE --sc
 ```
 
 OUTPUT's parent must exist. All profile/tool options may be omitted to use the Editor installation.
+The exported folder contains runtime files and LICENSE only. Development records/inventory stay
+in engine user data; the CLI returns separate `receipt` and `records` JSON paths. An optional
+`--build-records=PATH` is a trusted host override outside the project/game, useful for isolated build
+agents. Games run without those records, including after relocation; replacing an existing clean
+output requires its unchanged receipt. Verified legacy inventory-bearing outputs migrate safely;
+foreign/changed files reject, and a receipt commit failure rolls back the game directory.
 PROFILE is the trusted installed native Player's `GameRuntime.profile`;
 script manifests for this producer live inside a dedicated project-relative source directory.
 This command captures saved settings/scenes, runs the same engine cooker/SDK adapter and guarded
@@ -220,7 +296,8 @@ wait for GPU work before releasing it. Native call-tracing/pixel tests cover reu
 Authored geometry uses exact sheared world matrices. [Scalar opaque PBR materials](#authored-scalar-pbr-scene-materials)
 now execute in Scene View; complete texture/shader workflows, persistent per-asset GPU caching and
 full Scene View acceptance remain open.
-Right drag orbits the preview camera, middle drag pans its X/Z target, the wheel zooms, and F or
+Alt+left drag orbits the preview camera, middle drag pans in its view plane, right drag looks around
+with WASD/QE flight, the wheel zooms (or changes flight speed), and F or
 Frame selected centers on selected forests in X/Y/Z, using exact world-transformed mesh bounds
 and rotated proxy bounds, including descendants once. The narrower horizontal/vertical viewport
 FOV determines distance (2–100 world units); F and the button use the same current framebuffer
@@ -237,15 +314,16 @@ real 1x/2x tests verify the workflow. The X/Z target persists with the
 overview camera; target height, orbit angle, and distance persist in a separate per-scene camera file on
 writable shutdown. Invalid camera files are preserved for inspection.
 
-Native Scene X toggles existing Global/Local axes (Scale keeps Local); P toggles Pivot/Center.
-Focused canvas shortcuts resolve before same-frame click/drag setup and wait during held or pending
-gestures. Modifier/text/modal/focus gates preserve authoring; read-only mode navigation is available.
-Home/P center gestures now share Q/W/E/R's real-hover guard. Real 1x/2x input and Linux Xvfb proxy/OBJ
+Native Scene X toggles existing Global/Local axes (Scale keeps Local); Z/P toggles Pivot/Center.
+Q/W/E/R and mode keys work across Editor panels when no text/item edit, modifier, modal, Game
+capture or gesture owns input. Initial Scene-click shortcuts resolve before picking/drag setup;
+ordinary global keys resolve at EndFrame after auxiliary windows establish ownership. Home requires
+Scene navigation ownership; read-only mode navigation remains available. Real 1x/2x input and Linux Xvfb proxy/OBJ
 center gestures verify unchanged history and one-step Undo; full gizmo target-host acceptance stays open.
 
 Move now adds paired-color XY/XZ/YZ plane handles in Global or Local axes, at the existing Pivot/Center.
 Drawing and picking share numeric boxes; a hit captures both axes and retains selection. Explicit planes
-override Shift's free-drag Y mode. Preview/release share bounded ray-plane intersections and per-plane-axis
+override the free-drag plane. Ctrl/Shift-click on ordinary geometry toggles selection; use the Y handle for vertical movement. Preview/release share bounded ray-plane intersections and per-plane-axis
 world-unit snapping, then one generation-checked selected-root translation. Scale/Rotate remain separate;
 Escape and existing focus/modal gates cancel without authoring. Numeric helpers own no World/GPU data.
 Contract tests cover snapping, malformed rays, mirrored/nonuniform parents, descendants and Redo/Undo;
@@ -259,9 +337,9 @@ clear selection; stale, malformed, duplicate or over-budget packets preserve it.
 candidate cap excludes invisible tails. Read-only projects work. Text/modal/focus/backend and
 active/pending-drag gates protect the action; same-frame native framing waits for a later input.
 Real 1x/2x, 4,001-node and native proxy/OBJ inputs verify the workflow without source IO.
-Select (Q) removes all transform handles from native drawing and picking and suppresses transform
-preview/commit requests, while ordinary and Ctrl-toggle entity picking remain available. W/E/R return
-to Move/Rotate/Scale. Tool keys require focused Scene/canvas input and respect text/modal/focus and
+Select (toolbar) removes all transform handles from native drawing and picking and suppresses transform
+preview/commit requests, while ordinary and Ctrl/Shift-toggle entity picking remain available. W/E/R return
+to Move/Rotate/Scale. Tool keys work across Editor panels and respect text/item edit, Game capture, modal/focus and
 active/pending-drag guards; keyboard navigation after Home does not mask the actual canvas hover.
 Read-only picking works. Real 1x/2x input and native proxy/OBJ saved-byte tests cover this path.
 Left click selects the nearest visible position proxy using a viewport ray against its drawn
@@ -648,7 +726,7 @@ hierarchy composition as commit. Rotated and nonuniform ancestors therefore prod
 prospective and committed proxy poses, including unselected descendants; Escape only discards the
 preview snapshot.
 
-The native canvas offers Center pivot (P). Pivot rotates/scales each selected root in place;
+The native canvas offers Center pivot (Z; P alias). Pivot rotates/scales each selected root in place;
 Center places handles at the mean selected-root origin and rotates/scales root offsets around that
 point. Selected descendants do not weight the center twice, and local axes follow the first selected
 root rotation. Tool, axes, pivot, and camera controls stay fixed during a left-button gesture.
@@ -1602,3 +1680,15 @@ outer timeout. The packager repeats this against staged and actually extracted i
 alongside the existing shipped-tools Build/Play, CLI, exact resources and source-preservation gates.
 Hosted results do not establish physical multi-monitor, desktop taskbar or clean-host acceptance.
 See [assets](../../Assets/Brand/README.md) and [evidence](../../Tools/Build/evidence/NexoraBrandStartup-2026-10-27.md).
+
+## Appearance
+
+Choose **Settings > Appearance > Dark / Light** to switch the whole Editor interface immediately.
+The neutral gray surfaces and blue selection/focus accents are inspired by Unity Editor. Dark is the
+initial default; the user preference survives restart and project changes, including read-only
+projects. Settings are stored in `appearance` beside the user recent-project list, never in scene or
+project files. A save failure leaves the session theme active and displays a warning in Appearance;
+choose the same theme again to retry. Before the first frame and after surface recreation, the
+application supplies the actual UI attachment encoding from `SurfaceDiagnostics` to the ImGui
+host. This keeps Windows/Metal UNORM and Vulkan sRGB targets at the same intended palette gray
+levels without changing the mixed Scene/Game surface or asset colors.

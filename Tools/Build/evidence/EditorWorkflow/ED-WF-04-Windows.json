@@ -1,0 +1,404 @@
+{
+  "status": "IN_PROGRESS_NOT_ACCEPTED",
+  "work_order": "ED-WF-04",
+  "pull_request": "https://github.com/jimlee1972/Nexora/pull/758",
+  "candidate_commit": "9547cc8afa1e4c69d5dd79b5e54e5c358cf152da",
+  "candidate_tree": "3f9ae84f244ee7e4e27e1007cdfa4a569c9d98f9",
+  "integration_base": "a21c1ca2293e4200de8dcaa4b892ffef34687c9c",
+  "scope": "Windows x64 existing developer host; scoped native Runtime/Editor services, CPU UI and GDI splash tests. Not complete Windows suite, interactive startup/input, physical display or clean-host acceptance.",
+  "build": {
+    "configuration": "Development",
+    "generator": "Visual Studio 17 2022",
+    "dx12": true,
+    "vulkan": false,
+    "zig_gameplay": true,
+    "graphical_editor": true,
+    "showcase": false,
+    "cryptography": "Unavailable provider; fails closed",
+    "target_count": 21,
+    "exit_code": 0,
+    "log": "ed-wf04-encoding-consumer-build-attempt1.log",
+    "sha256": "ced8a642755a24f367e841f68c0cc39a3031bb0f7fd658ab72b3f5b9a1ea40d3"
+  },
+  "gate": {
+    "log": "ed-wf04-default-desktop-core-regression-attempt2.log",
+    "sha256": "286b50fcb49d705d50a5213915cf786c6d3b861d1d9a50b21d83cceeaef3b869",
+    "exit_code": 0,
+    "registered": 21,
+    "passed": 21,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 166.08,
+    "desktop": "Default",
+    "cases": [
+      {
+        "name": "gameplay.zig_abi_smoke",
+        "seconds": 0.06
+      },
+      {
+        "name": "runtime.gameplay_module_host",
+        "seconds": 0.07
+      },
+      {
+        "name": "runtime.gameplay_reload_transaction",
+        "seconds": 0.08
+      },
+      {
+        "name": "runtime.dynamic_gameplay_module",
+        "seconds": 0.66
+      },
+      {
+        "name": "runtime.zig_reload_transaction",
+        "seconds": 10.43
+      },
+      {
+        "name": "gameplay.zig_game_script_adapter",
+        "seconds": 4.82
+      },
+      {
+        "name": "gameplay.zig_script_project",
+        "seconds": 131.64
+      },
+      {
+        "name": "editor.windows_startup_splash",
+        "seconds": 1.04
+      },
+      {
+        "name": "editor.play_gameplay_module",
+        "seconds": 0.08
+      },
+      {
+        "name": "editor.packaged_play_services",
+        "seconds": 0.18
+      },
+      {
+        "name": "editor.play_diagnostics",
+        "seconds": 0.1
+      },
+      {
+        "name": "editor.play_host_allocations",
+        "seconds": 0.08
+      },
+      {
+        "name": "editor.play_debug_lines",
+        "seconds": 0.16
+      },
+      {
+        "name": "editor.core_console_ingress",
+        "seconds": 0.08
+      },
+      {
+        "name": "editor.play_scene_services",
+        "seconds": 0.17
+      },
+      {
+        "name": "editor.play_physics_services",
+        "seconds": 0.31
+      },
+      {
+        "name": "editor.play_mesh_assets",
+        "seconds": 0.08
+      },
+      {
+        "name": "editor.play_twod_services",
+        "seconds": 0.54
+      },
+      {
+        "name": "editor.game_twod_preview",
+        "seconds": 5.98
+      },
+      {
+        "name": "editor.appearance_1x",
+        "seconds": 4.55
+      },
+      {
+        "name": "editor.appearance_2x",
+        "seconds": 4.72
+      }
+    ]
+  },
+  "reload": {
+    "real_zig_replacements": 32,
+    "expected_candidate_rejections": 224,
+    "worker": "Real old-generation Zig function held under a work lease, completed before capture",
+    "state": "Counter and scene/entity handles retained; old version callable after every rejected candidate",
+    "retirement": "Stop and native static destructor isolation, old DLL unload and balanced allocations verified"
+  },
+  "retained_failures": [
+    {
+      "log": "ed-wf04-native-editor-regression-attempt1.log",
+      "exit_code": 8,
+      "passed": 16,
+      "failed": 1,
+      "seconds": 334.04,
+      "reason": "Current-main theme startup image too dark; palette/secondary contrast repair follows."
+    },
+    {
+      "log": "ed-wf04-current-main-core-regression-attempt1.log",
+      "exit_code": 1,
+      "passed": 20,
+      "failed": 1,
+      "seconds": 197.32,
+      "reason": "Splash capture on isolated desktop; unchanged full 21-test gate then passed on Default."
+    },
+    {
+      "log": "ed-wf04-theme-startup-repair-attempt1.log",
+      "exit_code": 1,
+      "reason": "Foreground occlusion plus new CPU fixture initial-theme setup; original assertions retained."
+    },
+    {
+      "log": "ed-wf04-theme-startup-repair-attempt2.log",
+      "exit_code": 1,
+      "seconds": 8.5,
+      "reason": "Occluded SHOW-event capture."
+    },
+    {
+      "log": "ed-wf04-theme-startup-repair-attempt3.log",
+      "exit_code": 1,
+      "passed": 2,
+      "failed": 1,
+      "seconds": 36.35,
+      "reason": "Foreground/input failed; capture was another application. No genuine Editor scanout inferred."
+    }
+  ],
+  "separate_splash_retry": {
+    "log": "ed-wf04-default-desktop-splash-attempt1.log",
+    "exit_code": 0,
+    "passed": 1,
+    "seconds": 1.04
+  },
+  "pending": [
+    "Exact-head full Codex Cloud Development configure/build/CTest",
+    "Cloud linux-shipping configure/build",
+    "Usable local interactive startup/input evidence",
+    "Editor background compile/reload coordination in ED-WF-05",
+    "Sprite/animation/pool integration in ED-WF-06 through ED-WF-09",
+    "Final verified Editor ZIP",
+    "Remaining complete exact-head CI; separate Windows package verification passed (see ED-WF-04-Windows-CI.json)"
+  ],
+  "binary_sha256": {
+    "NexoraEditor.exe": "11dcd16893892b42bb54cd6c110db4bfa6a2972db64b6ad91dead92745958ec2",
+    "NexoraProjectPlayer.exe": "f16cee941e51e0c6a1ca66dd7b00bcaaffba0d371e78135177c94e3d3c13a5b1",
+    "NexoraRuntime.dll": "0e5fc085e3068dcb8854dff5ef05d20fac51da36a209e294d1bb5271e432e979",
+    "NexoraEditorImGui.dll": "d4744f8443c349d93008d601fca977b1ef3e522fe9027e279b54248c7fd4f8d2",
+    "NexoraPresentation.dll": "8ab14a5344307b3d42942485102469eae87ba507d4cdefdc65b4170a6bde4eb4",
+    "NexoraZigReloadTransactionTests.exe": "b0c120493ea860b5add77d882a0552f09e1d957729be4775c8503645701ef4da",
+    "NexoraGameplayReloadTransactionTests.exe": "8a8fc06d97e9ed7afa57c4e313e1544575e9c14b0d0175b6ec56ff9e6fd1b46d"
+  },
+  "source_git_blobs": [
+    {
+      "path": "Apps/Editor/README.md",
+      "sha": "30873a194ee0b8cb76a0da261a7cc3beba827adf"
+    },
+    {
+      "path": "Apps/Editor/main.cpp",
+      "sha": "88b0cf2ec1d01961b2b66798c8176e7a5d5fc95d"
+    },
+    {
+      "path": "Bindings/Zig/README.md",
+      "sha": "b1331e97f00f633b0b4bcda0a672aebb08fff248"
+    },
+    {
+      "path": "Bindings/Zig/game.zig",
+      "sha": "9926005002951a24e088241b955aa0235fc80ba7"
+    },
+    {
+      "path": "Engine/EditorImGui/README.md",
+      "sha": "13657961c14227e8f991dd188ce6958c197e0bef"
+    },
+    {
+      "path": "Engine/EditorImGui/include/Nexora/EditorImGui/EditorImGui.h",
+      "sha": "35560fe2928f297a9368642b5eccea85f9b63bf7"
+    },
+    {
+      "path": "Engine/EditorImGui/src/EditorImGui.cpp",
+      "sha": "7433b197c3ccd570f5a62a0a57ccaa5a028e152c"
+    },
+    {
+      "path": "Engine/EditorImGui/src/EditorTheme.h",
+      "sha": "2e24640398138166258f278b5404c6830e42b23f"
+    },
+    {
+      "path": "Engine/Presentation/README.md",
+      "sha": "aabaa6d64ecc9401d28f5d8da264356d7b7ede4d"
+    },
+    {
+      "path": "Engine/Presentation/include/Nexora/Presentation/Surface.h",
+      "sha": "b27f4257935b3b6abcfbe28241a4f551f485cd0a"
+    },
+    {
+      "path": "Engine/Presentation/src/Dx12Surface.cpp",
+      "sha": "1921466453ba6bfcbd7286dc9579f1a05669d3dd"
+    },
+    {
+      "path": "Engine/Presentation/src/MetalSurface.mm",
+      "sha": "062c7a875c3ec727b5f665b81e61ac492008ea4b"
+    },
+    {
+      "path": "Engine/Presentation/src/VulkanSurface.cpp",
+      "sha": "d4903a4315905972476cde8a33b40453b3a8abef"
+    },
+    {
+      "path": "Engine/Runtime/README.md",
+      "sha": "d97562501d4fe8eca1e8e759c56335a98856cf68"
+    },
+    {
+      "path": "Engine/Runtime/include/Nexora/Runtime/GameplayModuleHost.h",
+      "sha": "378bb196f30fedda2c85bf1a049f7f4866068dad"
+    },
+    {
+      "path": "Engine/Runtime/src/GameplayModuleHost.cpp",
+      "sha": "65ba331584567db57d3179da0f9cbc3901cffd7f"
+    },
+    {
+      "path": "Tests/EditorImGui/ThemeTests.cpp",
+      "sha": "beef7d0709532a0705e82204f9a8b414b7ead989"
+    },
+    {
+      "path": "Tests/Runtime/CMakeLists.txt",
+      "sha": "3b38ddc57b4bdb2623201bb0f4590671836df012"
+    },
+    {
+      "path": "Tests/Runtime/DynamicGameplayModule.cpp",
+      "sha": "764eec86873ac2fa4ad47ac79f37a56b827c1012"
+    },
+    {
+      "path": "Tests/Runtime/DynamicGameplayModuleTests.cpp",
+      "sha": "244426da5ecb5c94255014a251f9a7a138d18c83"
+    },
+    {
+      "path": "Tests/Runtime/GameReloadScript/common.zig",
+      "sha": "2c93cdacf3a66e814457840ac4537628e22773d5"
+    },
+    {
+      "path": "Tests/Runtime/GameReloadScript/init.zig",
+      "sha": "c8a7a0bd4b7102cc656872ff51e16dd344ceea5b"
+    },
+    {
+      "path": "Tests/Runtime/GameReloadScript/no-migration.zig",
+      "sha": "288bce7e71147e6543bc6f57b9878bc34b844a9b"
+    },
+    {
+      "path": "Tests/Runtime/GameReloadScript/normal.zig",
+      "sha": "18a15282125bb1aa6485259374c022acb3743543"
+    },
+    {
+      "path": "Tests/Runtime/GameReloadScript/project-init.json",
+      "sha": "b75a6c8b6c4bad80e5362b1caf0195245a84eeb6"
+    },
+    {
+      "path": "Tests/Runtime/GameReloadScript/project-no-migration.json",
+      "sha": "900118e676ba49c3a7a87f7b74afe23b2a96ec38"
+    },
+    {
+      "path": "Tests/Runtime/GameReloadScript/project-normal.json",
+      "sha": "ce307ffa97d0feaee8597d4bc2ceb02a17ca5900"
+    },
+    {
+      "path": "Tests/Runtime/GameReloadScript/project-restore.json",
+      "sha": "5ef8ff3fc8b962192b36266ff6e8efa39e559e38"
+    },
+    {
+      "path": "Tests/Runtime/GameReloadScript/project-schema.json",
+      "sha": "e4f45bde5241de3df167014ca2ef0c06bc84f16a"
+    },
+    {
+      "path": "Tests/Runtime/GameReloadScript/project-start.json",
+      "sha": "9d2c630352f10a74d263d477a94014105b5ef439"
+    },
+    {
+      "path": "Tests/Runtime/GameReloadScript/restore.zig",
+      "sha": "0f03e950c12cd8ca75d4ee30fb26720ca648baef"
+    },
+    {
+      "path": "Tests/Runtime/GameReloadScript/schema.zig",
+      "sha": "832b9e7a79422b967cf9b216613f75a71c4b059c"
+    },
+    {
+      "path": "Tests/Runtime/GameReloadScript/start.zig",
+      "sha": "2facf56b2f9702a1b7ac8e30b76550f56a85792b"
+    },
+    {
+      "path": "Tests/Runtime/GameplayReloadFixture.h",
+      "sha": "8561a388971435bb662c86ef78dcc2c982c6f210"
+    },
+    {
+      "path": "Tests/Runtime/GameplayReloadTransactionTests.cpp",
+      "sha": "5f320fc1fdeb6728b62f2fe3155d5266e4a900a8"
+    },
+    {
+      "path": "Tests/Runtime/ZigReloadTransactionTests.cpp",
+      "sha": "658944902c55bffbd47fb47e4e7bc84e9c3bc8be"
+    },
+    {
+      "path": "Tests/TwoD/GameScriptAdapter.zig",
+      "sha": "39f717569320e4f49915dc45f8821ecb7d535f08"
+    },
+    {
+      "path": "Tests/TwoD/GameScriptProjectTests.py",
+      "sha": "8543daebe7ff9c8be034eea7535398799c82a92d"
+    },
+    {
+      "path": "Tools/Zig/README.md",
+      "sha": "af8318b176f18f1d2cef19ad89c620a45fb65357"
+    }
+  ],
+  "commands": [
+    [
+      "cmake",
+      "--build",
+      "build/editor-workflow-native",
+      "--config",
+      "Development",
+      "--target",
+      "NexoraEditor",
+      "NexoraProjectPlayer",
+      "NexoraTwoDPlayer",
+      "NexoraZigGameplayTests",
+      "NexoraWindowsStartupSplashTests",
+      "NexoraPlayGameplayModuleTests",
+      "NexoraPackagedPlayServicesTests",
+      "NexoraPlayDiagnosticsTests",
+      "NexoraPlayAllocationTests",
+      "NexoraPlayDebugLineTests",
+      "NexoraCoreConsoleIngressTests",
+      "NexoraPlaySceneServicesTests",
+      "NexoraPlayPhysicsServicesTests",
+      "NexoraPlayMeshAssetTests",
+      "NexoraPlayTwoDServicesTests",
+      "NexoraGameTwoDPreviewTests",
+      "NexoraEditorThemeTests",
+      "NexoraZigReloadTransactionTests",
+      "NexoraGameplayReloadTransactionTests",
+      "NexoraGameplayModuleHostTests",
+      "NexoraDynamicGameplayModuleTests",
+      "-j",
+      "2"
+    ],
+    [
+      "ctest",
+      "--test-dir",
+      "build/editor-workflow-native",
+      "-C",
+      "Development",
+      "--output-on-failure",
+      "--output-log",
+      "build/editor-workflow-native/ed-wf04-default-desktop-core-regression-attempt2.log",
+      "-R",
+      "^(runtime\\.(gameplay_module_host|dynamic_gameplay_module|gameplay_reload_transaction|zig_reload_transaction)|gameplay\\.(zig_game_script_adapter|zig_script_project|zig_abi_smoke)|editor\\.(play_gameplay_module|packaged_play_services|play_diagnostics|play_host_allocations|play_debug_lines|core_console_ingress|play_scene_services|play_physics_services|play_mesh_assets|play_twod_services|game_twod_preview|appearance_[12]x|windows_startup_splash))$"
+    ]
+  ],
+  "toolchain": {
+    "cmake": "3.31.6-msvc6",
+    "msvc": "19.44.35228.0",
+    "architecture": "x64",
+    "zig": "0.14.0",
+    "clang_format": "19.1.5",
+    "python": "3.14"
+  },
+  "environment": {
+    "ZIG_GLOBAL_CACHE_DIR": "<workspace>/build/editor-workflow-native/zig-global-cache",
+    "ZIG_LOCAL_CACHE_DIR": "<workspace>/build/editor-workflow-native/zig-local-cache",
+    "execution": "Default input desktop, outside isolated CodexSandboxDesktop"
+  }
+}

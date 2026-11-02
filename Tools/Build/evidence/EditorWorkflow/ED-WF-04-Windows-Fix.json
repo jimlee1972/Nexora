@@ -1,0 +1,107 @@
+{
+  "status": "SCOPED_WINDOWS_FIX_REGRESSION_PASS_OTHER_GATES_PENDING",
+  "base_commit": "9547cc8afa1e4c69d5dd79b5e54e5c358cf152da",
+  "scope": "Actual Windows x64 native DLL/World/SDK tests on the existing developer host, isolated non-GUI test desktop. Does not accept macOS or interactive Windows display.",
+  "source_git_blobs": [
+    {
+      "path": "Engine/Runtime/src/GameplayModuleHost.cpp",
+      "sha": "6067ee588b0e567f53bb5f6b58bd913ac1740ce7"
+    },
+    {
+      "path": "Tests/Runtime/CMakeLists.txt",
+      "sha": "2177a11114b28964ca74b97a98f08054c765a4c1"
+    },
+    {
+      "path": "Tests/Runtime/DynamicGameplayModule.cpp",
+      "sha": "a5dac9e44bcae9b7ca6b667fee0ba30d09b44ace"
+    },
+    {
+      "path": "Tests/Runtime/ZigReloadTransactionTests.cpp",
+      "sha": "87adcffdd8e8a14561c2159163fcc47a78a06569"
+    },
+    {
+      "path": "Tools/Zig/game_entry.zig",
+      "sha": "3567ce4fab48ccae9a283160bd9aea2e156d1477"
+    }
+  ],
+  "gate": {
+    "registered": 6,
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0,
+    "exit_code": 0,
+    "seconds": 142.81,
+    "cases": [
+      {
+        "name": "runtime.gameplay_module_host",
+        "seconds": 0.26
+      },
+      {
+        "name": "runtime.gameplay_reload_transaction",
+        "seconds": 0.12
+      },
+      {
+        "name": "runtime.dynamic_gameplay_module",
+        "seconds": 0.7
+      },
+      {
+        "name": "runtime.zig_reload_transaction",
+        "seconds": 11.26
+      },
+      {
+        "name": "gameplay.zig_game_script_adapter",
+        "seconds": 8.17
+      },
+      {
+        "name": "gameplay.zig_script_project",
+        "seconds": 121.97
+      }
+    ],
+    "log": "ed-wf04-macos-fix-native-core-attempt1.log",
+    "sha256": "18e4957755159ab327181617b41bab7b28aea087d06a3322f2982dfd96d6aba5"
+  },
+  "reload": {
+    "real_zig_replacements": 32,
+    "ordinary_expected_rejections": 224,
+    "old_lease_worker_and_state_handle_continuity": true,
+    "retirement_and_finalizers": true
+  },
+  "binaries": {
+    "NexoraRuntime.dll": "7866345c67d7aaef24edf9883166a40495d98ed0096fc80f5c66bcf7f3bd6db9",
+    "NexoraZigReloadTransactionTests.exe": "5c8a76c1765c8cc7608b0810a53535cbccd76d3d5788ce0956fd260fb533b8b2",
+    "NexoraGameplayReloadTransactionTests.exe": "8a8fc06d97e9ed7afa57c4e313e1544575e9c14b0d0175b6ec56ff9e6fd1b46d",
+    "NexoraGameplayModuleHostTests.exe": "040b19a12ec2f994573b81a2ad90321b25ecea9b41d5ac7255419af5f5ab34b4",
+    "NexoraDynamicGameplayModuleTests.exe": "e8229893ad306d9d423ca8b9671339ba826e8a51a6914d9f867e1e2edc3ffd67"
+  },
+  "pending": [
+    "Native macOS added pinned-image fixture and full desktop CI",
+    "Full exact-source Codex Cloud Development/Shipping",
+    "All applicable exact-head CI",
+    "PR acceptance/merge; remaining work orders and final Editor ZIP"
+  ],
+  "commands": [
+    [
+      "cmake",
+      "--build",
+      "build/editor-workflow-native",
+      "--config",
+      "Development",
+      "--target",
+      "NexoraZigReloadTransactionTests",
+      "-j",
+      "2"
+    ],
+    [
+      "ctest",
+      "--test-dir",
+      "build/editor-workflow-native",
+      "-C",
+      "Development",
+      "--output-on-failure",
+      "--output-log",
+      "build/editor-workflow-native/ed-wf04-macos-fix-native-core-attempt1.log",
+      "-R",
+      "^(runtime\\.(gameplay_module_host|dynamic_gameplay_module|gameplay_reload_transaction|zig_reload_transaction)|gameplay\\.(zig_game_script_adapter|zig_script_project))$"
+    ]
+  ]
+}

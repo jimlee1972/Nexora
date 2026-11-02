@@ -42,6 +42,7 @@ enum class EditorIcon {
   Rotate,
   Scale,
   Select,
+  Hand,
   Refresh,
   Import,
   Export,
@@ -351,6 +352,24 @@ inline void DrawEditorIcon(ImDrawList &draw, EditorIcon icon, ImVec2 origin, flo
     line(10, 14, 21, 3);
     line(14, 3, 21, 3);
     line(21, 3, 21, 10);
+    break;
+  case EditorIcon::Hand:
+    line(5, 13, 5, 8);
+    line(5, 8, 8, 8);
+    line(8, 8, 8, 3);
+    line(8, 3, 11, 3);
+    line(11, 3, 11, 10);
+    line(11, 6, 14, 6);
+    line(14, 6, 14, 11);
+    line(14, 8, 17, 8);
+    line(17, 8, 17, 12);
+    line(17, 10, 20, 10);
+    line(20, 10, 20, 17);
+    line(20, 17, 16, 22);
+    line(16, 22, 9, 22);
+    line(9, 22, 3, 15);
+    line(3, 15, 5, 13);
+    line(5, 13, 8, 16);
     break;
   case EditorIcon::Select:
     line(5, 3, 6, 20);

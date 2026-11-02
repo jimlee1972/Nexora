@@ -264,3 +264,5 @@ Fresh post-foreground movement is retained; UI confirmation still waits for neut
 ✅ HD2D-03 appends an independently negotiated pool-identity callback, preserving the original prefix and Sprite wire. Full owner/index/generation checks and C/Zig/native gates were accepted via PR #736 / `40c96072`; evidence is tracked in the HD2D plan.
 
 HD2D-06 preparation adds independently negotiated diagnostics/debug-view suffixes (40/48/56/64-byte complete prefixes), C/Zig layout and compatibility guards, and completed native GPU observations; 137 metadata exports. Native acceptance follows the HD2D plan.
+
+✅ HD2D-06 diagnostics/debug suffixes and137-export metadata were accepted in PR #739 / `67db45d2`, all41 final-head checks and actual three-backend Zig/CPU pixels passed. Complete40/48/56/64-byte negotiation remains compatible; unavailable GPU timing is explicit. [Evidence](../../Engine/TwoD/evidence/HD2D-06-Linux-2026-10-31.md).

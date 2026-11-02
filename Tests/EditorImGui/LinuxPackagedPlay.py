@@ -75,11 +75,22 @@ def graphical_build(args, root, evidence, environment):
             click(0)   # Actual Build menu, then its actual Settings item.
             click(1)
             click(11)  # Include the authored gameplay script, using its default relative manifest.
+            click(5)   # Persist the build mode before capturing saved sources.
+            saved_settings = root / "project.build.json"
+            settings_deadline = time.monotonic() + 10
+            while time.monotonic() < settings_deadline:
+                configuration = json.loads(saved_settings.read_text(encoding="utf-8"))
+                if configuration.get("build", {}).get("mode") == "script-project":
+                    break
+                time.sleep(.05)
+            require(configuration.get("build", {}).get("mode") == "script-project",
+                    "GUI did not save the script build choice")
+            saved_build_settings = saved_settings.read_bytes()
             click(13)  # Actual Build Game control; worker and owner publisher do all file operations.
             output = root / "Build/Game"
             deadline = time.monotonic() + 120
             while time.monotonic() < deadline:
-                if (output / "Game.inventory").is_file() and observation().get("busy") == "0":
+                if (output / "Game.launch").is_file() and observation().get("busy") == "0":
                     break
                 result = re.search(r"^game build result: (.*)$",
                                    errors.read_text(errors="replace"), re.M)
@@ -87,9 +98,18 @@ def graphical_build(args, root, evidence, environment):
                         errors.read_text(errors="replace"))
                 require(editor.poll() is None, errors.read_text(errors="replace"))
                 time.sleep(.1)
-            require((output / "Game.inventory").is_file() and (output / "libGame.so").is_file(),
+            require((output / "Game.launch").is_file() and (output / "libGame.so").is_file(),
                     errors.read_text(errors="replace"))
-            require("mode=script-project" in (output / "Build.sources").read_text(),
+            receipt_line = re.search(r"^game build receipt: (.*)$",
+                                     errors.read_text(errors="replace"), re.M)
+            require(receipt_line, "GUI did not expose its independent build receipt")
+            records = Path(json.loads(receipt_line.group(1)))
+            require(records.is_dir() and not records.is_relative_to(root) and
+                    (records / "Publication.receipt").is_file(), "build records overlap project")
+            require(not any((output / name).exists() for name in
+                    ("Game.inventory", "Build.commands", "Build.sources", "Build.tools")),
+                    "development records leaked into runtime output")
+            require("mode=script-project" in (records / "Build.sources").read_text(),
                     "graphical build did not compile the selected script project")
             verification = subprocess.run([str(output / "Game"), "--verify-game-module",
                                            str(output / "libGame.so")], cwd=root, env=environment,
@@ -105,8 +125,11 @@ def graphical_build(args, root, evidence, environment):
             request_window_close(str(window), environment)
             editor.wait(timeout=15)
         require(editor.returncode == 0, errors.read_text(errors="replace"))
-        return {"exit": editor.returncode, "inventory_sha256": hashlib.sha256(
-            (output / "Game.inventory").read_bytes()).hexdigest(), "script_abi_verified": True}
+        require(saved_settings.read_bytes() == saved_build_settings,
+                "GUI Build rewrote saved configuration")
+        return {"exit": editor.returncode, "saved_configuration": configuration, "inventory_sha256": hashlib.sha256(
+            (records / "Game.inventory").read_bytes()).hexdigest(), "script_abi_verified": True,
+                "runtime_only": True, "build_receipt": str(records / "Publication.receipt")}
     finally:
         if editor is not None and editor.poll() is None:
             editor.terminate()
@@ -139,7 +162,8 @@ def main():
     passed = False
     try:
         require(display, "Xvfb unavailable")
-        environment = dict(os.environ, DISPLAY=display)
+        environment = dict(os.environ, DISPLAY=display,
+                           XDG_CONFIG_HOME=str(evidence / "user-data"))
         errors = evidence / "stderr.log"
         with errors.open("wb") as stderr, (evidence / "stdout.log").open("wb") as stdout:
             editor = subprocess.Popen([args.editor, "--project=" + str(root), "--graphical",
@@ -190,7 +214,8 @@ def main():
             "saved_sources_unchanged": True}, indent=2))
         build = graphical_build(args, root, evidence, environment)
         require(all(hashlib.sha256((root / name).read_bytes()).hexdigest() == digest
-                    for name, digest in baseline.items()), "GUI Build modified authored sources")
+                    for name, digest in baseline.items() if name != "project.build.json"),
+                "GUI Build modified authored sources")
         receipt = {"sequence": observed, "graphical_script_build": build,
                    "sources": baseline, "exit": editor.returncode,
                    "scope": "Editor native Vulkan/Xvfb configured startup, same Play command and SDK transitions"}

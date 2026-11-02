@@ -37,6 +37,18 @@ and -2 return. See [contract and diagnostic](../../Engine/Runtime/GameplayLifecy
 
 The typed lifecycle facade and engine-owned build/entry are documented in [Tools/Zig](../../Tools/Zig/README.md). Authored projects contain gameplay scripts and a manifest; they do not maintain a build.zig or V3 ABI export.
 
+Optional paired `saveState`/`loadState` hooks use `game.StateWriter`/`StateReader` and a nonzero game
+`state_version`. They encode explicit bounded/versioned values through the existing V3 migration
+slots, without serializing Game memory or host/service pointers. See the SDK contract above for
+query/write determinism, borrowed byte lifetimes and initialization order. Hosts can opt into
+candidate-only preparation/restore/reloaded through `reload_candidate_capability`; paired state
+hooks plus `pub const reload_lifecycle: bool = true;` advertise `reload_lifecycle_capability`.
+Codecs without this explicit opt-in keep their old capability/lifecycle. In candidate mode fresh init/start do not run;
+`Context.isReloadCandidate()` identifies an instance created through this reload path; it remains
+true after publication and is not a live transaction-phase query. Legacy hosts retain their
+ordinary lifecycle. Runtime admission requires both generations to support this mode. This SDK
+support does not complete ED-WF-05 Editor coordination or World/resource isolation.
+
 ## Optional 2D effects contract
 
 `nx.getTwoDEffects(services)` / `try context.effects()` negotiate the HD2D service. Query native
@@ -85,3 +97,7 @@ normal view (mode 0, slot 0) or native angular map view (mode 1, slot 0..7) for 
 Old hosts return `error.Unsupported`; original submission/pool operations remain usable.
 Only `timing_mask` bits identify measured GPU durations. Unavailable values are not zero-time
 measurements. [Ownership, validity and measurement scope](../../Engine/TwoD/GameplayEffects.md).
+
+## Released Windows SDK 0.2.0
+
+The negotiated effects API, optional diagnostics/debug-map suffixes and reusable Zig scene are included in the immutable [Windows SDK0.2.0](https://github.com/jimlee1972/Nexora/releases/tag/sdk-2d-windows-x64-v0.2.0), source93a8dd51. The same-product [Onmyoji integration PR31](https://github.com/jimlee1972/OnmyojiSurvivors/pull/31) builds through the SDK/project Zig, defaults to NX00 and toggles DEV ONLY diagnostics with F9; no game C++ or engine source build is required. Retain the SDK Noto OFL/NOTICE when distributing the embedded test font. [Release provenance and retained failures](../../Tools/SDK/evidence/HD2D-07-Linux-2026-10-31.md) distinguish engineering acceptance from physical/formal-game acceptance.

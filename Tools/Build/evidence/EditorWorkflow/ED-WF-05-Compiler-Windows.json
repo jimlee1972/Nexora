@@ -1,0 +1,157 @@
+{
+  "status": "SCOPED_NATIVE_PASS_INTEGRATION_PENDING",
+  "work_order": "ED-WF-05",
+  "publication_base": "15ec28dc2b48f5fa0197ac059360cf6bfabcc33b",
+  "scope": "Local uncommitted shared compiler slice; no integrated Editor reload or final ZIP acceptance",
+  "initial_scoped_run": {
+    "exit_code": 8,
+    "registered": 5,
+    "passed": 4,
+    "not_run": 1,
+    "failed": 1,
+    "failed_reason": "CTest counts the missing executable / Not Run case as failed",
+    "elapsed_seconds": 834.83,
+    "not_run_case": "editor.game_build_capture",
+    "reason": "Auxiliary executable was not built; not a skipped or passed gate",
+    "actual_game_build_seconds": 571.86,
+    "actual_standalone_compiler_seconds": 261.23
+  },
+  "repair": {
+    "auxiliary_targets_built": true,
+    "build_exit_code": 0,
+    "capture_ctest_exit_code": 0,
+    "passed": 1,
+    "elapsed_seconds": 0.45
+  },
+  "final_scoped_rerun": {
+    "status": "PASS",
+    "exit_code": 0,
+    "registered": 5,
+    "passed": 5,
+    "failed": 0,
+    "not_run": 0,
+    "skipped": 0,
+    "elapsed_seconds": 432.3,
+    "cases": [
+      {
+        "name": "editor.game_build_progress",
+        "seconds": 0.12
+      },
+      {
+        "name": "editor.game_build_sdk_bytes",
+        "seconds": 0.05
+      },
+      {
+        "name": "editor.game_build_capture",
+        "seconds": 0.26
+      },
+      {
+        "name": "editor.game_build",
+        "seconds": 265.56
+      },
+      {
+        "name": "editor.game_script_build",
+        "seconds": 166.16
+      }
+    ],
+    "log": "build/editor-workflow-native/ed-wf05-script-compiler-final-test.log"
+  },
+  "validation_argv": [
+    [
+      "cmake",
+      "-S",
+      ".",
+      "-B",
+      "build/editor-workflow-native"
+    ],
+    [
+      "cmake",
+      "--build",
+      "build/editor-workflow-native",
+      "--config",
+      "Development",
+      "--parallel",
+      "2",
+      "--target",
+      "NexoraGameScriptBuildTests",
+      "NexoraGameBuildTests",
+      "NexoraGameBuildSDKTests"
+    ],
+    [
+      "ctest",
+      "--test-dir",
+      "build/editor-workflow-native",
+      "-C",
+      "Development",
+      "-R",
+      "^editor\\.game_(build|script_build|build_capture|build_progress|build_sdk_bytes)$",
+      "--output-on-failure",
+      "--output-junit",
+      "ed-wf05-script-compiler-final.xml"
+    ]
+  ],
+  "logs": [
+    {
+      "path": "build/editor-workflow-native/ed-wf05-script-compiler-configure.log",
+      "exit_code": 0,
+      "bytes": 331,
+      "sha256": "123ed95d4c27f114ec6c2c504039936893010622e05965551605c390d8dd4d26"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-script-compiler-build.log",
+      "exit_code": 0,
+      "bytes": 4987,
+      "sha256": "b0d329340986fd25a73d3c34741a88e598554b11337ec63d6fc31353c08a58ee"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-script-compiler-staging-build.log",
+      "exit_code": 0,
+      "bytes": 4588,
+      "sha256": "03da57880f065d6258b470ae97e2ce55cad0dd2c00825dee8f60da364269d20f"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-script-compiler-test.log",
+      "exit_code": 8,
+      "bytes": 2194,
+      "sha256": "342917718f780411eae3de4c2d5076d5d118c4e50eb2d3c767674879193f0918"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-compiler-aux-build.log",
+      "exit_code": 0,
+      "bytes": 3611,
+      "sha256": "30e202ee0b7894b6816e313068fab43c4a3f7f984f8ad81ba54268d1e73f38b6"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-compiler-capture-test.log",
+      "exit_code": 0,
+      "bytes": 424,
+      "sha256": "a173d6ac4f4186d2af701f8b2543cce9959f760f4c604e131c913dd2e5775ade"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-script-compiler-final-test.log",
+      "exit_code": 0,
+      "bytes": 874,
+      "sha256": "c7bbf1f628fd2f8e2250db7f7b10c69f8a1fd6bf3d075bdf80c3fc41afcb9994"
+    }
+  ],
+  "source_hashes": {
+    "Engine/Editor/src/GameBuild.cpp": "6319c6954a41ec2bb86cc43c097e34d1886bc75169bc7b6bc87e47a7de6b1063",
+    "Engine/Editor/include/Nexora/Editor/GameScriptBuild.h": "8f585645ec182401dba243b405e5cba75b8f95e9102bbfedcf9b9d0f0c4218c9",
+    "Tests/Editor/CMakeLists.txt": "53956de92d943f9a97d2f092074ff855df4d9bf71d23ce5a6e2a4bc941f8842e",
+    "Tests/Editor/GameScriptBuildTests.cpp": "5af6b5c296dcbdf3596926353e5ca808cfbbf3accd4ada1738f87a67075ddda9"
+  },
+  "binary_hashes": {
+    "NexoraEditorCore.dll": "c7f57c6b5a4086b289ad4e426fbdd78ed92ac2dfdc8c81b69f451f0894673828",
+    "NexoraEditor.exe": "9307ed29bc30d484f9fc864cb5969cead1dabb7fd308ad8228357f1fee1ed808",
+    "NexoraProjectPlayer.exe": "7c23a932e5ded5ebb7bb987d1d20ecc49dd4f95ef632e02f2f8aa23111b39c97",
+    "NexoraGameScriptBuildTests.exe": "44807efe2bf34c0233e8938146aedf043c5e1f7d9e004bd2df3d1160947764b1",
+    "NexoraGameBuildTests.exe": "500fe728b4872e56484f4be4821780ffe3332e6f488894424b92b0af5e478094",
+    "NexoraGameBuildCaptureTests.exe": "37fea96b932163af4e3e87eb9d19404f3d57ee65a82dcef11c799e8e9e94a92c",
+    "NexoraGameBuildSDKTests.exe": "81faea1388726a70173fbb12549dd2a5a9489c63210038439a8d76744811276e"
+  },
+  "pending": [
+    "Exact-head full Cloud development/Shipping/CI",
+    "Editor watcher/compiler/epoch admission and strict World/service isolation",
+    "Live animation/pool continuity and final native deliverable"
+  ]
+}

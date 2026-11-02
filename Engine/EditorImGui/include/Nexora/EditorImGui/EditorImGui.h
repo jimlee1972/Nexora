@@ -4,6 +4,7 @@
 #include "Nexora/Editor/BuildProcess.h"
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/EditorWorkspace.h"
+#include "Nexora/Editor/GameBuildProgress.h"
 #include "Nexora/Editor/GitDiffProvider.h"
 #include "Nexora/Editor/GitStatusProvider.h"
 #include "Nexora/Editor/MaterialAssetCatalog.h"
@@ -206,7 +207,8 @@ enum class ProjectBuildSettingsAction {
   Save,
   BuildSceneOnly,
   BuildScript,
-  CancelBuild
+  CancelBuild,
+  StopGame
 };
 struct ProjectBuildSettingsRequest final {
   foundation::Uuid project;
@@ -215,6 +217,7 @@ struct ProjectBuildSettingsRequest final {
   ProjectBuildSettings settings;
   std::string path;
   std::string output{"Build/Game"};
+  bool run_after_build{};
 };
 enum class SavedGameDecision { Save, UseSaved, Cancel };
 
@@ -286,7 +289,7 @@ struct NativeSceneOrbit final {
   double target_y{};
 };
 
-enum class NativeSceneTool { Move, Rotate, Scale, Select };
+enum class NativeSceneTool { Move, Rotate, Scale, Select, Hand };
 
 struct NativeScenePickRequest final {
   std::uint32_t x{}, y{}; // framebuffer pixels
@@ -346,6 +349,14 @@ public:
   EditorImGuiHost &operator=(const EditorImGuiHost &) = delete;
 
   void SetDisplay(float width, float height, float dpi_scale);
+  // Owner applies a theme between frames and persists the owning menu request outside the UI.
+  // Appearance is user-local and never loaded from a project layout.
+  void SetColorTheme(EditorColorTheme theme, std::string status = {});
+  // Owner thread, before BeginFrame. Matches palette encoding to the actual UI attachment;
+  // does not change Scene/Game colors or request the UI-only native surface mode.
+  void SetUiOutputSrgb(bool target_encodes_srgb);
+  [[nodiscard]] EditorColorTheme GetColorTheme() const noexcept;
+  [[nodiscard]] std::optional<EditorColorTheme> TakeColorThemeRequest();
   // Pointer events use native client pixels. SetDisplay supplies logical dimensions/frame DPI
   // before forwarding the current native batch; the host converts pointer positions exactly once.
   void ProcessEvents(std::span<const Nexora::Window::WindowEvent> events);
@@ -455,6 +466,8 @@ public:
                                std::string status = {});
   [[nodiscard]] std::optional<ProjectBuildSettingsRequest> TakeProjectBuildSettingsRequest();
   void SetGameBuildStatus(bool busy, std::string message);
+  void SetGameBuildProgress(GameBuildProgress progress);
+  void SetGameRunStatus(bool running, std::string message);
   void RequestSavedGameDecision();
   [[nodiscard]] std::optional<SavedGameDecision> TakeSavedGameDecision();
   [[nodiscard]] bool TakeSceneSaveRequest() noexcept;
@@ -568,6 +581,10 @@ public:
   [[nodiscard]] std::optional<Nexora::Presentation::SceneViewport>
   NativeScenePreviewViewport() const noexcept;
   [[nodiscard]] std::optional<NativeScenePickRequest> NativeScenePick() const noexcept;
+  // After native picking in the issuing frame, cancel a Ctrl/Shift-click that hit no transform
+  // handle. Preserves selection and camera; the application remains the owner of actual hit
+  // testing.
+  void CancelNativeSceneTransform() noexcept;
   // One-shot owning scope; the host revalidates it against the current project/document and
   // supplies the actual bounded submission candidates after widget/authoring commands.
   [[nodiscard]] std::optional<SceneFileToken> TakeNativeSceneFrameAllRequest() noexcept;

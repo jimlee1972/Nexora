@@ -125,6 +125,9 @@ struct SurfaceDiagnostics final {
   SurfaceDeviceInfo device;
   SceneGeometryUploadCacheDiagnostics sceneGeometryUploadCache;
   SceneGeometryResidencyDiagnostics sceneGeometryResidency;
+  // Actual attachment transfer, not the requested presentation color space. Linear UI colors
+  // need one hardware sRGB encode here; legacy UNORM UI targets need display-encoded colors.
+  bool uiTargetEncodesSrgb = false;
 };
 
 struct UiVertex final {

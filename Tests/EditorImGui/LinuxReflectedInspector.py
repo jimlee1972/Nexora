@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Edit/save/undo/reopen an actual reflected component through the native host."""
 import argparse
+from collections import Counter
 import ctypes
 import os
 from pathlib import Path
@@ -70,8 +71,15 @@ def wait_native_pixels(driver, display, window, name, icon=True):
             x, y = (round(float(axis)) for axis in value[name].split(','))
             observed = rendered_pixels(display, window, (x - 10, y - 10, 20, 20))
             blue = sum(b >= r + 20 and b >= g + 5 for r, g, b in observed)
-            artwork = sum(min(pixel) >= 180 for pixel in observed)
-            if blue >= 10 and (not icon or artwork >= 5):
+            neutral = sum(max(pixel) - min(pixel) <= 3 and 25 <= pixel[0] <= 235
+                          for pixel in observed)
+            background = Counter(observed).most_common(1)[0][0]
+            # Unity-inspired controls use neutral surfaces. Require actual contrasting artwork,
+            # not a particular blue fill or white glyph; Light uses dark foreground strokes.
+            artwork = sum(max(abs(channel - base) for channel, base in zip(pixel, background)) >= 70
+                          for pixel in observed)
+            surface = blue >= 10 or (neutral >= 40 and len(set(observed)) >= 4)
+            if surface and (not icon or artwork >= 5):
                 return x, y
         require(driver.process.poll() is None, 'Editor exited before native pixels: ' + name)
         driver.drain(.05)
@@ -144,17 +152,17 @@ def main():
             # A background patch outside the checkmark observes actual hovered/held frames.
             patch = (x - 4, y - 5, 3, 3)
             if observe_checkbox:
-                wait_rendered(window, patch, lambda r, g, b: g >= 120 and b >= 150,
+                wait_rendered(window, patch, lambda r, g, b: r == g == b and 62 <= r <= 82,
                               7, 'Boolean hover frame')
             send('mousedown', '1')
             try:
                 if observe_checkbox:
-                    wait_rendered(window, patch, lambda r, g, b: g >= 160 and b >= 200,
+                    wait_rendered(window, patch, lambda r, g, b: r == g == b and 25 <= r <= 40,
                                   7, 'Boolean held frame')
             finally:
                 send('mouseup', '1')
             if observe_checkbox:
-                wait_rendered(window, patch, lambda r, g, b: 120 <= g < 160 and 150 <= b < 200,
+                wait_rendered(window, patch, lambda r, g, b: r == g == b and 62 <= r <= 82,
                               7, 'Boolean released frame')
 
         def save_until(expected):
@@ -181,8 +189,8 @@ def main():
             x, y = wait_native_pixels(driver, display, window, 'scene_select_all')
             click(window, x, y)
             x, y = native_point(driver, 'reflected_enabled')
-            blue = lambda r, g, b: b >= r + 25 and g >= r + 10
-            wait_rendered(window, (x - 4, y - 5, 3, 3), blue, 7,
+            frame = lambda r, g, b: r == g == b and 35 <= r <= 50
+            wait_rendered(window, (x - 4, y - 5, 3, 3), frame, 7,
                           'selected reflected Boolean')
             return window
 

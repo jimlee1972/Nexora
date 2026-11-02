@@ -1,5 +1,61 @@
 # Editor Dear ImGui host contract
 
+## Unity-style Editor input (issue #759)
+
+Implementation is in progress; full Cloud/native validation and delivery remain pending.
+
+| Context | Input | Behavior |
+| --- | --- | --- |
+| Editor tools | Q / W / E / R | Hand / Move / Rotate / Scale |
+| Editor tools | X / Z | Global-local axes / Pivot-center; P remains a pivot alias |
+| Native Scene | Alt + left drag | Orbit the selection/view pivot |
+| Scene | Middle drag; Space + left drag; Alt + Ctrl + left drag | Pan in the view plane |
+| Native Scene | Right drag | Look around without moving the eye |
+| Native Scene | Hold right + WASD / QE | Fly forward-back-left-right / down-up; Shift accelerates |
+| Native Scene | Wheel while holding right | Adjust fly speed; release right to wheel zoom |
+| Scene | Alt + right drag | Dolly zoom (overview zooms its orthographic scale) |
+| Transform handle | Hold Ctrl while dragging | Incremental movement/rotation/scale snapping; ordinary Ctrl/Shift-click toggles selection |
+| Scene | F / Shift + F / Home | Frame selected / follow selection / frame all (follow is native-preview only) |
+| Overview | Q + left drag; right or middle drag | Pan the existing X/Z overview; wheel zooms |
+| Editor | Ctrl + P / Ctrl + Shift + P / Ctrl + Alt + P | Play-stop / pause-resume / step |
+| Editor | Ctrl + N / O / S / Shift + S | New scene / open / save / save as |
+| Editor | Ctrl + Z / Y; Ctrl + Shift + Z | Undo / redo |
+| Editor | Ctrl + Shift + N / Ctrl + D / Delete | Create object / duplicate / delete |
+| Editor | Ctrl + 1 / 2 / 3 / 4 / 5 | Focus Scene / Game / Inspector / Hierarchy / Project |
+| Editor | Ctrl + Shift + C / Ctrl + R | Focus Console / refresh Project files |
+| Editor | Ctrl + Shift + B / Ctrl + B | Build Settings / Build & Run with current saved settings |
+
+F5/F6/F10 remain compatible Play aliases. Prefab isolation moves to Ctrl+Alt+Shift+P so it no
+longer intercepts Unity's Step chord. Existing Save/Discard/Cancel and build ownership still apply.
+Tool shortcuts are global across Editor panels when no text/item edit or gesture owns input.
+Ordinary global tool keys resolve in `EndFrame`, after auxiliary windows also establish ownership;
+observe their tool state after that call. Scene initial-click keys still resolve before pick/drag.
+Only a per-frame admission bit is retained, with no scene/document borrow or repeated-EndFrame action.
+Camera navigation belongs to the Scene canvas. Commands retain application focus, text input,
+modal and Game capture admission. Normal no-project interactive startup chooses the native 3D
+Scene view, falling back to the overview when the backend reports Unsupported. Explicit native
+preview requests keep their unavailable status; explicit project CLI workflows retain their preview
+selection. The legacy overview edits positions with Move; it never translates through Rotate/Scale.
+Navigation never changes selection, scene bytes, or undo history. Native picking cancels tentative
+Ctrl/Shift drags that hit no transform handle through `CancelNativeSceneTransform` in the issuing GUI
+frame; the application owns actual hit testing and scene mutations. Read-only camera navigation works.
+Play chords remain available while Game captures input; unrelated authoring chords do not.
+The native macOS shortcut policy uses Command for the primary action modifier. Captured
+Ctrl/Command releases are forwarded even while P is held; a reserved Play press cannot also fire
+a game action bound to P, including autorepeat after the modifier is released.
+Legacy snapshots and the 2D services Input API share the same Editor-only filter. It remembers
+reserved P consumption even in discarded capture-acquisition batches; F5/F6/F10 are also reserved,
+while ordinary P after release and nonreserved function keys remain available to games.
+
+This aligns supported commands and view navigation. Rect/combined Transform tools, vertex snapping,
+Scene orientation widget, a new XY 2D authoring mode, and maximized-view layout are not implemented
+by mapping keys. Existing orthographic overview remains X/Z; camera distance is bounded 2-100 world
+units, pitch -1.55 to +1.55 radians and position +/-100,000. Fly speed is session-local (0.1-1000
+units/sec); existing per-scene camera persistence keeps pose and framing, with no scene format change.
+
+Reference: [Unity Scene view navigation](https://docs.unity3d.com/6000.0/Documentation/Manual/SceneViewNavigation.html).
+
+
 ## Icon action buttons and local Transform presentation
 
 The host uses editor-owned vector artwork for action buttons in toolbars, auxiliary panels,
@@ -44,8 +100,15 @@ mutation. Project changes close the settings window and discard pending requests
 scene/play shortcuts are blocked. Settings do not change the single editable Scene or the Editor's
 last-scene metadata. Build Game emits a one-shot scene-only/script request with a project-relative
 output and manifest; the application owns source capture, tool execution and guarded publication.
-The UI receives only copied busy/status observations, disables duplicate builds and exposes Cancel.
-Project changes clear output/script drafts and saved-scene decisions. Dirty Play/Build decisions
+The UI receives copied busy/status and bounded stage/diagnostic observations. Build mode, output
+and manifest belong to the draft, are included in Save requests and are restored from the incoming
+project settings. Legacy settings provide the default scene-only choice. Build & Run adds an
+owning continuation flag; Stop Game is a one-shot intent. The UI neither launches nor owns processes.
+The application disables replacement builds while its published game is running, owns the process
+group and drains it on Stop/project change/shutdown. Diagnostics retain severity, project-relative
+script file and line/column where available, plus a bounded sanitized output view. Old-project
+observations must be discarded by the application before calling the UI setters.
+Project changes replace output/script drafts from saved settings, clear progress and saved-scene decisions. Dirty Play/Build decisions
 are one-shot Save/Use Saved/Cancel intents. Scene file dialog pending state is an owner-thread
 observation used to continue Save As only for the still-matching original project/document.
 Packaged Play cannot apply remapped transforms to authoring. Full integrated acceptance remains
@@ -151,6 +214,29 @@ for measured zero. A label explains the external elapsed scope; CPU execution, G
 remain unmeasured. Context sorting and original B/E order define availability in the Core contract.
 Malformed/unbalanced scopes leave the prior static view and live profile intact. The Core
 contract documents pairing, chronological and capacity requirements.
+
+## Editor appearance
+
+Use **Settings > Appearance > Dark / Light** for Unity-inspired neutral gray palettes with blue
+selection and focus accents. Dark is the default. The application applies requests between frames,
+so the complete next frame uses one palette; changing theme never rescales fonts or panel geometry.
+Icons follow text color, while Transform axes and semantic error/warning/success text use colors
+chosen for each theme. Before each frame, the owner calls `SetUiOutputSrgb` with the actual
+surface attachment encoding. Display-referred palette swatches are decoded only when that
+attachment performs sRGB output encoding; legacy UNORM targets retain display-referred values.
+The per-context setting belongs to the host and changes colors without rebuilding fonts or
+rescaling layout. Normal and secondary text retain at least 4.5:1 contrast against WindowBg.
+The Scene/Game render
+background and authored materials retain their colors.
+
+`SetColorTheme` / `GetColorTheme` expose the current presentation choice;
+`TakeColorThemeRequest` consumes the menu's owning request once. UI code performs no settings IO.
+The application loads a user-level `appearance` record beside the recent-project store at startup
+and atomically saves explicit selections, including in read-only projects. Project switching and
+layout loading cannot replace this user choice. Missing records select Dark without writes;
+invalid records are retained and reported under Appearance until an explicit selection replaces them.
+Failed saves retain the selected session palette and show a persistence warning; choosing it again
+retries the save. No scene format, gameplay ABI or project-owned file changes.
 
 `NexoraEditorImGui` is an optional UI-host module. It owns the Dear ImGui context, translates
 public `Nexora::Window` events, applies the Editor theme and DPI scale, creates the root dockspace,
@@ -416,8 +502,8 @@ privacy, not an extension signature verifier or a telemetry transport implementa
   reset at `BeginFrame`. The 3D Preview toggle publishes this rectangle to the application for
   a bounded direct native scene draw after UI; the X/Z overview remains available for editing. Backends
   without native scene geometry support show an unavailable message.
-  In 3D Preview, right drag orbits the proxy camera, middle drag pans its X/Z target, Shift+middle
-  drag pans target height, and the wheel zooms. F or Frame selected centers the target on
+  In 3D Preview, Alt+left drag orbits, middle drag pans in the camera plane, right drag
+  looks around with WASD/QE flight, and the wheel zooms (or adjusts speed during flight). F or Frame selected centers the target on
   selected forests in X/Y/Z from the union of exact world-transformed CPU mesh bounds and rotated
   proxy bounds, including descendants once. Both inputs use the current clipped framebuffer aspect
   and the narrower horizontal/vertical FOV, with distance clamped to 2–100 world units.
@@ -433,7 +519,7 @@ privacy, not an extension signature verifier or a telemetry transport implementa
   proxy and an empty click clears the selection.
   Dragging a selected proxy emits start and release positions in framebuffer pixels. The
   application projects both onto the selected node's horizontal plane for X/Z movement, or
-  onto its world Y axis when Shift was held at drag start. It draws selected proxies and their
+  along the picked world Y handle. Ctrl/Shift-click on an entity toggles selection. It draws selected proxies and their
   descendants at the prospective position and commits one undoable world move on release.
   Selected proxies show colored X/Y/Z handles at the first selected node. The Local axes
   checkbox rotates them with that node's world rotation; otherwise they follow world axes. Their
@@ -876,7 +962,7 @@ for Move, Rotate, and Scale. Preview and release share the validated root edits 
 composition, so transformed descendants match the committed poses. Escape drops the snapshot without
 writing the document or changing Undo/Redo history.
 
-The native canvas offers Center pivot (P). Pivot rotates/scales each selected root in place;
+The native canvas offers Center pivot (Z; P alias). Pivot rotates/scales each selected root in place;
 Center places handles at the mean selected-root origin and rotates/scales root offsets around that
 point. Selected descendants do not weight the center twice, and local axes follow the first selected
 root rotation. Tool, axes, pivot, and camera controls stay fixed during a left-button gesture.
@@ -1051,12 +1137,12 @@ after Scale/Rotate regression checks. Complete gizmo and physical target-host ac
 
 ## Native gizmo mode shortcuts
 
-X toggles the native Scene's existing Global/Local axes; Scale always retains Local axes. P toggles
-Pivot/Center. These host-owned settings require focused Scene input, actual canvas hover or active
-canvas, application focus, no text input and no blocking modal. Ctrl/Alt/Super-modified X/P do not
-toggle modes. Both shortcuts resolve before same-frame click/drag setup and remain blocked during
-held or pending native gestures. The P path now uses the same hover/navigation guard as Q/W/E/R,
-including Home followed by P without moving the pointer. Read-only projects retain mode navigation.
+X toggles the native Scene's existing Global/Local axes; Scale always retains Local axes. Z/P toggles
+Pivot/Center. These host-owned settings and Q/W/E/R work across Editor panels with application focus
+when no text/item edit, modifier, modal, Game capture or gesture owns input. Initial Scene-click
+keys resolve before picking/drag setup; ordinary global keys resolve at EndFrame after auxiliary
+windows establish ownership. Home requires Scene navigation ownership; P after Home needs no
+pointer movement. Read-only projects retain mode navigation.
 World, selection, dirty state and Undo/Redo are unchanged; no IO, plugin or GPU contract changes.
 Real 1x/2x input tests cover same-frame mode/click, modifier/focus/text/modal gates, Scale constraints
 and retained Redo. Linux Xvfb verifies Home/P followed by center scale/rotate/move on proxy and OBJ
@@ -1064,15 +1150,15 @@ roots, with one-step Undo and saved transforms. Complete gizmo and target-host a
 
 ## Native Scene selection tool
 
-Select (Q) retains ordinary and Ctrl-toggle native picking without creating a transform drag,
+Select (toolbar) retains ordinary and Ctrl/Shift-toggle native picking without creating a transform drag,
 preview or release request. Move/Rotate/Scale remain W/E/R; existing enum values are retained and
-Select is appended. The application submits and picks no transform handles for Select, so handles
+Select (3) and Hand (4) are appended. The application submits and picks no transform handles for Select, so handles
 cannot intercept an entity hit. Tool changes only affect the host-owned view state, preserving
 selection, World, dirty state and authoring history. Read-only projects can choose tools and pick.
 
-Keyboard tool selection requires a focused Scene panel, a real canvas hover or active canvas,
-application focus, no text input and no blocking modal. It uses mouse hover without ImGui's navigation
-focus override, so Home followed by Q/W/E/R still works without moving the pointer. Keyboard requests
+Keyboard tool selection is global across Editor panels with application focus, no active
+text/item edit, no Game capture and no blocking modal or gesture. Same-frame tool/canvas clicks
+also resolve from Scene hover without ImGui navigation masking, including after Home. Keyboard requests
 resolve before click/drag setup in the same frame. Active and pending native drag commits block tool
 changes; toolbar buttons share these guards. No plugin callbacks, IO or GPU ownership is added.
 Real 1x/2x input tests cover Q/click batching, Ctrl picking, toolbar parity, Home/navigation, active
@@ -1596,7 +1682,7 @@ confirmation; blocked authority cancels running work while retaining actual term
 
 ## Prefab isolation controls
 
-Settings > Prefab isolation and Ctrl+Alt+P open a dedicated window. The native application owns
+Settings > Prefab isolation and Ctrl+Alt+Shift+P open a dedicated window. The native application owns
 a project-scoped `PrefabDocumentSession` with a separate World/document; drawing borrows it only
 for the frame. The active scene remains independent. Create from scene, Open, Create variant,
 Save prefab and Close prefab emit owning one-shot requests, rechecked against project scope,

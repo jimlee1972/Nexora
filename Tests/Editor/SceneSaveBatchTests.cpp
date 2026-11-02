@@ -141,9 +141,14 @@ void Success(const std::filesystem::path &root) {
   runtime::World reopened;
   const auto reopened_id = reopened.LoadScene("Reopened");
   editor::SceneDocument document(reopened, reopened_id);
+  std::vector<editor::OpaqueComponent> expected_opaque(1);
+  expected_opaque.front().type = 71;
+  expected_opaque.front().type_name = "Unknown.Batch";
+  expected_opaque.front().data.push_back(0);
+  expected_opaque.front().data.push_back(1);
+  expected_opaque.front().data.push_back(255);
   Require(document.Reload(root / f.first_path) && document.Name(f.a) == "First edited" &&
-              document.OpaqueComponents(*document.Key(f.a)) ==
-                  std::vector<editor::OpaqueComponent>{{71, "Unknown.Batch", {0, 1, 255}}},
+              document.OpaqueComponents(*document.Key(f.a)) == expected_opaque,
           "Published file did not independently reopen complete opaque metadata");
   Require(f.first->Rename(*f.first->Key(f.a), "After batch"), "Post-batch edit failed");
   Write(root / f.first_path, first_saved + "\n");

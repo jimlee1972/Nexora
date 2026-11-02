@@ -105,12 +105,17 @@ void Editing(const std::filesystem::path &root) {
   const auto first = reload.Open("Content/Primary.scene");
   Require(first.has_value(), "Primary independent reopen failed");
   const auto second = reload.Open(second_path, false, {*first});
+  std::vector<editor::OpaqueComponent> expected_opaque(1);
+  expected_opaque.front().type = 19;
+  expected_opaque.front().type_name = "Missing.Session";
+  expected_opaque.front().data.push_back(0);
+  expected_opaque.front().data.push_back(17);
+  expected_opaque.front().data.push_back(255);
   Require(first && second && reload.Document(*first)->Name(camera) == "Primary edited" &&
               reload.Document(*second)->Nodes().size() == 1 && !reload.EditableDocument(*second) &&
               !reload.WritableFiles(*second) &&
-              reload.Document(*second)->OpaqueComponents(
-                  *reload.Document(*second)->Key(reload.Document(*second)->Nodes()[0].id)) ==
-                  std::vector<editor::OpaqueComponent>{{19, "Missing.Session", {0, 17, 255}}},
+              reload.Document(*second)->OpaqueComponents(*reload.Document(*second)->Key(
+                  reload.Document(*second)->Nodes()[0].id)) == expected_opaque,
           "Independent reopen or inspection-only reference admission lost opaque data");
   const auto reference_bytes = Read(root / second_path);
   auto *first_document = reload.EditableDocument(*first);

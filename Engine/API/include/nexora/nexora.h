@@ -34,7 +34,11 @@ typedef enum NexoraGameplayCapability {
   NEXORA_GAMEPLAY_CAPABILITY_SCENE_API = 1u << 3,
   NEXORA_GAMEPLAY_CAPABILITY_2D_API = 1u << 4,
   NEXORA_GAMEPLAY_CAPABILITY_POINTER_INPUT = 1u << 5,
-  NEXORA_GAMEPLAY_CAPABILITY_SERVICES_API = 1u << 6
+  NEXORA_GAMEPLAY_CAPABILITY_SERVICES_API = 1u << 6,
+  /* Host-only: unpublished reload candidate; never set for an initial Play load. */
+  NEXORA_GAMEPLAY_CAPABILITY_RELOAD_CANDIDATE = 1u << 7,
+  /* Module-only: understands candidate prepare/restore/reloaded lifecycle. */
+  NEXORA_GAMEPLAY_CAPABILITY_RELOAD_LIFECYCLE = 1u << 8
 } NexoraGameplayCapability;
 
 typedef enum NexoraAllocationOwner {

@@ -457,6 +457,53 @@ void RunBudget() {
               f.ui.GetNativeSceneOrbit().distance == orbit.distance,
           "oversized submission packet partially framed invisible tail geometry");
 }
+void RunFollow(float dpi) {
+  Fixture f(dpi);
+  f.Frame();
+  const auto before = f.ui.GetSceneOverviewCamera();
+  Nexora::Window::WindowEvent key;
+  key.type = Nexora::Window::WindowEventType::Key;
+  key.value0 = static_cast<int>(Nexora::Window::Key::F);
+  key.value1 = 1;
+  key.modifiers = Nexora::Window::KeyModifiers::Shift;
+  f.ui.ProcessEvents(std::array{key});
+  f.Draw();
+  key.value1 = 0;
+  key.modifiers = Nexora::Window::KeyModifiers::None;
+  f.ui.ProcessEvents(std::array{key});
+  f.Draw();
+  const auto distance = f.ui.GetNativeSceneOrbit().distance;
+  auto moved = *f.scene.Transform(f.leaf);
+  moved.x += 3;
+  Require(f.scene.SetTransform(f.leaf, moved), "follow fixture move failed");
+  f.Draw();
+  Require(f.ui.GetSceneOverviewCamera().x != before.x &&
+              Near(f.ui.GetNativeSceneOrbit().distance, distance),
+          "Shift+F did not follow the selected world bounds at a fixed viewing distance");
+  Require(f.scene.Undo() && f.world.SaveScene(f.scene_id) == f.original,
+          "follow navigation inserted an authoring history transaction");
+  f.Draw();
+  Require(Near(f.ui.GetSceneOverviewCamera().x, before.x), "follow did not track Undo");
+  // Actual right-button navigation releases the follow lock, including a stationary press.
+  const auto view = *f.ui.NativeScenePreviewViewport();
+  Nexora::Window::WindowEvent pointer, button;
+  pointer.type = Nexora::Window::WindowEventType::Pointer;
+  pointer.value0 = static_cast<int>(view.x + view.width / 2);
+  pointer.value1 = static_cast<int>(view.y + view.height / 2);
+  button.type = Nexora::Window::WindowEventType::PointerButton;
+  button.value0 = 1;
+  button.value1 = 1;
+  f.ui.ProcessEvents(std::array{pointer, button});
+  f.Draw();
+  button.value1 = 0;
+  f.ui.ProcessEvents(std::array{button});
+  f.Draw();
+  const auto unlocked = f.ui.GetSceneOverviewCamera();
+  Require(f.scene.SetTransform(f.leaf, moved), "follow cancellation fixture move failed");
+  f.Draw();
+  Require(f.ui.GetSceneOverviewCamera().x == unlocked.x,
+          "manual navigation did not release follow selection");
+}
 } // namespace
 int main() {
   try {
@@ -465,6 +512,8 @@ int main() {
     RunAll(1);
     RunAll(2);
     RunBudget();
+    RunFollow(1);
+    RunFollow(2);
     std::cout << "Scene mesh frame selection contracts passed\n";
     return 0;
   } catch (const std::exception &error) {

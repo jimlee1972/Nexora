@@ -1,0 +1,92 @@
+{
+  "status": "PASS_SCOPED_WINDOWS_BUILD_WORKFLOW",
+  "scope": "Windows native GUI, current host; not clean-host acceptance",
+  "implementation_base": "60f42e90868b06cabc9509d85a4e3ee6d5b6c1cd",
+  "test": "editor.windows_build_workflow",
+  "exit_code": 0,
+  "seconds": 274.9,
+  "configuration": {
+    "schema": 2,
+    "start_scene": "00000000-0000-0001-0000-000000000002",
+    "scenes": [
+      {
+        "id": "00000000-0000-0001-0000-000000000001",
+        "path": "Title.scene",
+        "enabled": true
+      },
+      {
+        "id": "00000000-0000-0001-0000-000000000002",
+        "path": "Level01.scene",
+        "enabled": true
+      },
+      {
+        "id": "00000000-0000-0001-0000-000000000003",
+        "path": "Excluded.scene",
+        "enabled": false
+      }
+    ],
+    "build": {
+      "mode": "script-project",
+      "script_manifest": "Scripts/預覽 project.json",
+      "output": "Build/預覽 Game"
+    }
+  },
+  "game_window_class": "Nexora.Window",
+  "game_console_attached": false,
+  "game_normal_exit": 0,
+  "minimum_real_presented_frames": 2,
+  "repeat_build_and_run_and_stop": true,
+  "stale_source": "Build source changed: Scripts/game.zig",
+  "cancelled": "Game build cancelled; managed child processes drained.",
+  "compile_failure": "Injected Zig syntax error; structured diagnostics observed; previous output unchanged",
+  "authored_sources_unchanged": {
+    "Excluded.scene": "5c50c63f615684c28268bb0e736ffb4c27388a67e5008a2889c3b53aafc4e061",
+    "Level01.scene": "49ca8de2ef770c25445b5f4357ab6065654054c929bc63a1628e294e3d517211",
+    "project.build.json": "eb0fac93aea368d8a32b8f76d09b21c9ec66f07579dff17b60f98e929b2134c7",
+    "project.nexora": "079018cbbb4a61fb266aea7b4e744497cd61ce12b1e69358ecd8d90a702fe83c",
+    "Title.scene": "058d6d5d7495816007a7523e29296dbdce03832a2bbbd0e5cdff79f0f7b3e094",
+    "Content\\Paint.nmaterial": "91c57536ce43d3a90a02be96260eb789dd6efc612e51071fe7845c147968ea6f",
+    "Content\\Paint.nmaterial.meta": "d3a36cbe1985ac7619609a39c12dcde4da1310e1230c459f14a1a0f0e658d1e5",
+    "Content\\Triangle.obj": "69244b0e9ea7fe99d8845a10adc8e413b96606635216764bf42953a533f951b9",
+    "Content\\Triangle.obj.meta": "af18e903de89c794cc8c2770701f1922027e1dbd20efa1a127548f9b752b560b",
+    "Scripts\\game.zig": "8d2c844e317737b2b667d5a7b48a0a253466a04f1c60ead0b0cf2e345d9fb200",
+    "Scripts\\預覽 project.json": "9100ba3359c0abefa35d457a77afb0fc9188434d3907063e94d61896e3ac855b"
+  },
+  "retained_output_sha256": {
+    "Build.commands": "20a87cd3128bbb825dcd9edd67ccd044190d70359b41ee5a26aafb9d2c8b4dbc",
+    "Build.sources": "1c96e8720b19821c52c1596117efb25baa229900cfc2315666d5d60b217aad66",
+    "Build.tools": "460ae059eb153eac2f8e19aa20d743b382eb6e9334a1dd50c28096547b09b40f",
+    "concrt140.dll": "2405355f0a58067b258f8df33c327e3a3d716eaac5a3a5aebb757842d85bd376",
+    "Game.dll": "7f3d575554fde33c41f431a6b3c1cdc0e34fc6059dec6f795e40e83a9cb4b050",
+    "Game.exe": "6813da283ff60e040b1db507d398425c34bc417d59f1be62704a63066a32b6b1",
+    "Game.inventory": "cfe3f2e0f61f95a20da576b12692b0ba687a95976ea3359396bc7064ba8a1ff5",
+    "Game.launch": "3f6e15d749a1bd56c4e57910fc4aa8ba14d2f9996ae9921126fd90b80a3a7411",
+    "Game.nxgame": "695a91da387262a4265a2440b8a41b3f9f4cffe42a2261257e2f19d8342f5a18",
+    "LICENSE": "1efea8712186f4d30e3a444bb709213b33a8706e371ddd2a9c6be38ce83f40e1",
+    "msvcp140.dll": "0f885b509a685d2bbfa652fed26b5fb31d88fbdab0a978c641d1c7b8aa460aa9",
+    "msvcp140_1.dll": "bfad5aef4c63a669e3c140655cdfdf395b6c979b400a447bd5dcb65ed8826c3d",
+    "msvcp140_2.dll": "3ea06f0ee098b4823cb79599df3780e7f23cce52c19aac31d2a0d47efe33a5e9",
+    "msvcp140_atomic_wait.dll": "640b2aefced484d0368eea5bdd06addd0658a3a70a49256e560d6923b404a479",
+    "msvcp140_codecvt_ids.dll": "f2069a52880ec885ee7f0511186100eb7fada0411a2b4948fafea7735b878a18",
+    "NexoraCore.dll": "50b0db0ef4ccd00cf83ed5f6e1c90d8465c8a0ea0be11fb6119cd61661b0c564",
+    "NexoraFoundation.dll": "d0367f0f9b99ac8f42711034c13cbb7f431c992785e262a0d51b8a95fc18222a",
+    "NexoraPresentation.dll": "b626b09e7747f2f5704fed1920a9c294d26839391d3a3bc1591542095c9eba51",
+    "NexoraRenderer.dll": "00b9aed60b8775cd006da8d9459ab8915c83b08865c7066d0dd51f7168e67cdd",
+    "NexoraRHI.dll": "f1faddeba1799112c9d5357db36a7ad4cd60352fb307803e080212b60caff8ed",
+    "NexoraRuntime.dll": "9aed44d5c917f34a85a72e853362a7b0b3a20ef422ff10718cd21f3e1228a288",
+    "NexoraTwoD.dll": "24338acaab0762947f9fafb9ee2f0b1540f095a236488c5f906e90bcc33efe83",
+    "NexoraWindow.dll": "250330f9fb764af3d3a1d95475588a137687afa5759c3325fd609da84af03923",
+    "vcruntime140.dll": "d5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066",
+    "vcruntime140_1.dll": "1f2d41c4aa5db0bc33ebf7b66d72943a817d7ce6cbe880502a9403823633093f"
+  },
+  "native_binaries_sha256": {
+    "NexoraEditor.exe": "d57f8c4c871b252880ac2911b8693e43c5f77843802145418684ca01e0fd120a",
+    "NexoraEditorCore.dll": "001e7f2fa493160d33216c631dc4b4133ebe1f90db34c26342c57efa7d8287e7",
+    "NexoraEditorImGui.dll": "8ea8b4ca189c8f1d9fad7e96bef769fcf946fda3856e47c8ceb85f8f1b112a5a",
+    "NexoraProjectPlayer.exe": "6813da283ff60e040b1db507d398425c34bc417d59f1be62704a63066a32b6b1"
+  },
+  "local_startup_pixel_gate": "BLOCKED: screen capture contains another foreground window; unchanged assertions failed; hosted Windows rerun required",
+  "linux_codex_cloud": "PENDING",
+  "required_ci": "PENDING",
+  "accepted": false
+}

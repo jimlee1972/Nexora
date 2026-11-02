@@ -86,11 +86,33 @@ struct Fixture final {
 };
 void Run(float scale) {
   Fixture f(scale);
-  f.Click(0);  // Build menu.
-  f.Click(1);  // Build Settings.
-  f.Click(20); // Row 1: make Level01 startup.
-  f.Click(16); // Row 0: exclude Title.
-  f.Click(5);  // Save.
+  const auto build_chord = [&](unsigned modifiers) {
+    Nexora::Window::WindowEvent event;
+    event.type = Nexora::Window::WindowEventType::Key;
+    event.value0 = static_cast<int>(Nexora::Window::Key::B);
+    event.value1 = 1;
+    event.modifiers = static_cast<Nexora::Window::KeyModifiers>(modifiers);
+    f.ui.ProcessEvents(std::array{event});
+    f.Draw();
+    event.value1 = 0;
+    event.modifiers = Nexora::Window::KeyModifiers::None;
+    f.ui.ProcessEvents(std::array{event});
+    f.Draw();
+  };
+  build_chord(1); // Unity Build & Run uses the saved, scoped build settings.
+  const auto shortcut_build = f.ui.TakeProjectBuildSettingsRequest();
+  Require(shortcut_build && shortcut_build->action == Action::BuildSceneOnly &&
+              shortcut_build->run_after_build && shortcut_build->root == f.writer.Root() &&
+              shortcut_build->settings.start_scene == f.settings.start_scene,
+          "Ctrl+B did not emit a scoped Build & Run request");
+  f.ui.SetGameBuildStatus(true, "Compiling");
+  build_chord(1);
+  Require(!f.ui.TakeProjectBuildSettingsRequest(), "Ctrl+B duplicated a busy build");
+  f.ui.SetGameBuildStatus(false, "Ready");
+  build_chord(3); // Unity Build Settings.
+  f.Click(20);    // Row 1: make Level01 startup.
+  f.Click(16);    // Row 0: exclude Title.
+  f.Click(5);     // Save.
   auto request = f.ui.TakeProjectBuildSettingsRequest();
   Require(request && request->action == Action::Save && request->project == f.writer.Project().id &&
               request->root == f.writer.Root() &&
@@ -114,6 +136,39 @@ void Run(float scale) {
   build = f.ui.TakeProjectBuildSettingsRequest();
   Require(build && build->action == Action::BuildScript && build->path == "Scripts/project.json",
           "explicit script build action");
+  f.Click(5);
+  request = f.ui.TakeProjectBuildSettingsRequest();
+  Require(request && request->action == Action::Save &&
+              request->settings.build.mode == editor::GameBuildMode::ScriptProject &&
+              request->settings.build.script_manifest == "Scripts/project.json" &&
+              session.Save(request->settings, f.catalog),
+          "UI script choice was not saved with project settings");
+  f.ui.SetProjectBuildSettings(f.writer, *session.Settings(), true);
+  f.Draw();
+  f.Click(6);
+  request = f.ui.TakeProjectBuildSettingsRequest();
+  Require(request && request->action == Action::Reload && session.Reload(),
+          "script configuration reload request failed");
+  f.ui.SetProjectBuildSettings(f.writer, *session.Settings(), true);
+  f.Draw();
+  f.Click(13);
+  build = f.ui.TakeProjectBuildSettingsRequest();
+  Require(build && build->action == Action::BuildScript && build->settings == *session.Settings() &&
+              build->output == session.Settings()->build.output,
+          "reloaded UI forgot saved script build configuration");
+  f.Click(15);
+  build = f.ui.TakeProjectBuildSettingsRequest();
+  Require(build && build->action == Action::BuildScript && build->run_after_build,
+          "Build & Run lost its scoped continuation");
+  f.ui.SetGameRunStatus(true, "Running fixture");
+  f.Draw();
+  f.Click(13);
+  f.Click(15);
+  Require(!f.ui.TakeProjectBuildSettingsRequest(), "running game allowed output replacement");
+  f.Click(14);
+  build = f.ui.TakeProjectBuildSettingsRequest();
+  Require(build && build->action == Action::StopGame, "Stop Game did not request managed shutdown");
+  f.ui.SetGameRunStatus(false, "Stopped fixture");
   f.ui.SetGameBuildStatus(true, "Building fixture");
   f.Draw();
   f.Click(13);
@@ -121,6 +176,14 @@ void Run(float scale) {
   f.Click(14);
   build = f.ui.TakeProjectBuildSettingsRequest();
   Require(build && build->action == Action::CancelBuild, "cancel build request");
+  f.ui.SetGameBuildStatus(false, std::string(4096, 'x'));
+  f.ui.SetGameBuildProgress(editor::ObserveGameBuildProgress(
+      editor::GameBuildStage::Failed, "Scripts/game.zig:12:3: error: compilation failed"));
+  f.Draw();
+  f.Click(13);
+  build = f.ui.TakeProjectBuildSettingsRequest();
+  Require(build && build->action == Action::BuildScript,
+          "long compiler output pushed the Build action outside its visible window");
   f.ui.SetGameBuildStatus(false, "Cancelled");
   for (std::size_t choice = 0; choice < 3; ++choice) {
     f.ui.RequestSavedGameDecision();

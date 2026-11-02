@@ -317,6 +317,63 @@ void Run(const std::filesystem::path &root, const std::filesystem::path &capture
     module.ProcessInput(std::span(&press, 1));
     Check(input.read_action(input.context, 0, 42, &action) == 0 && action.held && action.pressed,
           "accepted key missing from services");
+    auto playBinding = keyBinding;
+    playBinding.control = static_cast<std::uint32_t>(Key::P);
+    Check(input.bind(input.context, 0, 43, &playBinding) == 0, "P service action binding");
+    for (const auto primary : {KeyModifiers::Control, KeyModifiers::Super}) {
+      auto chord = press;
+      chord.value0 = static_cast<int>(Key::P);
+      chord.modifiers = primary;
+      module.ProcessInput(std::span(&chord, 1));
+      Check(input.read_action(input.context, 0, 43, &action) == 0 && !action.held &&
+                !action.pressed,
+            "reserved Play chord fired a 2D services action");
+      chord.modifiers = KeyModifiers::None;
+      module.ProcessInput(std::span(&chord, 1));
+      Check(input.read_action(input.context, 0, 43, &action) == 0 && !action.held,
+            "reserved Play autorepeat leaked into 2D services");
+      chord.value1 = 0;
+      module.ProcessInput(std::span(&chord, 1));
+      module.SetInputFocus(false);
+      module.SetInputFocus(true);
+      chord.value1 = 1;
+      chord.modifiers = primary;
+      module.ProcessInput(std::span(&chord, 1)); // Discarded capture acquisition still consumes P.
+      chord.modifiers = KeyModifiers::None;
+      module.ProcessInput(std::span(&chord, 1));
+      Check(input.read_action(input.context, 0, 43, &action) == 0 && !action.held,
+            "acquisition discarded the reserved services P latch");
+      chord.value1 = 0;
+      module.ProcessInput(std::span(&chord, 1));
+      chord.value1 = 1;
+      module.ProcessInput(std::span(&chord, 1));
+      Check(input.read_action(input.context, 0, 43, &action) == 0 && action.held && action.pressed,
+            "ordinary P did not recover in 2D services");
+      chord.value1 = 0;
+      module.ProcessInput(std::span(&chord, 1));
+    }
+    for (const auto key : {Key::F5, Key::F6, Key::F10}) {
+      playBinding.control = static_cast<std::uint32_t>(key);
+      Check(input.bind(input.context, 0, 44, &playBinding) == 0, "Play alias binding");
+      auto alias = press;
+      alias.value0 = static_cast<int>(key);
+      module.ProcessInput(std::span(&alias, 1));
+      Check(input.read_action(input.context, 0, 44, &action) == 0 && !action.held &&
+                !action.pressed,
+            "reserved Play alias fired a 2D services action");
+      alias.value1 = 0;
+      module.ProcessInput(std::span(&alias, 1));
+    }
+    playBinding.control = static_cast<std::uint32_t>(Key::F2);
+    Check(input.bind(input.context, 0, 45, &playBinding) == 0, "ordinary function key binding");
+    auto ordinary = press;
+    ordinary.value0 = static_cast<int>(Key::F2);
+    module.ProcessInput(std::span(&ordinary, 1));
+    Check(input.read_action(input.context, 0, 45, &action) == 0 && action.held && action.pressed,
+          "nonreserved function key was blocked");
+    module.ProcessInput(std::span(&press, 1));
+    Check(input.read_action(input.context, 0, 42, &action) == 0 && action.held,
+          "ordinary key did not recover after capture changes");
     module.SetInputFocus(false);
     Check(input.read_action(input.context, 0, 42, &action) == 0 && !action.held,
           "revocation retained service input");

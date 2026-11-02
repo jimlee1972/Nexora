@@ -120,7 +120,13 @@ jobs:
       - name: Validate ray/refit and feedback admission before the full desktop build
         if: runner.os == 'Windows'
         run: ctest --preset ${{ matrix.preset }} -V -R '^renderer\.(sampler_feedback|ray_tracing)(_enhanced_barriers)?$'
-      - run: cmake --build --preset ${{ matrix.preset }}
+      - id: desktop_build
+        run: cmake --build --preset ${{ matrix.preset }}
+      - name: Collect remaining Linux compiler diagnostics
+        if: failure() && runner.os == 'Linux' && steps.desktop_build.outcome == 'failure'
+        # The original failed step remains failed. Keep -Werror and collect every remaining
+        # translation-unit diagnostic instead of discovering only Ninja's first failure.
+        run: cmake --build --preset ${{ matrix.preset }} -- -k 0
       - name: Require the graphical Editor contract
         shell: bash
         run: |

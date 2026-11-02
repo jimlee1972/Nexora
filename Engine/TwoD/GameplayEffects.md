@@ -181,3 +181,7 @@ top. The renderer reads the actual GPU map. The request is copied into the next 
 invalid arguments, missing SHADOWS support or wrong thread leave the previous view/revision.
 Repeated identical requests do not advance revision. `submit_frame` preserves the chosen view.
 The debug pass does not change public Sprite wires or use the 3D renderer.
+
+## Released consumer path
+
+Immutable Windows SDK0.2.0/source93a8dd51 delivers this independently negotiated contract, its optional completed-frame diagnostics and Zig diagnostic controls; original services/Sprite prefixes and default-off legacy rendering remain unchanged. [Game PR31](https://github.com/jimlee1972/OnmyojiSurvivors/pull/31) validates same-product native F9 transitions and completion-based retirement using those existing APIs. No API extension was needed for the game integration. [SDK receipt](../../Tools/SDK/evidence/HD2D-07-Linux-2026-10-31.md) records the exact published archive/hash, source-free consumer, native readbacks and failures/retries; physical/formal-game gates remain separate.

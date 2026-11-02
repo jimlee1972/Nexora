@@ -2,10 +2,10 @@
 
 #include "Nexora/Core/Cancellation.h"
 #include "Nexora/Editor/GameBuildCapture.h"
+#include "Nexora/Editor/GameBuildProgress.h"
 #include <functional>
 
 namespace nexora::editor {
-enum class GameBuildMode : std::uint8_t { SceneOnly, ScriptProject };
 struct GameBuildToolchain final {
   std::filesystem::path player, cmake, ninja, zig;
   // Explicit engine distribution inventory; never search the authored project or current CWD.
@@ -25,6 +25,14 @@ struct GameBuildRequest final {
   std::filesystem::path script_manifest;
   GameBuildToolchain tools;
   std::uint32_t maximum_frames{};
+  GameBuildProgressSink progress{};
+  // Trusted host override, never an authored project setting. Empty uses engine user data.
+  // Must be outside the project, private operation and runtime output.
+  std::filesystem::path records_parent;
+};
+struct GameBuildReceipt final {
+  // Owning locator for publication metadata. Neither path is needed to run the game.
+  std::filesystem::path directory, file;
 };
 // Owns a private operation directory. Preparation is synchronous worker work with no authoring
 // borrows. Publication is an explicit owner-thread step; an Editor guard checks its current
@@ -38,8 +46,10 @@ public:
   PreparedGameBuild &operator=(const PreparedGameBuild &) = delete;
   [[nodiscard]] const std::filesystem::path &Directory() const noexcept;
   [[nodiscard]] const std::string &Log() const noexcept;
-  // Output must be absent, or an unmodified prior engine build for this same project. A
-  // failed/stale/cancelled preparation or publication preserves the previous output.
+  [[nodiscard]] const std::optional<GameBuildReceipt> &Receipt() const noexcept;
+  // Output must be absent, or match external records for this project/output. Verified legacy
+  // inventory-bearing builds migrate. A failed/stale/cancelled transaction preserves prior
+  // output/records; failed rollback retains backups. Receipt is populated only after commit.
   bool Publish(const std::filesystem::path &output, const core::CancellationToken &,
                const std::function<bool()> &owner_current, std::string *error = nullptr);
 

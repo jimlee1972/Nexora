@@ -113,17 +113,20 @@ def main():
 
         def key(*keys):
             physical = {'ctrl': ('Control_L', 0), 'alt': ('Alt_L', 1), 'p': ('p', 2),
-                        'a': ('a', 3), 'Return': ('Return', 4), 'Escape': ('Escape', 5)}
+                        'a': ('a', 3), 'Return': ('Return', 4), 'Escape': ('Escape', 5),
+                        'shift': ('Shift_L', None)}
             for chord in keys:
                 deadline = time.monotonic() + 8
                 parts = [physical[part] for part in chord.split('+')]
                 for name, index in parts:
                     send('keydown', name)
-                    wait_ui(lambda value: value['keys'][index] == '1',
+                    wait_ui(lambda value: (value['shift'] if index is None else
+                                          value['keys'][index]) == '1',
                             f'GUI did not observe {name} down', deadline)
                 for name, index in reversed(parts):
                     send('keyup', name)
-                    wait_ui(lambda value: value['keys'][index] == '0',
+                    wait_ui(lambda value: (value['shift'] if index is None else
+                                          value['keys'][index]) == '0',
                             f'GUI did not observe {name} up', deadline)
 
         def click(window, x, y, history=None):
@@ -203,7 +206,7 @@ def main():
             send('windowsize', '--sync', window, '1600', '1200')
             send('windowfocus', '--sync', window)
             wait_ui(lambda value: value['focused'] == '1', 'GUI did not acknowledge focus')
-            key('ctrl+alt+p')
+            key('ctrl+alt+shift+p')
             wait_ui(lambda value: 'c0' in value, 'Prefab panel did not open')
             return window
 
@@ -532,7 +535,7 @@ def main():
         require(placement_before == {p.relative_to(root): p.read_bytes()
                                     for p in root.rglob('*') if p.is_file()},
                 'Native scene instantiation published files before explicit Scene Save')
-        key('ctrl+alt+p')  # Hide the clean panel through its actual toggle shortcut.
+        key('ctrl+alt+shift+p')  # Hide the clean panel through its actual toggle shortcut.
         click(window, 397, 29)  # Restore original Scene focus for ordinary Save/Undo/Redo.
         scene_shortcut('s')
         placed_scene = wait_scene(lambda value: value.startswith(b'NEXORA_EDITOR_SCENE 4\n'),
