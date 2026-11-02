@@ -520,7 +520,8 @@ DiagnosticScope::DiagnosticScope(std::string_view context) noexcept {
   std::memcpy(previous_, current_context, sizeof(previous_));
   const auto count = std::min(context.size(), sizeof(current_context) - 1);
   for (std::size_t i = 0; i < count; ++i)
-    current_context[i] = context[i] >= 32 && context[i] != 127 ? context[i] : '?';
+    current_context[i] =
+        static_cast<unsigned char>(context[i]) >= 32 && context[i] != 127 ? context[i] : '?';
   current_context[count] = 0;
 }
 DiagnosticScope::~DiagnosticScope() { std::memcpy(current_context, previous_, sizeof(previous_)); }

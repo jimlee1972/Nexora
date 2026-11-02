@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
     }
     if (mode == "worker-crash") {
       std::thread worker([] {
-        core::DiagnosticScope worker_scope("Gameplay.worker");
+        core::DiagnosticScope worker_scope("Gameplay.worker-遊戲");
         std::abort();
       });
       worker.join();

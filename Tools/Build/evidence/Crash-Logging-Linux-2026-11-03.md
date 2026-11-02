@@ -19,17 +19,17 @@ Shipping used the same optional entry targets.
 | --- | --- |
 | `cmake --preset linux-development` | PASS |
 | `cmake --build --preset linux-development -j 8` | PASS |
-| `ctest --preset linux-development --output-on-failure` | PASS: 251 passed, 14 skipped, 0 failed; 265 registered; 203.45 s |
+| `ctest --preset linux-development --output-on-failure` | PASS: 251 passed, 14 skipped, 0 failed; 265 registered; 178.26 s |
 | `ctest --preset linux-development -R '^runtime.crash_diagnostics$' -V` | PASS: expanded native crash suite, 0.23 s |
 | `cmake --preset linux-shipping -DNEXORA_BUILD_PROJECT_PLAYER=ON -DNEXORA_2D_GAME_TARGET=NexoraCrashGameSmoke` | PASS |
 | `cmake --build --preset linux-shipping -j 6` | PASS: monolithic Host, DedicatedServer, ProjectPlayer, TwoDPlayer and standalone game |
 | `clang-format --dry-run --Werror <all touched C++ headers/sources>` | PASS |
 | `git diff --check` | PASS |
 
-After the full suite, the final Windows include ordering and expanded lifecycle crash fixtures
-were rebuilt in Development and Shipping; the expanded crash suite passed again. The include
-ordering change has no Linux runtime behavior. Other accepted runtime code was covered by the
-full suite above.
+The final full suite includes the expanded lifecycle fixtures and a native worker crash carrying
+`Gameplay.worker-遊戲`, proving that non-ASCII fault context survives capture. Development and
+Shipping were rebuilt after the Unicode-context correction. The focused crash suite also passed
+before the final full regression run.
 
 ## Native subprocess acceptance
 
@@ -40,7 +40,7 @@ non-directory output root:
   invalid gameplay wire length, and a recoverable game error in the critical journal.
 - Rotation with bounded 4 MiB game files; previous-run/session isolation.
 - Standard and non-standard application exceptions, terminate and abort.
-- An ordinary worker crash, a captured game job exception, a crashing job and owner stack exhaustion.
+- An ordinary worker crash with preserved Unicode context, a captured game job exception, a crashing job and owner stack exhaustion.
 - Real dynamically loaded gameplay module crashes during create, start, update, fixed-update,
   stop and destroy, with the exact callback in the crash record.
 - Update/fixed-update error return codes with callback/result/generation records.

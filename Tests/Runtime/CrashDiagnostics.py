@@ -59,6 +59,8 @@ with tempfile.TemporaryDirectory(prefix="nexora-crash-證據-") as temporary:
             require("fatal kind=" in crash, f"{mode}: missing native crash record")
             if os.name == "nt" and "minidump=ready" in crash:
                 require((session / "crash.dmp").read_bytes().startswith(b"MDMP"), f"{mode}: missing native minidump")
+            if mode == "worker-crash":
+                require("context=Gameplay.worker-遊戲" in crash, "Unicode fault context was corrupted")
             if mode == "stack-overflow":
                 require("context=Gameplay.stack" in crash, "alternate signal stack did not capture exhausted owner stack")
             elif mode == "job-crash":

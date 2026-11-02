@@ -141,3 +141,6 @@ power loss or crashes before entry bootstrap; already written breadcrumbs can st
 on a later update. Module snapshots and metadata are produced in ordinary execution, never in a
 signal handler. Applications must serialize ownership of process handlers with external crash
 SDKs; concurrent external handler replacement is outside this session's contract.
+
+Fault scopes preserve non-ASCII UTF-8 label bytes while replacing control bytes; the native worker
+crash regression includes a Chinese context label.
