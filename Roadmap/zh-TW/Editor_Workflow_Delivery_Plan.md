@@ -129,3 +129,7 @@ GitHub README 維持讀者導向，整體 milestone 未變時不加入逐工單�
 及兩次真實無參數 GUI 啟動通過；主程式 C++ fixture 記錄96次成功交接／576次預期拒絕。
 實際腳本修改的 watcher／compiler 准入與完整精確版本 Cloud／Shipping／CI 仍待完成；
 ED-WF-05 尚未驗收，完成度維持4/9。
+
+[啟動診斷追蹤](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Startup-Diagnostic.md)
+保留 PR763 Windows 打包啟動失敗，加入有界的首幀紀錄。本機兩次無參數啟動仍通過；
+CI 根因與精確版本完整驗證待完成。此為診斷檢查點，尚未驗收修復，完成度維持4/9。

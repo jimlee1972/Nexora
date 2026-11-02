@@ -1461,6 +1461,14 @@ int RunGraphical(std::optional<ProjectState> project,
     ui.SetSceneSaveResult(saved.message, saved.Published());
     return saved.Published();
   };
+  unsigned startup_checkpoints{};
+  const auto startup_checkpoint = [&](std::string_view phase) {
+    if (reveal_main_window && startup_checkpoints < 64 &&
+        std::getenv("NEXORA_EDITOR_STARTUP_EVIDENCE")) {
+      ++startup_checkpoints;
+      std::cerr << "editor startup checkpoint: " << phase << '\n';
+    }
+  };
   while (!exit_requested && !created.surface->CloseRequested() &&
          (frame_limit == 0 || frames < frame_limit)) {
     console_ingress.Poll();
@@ -1472,7 +1480,9 @@ int RunGraphical(std::optional<ProjectState> project,
       break;
     }
 #endif
+    startup_checkpoint("begin-frame");
     const auto begin_frame_status = created.surface->BeginFrame();
+    startup_checkpoint("begin-frame-returned");
     if (created.surface->CloseRequested()) {
       if (project && has_unsaved_owned_scenes() && created.surface->CancelCloseRequest()) {
         ui.RequestCloseConfirmation();
@@ -1564,7 +1574,9 @@ int RunGraphical(std::optional<ProjectState> project,
     ui.SetGameTwoDAvailable(bool(gameplay.TwoDAssets()));
 #endif
     ui.SetUiOutputSrgb(created.surface->Diagnostics().uiTargetEncodesSrgb);
+    startup_checkpoint("begin-ui");
     ui.BeginFrame();
+    startup_checkpoint("begin-ui-returned");
     if (!project && pending_project) {
       if (const auto snapshot = imports.Snapshot(pending_project->import)) {
         std::string status = "Importing project content";
@@ -3577,7 +3589,9 @@ int RunGraphical(std::optional<ProjectState> project,
       }
     }
 #endif
+    startup_checkpoint("end-ui");
     static_cast<void>(ui.EndFrame());
+    startup_checkpoint("end-ui-returned");
     if (const auto theme = ui.TakeColorThemeRequest()) {
       appearance_status.clear();
       if (!nexora::editor::SaveEditorColorTheme(appearance_path, *theme, &appearance_status)) {
@@ -3882,6 +3896,7 @@ int RunGraphical(std::optional<ProjectState> project,
       return recovery == Nexora::Presentation::SurfaceAction::RecreateSurface ||
              recovery == Nexora::Presentation::SurfaceAction::Suspend;
     };
+    startup_checkpoint("render-ui");
     if (const auto render_status = ui.Render(*created.surface, frame.width, frame.height);
         render_status != Nexora::Presentation::SurfaceStatus::Ready) {
       if (surface_recoverable(render_status))
@@ -4057,8 +4072,11 @@ int RunGraphical(std::optional<ProjectState> project,
         }
       }
     }
+    startup_checkpoint("render-ui-returned");
     const auto frame_processed = std::chrono::steady_clock::now();
+    startup_checkpoint("present");
     const auto end_status = created.surface->EndFrame();
+    startup_checkpoint("present-returned");
     // A hidden DX12 swapchain can return OCCLUDED after submitting/completing
     // its first real draw. Reveal once, instead of waiting for visibility that
     // only this owner can provide. Other errors retain normal recovery.

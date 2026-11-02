@@ -142,3 +142,8 @@ adds strict bare/configured/2D World and service generations. Fourteen native ta
 23 scoped Windows tests and two real no-argument GUI launches pass. The main C++ fixture records
 96 replacements/576 expected rejections. Automatic source-edit/watcher/compiler admission and
 full immutable-head Cloud/Shipping/CI remain pending; ED-WF-05 is unaccepted and4/9 is unchanged.
+
+The [startup diagnostic follow-up](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Startup-Diagnostic.md)
+retains PR763 Windows package startup failure and adds bounded first-frame evidence. Two local
+no-argument launches still pass; the CI root cause and exact-head full gates remain pending.
+This is a diagnostic checkpoint, not an accepted fix; completion remains 4/9.

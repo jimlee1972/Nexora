@@ -218,7 +218,9 @@ def _verify_startup(editor, evidence, environment=None):
                             break
                         time.sleep(0.005)
                     require('splash-show' in observed and 'main-show' in observed,
-                            'Startup/Ready deadline exceeded (possible teardown deadlock)')
+                            'Startup/Ready deadline exceeded (possible teardown deadlock); '
+                            f'events={observed}, responsive_splash_probes={probes}; '
+                            + log.read_text(errors='replace')[-12000:])
                     require(probes > 0, 'Splash was never externally observed responsive')
                     require(responsive(main), 'Prepared main is unresponsive')
                     require(not splash or not user.IsWindowVisible(splash), 'Splash survived Ready')
