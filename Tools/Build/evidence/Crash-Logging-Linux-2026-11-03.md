@@ -88,3 +88,17 @@ instead; no deprecated context-switching routines are enabled. Fresh native Appl
 must validate this follow-up. The Windows test now requires backend readiness rather than allowing
 unavailable dump support to skip its signature checks. Linux cloud validation does not substitute
 for those native jobs.
+
+## Integration with authored-scene main
+
+Integrated `main` at `1df6ab35` after PR #765 added authored 2D scene catalogs. Only
+`Apps/TwoDPlayer/README.md` and `Engine/Runtime/README.md` required manual conflict resolution;
+both the authored-scene contracts and the crash/game-log contracts are retained. Player code
+auto-merged, preserving its Scene V1 registration, transition processing and diagnostic entry.
+
+The integrated Linux configure/build/full-test gate passed: 252 passed, 14 native-environment
+skips, 0 failed (266 registered; 180.78 s). This includes `runtime.crash_diagnostics` with all 21
+Linux scenarios and the new `twod.scene_session` regression. Monolithic Shipping also rebuilt
+successfully with the configured standalone game and ProjectPlayer targets. Native CI must
+validate the updated PR head before squash merge; prior-head CI success is not reused as proof
+of this integrated tree.

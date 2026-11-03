@@ -28,10 +28,15 @@ struct ProjectAsset final {
   std::uint64_t id{};
   bool deferred{};
 };
+struct ProjectScene final {
+  std::string path, file;
+  twod::AssetId id;
+};
 struct GameProject final {
   std::filesystem::path root, module;
   std::string id, title, scene, audio{"optional"};
   std::vector<ProjectAsset> assets;
+  std::vector<ProjectScene> scenes;
   twod::AssetId tile_atlas{};
   twod::GameplayContent::Limits content_limits{};
   runtime::GameplayAudio::Limits audio_limits{};
@@ -77,7 +82,32 @@ struct GameProject final {
       std::istringstream row(line);
       std::string key, value, trailing;
       row >> key;
-      if (key == "audio_capacity") {
+      if (key == "scene_asset") {
+        ProjectScene scene;
+        RequireProject(bool(row >> scene.id.high >> scene.id.low >> std::quoted(scene.path) >>
+                            std::quoted(scene.file)) &&
+                           !(row >> trailing) && (scene.id.high || scene.id.low) &&
+                           result.scenes.size() < 64 && paths.insert(scene.file).second,
+                       "invalid scene catalog entry");
+        result.File(scene.file);
+        // Both the public lookup key and packaged file use the same containment rules.
+        RequireProject(!scene.path.empty() && scene.path.size() <= 256 &&
+                           scene.path.front() != '/' && scene.path.back() != '/' &&
+                           scene.path.find('\\') == std::string::npos &&
+                           scene.path.find(':') == std::string::npos &&
+                           std::all_of(scene.path.begin(), scene.path.end(),
+                                       [](unsigned char c) { return c >= 32 && c < 127; }),
+                       "invalid scene lookup path");
+        for (const auto &part : GamePath(scene.path))
+          RequireProject(part != "." && part != ".." && !part.empty(), "invalid scene lookup path");
+        RequireProject(scene.path.find("//") == std::string::npos &&
+                           std::none_of(result.scenes.begin(), result.scenes.end(),
+                                        [&](const auto &old) {
+                                          return old.path == scene.path || old.id == scene.id;
+                                        }),
+                       "duplicate scene catalog identity/path");
+        result.scenes.push_back(std::move(scene));
+      } else if (key == "audio_capacity") {
         RequireProject(
             fields.insert(key).second &&
                 bool(row >> result.audio_limits.assets >> result.audio_limits.active_bytes >>
@@ -163,6 +193,10 @@ struct GameProject final {
                      "project ID must be a portable save scope");
     const auto alnum = [](char c) { return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9'); };
     RequireProject(alnum(result.id.front()) && alnum(result.id.back()), "invalid project ID");
+    RequireProject(result.scenes.empty() ||
+                       std::any_of(result.scenes.begin(), result.scenes.end(),
+                                   [&](const auto &entry) { return entry.path == result.scene; }),
+                   "startup scene is missing from catalog");
     result.module = result.File(module);
     return result;
   }

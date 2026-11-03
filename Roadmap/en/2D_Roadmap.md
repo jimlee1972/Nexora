@@ -966,3 +966,7 @@ HD2D-07 SDK promotion retains immutable source93a8dd51 and successful main Build
 
 
 ✅ HD2D-07 accepted: immutable SDK0.2.0/source93a8dd51, tested ZIP promotion41190794168 and game PR31/f404f59d. Both final Windows cold/no-native-toolchain/offline/inventory/NX00/native F9-retirement/negative-failure gates passed atbe8a5a5b. Beads07 CLOSED, engineering7/7; epic and physical HD2D-PC remain open/NOT_RUN. See the paired HD2D plan for SHA/source, failure/retry history and current acceptance. Existing 2D9/11/SP/M6/M7/formal game/target FPS are unchanged.
+
+## Authored 2D scene catalog integration（2026-11-03）
+
+Engine implementation adds a shared ND2D document decoder, fresh-ID World instantiation, deferred Scene V1 sessions, Player startup/catalog export and the 2D Studio scene-file selector. Acceptance and remaining SDK/consumer delivery gates are recorded in [scene evidence](../../Engine/TwoD/evidence/AuthoredScenes-Linux-2026-11-03.md). This supporting integration does not change M6/M7 or main 3D Editor Sprite-persistence acceptance.

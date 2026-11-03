@@ -277,7 +277,7 @@ def export(descriptor, runtime, output, compiler=None, allow_development=False, 
     config = json.loads(descriptor.read_text(encoding='utf-8'), object_pairs_hook=unique_object)
     if not isinstance(config, dict):
         raise ValueError('game descriptor must be an object')
-    if set(config) - {'schema', 'id', 'title', 'scene', 'module', 'audio', 'assets', 'tile_atlas', 'display', 'capacity', 'audio_capacity'}:
+    if set(config) - {'schema', 'id', 'title', 'scene', 'module', 'audio', 'assets', 'tile_atlas', 'display', 'capacity', 'audio_capacity', 'scenes'}:
         raise ValueError('unknown game descriptor field')
     if type(config.get('schema')) is not int or config['schema'] != 1 or not re.fullmatch(r'[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?', config.get('id', '')):
         raise ValueError('invalid game schema or ID')
@@ -316,6 +316,28 @@ def export(descriptor, runtime, output, compiler=None, allow_development=False, 
     assets = config.get('assets', [])
     if not isinstance(assets, list) or len(assets) > 4096:
         raise ValueError('asset count exceeds 4096')
+    scenes = config.get('scenes', [])
+    if not isinstance(scenes, list) or ('scenes' in config and not scenes) or len(scenes) > 64:
+        raise ValueError('scene catalog requires 1..64 entries')
+    scene_paths, scene_ids, scene_total = set(), set(), 0
+    for entry in scenes:
+        if not isinstance(entry, dict) or set(entry) != {'id', 'path'}:
+            raise ValueError('invalid scene catalog entry')
+        identity, path = entry['id'], entry['path']
+        if (not isinstance(identity, list) or len(identity) != 2
+                or any(type(v) is not int or not 0 <= v <= 2**64-1 for v in identity)
+                or not any(identity) or tuple(identity) in scene_ids
+                or not isinstance(path, str) or not path.isascii() or len(path) > 256
+                or any(ord(c) < 32 for c in path) or path in scene_paths):
+            raise ValueError('invalid or duplicate scene ID/path')
+        source = local(descriptor.parent, path)
+        scene_total += source.stat().st_size
+        if scene_total > 64 * 1024 * 1024:
+            raise ValueError('scene catalog exceeds 64 MiB')
+        scene_ids.add(tuple(identity))
+        scene_paths.add(path)
+    if scenes and (config['scene'] not in scene_paths or compiler is None):
+        raise ValueError('catalog needs a listed startup scene and the scene compiler')
     module = local(descriptor.parent, config['module'])
     module_suffix = '.dll' if sys.platform == 'win32' else '.dylib' if sys.platform == 'darwin' else '.so'
     if module.suffix.lower() != module_suffix:
@@ -349,8 +371,16 @@ def export(descriptor, runtime, output, compiler=None, allow_development=False, 
                     or not any(identity)):
                 raise ValueError('invalid tile atlas identity')
             lines.append(f'tile_atlas {identity[0]} {identity[1]}')
-        ids, paths, total = set(), set(), 0
-        preload_targets = []
+        if scenes:
+            (staging / 'scenes').mkdir()
+            for index, entry in enumerate(scenes):
+                relative = f'scenes/{index:04d}.scene'
+                subprocess.run([str(compiler), 'scene', str(local(descriptor.parent, entry['path'])),
+                                str(staging / relative)], check=True)
+                lines.append(f'scene_asset {entry["id"][0]} {entry["id"][1]} '
+                             f'{quote(entry["path"])} {quote(relative)}')
+        ids, paths, total = set(), set(), scene_total
+        preload_targets = [staging / f'scenes/{index:04d}.scene' for index in range(len(scenes))]
         for index, entry in enumerate(assets):
             if not isinstance(entry, dict):
                 raise ValueError('asset descriptor must be an object')

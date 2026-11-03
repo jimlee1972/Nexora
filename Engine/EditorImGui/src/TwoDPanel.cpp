@@ -30,6 +30,19 @@ void DrawTwoDPanel(TwoDDocument &doc, TwoDPanelState &state, bool allowed, std::
     return;
   }
   const bool writable = allowed && !doc.ReadOnly();
+  if (!state.sceneFiles.empty() && state.activeScene < state.sceneFiles.size()) {
+    ImGui::BeginDisabled(doc.Dirty());
+    if (ImGui::BeginCombo("Scene file", state.sceneFiles[state.activeScene].c_str())) {
+      for (std::size_t i = 0; i < state.sceneFiles.size(); ++i)
+        if (ImGui::Selectable(state.sceneFiles[i].c_str(), state.activeScene == i) &&
+            i != state.activeScene)
+          state.requestedScene = i;
+      ImGui::EndCombo();
+    }
+    ImGui::EndDisabled();
+    if (doc.Dirty())
+      ImGui::TextUnformatted("Save changes before switching scenes.");
+  }
   ImGui::TextUnformatted(doc.Dirty() ? "Unsaved changes" : "Saved document");
   ImGui::BeginDisabled(!writable);
   if (detail::IconButton("Undo", detail::EditorIcon::Undo))

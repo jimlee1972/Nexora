@@ -126,6 +126,16 @@ public:
   // partial snapshot on overflow or stream failure. Bounds logical output bytes, not allocator/
   // formatting temporary memory. Both overloads are synchronous and mutate no World state.
   [[nodiscard]] std::optional<std::string> SaveScene(Id scene, std::size_t max_bytes) const;
+  // Validates an authored snapshot, allocates fresh IDs, and remaps parents atomically.
+  struct SceneImport final {
+    Id scene{};
+    std::unordered_map<Id, Id> entities;
+  };
+  [[nodiscard]] std::optional<SceneImport> InstantiateScene(std::string_view snapshot,
+                                                            bool persistent = false);
+  // Owner has drained readers/native bindings. Only already-unloaded records are removed;
+  // IDs are never recycled and all scene-vector borrows expire.
+  void CollectUnloadedScenes() noexcept;
   bool Activate(Id scene);
   bool RequestUnload(Id scene);
   void EndFrame();

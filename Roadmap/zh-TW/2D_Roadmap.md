@@ -860,3 +860,7 @@ HD2D-07 SDK 發布保留不可移動來源93a8dd51與 main Build／候選包通�
 
 
 ✅ HD2D-07 已驗收：不可覆寫 SDK0.2.0／來源93a8dd51、同候選位元組發布41190794168，以及遊戲 PR31／f404f59d。最終be8a5a5b 兩組 Windows 冷建置／拒絕原生工具鏈／離線／inventory／NX00／原生 F9回收／負向失敗檢查通過。Beads07 CLOSED、工程7/7；主工單與實機 HD2D-PC 保持 OPEN／NOT_RUN。SHA／來源、失敗重試與現況見雙語 HD2D 計畫。既有2D9/11／SP／M6／M7／正式遊戲／目標FPS判定不變。
+
+## 2D authored scene 目錄接入（2026-11-03）
+
+引擎實作新增共用 ND2D 文件解碼、World 新 ID 實例化、延後執行的 Scene V1 管理、Player 起始場景／目錄封裝與 2D Studio 場景檔選單。驗證與尚待交付的 SDK／消費端 gate 記於[場景證據](../../Engine/TwoD/evidence/AuthoredScenes-Linux-2026-11-03.md)。此配套接入不變更 M6／M7 或主 3D Editor Sprite 持久化的驗收判定。

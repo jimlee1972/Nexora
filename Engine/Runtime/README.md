@@ -1256,3 +1256,14 @@ renamed into a native crash handler. The application/Core process session suppli
 capture and persistence. See [Crash Logging Delivery](../../Roadmap/en/Crash_Logging_Delivery_Plan.md).
 `runtime.crash_diagnostics` kills real child processes and a dynamically loaded gameplay fixture to
 verify surviving logs; platform claims are limited to recorded native test evidence.
+
+### Fresh authored-scene instantiation
+
+`World::InstantiateScene` validates the existing World snapshot in isolation, stages a scene with
+fresh monotonically allocated IDs and remapped same-scene parents, then publishes it inactive.
+It returns an owning authored-to-live entity map. Invalid data leaves the World and ID watermark
+unchanged; allocation/exhaustion exceptions occur before publication. It does not load renderer
+resources or copy another module's metadata. `CollectUnloadedScenes` is an explicit owner-thread
+collection point after deferred unload and host/native reader retirement. It removes only already
+Unloaded records, does not recycle IDs, and expires all scene-vector borrows. The optional TwoD
+module uses these generic operations without adding a Runtime dependency on TwoD or Editor.

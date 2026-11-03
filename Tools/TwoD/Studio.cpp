@@ -49,6 +49,8 @@ int main(int argc, char **argv) {
   try {
     std::filesystem::path workspace;
     std::string atlasFile, clipFile, documentFile = "scene.nx2doc";
+    std::vector<std::string> sceneFiles;
+    bool explicitDocument = false;
     std::uint32_t frames = 0;
     bool smoke = false, readOnly = false;
     for (int i = 1; i < argc; ++i) {
@@ -59,9 +61,13 @@ int main(int argc, char **argv) {
         atlasFile = argv[++i];
       else if (a == "--clip" && i + 1 < argc)
         clipFile = argv[++i];
-      else if (a == "--document" && i + 1 < argc)
+      else if (a == "--document" && i + 1 < argc) {
         documentFile = argv[++i];
-      else if (a == "--frames" && i + 1 < argc) {
+        explicitDocument = true;
+      } else if (a == "--scene" && i + 1 < argc) {
+        Check(sceneFiles.size() < 64, "scene file count exceeds 64");
+        sceneFiles.emplace_back(argv[++i]);
+      } else if (a == "--frames" && i + 1 < argc) {
         std::string_view n = argv[++i];
         auto result = std::from_chars(n.data(), n.data() + n.size(), frames);
         Check(result.ec == std::errc{} && result.ptr == n.data() + n.size(), "frame count");
@@ -77,6 +83,13 @@ int main(int argc, char **argv) {
     Check(!workspace.empty() && std::filesystem::is_directory(workspace),
           "existing workspace required");
     workspace = std::filesystem::canonical(workspace);
+    if (!explicitDocument && !sceneFiles.empty())
+      documentFile = sceneFiles.front();
+    if (std::find(sceneFiles.begin(), sceneFiles.end(), documentFile) == sceneFiles.end())
+      sceneFiles.insert(sceneFiles.begin(), documentFile);
+    Check(sceneFiles.size() <= 64, "scene file count exceeds 64");
+    for (const auto &file : sceneFiles)
+      static_cast<void>(Safe(workspace, file));
     static_cast<void>(Safe(workspace, documentFile));
     editor::TwoDDocument document;
     const auto importAtlas = [&] {
@@ -132,6 +145,9 @@ int main(int argc, char **argv) {
     Check(bool(surface), "native surface");
     editor::imgui::EditorImGuiHost host;
     editor::imgui::TwoDPanelState panel;
+    panel.sceneFiles = sceneFiles;
+    panel.activeScene = std::size_t(std::find(sceneFiles.begin(), sceneFiles.end(), documentFile) -
+                                    sceneFiles.begin());
     std::uint64_t texture{}, revision = UINT64_MAX;
     for (std::uint32_t frame = 0; !surface.surface->CloseRequested() && (!frames || frame < frames);
          ++frame) {
@@ -178,6 +194,28 @@ int main(int argc, char **argv) {
       Check(host.Render(*surface.surface, info.width, info.height) == SurfaceStatus::Ready,
             "graphical preview render");
       Check(surface.surface->EndFrame() == SurfaceStatus::Ready, "present");
+      if (panel.requestedScene) {
+        try {
+          const auto selected = *panel.requestedScene;
+          Check(selected < sceneFiles.size() && !document.Dirty(), "save before scene switch");
+          const auto bytes = Read(Safe(workspace, sceneFiles[selected]));
+          document.SetReadOnly(false);
+          const bool reopened = document.Reopen(bytes);
+          document.SetReadOnly(readOnly);
+          Check(reopened, "scene open failed; current document retained");
+          documentFile = sceneFiles[selected];
+          panel.activeScene = selected;
+          panel.selected = 0;
+          panel.region = 0;
+          panel.preview = {};
+          panel.previewRevision = UINT64_MAX;
+          panel.status = "Scene opened.";
+        } catch (const std::exception &e) {
+          document.SetReadOnly(readOnly);
+          panel.status = e.what();
+        }
+        panel.requestedScene.reset();
+      }
       if (panel.saveRequested || panel.openRequested || panel.importAtlasRequested ||
           panel.importClipRequested) {
         try {

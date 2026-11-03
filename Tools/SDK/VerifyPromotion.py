@@ -24,12 +24,15 @@ def verify(release, evidence, source, tag):
     receipt = json.loads(receipts[0].read_text(encoding='utf-8'))
     if receipt['status'] != 'PASS' or receipt['source_commit'] != source:
         raise ValueError('consumer did not pass at the immutable source')
-    if manifest['version'] == '0.2.0':
+    if tuple(map(int, manifest['version'].split('.'))) >= (0, 2, 0):
         if receipt['archive_sha256'] != hashlib.sha256(archive.read_bytes()).hexdigest():
             raise ValueError('consumer archive mismatch')
         if (receipt['real_zig_hd2d'] is not True or receipt['offline_rebuild'] is not True
                 or receipt['native_dx12'] != 'PASS'):
             raise ValueError('missing native/offline HD2D acceptance')
+    if tuple(map(int, manifest['version'].split('.'))) >= (0, 3, 0):
+        if receipt.get('authored_scene_headless') is not True or receipt.get('authored_scene_dx12') is not True:
+            raise ValueError('missing packaged Zig scene acceptance')
     with zipfile.ZipFile(archive) as zipped:
         if json.loads(zipped.read('sdk.json')) != manifest:
             raise ValueError('archive manifest mismatch')

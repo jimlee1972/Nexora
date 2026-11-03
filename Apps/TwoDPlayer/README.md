@@ -300,3 +300,52 @@ module teardown and caught-error reporting. Each launch creates a unique run dir
 `~/.local/state/Nexora/Logs`; Apple uses `~/Library/Logs/Nexora`. Set `NEXORA_LOG_DIR` to select a
 writable root; the selected run path is printed to stderr. Keep the whole run directory when
 reporting a failure. See [capture/retention/platform limits](../../Roadmap/en/Crash_Logging_Delivery_Plan.md).
+
+## Authored scene catalog
+
+The optional schema-1 `scenes` field enables actual engine-owned 2D documents. Omit it for unchanged
+legacy single-scene behavior. In catalog mode `scene` is the exact listed startup path:
+
+```json
+{
+  "schema": 1,
+  "id": "com.example.scenes",
+  "title": "Scene Game",
+  "scene": "scenes/Start.scene",
+  "module": "bin/gameplay.dll",
+  "audio": "off",
+  "assets": [],
+  "scenes": [
+    {"id": [101, 1], "path": "scenes/Start.scene"},
+    {"id": [101, 2], "path": "scenes/Title.scene"},
+    {"id": [101, 3], "path": "scenes/Main.scene"}
+  ]
+}
+```
+
+Paths are contained portable ASCII paths (up to 256 bytes); IDs and lookup paths must be unique.
+Export requires the matching `NexoraTwoDAssetCompiler`, validates ND2D documents, and copies their
+exact bytes into a fresh package. Manifest `scene_asset high low "lookup/path" "packaged/file"`
+entries distinguish stable script lookup keys from generated package filenames. Inventory hashes
+include every scene. Startup is loaded and activated before module `start`.
+
+Use the existing Zig service from any game script:
+
+```zig
+const scenes = try context.scenes();
+const request = try scenes.loadPath("scenes/Title.scene", .replace, false);
+// In a later update: queued requests have not yet changed live content.
+const transition = try scenes.status(request);
+if (transition.state == @intFromEnum(nx.scene.State.applied)) {
+    const scene_id = transition.scene;
+    _ = scene_id;
+}
+```
+
+Player processes requests after callbacks at frame boundaries in headless and native runs. Failed
+requests preserve the current scene and remain visible through `status`; the module chooses its
+recovery. Catalog mode rejects legacy synchronous `load_scene`/`activate_scene` to prevent mixing
+two lifecycle owners. Entity spawning accepts live catalog instances, including additive scenes.
+All authored scene Sprites and loaded Tilemaps share one sorted render extraction with the host
+pool. [Ownership and limits](../../Engine/TwoD/README.md#packaged-authored-2d-scenes) apply.
+The main 3D Editor's text `.scene` files are a different format; use 2D Studio ND2D documents here.

@@ -64,3 +64,17 @@ no release rebuild or overwrite is permitted. The game lock pins the resulting a
 ## Retrying immutable publication
 
 The tag identifies the tested SDK source, not the publisher implementation. If publication fails before creating a release, retain the tag and failure logs. The workflow accepts a `release/windows-2d-sdk-v<version>` recovery branch at an already validated publisher commit. It requires a successful full push Build at that publisher commit, resolves the existing immutable version tag, and separately requires successful candidate and full push Build at the tagged source. It downloads those original artifacts and validates the unique consumer receipt recursively, because Windows workspace and runner-temp files can give upload-artifact a common drive root. Missing or multiple receipts fail. Source, ZIP SHA, embedded manifest, native DX12 and offline-rebuild checks remain mandatory. This does not rebuild or overwrite any release; `gh release create` still rejects an existing version.
+
+## 0.3.0 authored-scene candidate
+
+0.3.0 adds actual packaged ND2D scenes to the generic 2D host, startup/catalog export, deferred
+Scene V1 Replace/Additive/Unload, fresh entity IDs and a shared Editor/runtime document decoder.
+The C/Zig ABI and existing legacy single-scene descriptors remain compatible. The standalone
+2D Studio scene selector is a source-tool workflow; the Windows script-only SDK does not ship
+Editor. Main 3D Editor text scenes are not interchangeable with ND2D scenes.
+
+The candidate workflow builds the Shipping host/compiler and a real relocated Zig consumer,
+including authored Title Sprite rendering and scene transitions in headless/native DX12 runs.
+Promotion requires the exact archive hash, prior HD2D/offline checks and both scene receipts.
+0.2.0 remains immutable. A candidate is not a published SDK until its release and receipts exist;
+consumers must pin the newly published archive's actual SHA-256.
