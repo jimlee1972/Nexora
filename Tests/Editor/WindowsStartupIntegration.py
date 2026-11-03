@@ -200,7 +200,7 @@ def _verify_startup(editor, evidence, environment=None):
             hook = user.SetWinEventHook(0x8000, 0x8003, None, event, 0, 0, 2)
             require(hook, 'Cannot observe native window lifecycle')
             try:
-                with foreground_launcher(), log.open('wb') as stderr, (evidence/f'no-arguments-{attempt}.stdout.log').open('wb') as stdout:
+                with foreground_launcher(evidence/f'launcher-{attempt}.json'), log.open('wb') as stderr, (evidence/f'no-arguments-{attempt}.stdout.log').open('wb') as stdout:
                     # Deliberately no --frames, --graphical, or --recent-projects override.
                     process = subprocess.Popen([str(editor)], cwd=root, env=env, stdout=stdout, stderr=stderr)
                     deadline = time.monotonic()+35

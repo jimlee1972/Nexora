@@ -270,7 +270,7 @@ def main():
 
     try:
         checkpoint("launch")
-        with input_desktop(evidence), foreground_launcher(), errors.open("wb") as stderr, (evidence / "stdout.log").open("wb") as stdout:
+        with input_desktop(evidence), foreground_launcher(evidence / "launcher.json"), errors.open("wb") as stderr, (evidence / "stdout.log").open("wb") as stdout:
             job = kernel.CreateJobObjectW(None, None)
             limits = ExtendedLimits()
             limits.basic.flags = 0x2000  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE.

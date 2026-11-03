@@ -1,0 +1,128 @@
+{
+  "status": "NATIVE_LAUNCHER_ONLY_PASS_FULL_EDITOR_GATES_PENDING",
+  "parent_head": "8870d63e107a829ee17e873c30fdbec4e2d3b6a7",
+  "windows_failure": {
+    "run": 41659448916,
+    "job": 125998466540,
+    "artifact": 13242450640,
+    "bytes": 73590,
+    "sha256": "514f5edab3313d3e04476f331a45f9dcb23d8361c32c8d2ed870650cc6986081",
+    "startup_cases": "5/5 PASS",
+    "package": "FAIL foreground-launch precondition; no32-cycle result"
+  },
+  "linux_failure": {
+    "job": 125998974744,
+    "case": "editor.linux_packaged_play",
+    "exit": 8,
+    "reason": "X_SetInputFocus BadMatch on an unmapped Editor selected by private name-only search",
+    "repair": "Both private searches require visible windows in unchanged budgets"
+  },
+  "native_launcher": {
+    "exit": 0,
+    "trials": 3,
+    "actual_owned_mouse_click": true,
+    "mouse_release_acknowledged": true,
+    "remaining_owned_windows": 0,
+    "editor_launched": false,
+    "command": "NEXORA_NATIVE_TEST_INPUT_DESKTOP=1 python -u Tests/Editor/WindowsNativeTestDesktop.py build/editor-workflow-native/ed-wf05-launcher-native-interior"
+  },
+  "portable_admission": {
+    "exit": 0,
+    "passed": 9,
+    "seconds": 0.3
+  },
+  "historical_local_guards": "One-pixel trials refused input at (0,0) because hit_owned=false; GUI info available, no capture/menu/held buttons. Logs/JSON retained separately.",
+  "scope": "No new Editor native, Cloud, Shipping, Sprite or full delivery acceptance. Work orders4/9, Editor0/8.",
+  "files": [
+    {
+      "path": "Tests/Editor/WindowsNativeTestDesktop.py",
+      "bytes": 13040,
+      "sha256": "d2c006626523863e1d54251fc73e10383eeb2aaa87240bfe5877fdd1942c37fc"
+    },
+    {
+      "path": "Tests/Editor/WindowsStartupIntegration.py",
+      "bytes": 16619,
+      "sha256": "9b782afe2f993a1ec3f3020f8904526760fa1c7b4f2d06ac1ec2e3d26897aff9"
+    },
+    {
+      "path": "Tests/Editor/WindowsScriptReload.py",
+      "bytes": 23811,
+      "sha256": "59e39cf875095662dbf32289b5ea19f1b02fe68a10202acefa4c063ca3753c05"
+    },
+    {
+      "path": "Tests/EditorImGui/LinuxPackagedPlay.py",
+      "bytes": 13546,
+      "sha256": "68b3aa02b3a2a40d56e149c985edc7eddd569da30e1f8f45cd73eefa0c726c20"
+    },
+    {
+      "path": ".github/workflows/editor-windows-package.yml",
+      "bytes": 6059,
+      "sha256": "7c11489eb72f88d787fb6ecd6289b91993e086a521415c41efb60b738422d05c"
+    },
+    {
+      "path": "build/editor-workflow-native/pr763-8870-package-failure.zip",
+      "bytes": 73590,
+      "sha256": "514f5edab3313d3e04476f331a45f9dcb23d8361c32c8d2ed870650cc6986081"
+    },
+    {
+      "path": "build/editor-workflow-native/pr763-8870-package-job.log",
+      "bytes": 168686,
+      "sha256": "e7103f7200b2d83a4e6190603d95fa206823e06056b84d1e3889c41e620f03cb"
+    },
+    {
+      "path": "build/editor-workflow-native/pr763-8870-linux-display-job.log",
+      "bytes": 237316,
+      "sha256": "4ba3001de19cd40d44afb12b3b16ec344b332d4167738eab0b62191b693e38d9"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-launcher-native-interior.log",
+      "bytes": 85,
+      "sha256": "1d4188b0a79f889c84abb4176ab6703a626202d3af7b827061fceabd9f9947f4"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-launcher-native-interior-exit.json",
+      "bytes": 24,
+      "sha256": "75876e0e3f497cad271143ba85bd4f36569cd81195509043f860dab14265b716"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-launcher-native-interior/result.json",
+      "bytes": 216,
+      "sha256": "79e678bc018fd89607b0cffcfe8c9f2adcc5739585cdd4dfc32af88fa3697786"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-launcher-package-unit.log",
+      "bytes": 1489,
+      "sha256": "943a9a5d4f75e3044ee3a306538766e81ad744b15ed8ee3143ec35c2b03e5be9"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-launcher-package-unit-exit.json",
+      "bytes": 24,
+      "sha256": "75876e0e3f497cad271143ba85bd4f36569cd81195509043f860dab14265b716"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-launcher-native-interior/launcher-0.json",
+      "bytes": 352,
+      "sha256": "c0f03852539ddaccb59d8bedf567a3b3aa581ad5b09553813d7ee03578e5e10a"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-launcher-native-interior/launcher-1.json",
+      "bytes": 352,
+      "sha256": "c0f03852539ddaccb59d8bedf567a3b3aa581ad5b09553813d7ee03578e5e10a"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-launcher-native-interior/launcher-2.json",
+      "bytes": 352,
+      "sha256": "c0f03852539ddaccb59d8bedf567a3b3aa581ad5b09553813d7ee03578e5e10a"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-launcher-final-unit.log",
+      "bytes": 1489,
+      "sha256": "c4f1717ba9a072efb50d47f6364156f3a8f6e67c82e1bdc984a6f97f62afd508"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-launcher-final-unit-exit.json",
+      "bytes": 24,
+      "sha256": "75876e0e3f497cad271143ba85bd4f36569cd81195509043f860dab14265b716"
+    }
+  ]
+}

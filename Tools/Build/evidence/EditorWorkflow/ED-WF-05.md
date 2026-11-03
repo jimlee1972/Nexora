@@ -271,3 +271,17 @@ Readiness follow-up (pending): Linux now shares hidden-main first-frame reveal a
 Upstream integration includes main `1df6ab357da69ee3257097a9b5176695b7c96b9a` (PR #765). The bridge conflict preserves the World pointer needed by legacy generation rebinding and the new catalog-per-entity routing. Catalog bridges refuse the legacy single-scene branch/rebind path before dereferencing its absent scene pointer. The added regression preserves World bytes, primary, revision and usable Sprite API after refusal. Complete catalog-session migration remains a later integration gate, not an accepted replacement by this guard. Original startup/Cloud/CI failures and all accepted-count boundaries remain.
 
 [Post-merge Windows receipt](ED-WF-05-Main-Integration-Windows.json): all9 targets build(exit0), and6 scoped CTests pass(exit0,5.64s), including the catalog/legacy guard regression and strict reload/packaged DLL lifetimes. These are CPU/service checks, not a new GUI or full-gate pass.
+
+## 8870 native harness failures and owned launch follow-up (unaccepted)
+
+The hosted Windows job passes its original five startup cases, then fails the package's launcher
+foreground precondition before source-edit acceptance. Its artifact73590B SHA256
+`514f5edab3313d3e04476f331a45f9dcb23d8361c32c8d2ed870650cc6986081` and complete log are retained.
+The new32×32 Button launcher occupies a primary-work-area interior and uses physical coordinates,
+bounded foreground acknowledgement and, when necessary, an actual guarded own-window mouse click.
+It rejects foreign hit targets, capture/menu state and held buttons, and waits for its mouse-up
+before pointer restoration. Three local native launcher-only trials pass with zero surviving
+windows; they do not establish Editor/32-cycle acceptance. Initial one-pixel guard failures remain.
+The Linux hosted display gate rejects packaged Play's X_SetInputFocus with BadMatch because its
+private searches still admitted unmapped windows. Both now require onlyvisible, retaining all
+existing waits/assertions. [Receipt](ED-WF-05-Launcher-Windows.json). Fresh immutable gates are required.

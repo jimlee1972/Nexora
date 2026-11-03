@@ -178,8 +178,8 @@ Any failure removes the ZIP rather than publishing it. Wrapper stdout/stderr and
 remain under `verification/extracted/script-reload*`. Hosted Windows evidence remains separate
 from Linux gates and from physical-device/clean-host acceptance.
 
-Startup pixel tests use an owned one-pixel foreground launcher as a controlled interactive-parent
-precondition. It is not an Editor HWND, has no taskbar entry and is never used for pixel/input
+Startup pixel tests use an owned small foreground launcher as a controlled interactive-parent
+precondition. It is not an Editor HWND, has no taskbar entry and is never counted as Editor pixel/input
 acceptance. The real Editor child retains its PID/class, hidden-first-frame, pixels, response and
 shutdown checks; the splash constructor/preparation must still avoid stealing focus. Foreign
 application content/topmost state and desktop/display configuration are not changed. The hidden
@@ -188,3 +188,12 @@ Editor itself now fits its outer bounds to the monitor work area before its firs
 The extracted-ZIP script gate also requires four production failures (compile, state restore, candidate initialization, and candidate start after a private World write). Each rejection must retain the active module generation, strictly advancing counter and Scene/entity handles; old updates check World state before writing. A subsequent valid source must commit and dispatch without reset, before the existing compilation-cancellation and process-drain checks. Partial checkpoints survive runner interruption but cannot admit a package or replace the final PASS receipt.
 
 The existing input-desktop selector is shared by startup and script acceptance. Isolated native commands require explicit `NEXORA_NATIVE_TEST_INPUT_DESKTOP=1`; this changes only the calling thread/children, never the user's desktop. Each actual Editor process starts immediately from its owned foreground launcher, after any fixture CLI preparation. Foreground ownership is checked before every key chord; absent ownership fails without sending keys to other applications.
+
+The Windows launcher uses a32×32 Button inside the primary work area, with thread-local physical
+coordinates. It pumps a bounded foreground acknowledgement. If direct activation is denied, it
+clicks only its hit-tested owned interior, after rejecting capture/menu modes or held mouse buttons.
+It acknowledges the actual owned mouse-up before restoring the pointer. Product focus/topmost
+behavior and Editor deadlines are unchanged. The workflow runs three native launcher-only trials
+after the original startup gate and retains their records separately from Editor acceptance.
+See the Windows [foreground contract](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setforegroundwindow)
+and [point ownership contract](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-windowfrompoint).

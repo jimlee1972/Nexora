@@ -30,7 +30,7 @@ def graphical_build(args, root, evidence, environment):
             deadline = time.monotonic() + 15
             window = None
             while time.monotonic() < deadline and window is None:
-                found = subprocess.run([args.xdotool, "search", "--name", "^Nexora Editor$"],
+                found = subprocess.run([args.xdotool, "search", "--onlyvisible", "--name", "^Nexora Editor$"],
                     env=environment, capture_output=True, text=True, timeout=3)
                 if found.returncode == 0 and found.stdout.strip():
                     window = int(found.stdout.splitlines()[0])
@@ -177,7 +177,7 @@ def main():
             while time.monotonic() < deadline and len(observed) < 3:
                 require(editor.poll() is None, errors.read_text(errors="replace"))
                 if window is None:
-                    found = subprocess.run([args.xdotool, "search", "--name", "^Nexora Editor$"],
+                    found = subprocess.run([args.xdotool, "search", "--onlyvisible", "--name", "^Nexora Editor$"],
                         env=environment, capture_output=True, text=True, timeout=3)
                     if found.returncode == 0 and found.stdout.strip():
                         window = int(found.stdout.splitlines()[0])

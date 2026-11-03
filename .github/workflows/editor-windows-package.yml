@@ -68,6 +68,8 @@ jobs:
         run: cmake --build build/editor-package --target NexoraEditor NexoraProjectPlayer NexoraWindowsStartupSplashTests --parallel 3
       - name: Verify embedded branding and startup lifecycle
         run: ctest --test-dir build/editor-package --output-on-failure -R '^(editor\.(brand_assets|windows_startup_splash|windows_startup_integration|windows_gui_entry)|runtime\.windows_game_entry)$'
+      - name: Verify owned native launcher input
+        run: python Tests/Editor/WindowsNativeTestDesktop.py build/editor-package/Tests/Editor/native-launcher
       - name: Package and verify relocated CLI and DX12 presentation
         shell: pwsh
         run: |
@@ -102,6 +104,7 @@ jobs:
             build/editor-delivery/verification/
             build/editor-package/Tests/Editor/editor-startup-splash*.bmp
             build/editor-package/Tests/Editor/startup-integration/
+            build/editor-package/Tests/Editor/native-launcher/
             build/editor-package/Tests/Runtime/windows-game-entry/
           if-no-files-found: error
           retention-days: 30
@@ -113,5 +116,6 @@ jobs:
           path: |
             build/editor-delivery/verification/
             build/editor-package/Tests/Editor/startup-integration/
+            build/editor-package/Tests/Editor/native-launcher/
             build/editor-package/Tests/Runtime/windows-game-entry/
           if-no-files-found: ignore

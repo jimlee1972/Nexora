@@ -162,3 +162,11 @@ CI 根因與精確版本完整驗證待完成。此為診斷檢查點，尚未�
 整合納入上游 main `1df6ab357da69ee3257097a9b5176695b7c96b9a`（PR #765 authored Scene V1）。GameplayBridge 同時保留 catalog 實體路由與既有 World 指標重新綁定契約。Catalog bridge 對單場景 fork／rebind 會無寫入拒絕，新增回歸檢查保留 World／primary／revision／API 狀態；不宣稱已完成 catalog 熱重載，該部分仍屬後續整合工作。合併後原生重建／範圍測試與精確版本 Cloud／Shipping／CI 仍須通過。
 
 整合後 Windows checkpoint：9個目標重建全部 exit0，6項 bridge／catalog／compiler／proxy／reload／packaged Play 範圍 CTest 全數通過（exit0、5.64秒）。見[收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Main-Integration-Windows.json)。不代表 GUI／完整 gate 驗收或增加完成數；新的精確版本 Cloud／Shipping／CI 仍須通過。
+
+8870雲端 Windows 建置與原五項啟動檢查通過，但封裝驗證在32次重載前的啟動器前景條件
+被拒絕；完整 job log 與73,590-byte失敗封存保留。後續啟動器在工作區內以自有 Button 的
+內部座標、有限訊息確認，以及拒絕直接啟用時的受控原生點擊／放開建立前景。本機三次
+啟動器獨立原生試驗通過、沒有殘留視窗，不代表新的 Editor 驗收。Linux hosted display
+另因 packaged Play 的兩處私有搜尋仍選到未顯示 Editor 而觸發 X_SetInputFocus BadMatch，
+現於原預算內都要求 onlyvisible。見[啟動器／失敗收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Launcher-Windows.json)。
+精確版本 Editor／Cloud／Shipping／完整CI仍待通過，不增加已驗收數。

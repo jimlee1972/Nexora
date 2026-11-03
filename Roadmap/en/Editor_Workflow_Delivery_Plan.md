@@ -178,3 +178,13 @@ The next readiness repair keeps the Linux main window hidden until its first com
 The integration now includes upstream main `1df6ab357da69ee3257097a9b5176695b7c96b9a` (PR #765 authored Scene V1). GameplayBridge keeps both catalog entity routing and the legacy World-pointer rebind contract. Catalog bridges reject single-scene fork/rebind without writes, with a regression preserving World/primary/revision/API state; this does not claim complete catalog reload, which remains part of the later integration work. Fresh post-merge native build/scoped tests and immutable Cloud/Shipping/CI remain required.
 
 Post-integration Windows checkpoint: all9 targets build(exit0), and all6 scoped bridge/catalog/compiler/proxy/reload/packaged-Play CTests pass(exit0,5.64s). [Receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Main-Integration-Windows.json). No GUI/full-gate or count acceptance follows; fresh immutable Cloud/Shipping/CI remains mandatory.
+
+The8870 hosted Windows build and original five startup checks pass, but package verification
+rejects the launcher foreground precondition before the32-cycle run. The complete job log and
+73,590-byte failure artifact are retained. Launcher follow-up uses a real owned Button interior
+inside the work area, bounded message acknowledgement and guarded native click/release when
+activation is denied. Three native launcher-only trials pass locally with zero surviving windows;
+this is not new Editor acceptance. Linux hosted display also fails packaged Play with
+X_SetInputFocus BadMatch: its two private searches still selected an unmapped Editor. Both now
+require onlyvisible under their original budgets. [Launcher/failure receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Launcher-Windows.json).
+Exact-head Editor/Cloud/Shipping/fullCI gates remain pending; no accepted-count change.

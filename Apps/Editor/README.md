@@ -1780,7 +1780,7 @@ normal default recent-project store. Native WinEvent observations reject prematu
 500 ms WM_NULL probes check splash/main responsiveness, screen captures inspect prepared content,
 foreground/native mouse input is exercised, and WM_CLOSE must exit within ten seconds. Startup
 has a 35-second deadline; failure retains stdout/stderr, event observations and BMPs. Native tests
-establish a one-pixel, owned tool-window launcher in the foreground to model an interactive parent
+establish a small, owned tool-window launcher in the foreground to model an interactive parent
 launch; it has no taskbar entry and is never treated as the Editor. Constructor/preparation
 non-activation checks remain, as do real Editor PID/class, first-show/pixel and input assertions.
 The launcher is destroyed after testing; foreign windows and their topmost state are not modified. CTest has an
