@@ -9,6 +9,9 @@
 #include <stdexcept>
 namespace {
 using namespace nexora::twod;
+std::filesystem::path Path(std::string_view value) {
+  return std::filesystem::path(std::u8string(value.begin(), value.end()));
+}
 Bytes Read(const std::filesystem::path &path) {
   const auto n = std::filesystem::file_size(path);
   if (n > 64 * 1024 * 1024)
@@ -54,18 +57,18 @@ void Write(const std::filesystem::path &path, const Bytes &bytes) {
   engine.Shutdown();
 }
 } // namespace
-int main(int argc, char **argv) {
+int RunCompiler(int argc, char **argv) {
   try {
     if (argc != 4 && argc != 6)
       throw std::runtime_error("usage: NexoraTwoDAssetCompiler "
                                "pack|clip|sprite|cook|scene|scene-empty|scene-sprite input output");
-    const auto bytes = Read(argv[2]);
+    const auto bytes = Read(Path(argv[2]));
     Bytes out;
     if (std::string_view(argv[1]) == "emission") {
       if (argc != 6)
         throw std::runtime_error("emission requires base and mask Atlases");
       const auto links = DecodeEmissionAsset(bytes);
-      const auto base = DecodeAtlas(Read(argv[4])), mask = DecodeAtlas(Read(argv[5]));
+      const auto base = DecodeAtlas(Read(Path(argv[4]))), mask = DecodeAtlas(Read(Path(argv[5])));
       if (!links || !base || !mask || !ValidateEmissionDependencies(*links, *base, *mask))
         throw std::runtime_error("invalid emission metadata or dependencies");
       out = EncodeEmissionAsset(*links);
@@ -74,7 +77,7 @@ int main(int argc, char **argv) {
     } else if (std::string_view(argv[1]) == "scene-empty" ||
                std::string_view(argv[1]) == "scene-sprite") {
       nexora::runtime::World world;
-      const auto id = world.LoadScene(std::filesystem::path(argv[2]).stem().string());
+      const auto id = world.LoadScene(Path(argv[2]).stem().string());
       nexora::twod::SpriteScene scene(world, id);
       Atlas atlas;
       nexora::twod::Tilemap tiles;
@@ -175,7 +178,7 @@ int main(int argc, char **argv) {
       out = nexora::runtime::AssetCooker::Serialize(*cooked);
     } else
       throw std::runtime_error("unknown command");
-    Write(argv[3], out);
+    Write(Path(argv[3]), out);
     std::cout << out.size() << " bytes written\n";
     return 0;
   } catch (const std::exception &e) {
@@ -183,3 +186,25 @@ int main(int argc, char **argv) {
     return 1;
   }
 }
+
+#if defined(_WIN32)
+int wmain(int argc, wchar_t **argv) {
+  try {
+    std::vector<std::string> arguments;
+    arguments.reserve(static_cast<std::size_t>(argc));
+    for (int i = 0; i < argc; ++i) {
+      const auto utf8 = std::filesystem::path(argv[i]).u8string();
+      arguments.emplace_back(utf8.begin(), utf8.end());
+    }
+    std::vector<char *> pointers;
+    for (auto &argument : arguments)
+      pointers.push_back(argument.data());
+    return RunCompiler(argc, pointers.data());
+  } catch (const std::exception &error) {
+    std::cerr << error.what() << '\n';
+    return 1;
+  }
+}
+#else
+int main(int argc, char **argv) { return RunCompiler(argc, argv); }
+#endif

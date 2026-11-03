@@ -133,6 +133,8 @@ jobs:
             evidence/report-*.json
             evidence/hd2d-*.json
             evidence/hd2d-*.log
+            evidence/scene-*.json
+            evidence/scene-*.log
             evidence/HD2D relocated 陰陽/inventory.json
             evidence/relocated game 陰陽/inventory.json
             ${{ runner.temp }}/sdk-toolchain-isolation.json

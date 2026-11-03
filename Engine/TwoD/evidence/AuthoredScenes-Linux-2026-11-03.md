@@ -7,8 +7,8 @@ persistence or per-scene script module binding.
 ## Executed Linux checks
 
 - Standard `cmake --preset linux-development`, `cmake --build --preset linux-development` and
-  `ctest --preset linux-development`: 263 configured, 0 failures; 255 passed and 8 explicitly
-  skipped (physical X11 held-key and optional Slang renderer controls).
+  `ctest --preset linux-development`: 263 configured, 0 failures; 256 passed and 7 explicitly
+  skipped (optional Slang renderer controls); the synthetic X11 held-key check also passed.
 - Standard `cmake --preset linux-shipping` and `cmake --build --preset linux-shipping`: passed;
   Monolithic Shipping builds the 2D Player/compiler without Editor.
 - `twod.scene_session`: shared document round-trip/truncation rejection, parent/metadata remap,
@@ -39,3 +39,12 @@ SDK 0.3.0 is a candidate until Windows Shipping producer, relocated Zig consumer
 offline rebuild, all applicable CI and immutable release promotion pass. An actual published ZIP
 hash is required before any downstream SDK lock change. No Windows/macOS/Android/iOS execution
 is claimed by these Linux checks. Physical input/display/art/performance gates remain separate.
+
+## Windows Unicode regression found by the candidate
+
+The initial isolated SDK consumer passed the existing headless/native HD2D checks, then rejected
+`scene-empty` under a Chinese workspace because AssetCompiler used narrow Windows argv. The tool
+now uses `wmain`, converts UTF-16 once to UTF-8, and constructs filesystem paths from UTF-8. The
+packaged-scene test uses a Unicode source root on all hosts, and the SDK workflow retains scene
+reports/logs. Full Linux Development and Shipping gates passed again after this correction;
+Windows acceptance must come from the rebuilt candidate, not the failed archive.

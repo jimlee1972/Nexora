@@ -30,7 +30,8 @@ def main():
         print('SKIP: native scene acceptance needs Xvfb')
         raise SystemExit(77)
     with tempfile.TemporaryDirectory(prefix='nexora-scene-project-') as temporary:
-        root = Path(temporary)
+        root = Path(temporary) / 'authored 陰陽'
+        root.mkdir()
         (root/'game.zig').write_text('''const nx = @import("nexora");
 pub const Game = struct {
     state: nx.scene_diagnostic.State = .{},
