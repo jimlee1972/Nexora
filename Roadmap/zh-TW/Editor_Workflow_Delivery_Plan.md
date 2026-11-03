@@ -179,3 +179,17 @@ CI 根因與精確版本完整驗證待完成。此為診斷檢查點，尚未�
 見[診斷證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05.md#linux-showcase-failure-evidence-follow-up-unaccepted)。
 同一Cloud後續另回報原game-build worker與script-build CTest期限失敗，保留測試目錄
 供診斷，不豁免逾時。
+
+精確885693db的hosted Linux Editor CI已通過250/250項（1406.98秒），包含先前
+Prefab／滑鼠釋放／packaged Play失敗案例與兩項SDK建置；範圍原生Player4/4、Editor
+validation3/3、renderer20/20亦通過。下載封存的CRC與SHA-256已核對。
+見[範圍收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Linux-CI-885693db.json)。
+此結果不替代完整Codex Cloud／Shipping或Windows封裝驗收；完成度維持4/9。
+
+885693db解壓後的Windows ZIP已通過32次原生來源替換、四項真實失敗／回滾、正確
+恢復與Stop／編譯程序排空（Editor exit0、所屬Job0）。Scene1／entity4維持，計數
+0→32570→37300。搬移與無參數Editor／遊戲啟動、準備畫面順序／回應及無console檢查
+通過。兩層ZIP的CRC、封存SHA-256與全部22697筆inventory檔案雜湊均已核對；公開根目錄
+只有一個Editor執行檔，沒有來源checkout。
+見[Windows收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Package-885693db.json)。
+完整Cloud／Shipping／CI、Sprite整合及最終交付仍未完成；維持4/9。

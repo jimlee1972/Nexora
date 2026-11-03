@@ -262,6 +262,18 @@ commands, source/binary/log hashes, real cancellation/job drain and the operator
 
 ## Extracted Windows package and rejection coverage checkpoint (unaccepted)
 
+The immutable885693db Windows package job126032772935 now passes the extracted ZIP's
+real32-source-edit gate: counter0→32570, Scene1/entity4 unchanged, actual Ctrl+P and equal
+mtime edits. Four actual compile/restore/initialize/start failures retain generation33 and
+old dispatch/state; valid recovery commits counter37300. Stop cancels observed CMake/Ninja/
+shell children, the owning Job ends at0 processes and Editor exits0. Two no-argument launches
+retain responsive splash-before-main ordering, no white frame, no orphan windows and normal
+exit0. The relocated built game runs without arguments or console, including absent standard
+handles. Downloaded outer/nested CRC, artifact SHA-256 and all22697 inventory payload hashes
+are verified; the only public root executable is NexoraEditor.exe, with no source checkout.
+[Complete scoped receipt](ED-WF-05-Package-885693db.json). This hosted Windows evidence does
+not accept the full Cloud gate, physical clean host, Sprite integration or final work order09.
+
 [51bd8a16 package receipt](ED-WF-05-Package-51bd8a16.json) records the hosted Windows startup and extracted-ZIP32-cycle PASS, downloaded artifact/ZIP hashes and retained CI/Cloud failures. The full Cloud gate is FAIL495/499 (four Prefab GUI cases); required CI aggregates also fail on abandoned/cancelled macOS/iOS jobs. No merge, ED-WF-05 acceptance or nine-order progress increase follows from the Windows pass.
 
 The supplemental real-Editor harness now injects compiler, state-load, candidate-create and candidate-start failures, including a candidate World write before failed start. Every old update verifies its retained World first. The harness requires unchanged active generation/handles and an increasing counter after each rejection, then a valid recovery commit, old compiler cancellation/drain and normal close. The packager refuses incomplete fault/recovery receipts. Its original local attempt observed all four rejections but has no terminal exit/receipt after interruption during recovery compilation; it is not a successful test or product crash finding. The original stderr and interruption-observed.json remain in the unique evidence directory. New IN_PROGRESS checkpoints are explicitly insufficient for package admission. Updated native/immutable-head gates remain required.
@@ -273,6 +285,16 @@ Upstream integration includes main `1df6ab357da69ee3257097a9b5176695b7c96b9a` (P
 [Post-merge Windows receipt](ED-WF-05-Main-Integration-Windows.json): all9 targets build(exit0), and6 scoped CTests pass(exit0,5.64s), including the catalog/legacy guard regression and strict reload/packaged DLL lifetimes. These are CPU/service checks, not a new GUI or full-gate pass.
 
 ## Linux Showcase failure evidence follow-up (unaccepted)
+
+The immutable `885693db` GitHub Linux Editor display job126033478227 succeeds:
+250/250 Editor tests in1406.98 seconds, plus scoped native Player4/4, Editor validation3/3,
+and renderer20/20 suites. Original Prefab cases, pointer-button release, and packaged Play
+pass; `editor.game_build` takes118.30 seconds and `editor.game_script_build`63.62 seconds.
+Downloaded artifact13248684943 is147788 bytes, CRC-clean, SHA-256
+`a88b4f7b92dc048d8212ac90c709cc0f9cc6c7eaad3331e86ef7382184d16a29`.
+[Exact scope and four retained log hashes](ED-WF-05-Linux-CI-885693db.json).
+These hosted CI results do not replace the complete Codex Cloud gate, resolve the cause
+of another host's failures, or accept Windows delivery. No work-order count changes.
 
 The still-running Cloud gate for `8870d63e` has reported failures in
 `showcase.linux_vulkan_interaction` (the original shadow-off pixel comparison) and

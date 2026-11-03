@@ -198,3 +198,17 @@ is resolved or changing deadlines/assertions. Full gate terminal results and exa
 revalidation remain pending. [Diagnostic evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05.md#linux-showcase-failure-evidence-follow-up-unaccepted).
 The same Cloud run later reports the original game-build worker and script-build CTest
 deadlines failing; their fixtures are retained for diagnosis, with no timeout waiver.
+
+Immutable885693db hosted Linux Editor CI now passes250/250 tests(1406.98s), including
+the historical Prefab/pointer/packaged-Play failures and both SDK build cases; scoped
+native Player4/4, Editor validation3/3 and renderer20/20 also pass. The downloaded artifact's
+CRC and SHA-256 are verified. [Scoped receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Linux-CI-885693db.json).
+This does not replace complete Codex Cloud/Shipping or Windows package acceptance;4/9 unchanged.
+
+The885693db extracted Windows ZIP now passes32 native source replacements, four real
+failure/rollback cases, valid recovery and Stop/compiler drain (Editor exit0, owned Job0).
+Scene1/entity4 persist; counter0→32570→37300. Relocated/no-argument Editor/game launch,
+splash ordering/responsiveness and no-console checks pass. Both ZIP CRCs, artifact SHA-256
+and all22697 inventory payload hashes are verified; one public Editor executable, no source
+checkout. [Windows receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Package-885693db.json).
+Full Cloud/Shipping/CI, Sprite integration and final delivery remain open;4/9 unchanged.

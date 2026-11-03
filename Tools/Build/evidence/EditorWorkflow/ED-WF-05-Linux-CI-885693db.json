@@ -1,0 +1,78 @@
+{
+  "status": "HOSTED_LINUX_EDITOR_CI_PASS_COMPLETE_CLOUD_AND_DELIVERY_PENDING",
+  "validated_head": "885693dbabdc89bcffba3b6946599311b1766021",
+  "validated_tree": "fcd905d3d7bc9de5af3ab5a8dd4ef43ed8dfdc69",
+  "run": 41669237971,
+  "job": 126033478227,
+  "job_url": "https://github.com/jimlee1972/Nexora/actions/runs/41669237971/job/126033478227",
+  "job_conclusion": "success",
+  "artifact": {
+    "id": 13248684943,
+    "bytes": 147788,
+    "sha256": "a88b4f7b92dc048d8212ac90c709cc0f9cc6c7eaad3331e86ef7382184d16a29",
+    "crc": "PASS",
+    "entries": 24
+  },
+  "commands": [
+    {
+      "command": "ctest --preset linux-development -R '^editor\\.' -V --output-log build/linux-development/editor-tests.log",
+      "passed": 250,
+      "seconds": 1406.98
+    },
+    {
+      "command": "ctest --preset linux-development -R '^runtime\\.(native_static_view|linux_native_static_player|linux_native_game_player|static_project_player_cli)$' -V --output-log build/linux-development/native-player-tests.log",
+      "passed": 4,
+      "seconds": 10.34
+    },
+    {
+      "command": "ctest --preset linux-development -R '^editor\\.(linux_(display_acceptance|validation_output)|native_surface_lifetime)$' -V --output-log build/linux-development/editor-validation.log",
+      "passed": 3,
+      "seconds": 27.21
+    }
+  ],
+  "additional_native_renderer_suite": {
+    "passed": 20,
+    "seconds": 8.58,
+    "scope": "Overlapping scoped native CI suite; not a full CTest gate"
+  },
+  "key_editor_cases": [
+    "8/250 Test #260: editor.game_build ........................................   Passed  118.30 sec",
+    "9/250 Test #261: editor.game_script_build .................................   Passed   63.62 sec",
+    "184/250 Test #436: editor.linux_native_play_pointer_buttons .................   Passed    5.82 sec",
+    "222/250 Test #474: editor.linux_prefab_placement_source_rebase ..............   Passed   13.92 sec",
+    "223/250 Test #475: editor.linux_prefab_placement_source .....................   Passed    6.12 sec",
+    "224/250 Test #476: editor.linux_prefab_placement_overrides ..................   Passed   12.63 sec",
+    "225/250 Test #477: editor.linux_prefab_placement_selected_revert ............   Passed   23.19 sec",
+    "226/250 Test #478: editor.linux_prefab_instance_source_apply ................   Passed    7.12 sec",
+    "243/250 Test #495: editor.linux_packaged_play ...............................   Passed   50.16 sec"
+  ],
+  "logs": [
+    {
+      "archive_entry": "editor-tests.log",
+      "bytes": 3091544,
+      "sha256": "213bb09b7531d4e8a6975fea8d221c96fe1db18f062650f7968fb57362c993c7"
+    },
+    {
+      "archive_entry": "editor-validation.log",
+      "bytes": 102577,
+      "sha256": "b6a701871d90ecbc134a023de9f64ba12674c42dc8400b69938d5be9b5a9d076"
+    },
+    {
+      "archive_entry": "native-validation.log",
+      "bytes": 296051,
+      "sha256": "eae91086c6d04702d4bbb27204199a1a2365071581f797fac121ca0b8f6307cd"
+    },
+    {
+      "archive_entry": "native-player-tests.log",
+      "bytes": 5692,
+      "sha256": "939999d49fea80331e4a567cc710d13c9e165a8f6b6bba7771304ff1682ef79d"
+    }
+  ],
+  "limits": [
+    "GitHub hosted Linux/X11/Vulkan scope, not Windows/macOS or physical clean host",
+    "Does not replace required Codex Cloud complete Development/Shipping gates",
+    "Original Cloud8870 failures remain failures; cross-host duration comparisons do not establish a scheduling cause",
+    "Windows extracted/native package scope is recorded separately in ED-WF-05-Package-885693db.json",
+    "Work orders4/9 and Editor0/8 unchanged; PR763 remains draft/unmerged"
+  ]
+}
