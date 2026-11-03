@@ -1,6 +1,8 @@
 #include "Nexora/Core/Engine.h"
 #include "Nexora/TwoD/Assets.h"
+#include "Nexora/TwoD/AuthoredScene.h"
 #include "Nexora/TwoD/EmissionAssets.h"
+#include <charconv>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -55,7 +57,8 @@ void Write(const std::filesystem::path &path, const Bytes &bytes) {
 int main(int argc, char **argv) {
   try {
     if (argc != 4 && argc != 6)
-      throw std::runtime_error("usage: NexoraTwoDAssetCompiler pack|clip|sprite|cook input output");
+      throw std::runtime_error("usage: NexoraTwoDAssetCompiler "
+                               "pack|clip|sprite|cook|scene|scene-empty|scene-sprite input output");
     const auto bytes = Read(argv[2]);
     Bytes out;
     if (std::string_view(argv[1]) == "emission") {
@@ -66,8 +69,44 @@ int main(int argc, char **argv) {
       if (!links || !base || !mask || !ValidateEmissionDependencies(*links, *base, *mask))
         throw std::runtime_error("invalid emission metadata or dependencies");
       out = EncodeEmissionAsset(*links);
-    } else if (argc != 4) {
+    } else if (argc != 4 && std::string_view(argv[1]) != "scene-sprite") {
       throw std::runtime_error("unexpected compiler arguments");
+    } else if (std::string_view(argv[1]) == "scene-empty" ||
+               std::string_view(argv[1]) == "scene-sprite") {
+      nexora::runtime::World world;
+      const auto id = world.LoadScene(std::filesystem::path(argv[2]).stem().string());
+      nexora::twod::SpriteScene scene(world, id);
+      Atlas atlas;
+      nexora::twod::Tilemap tiles;
+      if (std::string_view(argv[1]) == "scene-sprite") {
+        auto decoded = DecodeAtlas(bytes);
+        if (!decoded || decoded->regions.empty())
+          throw std::runtime_error("scene-sprite needs an Atlas with a region");
+        atlas = std::move(*decoded);
+        Sprite sprite;
+        sprite.atlas = atlas.id;
+        sprite.region = atlas.regions.front().id;
+        sprite.size = {float(atlas.regions.front().width), float(atlas.regions.front().height)};
+        if (argc == 6) {
+          auto number = [](const char *argument) {
+            const std::string_view text(argument);
+            float value{};
+            const auto result = std::from_chars(text.data(), text.data() + text.size(), value);
+            if (result.ec != std::errc{} || result.ptr != text.data() + text.size())
+              throw std::runtime_error("invalid Sprite size");
+            return value;
+          };
+          sprite.size = {number(argv[4]), number(argv[5])};
+        }
+        if (!scene.Set(world.CreateEntity(id).id, sprite))
+          throw std::runtime_error("invalid initial Sprite");
+        tiles.atlas = atlas.id;
+      }
+      out = EncodeAuthoredScene(scene, atlas, {}, tiles);
+    } else if (std::string_view(argv[1]) == "scene") {
+      if (!nexora::twod::AuthoredScene::Decode(bytes))
+        throw std::runtime_error("invalid authored 2D scene document");
+      out = bytes;
     } else if (std::string_view(argv[1]) == "pack") {
       Reader r{bytes};
       if (r.Number(4) != 0x4932444e || r.Number(4) != 1)

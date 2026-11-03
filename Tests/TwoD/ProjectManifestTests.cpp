@@ -52,6 +52,26 @@ void Run(const std::filesystem::path &root) {
             aliased.root == std::filesystem::canonical(root),
         "project directory alias normalization");
 #endif
+  const std::string catalogEntry = "scene_asset 1 2 \"Main\" \"main.scene\"\n";
+  {
+    std::ofstream scene(root / "main.scene");
+    scene << "path admission only";
+  }
+  Check(load(base + catalogEntry).scenes.size() == 1, "authored scene catalog");
+  for (const auto &invalid :
+       {base + catalogEntry + catalogEntry, base + "scene_asset 0 0 \"Main\" \"main.scene\"\n",
+        base + "scene_asset 1 2 \"Other\" \"main.scene\"\n",
+        base + "scene_asset 1 2 \"../Main\" \"main.scene\"\n",
+        base + "scene_asset 1 2 \"Main\" \"../main.scene\"\n",
+        base + "scene_asset 1 2 \"Main\" \"main.scene\" trailing\n"}) {
+    bool rejected = false;
+    try {
+      static_cast<void>(load(invalid));
+    } catch (...) {
+      rejected = true;
+    }
+    Check(rejected, "invalid authored scene catalog admitted");
+  }
   for (const auto &bad :
        {base + "capacity 0 67108864 134217728 67108864 1024\n",
         base + "capacity 256 67108864 1 67108864 1024\n",

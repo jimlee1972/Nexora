@@ -5,6 +5,9 @@ namespace nexora::editor::imgui {
 enum class TwoDPanelTab { Scene, Atlas, Animation, Tilemap };
 struct TwoDPanelState final {
   std::optional<TwoDPanelTab> requestedTab;
+  std::vector<std::string> sceneFiles;
+  std::size_t activeScene{};
+  std::optional<std::size_t> requestedScene;
   runtime::Id selected{};
   std::uint32_t region{};
   twod::Camera camera;

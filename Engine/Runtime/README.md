@@ -1239,3 +1239,14 @@ GameplayServices appends an independently negotiated effects getter while preser
 old prefix copies. Runtime owns no effects state or GPU resources and adds no TwoD dependency.
 A missing registration returns UNSUPPORTED without altering the caller's table. See the
 [effects contract](../TwoD/GameplayEffects.md).
+
+### Fresh authored-scene instantiation
+
+`World::InstantiateScene` validates the existing World snapshot in isolation, stages a scene with
+fresh monotonically allocated IDs and remapped same-scene parents, then publishes it inactive.
+It returns an owning authored-to-live entity map. Invalid data leaves the World and ID watermark
+unchanged; allocation/exhaustion exceptions occur before publication. It does not load renderer
+resources or copy another module's metadata. `CollectUnloadedScenes` is an explicit owner-thread
+collection point after deferred unload and host/native reader retirement. It removes only already
+Unloaded records, does not recycle IDs, and expires all scene-vector borrows. The optional TwoD
+module uses these generic operations without adding a Runtime dependency on TwoD or Editor.

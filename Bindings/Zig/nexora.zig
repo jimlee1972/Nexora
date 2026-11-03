@@ -335,3 +335,5 @@ pub const GameModuleV3 = extern struct {
 };
 
 pub const GameModuleLoadV3 = *const fn (u32, ?*GameModuleV3) callconv(.c) i32;
+
+pub const scene_diagnostic = @import("scene_diagnostic.zig");

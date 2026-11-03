@@ -392,3 +392,33 @@ blob IO, parses `nx.twod_effects.EmissionAsset`, loads the mask and applies expl
 Source/export UUIDs stay stable; changed native pixel generations get fresh IDs. The native
 compiler's `emission links.source links.nx2emission base.nx2atlas mask.nx2atlas` command verifies
 metadata and matched regions before publication. [Format/lifetime](../../Engine/TwoD/EmissionAssets.md).
+
+## Multiple authored scenes
+
+2D Studio can open several ND2D scene documents and switch using its **Scene file** combo:
+
+```sh
+NexoraTwoDStudio --workspace MyGame --scene scenes/Start.scene --scene scenes/Title.scene --scene scenes/Main.scene
+```
+
+`--document` selects the initial document explicitly; otherwise the first `--scene` is selected.
+At most 64 files are admitted. Save the current document before switching; dirty documents are
+never silently discarded. A failed decode retains the current document. Selection resets old
+entity/region/animation preview state, and Save writes only the selected file. Scene switching
+also works in `--read-only` mode without granting publication access. This is the 2D Studio
+workflow, not a claim that the main 3D Editor's Sprite persistence is complete.
+
+Create an initial empty scene from any existing input file (the file stem becomes its name),
+or a scene with the first Atlas region centered at the origin:
+
+```sh
+NexoraTwoDAssetCompiler scene-empty Start.txt scenes/Start.scene
+NexoraTwoDAssetCompiler scene-sprite title.nx2atlas scenes/Title.scene 1920 1080
+NexoraTwoDAssetCompiler scene scenes/Title.scene checked/Title.scene
+```
+
+Create destination directories first. Optional width/height override the region's pixel size;
+Sprite geometry is validated by the common runtime codec. `scene` validates and copies exact
+ND2D bytes. Open these sources in Studio to author further, then list them in the game's
+[scene catalog](../../Apps/TwoDPlayer/README.md#authored-scene-catalog). Native renderer/assets,
+script orchestration and file publication retain their existing ownership boundaries.
