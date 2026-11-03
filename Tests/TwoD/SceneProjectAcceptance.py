@@ -77,6 +77,20 @@ pub const Game = struct {
         assert report['status'] == 'PASS' and report['allocations_balanced'], report
         if args.native:
             assert report['native_frames'] == 60, report
+        # Scene documents and eager assets share the Player's single 64 MiB payload budget.
+        for index, name in enumerate(('Start', 'Title', 'Main')):
+            shutil.copy2(root/'package/scenes'/f'{index:04d}.scene', root/(name+'.scene'))
+        with (root/'large.nxfont').open('wb') as large:
+            large.truncate(64 * 1024 * 1024)
+        config['assets'] = [dict(kind='font', id=1, path='large.nxfont')]
+        descriptor.write_text(json.dumps(config), encoding='utf-8')
+        rejected = subprocess.run([sys.executable, str(ROOT/'Tools/TwoD/ExportGame.py'), str(descriptor),
+            '--runtime', str(args.app), '--compiler', str(args.compiler), '--output', str(root/'oversized'),
+            '--allow-development'], capture_output=True, timeout=60)
+        assert rejected.returncode and b'preloaded source assets exceed 64 MiB' in rejected.stderr
+        assert not (root/'oversized').exists()
+        config['assets'] = []
+        descriptor.write_text(json.dumps(config), encoding='utf-8')
         # Invalid scene bytes must reject before publication; existing package stays intact.
         (root/'Start.scene').write_bytes(b'bad scene')
         for name in ('Title', 'Main'):

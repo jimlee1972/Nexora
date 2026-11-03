@@ -379,8 +379,8 @@ def export(descriptor, runtime, output, compiler=None, allow_development=False, 
                                 str(staging / relative)], check=True)
                 lines.append(f'scene_asset {entry["id"][0]} {entry["id"][1]} '
                              f'{quote(entry["path"])} {quote(relative)}')
-        ids, paths, total = set(), set(), 0
-        preload_targets = []
+        ids, paths, total = set(), set(), scene_total
+        preload_targets = [staging / f'scenes/{index:04d}.scene' for index in range(len(scenes))]
         for index, entry in enumerate(assets):
             if not isinstance(entry, dict):
                 raise ValueError('asset descriptor must be an object')
