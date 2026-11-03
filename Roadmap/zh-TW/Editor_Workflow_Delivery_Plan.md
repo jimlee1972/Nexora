@@ -170,3 +170,12 @@ CI 根因與精確版本完整驗證待完成。此為診斷檢查點，尚未�
 另因 packaged Play 的兩處私有搜尋仍選到未顯示 Editor 而觸發 X_SetInputFocus BadMatch，
 現於原預算內都要求 onlyvisible。見[啟動器／失敗收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Launcher-Windows.json)。
 精確版本 Editor／Cloud／Shipping／完整CI仍待通過，不增加已驗收數。
+
+進行中的8870 Cloud另有兩項Showcase失敗：關閉陰影的像素比較，以及原30秒虛擬顯示
+子程序期限。範圍修正保留逾時部分輸出、拒絕驗收的啟動收據，以及已排空／回收的Xvfb
+診斷；失敗的互動測試目錄、直接寫檔的子程序輸出與輸入命令紀錄亦保留。
+13項可攜證據規則測試通過。此為證據收集修正，不宣稱原生失敗已解決，也未改動
+期限或斷言。完整gate終態與精確版本重驗仍待完成。
+見[診斷證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05.md#linux-showcase-failure-evidence-follow-up-unaccepted)。
+同一Cloud後續另回報原game-build worker與script-build CTest期限失敗，保留測試目錄
+供診斷，不豁免逾時。

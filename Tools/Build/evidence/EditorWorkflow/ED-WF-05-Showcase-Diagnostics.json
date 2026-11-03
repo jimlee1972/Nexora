@@ -1,0 +1,43 @@
+{
+  "status": "PORTABLE_POLICY_PASS_NATIVE_GATES_PENDING",
+  "parent_head": "885693dbabdc89bcffba3b6946599311b1766021",
+  "command": "python Tests/Showcase/LinuxVirtualDisplaySmokeTests.py",
+  "exit_code": 0,
+  "tests": 13,
+  "native_rendering_executed": false,
+  "child_timeout_seconds": 30,
+  "ctest_timeout_seconds": 45,
+  "scope": "Failure evidence and Xvfb cleanup only; original Showcase failure causes and complete Cloud/Shipping/CI/native package gates remain pending. Work orders4/9, Editor0/8.",
+  "files": [
+    {
+      "path": "Tests/Showcase/LinuxVirtualDisplaySmoke.py",
+      "sha256": "627e21ddbad640556298a12ca238d2311ced601dbf4d075638f21ea88f8b6d5b"
+    },
+    {
+      "path": "Tests/Showcase/LinuxVirtualDisplaySmokeTests.py",
+      "sha256": "35d688540a71cdb20657b36109851395215a1f10017d37c4af7139d1f9b26b44"
+    },
+    {
+      "path": "Tests/Showcase/LinuxShowcaseInteraction.py",
+      "sha256": "f6a99d3969a0eb92c7fb6fbd867dbafda4d851136e41c769897eaf92e03ad4d8"
+    }
+  ],
+  "logs": [
+    {
+      "path": "build/editor-workflow-native/ed-wf05-showcase-evidence-policy/stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-showcase-evidence-policy/stderr.log",
+      "sha256": "9adc4f6d90996a4acfbf42225f6323398f38e9d979c85838bb1a4e81f7154228"
+    }
+  ],
+  "observed_cloud_failures": [
+    "showcase.linux_vulkan_interaction: shadow-off pixel comparison did not change in original5s",
+    "showcase.linux_vulkan_virtual_display: original child30s timeout",
+    "editor.game_build: original coordinator worker deadline (476.44s including unwind)",
+    "editor.game_script_build: registered300s CTest timeout"
+  ],
+  "cloud_run_terminal": false,
+  "cause_limitations": "No failed-case native input consumption/driver/CPU/frame evidence was retained by the old Showcase harness. Do not infer the cause from adjacent tests or aggregate CPU stats."
+}

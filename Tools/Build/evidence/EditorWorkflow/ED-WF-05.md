@@ -272,6 +272,31 @@ Upstream integration includes main `1df6ab357da69ee3257097a9b5176695b7c96b9a` (P
 
 [Post-merge Windows receipt](ED-WF-05-Main-Integration-Windows.json): all9 targets build(exit0), and6 scoped CTests pass(exit0,5.64s), including the catalog/legacy guard regression and strict reload/packaged DLL lifetimes. These are CPU/service checks, not a new GUI or full-gate pass.
 
+## Linux Showcase failure evidence follow-up (unaccepted)
+
+The still-running Cloud gate for `8870d63e` has reported failures in
+`showcase.linux_vulkan_interaction` (the original shadow-off pixel comparison) and
+`showcase.linux_vulkan_virtual_display` (the original 30-second child deadline).
+These are failures, not accepted retries. Full CTest and Shipping terminal results remain
+pending. Neither input mapping nor CPU scheduling is established as the cause.
+The same run later reports `editor.game_build` failing its original coordinator worker
+deadline (476.44 seconds including unwinding; CTest limit600), and
+`editor.game_script_build` hitting its registered300-second CTest limit. Their original
+fixtures are being retained for SDK command/stage diagnosis; no timeout has been waived.
+
+Inspection found a separate evidence gap: `TimeoutExpired` discarded the smoke child's
+partial stdout/stderr and launch receipt, while the forced Xvfb cleanup did not reap after
+kill. The follow-up retains both partial streams, writes `acceptance_passed=false` with
+`timed_out=true`/unknown exit code, and drains/reaps Xvfb with retained diagnostics.
+The original 30-second child deadline, four-frame/resize/presentation assertions and CTest
+45-second limit remain intact. The interaction harness additionally preserves failed temporary
+screenshots and logs, writes child stdout/stderr directly to files rather than an undrained
+pipe, and journals command timestamps/results. Command completion does not prove native
+input consumption. Thirteen portable evidence-policy tests pass locally; those
+tests do not execute Linux native rendering or establish a fix for either observed failure.
+See [scoped receipt](ED-WF-05-Showcase-Diagnostics.json). Full immutable Cloud/Shipping/CI
+validation and native package acceptance remain required; work orders stay4/9, Editor0/8.
+
 ## 8870 native harness failures and owned launch follow-up (unaccepted)
 
 The hosted Windows job passes its original five startup cases, then fails the package's launcher

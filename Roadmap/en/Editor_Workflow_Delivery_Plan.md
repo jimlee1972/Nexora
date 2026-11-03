@@ -188,3 +188,13 @@ this is not new Editor acceptance. Linux hosted display also fails packaged Play
 X_SetInputFocus BadMatch: its two private searches still selected an unmapped Editor. Both now
 require onlyvisible under their original budgets. [Launcher/failure receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Launcher-Windows.json).
 Exact-head Editor/Cloud/Shipping/fullCI gates remain pending; no accepted-count change.
+
+The active8870 Cloud run also reports two Showcase failures: shadow-off pixel comparison
+and the original30-second virtual-display child deadline. A scoped follow-up retains partial
+timeout streams, a rejected launch receipt and drained/reaped Xvfb diagnostics. Failed
+interaction fixtures, file-backed child streams and input command journals are retained;
+13 portable policy tests pass. This repairs evidence collection, without claiming either native failure
+is resolved or changing deadlines/assertions. Full gate terminal results and exact-head
+revalidation remain pending. [Diagnostic evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05.md#linux-showcase-failure-evidence-follow-up-unaccepted).
+The same Cloud run later reports the original game-build worker and script-build CTest
+deadlines failing; their fixtures are retained for diagnosis, with no timeout waiver.
