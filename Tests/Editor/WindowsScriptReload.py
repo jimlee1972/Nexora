@@ -10,6 +10,7 @@ import re
 import subprocess
 import sys
 import time
+from WindowsNativeTestDesktop import foreground_launcher, input_desktop
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "EditorImGui"))
 from PackagedPlayProject import write_fixture
@@ -52,6 +53,7 @@ pub const Game = struct {
         self.report(context, "ready");
     }
     pub fn update(self: *@This(), context: *const nx.game.Context, _: f64) !void {
+        try self.check(context);
         self.counter += 1;
         const write = context.host.write_component orelse return error.Unsupported;
         const point = nx.Vec3{.x = @floatFromInt(self.counter)};
@@ -82,6 +84,26 @@ def require(value, message):
         raise RuntimeError(message)
 
 
+def fault_source(version, kind):
+    source = GAME.replace("VERSION", f"0x{version:02x}")
+    if kind == "compile":
+        return source + "\nthis is deliberately invalid Zig;\n"
+    if kind == "restore":
+        return source.replace("try reader.finish();", "try reader.finish();\n        return error.InjectedRestore;")
+    if kind == "initialize":
+        return source.replace("pub fn prepareReload(_: *@This(), _: *const nx.game.Context) !void {}",
+                              "pub fn prepareReload(_: *@This(), _: *const nx.game.Context) !void { return error.InjectedInitialize; }")
+    if kind == "start":
+        return source.replace('self.report(context, "ready");\n    }\n    pub fn update', '''const write = context.host.write_component orelse return error.Unsupported;
+        const poison = nx.Vec3{.x = -12345};
+        if (write(context.host.context, self.entity, nx.componentType("Nexora.Transform"),
+                  &poison, @sizeOf(nx.Vec3)) != 0) return error.HostFailure;
+        return error.InjectedStart;
+    }
+    pub fn update''')
+    raise ValueError("Unknown native reload fault: " + kind)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--editor", required=True)
@@ -104,11 +126,14 @@ def main():
         '{"schema":1,"module_name":"LiveEditorFixture","script":"game.zig"}', encoding="utf-8")
     script = root / "Scripts/game.zig"
 
-    def edit(version):
+    def write_source(source):
         timestamp = script.stat().st_mtime_ns if script.exists() else None
-        script.write_text(GAME.replace("VERSION", f"0x{version:02x}"), encoding="utf-8")
+        script.write_text(source, encoding="utf-8")
         if timestamp is not None:
             os.utime(script, ns=(timestamp, timestamp))
+
+    def edit(version):
+        write_source(GAME.replace("VERSION", f"0x{version:02x}"))
 
     edit(0)
     baseline = {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
@@ -203,7 +228,19 @@ def main():
                        NEXORA_SCRIPT_RELOAD_EVIDENCE="1", NEXORA_EDITOR_STARTUP_EVIDENCE="1")
     process = None
     sequence = []
+    faults = []
     case_deadline = time.monotonic() + 3600
+
+    def checkpoint(phase):
+        # Preserve real intermediate observations even if the host/test runner disappears.
+        # A checkpoint is deliberately never a PASS receipt or a complete gate result.
+        record = {"status": "IN_PROGRESS", "phase": phase, "cycles": args.cycles,
+                  "sequence": sequence, "faults": faults,
+                  "editor_sha256": hashlib.sha256(Path(args.editor).read_bytes()).hexdigest(),
+                  "harness_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}
+        temporary = evidence / "checkpoint.tmp"
+        temporary.write_text(json.dumps(record, indent=2), encoding="utf-8")
+        temporary.replace(evidence / "checkpoint.json")
 
     def output():
         return errors.read_text(encoding="utf-8", errors="replace")
@@ -232,7 +269,8 @@ def main():
         user.keybd_event(0x11, 0, 2, 0)
 
     try:
-        with errors.open("wb") as stderr, (evidence / "stdout.log").open("wb") as stdout:
+        checkpoint("launch")
+        with input_desktop(evidence), foreground_launcher(), errors.open("wb") as stderr, (evidence / "stdout.log").open("wb") as stdout:
             job = kernel.CreateJobObjectW(None, None)
             limits = ExtendedLimits()
             limits.basic.flags = 0x2000  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE.
@@ -283,11 +321,61 @@ def main():
                             "Counter or Scene/entity handle reset across a real source edit")
                 previous = ready
                 sequence.append({"version": version, "counter": ready[0], "scene": ready[1], "entity": ready[2]})
+                checkpoint("replacement-" + str(version))
                 result = C.c_size_t()
                 require(user.SendMessageTimeoutW(hwnd, 0, 0, 0, 2, 500, C.byref(result)),
                         "Editor UI became unresponsive during source replacement")
+            # Exercise production SDK/compiler/admission failures through this same real Play.
+            # Each old update checks its World before writing, so a failed candidate cannot hide
+            # leaked World mutations by overwriting them on the next tick.
+            active_version = args.cycles
+            admissions = re.findall(r"script reload admission: .* applied=(\d) generation=(\d+) ", output())
+            require(admissions and admissions[-1][0] == "1", "No admitted live generation before faults")
+            generation = int(admissions[-1][1])
+            for index, kind in enumerate(("compile", "restore", "initialize", "start"), 1):
+                before = len(re.findall(r"script reload admission: .* applied=0 ", output()))
+                bad_version = args.cycles + index
+                write_source(fault_source(bad_version, kind))
+                failed = wait(lambda text: re.findall(
+                    r"script reload admission: .* applied=0 generation=(\d+) message=([^\r\n]*)", text)[before:],
+                    kind + " fault did not produce a rejected production admission")
+                require(len(failed) == 1 and int(failed[0][0]) == generation,
+                        kind + " fault replaced the active module")
+                offset = len(output())
+                tick = wait(lambda text: re.findall(
+                    rf"script reload gameplay: live tick version={active_version} counter=(\d+) scene=(\d+) entity=(\d+)",
+                    text[offset:]), kind + " fault stopped old gameplay dispatch")[-1]
+                tick = tuple(map(int, tick))
+                require(tick[0] > previous[0] and tick[1:] == previous[1:],
+                        kind + " fault changed old World/state/handles")
+                require(not re.search(rf"script reload gameplay: live (?:ready|tick) version={bad_version} ", output()),
+                        kind + " fault dispatched an uncommitted generation")
+                result = C.c_size_t()
+                require(user.SendMessageTimeoutW(hwnd, 0, 0, 0, 2, 500, C.byref(result)),
+                        "Editor UI became unresponsive after " + kind + " failure")
+                faults.append({"kind": kind, "candidate_version": bad_version, "generation": generation,
+                               "counter": tick[0], "scene": tick[1], "entity": tick[2],
+                               "rejected": True, "old_dispatch_continued": True, "diagnostic": failed[0][1]})
+                previous = tick
+                checkpoint("rejected-" + kind)
+            recovery_version = args.cycles + 8
+            before = len(re.findall(r"script reload admission: .* applied=1 ", output()))
+            edit(recovery_version)
+            recovered = wait(lambda text: re.findall(
+                rf"script reload gameplay: live ready version={recovery_version} counter=(\d+) scene=(\d+) entity=(\d+)", text),
+                "Valid source did not recover after rejected candidates")[-1]
+            recovered = tuple(map(int, recovered))
+            wait(lambda text: len(re.findall(r"script reload admission: .* applied=1 ", text)) > before,
+                 "Recovered source did not commit")
+            wait(lambda text: f"script reload gameplay: live tick version={recovery_version} " in text,
+                 "Recovered generation did not dispatch")
+            require(recovered[0] > previous[0] and recovered[1:] == previous[1:],
+                    "Recovery reset state or retained candidate World corruption")
+            recovery = {"version": recovery_version, "counter": recovered[0],
+                        "scene": recovered[1], "entity": recovered[2], "committed": True}
+            checkpoint("recovered")
             progress_before = output().count("script reload progress: stage=4 ")
-            edit(args.cycles + 1)
+            edit(recovery_version + 1)
             wait(lambda text: text.count("script reload progress: stage=4 ") > progress_before,
                  "Cancellation fixture did not start real compilation")
             wait(lambda text: running_compiler_children(), "No live owned compiler process observed", 5)
@@ -315,6 +403,8 @@ def main():
                    "stop_cancelled_real_compilation": True, "exit": process.returncode,
                    "observed_children_terminated": [{"pid": pid, "name": name} for handle, pid, name in children],
                    "remaining_owned_job_processes": account.active_processes,
+                   "active_generation_before_faults": generation,
+                   "faults": faults, "recovery": recovery,
                    "authored_baseline": baseline, "scope": "Windows native Editor configured 3D Play; no Sprite/device acceptance"}
         (evidence / "receipt.json").write_text(json.dumps(receipt, indent=2), encoding="utf-8")
         print(json.dumps(receipt))
@@ -322,6 +412,7 @@ def main():
         (evidence / "failure.json").write_text(json.dumps({
             "status": "FAIL", "error": str(error), "sequence": sequence,
             "completed_replacements": max(0, len(sequence) - 1),
+            "faults": faults,
             "editor_exit_code_before_cleanup": process.poll() if process else None,
         }, indent=2), encoding="utf-8")
         raise

@@ -741,7 +741,7 @@ int RunGraphical(std::optional<ProjectState> project,
       Nexora::Presentation::PresentMode::VSync,
       Nexora::Presentation::ColorSpace::Srgb,
       true};
-#if defined(_WIN32)
+#if defined(_WIN32) || defined(__linux__)
   surface_descriptor.initiallyVisible = false;
 #endif
   bool reveal_main_window = !surface_descriptor.initiallyVisible;

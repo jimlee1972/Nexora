@@ -11,7 +11,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from WindowsNativeTestDesktop import foreground_launcher
+from WindowsNativeTestDesktop import foreground_launcher, input_desktop
 
 
 def _verify_startup(editor, evidence, environment=None):
@@ -93,7 +93,8 @@ def _verify_startup(editor, evidence, environment=None):
                     'Editor client is occluded; desktop pixels cannot verify its rendering; '
                     f'origin=({origin.x},{origin.y}), client=({width},{height}), '
                     f'point=({origin.x+x},{origin.y+y}), virtual_screen='
-                    f'{tuple(user.GetSystemMetrics(index) for index in (76,77,78,79))}')
+                    f'{tuple(user.GetSystemMetrics(index) for index in (76,77,78,79))}, '
+                    f'occluding_class={text(visible, True) if visible else "<none>"}')
         dc = user.GetDC(None)
         memory = gdi.CreateCompatibleDC(dc)
         bitmap = gdi.CreateCompatibleBitmap(dc, width, height)
@@ -199,7 +200,7 @@ def _verify_startup(editor, evidence, environment=None):
             hook = user.SetWinEventHook(0x8000, 0x8003, None, event, 0, 0, 2)
             require(hook, 'Cannot observe native window lifecycle')
             try:
-                with log.open('wb') as stderr, (evidence/f'no-arguments-{attempt}.stdout.log').open('wb') as stdout:
+                with foreground_launcher(), log.open('wb') as stderr, (evidence/f'no-arguments-{attempt}.stdout.log').open('wb') as stdout:
                     # Deliberately no --frames, --graphical, or --recent-projects override.
                     process = subprocess.Popen([str(editor)], cwd=root, env=env, stdout=stdout, stderr=stderr)
                     deadline = time.monotonic()+35
@@ -275,58 +276,8 @@ def _verify_startup(editor, evidence, environment=None):
 
 
 def verify_startup(editor, evidence, environment=None):
-    # A managed command may run on an isolated, non-input desktop. Screen DCs cannot prove
-    # visibility there. Explicit opt-in selects the existing input desktop for THIS thread
-    # and its children; it never switches the user's desktop or manipulates other windows.
-    user = C.WinDLL('user32', use_last_error=True)
-    kernel = C.WinDLL('kernel32')
-    user.GetThreadDesktop.argtypes = [W.DWORD]
-    user.GetThreadDesktop.restype = W.HANDLE
-    user.OpenInputDesktop.argtypes = [W.DWORD, W.BOOL, W.DWORD]
-    user.OpenInputDesktop.restype = W.HANDLE
-    user.SetThreadDesktop.argtypes = [W.HANDLE]
-    user.CloseDesktop.argtypes = [W.HANDLE]
-    user.GetUserObjectInformationW.argtypes = [W.HANDLE, C.c_int, C.c_void_p, W.DWORD,
-                                              C.POINTER(W.DWORD)]
-
-    def name(handle):
-        value = C.create_unicode_buffer(256)
-        needed = W.DWORD()
-        if not handle or not user.GetUserObjectInformationW(
-                handle, 2, value, C.sizeof(value), C.byref(needed)):
-            raise RuntimeError('Cannot identify the native test desktop')
-        return value.value
-
-    previous = user.GetThreadDesktop(kernel.GetCurrentThreadId())
-    # Read/write objects, create our own windows and install/remove this test's event hook.
-    active = user.OpenInputDesktop(0, False, 0x1 | 0x2 | 0x8 | 0x40 | 0x80)
-    if not active:
-        raise RuntimeError('Interactive native input desktop is unavailable')
-    selected = False
-    try:
-        same = name(previous) == name(active)
-        if not same:
-            if os.environ.get('NEXORA_NATIVE_TEST_INPUT_DESKTOP') != '1':
-                raise RuntimeError('Native test is on an isolated desktop; explicitly opt in '
-                                   'with NEXORA_NATIVE_TEST_INPUT_DESKTOP=1 for visible UI testing')
-            if not user.SetThreadDesktop(active):
-                raise RuntimeError('Cannot select the existing input desktop for the native test')
-            selected = True
-        Path(evidence).mkdir(parents=True, exist_ok=True)
-        Path(evidence, 'desktop.json').write_text(json.dumps({
-            'original_thread_matches_input': same,
-            'selected_existing_input_desktop': selected,
-            'user_input_desktop_switched': False,
-            'thread_matches_input': name(user.GetThreadDesktop(kernel.GetCurrentThreadId())) ==
-                                    name(active),
-        }, indent=2)+'\n')
-        with foreground_launcher():
-            return _verify_startup(editor, evidence, environment)
-    finally:
-        restored = not selected or bool(user.SetThreadDesktop(previous))
-        user.CloseDesktop(active)
-        if not restored:
-            raise RuntimeError('Native test could not restore its original thread desktop')
+    with input_desktop(evidence):
+        return _verify_startup(editor, evidence, environment)
 
 
 if __name__ == '__main__':

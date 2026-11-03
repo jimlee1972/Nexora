@@ -367,6 +367,24 @@ def verify_script_reload(editor, evidence, cycles):
             any(current['counter'] <= previous['counter']
                 for previous, current in zip(sequence, sequence[1:]))):
         raise RuntimeError('Extracted Editor reload receipt does not preserve state/handles')
+    faults = receipt.get('faults', [])
+    recovery = receipt.get('recovery', {})
+    if ([entry.get('kind') for entry in faults] != ['compile', 'restore', 'initialize', 'start'] or
+            any(entry.get('rejected') is not True or entry.get('old_dispatch_continued') is not True or
+                not isinstance(entry.get('diagnostic'), str) or not entry['diagnostic']
+                for entry in faults) or recovery.get('committed') is not True or
+            recovery.get('version') != cycles + 8):
+        raise RuntimeError('Extracted Editor reload failure/recovery receipt is incomplete')
+    continuity = sequence[-1:] + faults + [recovery]
+    if (any(type(entry.get(key)) is not int or entry[key] < (0 if key == 'counter' else 1)
+            for entry in continuity for key in ('counter', 'scene', 'entity')) or
+            any(type(entry.get('generation')) is not int or entry['generation'] <= 0 for entry in faults) or
+            type(receipt.get('active_generation_before_faults')) is not int or
+            any(entry['generation'] != receipt['active_generation_before_faults'] for entry in faults) or
+            len({(entry['scene'], entry['entity']) for entry in continuity}) != 1 or
+            any(current['counter'] <= previous['counter']
+                for previous, current in zip(continuity, continuity[1:]))):
+        raise RuntimeError('Extracted Editor rejected candidates changed state/handles')
 
 
 def main():

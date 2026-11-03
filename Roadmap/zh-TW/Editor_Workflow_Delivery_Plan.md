@@ -152,3 +152,9 @@ CI 根因與精確版本完整驗證待完成。此為診斷檢查點，尚未�
 記錄 Windows 原生啟動／品牌／入口5/5通過（26.58秒）。隱藏主視窗先適配螢幕工作區；
 測試自己的啟動器建立前景父程序情境，不替代 Editor，不放寬像素／回應／NoActivate／期限。
 新精確版本 CI／Cloud 與解壓 ZIP32次仍待驗收，工單與里程碑計數不變。
+
+
+`51bd8a16` 的雲端 Windows 封裝已通過原啟動 gate 與實際解壓 ZIP 的32次重載：計數0→27512、保留 Scene1／entity4、實際 Ctrl+P 與等 mtime 修改、觀察到的編譯子程序已排空、正常 exit0 且所屬 Job 程序0。下載產物雜湊與 ZIP CRC 已核對，見[封裝收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Package-51bd8a16.json)。這是 Windows 範圍證據，非最終驗收。完整 Cloud 重驗仍為 FAIL495/499，四項 Prefab GUI 失敗；Development／Shipping 建置命令皆 exit0，原中鍵案例則通過。另有四個 macOS／iOS 工作遭 abandoned／cancelled，造成兩個 CI 總 gate 失敗。不合併、不增加已驗收數。
+補強的原生 harness 要求編譯、狀態還原、候選初始化及候選啟動修改 World 後的失敗，都保留舊 dispatch／狀態／handle，再驗證正確腳本恢復。首次本機嘗試已觀察四次拒絕，但恢復完成前失去 runner，沒有終態 exit／收據，仍算未完成；新增 checkpoint 只保存部分觀察，不宣稱 PASS。更新後的 harness 與發布驗證仍待通過。
+
+下一份準備狀態修正讓 Linux 主視窗在首幀完成前維持隱藏，X11 取得視窗須在原15秒預算內找到可見視窗。原生 source-apply 的像素等待共用外層10秒手勢期限，失敗 fixture 也會保留。尚未驗收，也不宣稱這已證明四項 Cloud 失敗的完整根因。Windows 原生測試共用既有輸入桌面的明確選取與每次實際啟動前的自有前景啟動器，不對其他視窗送鍵。首次解壓 ZIP 故障嘗試因前景不屬於測試而拒絕開始 Play，本機啟動重驗另有遮蔽失敗，均保留。未採用 LP worker 數候選；該歷史完整 CTest 仍為 FAIL493/499。

@@ -1769,7 +1769,9 @@ ordinary initialization; it does not turn an initialization failure into success
 
 Normal no-mode/no-argument GUI startup and explicit graphical commands share this owner.
 Help, invalid arguments, ordinary headless create/open/build commands never create a splash.
-Linux/macOS retain their existing startup via a no-op adapter. Opt-in
+Linux also keeps its main window unmapped until the first completed UI/present, without a native
+splash; X11 acceptance waits for a visible window within the existing acquisition budget. macOS
+retains its existing startup via a no-op adapter. Opt-in
 `NEXORA_EDITOR_STARTUP_EVIDENCE=1` records actual open/stage/first-frame/close boundaries.
 The Windows helper checks black/cyan/white screen pixels, DPI, icons, hidden-main preparation,
 no cross-thread owner/topmost state, exception cleanup and a forced synchronous teardown callback.

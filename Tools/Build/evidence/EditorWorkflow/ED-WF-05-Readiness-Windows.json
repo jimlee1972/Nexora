@@ -1,0 +1,146 @@
+{
+  "status": "READINESS_REPAIR_PENDING_IMMUTABLE_NATIVE_FULL_GATES",
+  "parent_head": "51bd8a16af9bac1a124d3eb2b1ebf79e68431be5",
+  "windows_build_exit": 0,
+  "portable_admission_tests": {
+    "exit": 0,
+    "passed": 9,
+    "seconds": 0.991
+  },
+  "local_native_failures": [
+    {
+      "case": "shared helper startup",
+      "exit": 8,
+      "passed": 4,
+      "failed": 1,
+      "seconds": 18.71,
+      "reason": "Main client pixel verification rejected occlusion"
+    },
+    {
+      "case": "per-process foreground startup",
+      "exit": 8,
+      "passed": 4,
+      "failed": 1,
+      "seconds": 44.96,
+      "reason": "Main client pixel verification rejected occlusion"
+    },
+    {
+      "case": "extractedZIP51 fault smoke",
+      "exit": 1,
+      "completed_replacements": 0,
+      "reason": "Foreground ownership was absent; refused keyboard input to a foreign window",
+      "editor_running_at_failure": true
+    }
+  ],
+  "repairs": [
+    "Linux main remains unmapped until completed UI/present; X11 search requires visible window in original15s budget",
+    "Nested pixel wait inherits existing10s gesture deadline; failed source-apply fixture is retained",
+    "Shared existing-input-desktop selection with explicit opt-in; owned foreground parent immediately before each process",
+    "Actual compiler/restore/initialize/start rejection and recovery required by package admission; partial checkpoint never PASS"
+  ],
+  "not_adopted": "LP_NUM_THREADS2 candidate fullCTest493/499 FAIL, not a causal fix",
+  "scope": "Windows local compilation/portable tests only pass. Local new native startup/fault gates do not pass; hosted exact-head native CI and full Cloud/Shipping still required. Work orders4/9, Editor0/8 unchanged.",
+  "files": [
+    {
+      "path": "Apps/Editor/main.cpp",
+      "bytes": 241185,
+      "sha256": "4c561898032e042ddf5993f78174165f6dd54df1fce1b97cba9e8b98b5212f57"
+    },
+    {
+      "path": "Tests/Editor/WindowsScriptReload.py",
+      "bytes": 23785,
+      "sha256": "31d50cb2829d9708abab46c8eaf99cd8e634fe03fdcd19a0971cfe47039408d6"
+    },
+    {
+      "path": "Tests/Editor/WindowsNativeTestDesktop.py",
+      "bytes": 4074,
+      "sha256": "1cfdef21cceebb4dfb196012c64fb527004424862ba2b67f109998a05ab705f5"
+    },
+    {
+      "path": "Tests/Editor/WindowsStartupIntegration.py",
+      "bytes": 16584,
+      "sha256": "14b320d7237c7b32bb69924ca4007965150fadeca5b7d1ef26a9de0eb67ba87a"
+    },
+    {
+      "path": "Tests/EditorImGui/LinuxDisplayAcceptance.py",
+      "bytes": 27469,
+      "sha256": "bd0f10e2367094d22f4dfb5cedd189b30c256bdd18065899c36254aae897d64e"
+    },
+    {
+      "path": "Tests/EditorImGui/LinuxReflectedInspector.py",
+      "bytes": 13557,
+      "sha256": "09b08f370c97623299454460855e26de2be554c8b023c72f4491c46f65664046"
+    },
+    {
+      "path": "Tests/EditorImGui/LinuxPrefabInstanceSourceApply.py",
+      "bytes": 8916,
+      "sha256": "0840b125f9683695f3123c95f1c0252abc64eed3b0ae69f11eb205fee000f090"
+    },
+    {
+      "path": "Tools/Editor/PackageWindowsEditor.py",
+      "bytes": 30606,
+      "sha256": "08decc88a2700a7baccdfcdf3cb4af4dd0f9c7bb06000f7e1950a24cad147cf9"
+    },
+    {
+      "path": "Tools/Editor/tests/test_windows_package.py",
+      "bytes": 12456,
+      "sha256": "934959a08b19350d05ec1d7ac308bdcd56ccf948277d27d1cd67e51dafe659d3"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-linux-ready-build.log",
+      "bytes": 2737,
+      "sha256": "f2aa2e254ef85cf62b69e1556aff1c1a362b480e7c991ab000875b8a522ffaf7"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-linux-ready-build-exit.json",
+      "bytes": 24,
+      "sha256": "75876e0e3f497cad271143ba85bd4f36569cd81195509043f860dab14265b716"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-reload-fault-package-tests-reviewed.log",
+      "bytes": 1489,
+      "sha256": "c72847cc1f5e032c0be516922ef3e66117ab098dedef2e778841fddd1a006f47"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-reload-fault-package-tests-reviewed-exit.json",
+      "bytes": 24,
+      "sha256": "75876e0e3f497cad271143ba85bd4f36569cd81195509043f860dab14265b716"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-desktop-helper-startup-test.log",
+      "bytes": 6828,
+      "sha256": "3ca0345d99ed4627b4cc717e6df5fac83adfd7cd43a84951534dd39d5bf7faf1"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-desktop-helper-startup-test-exit.json",
+      "bytes": 24,
+      "sha256": "a1b6dfab7791f9f438c944ae52617e3cbd95dffb9b0293a0aa56c0e37b1a7f6a"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-per-launch-startup-test.log",
+      "bytes": 6828,
+      "sha256": "a61a34bd562dd3bac60caf7f81c1ba1073951130676a9ad9b5f31ca66431bea8"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-per-launch-startup-test-exit.json",
+      "bytes": 24,
+      "sha256": "a1b6dfab7791f9f438c944ae52617e3cbd95dffb9b0293a0aa56c0e37b1a7f6a"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-zip51-native-fault-smoke.log",
+      "bytes": 942,
+      "sha256": "dd4d0c5c70b62f0c442a111d36c44ec5e5d0bb8512e7d734603401e50346b970"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-zip51-native-fault-smoke-exit.json",
+      "bytes": 24,
+      "sha256": "50d7caf03dd967e4363a5bc7babbf450452b31dd1ec7fb605b2abc6465759571"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-zip51-native-fault-smoke/failure.json",
+      "bytes": 195,
+      "sha256": "6ce19655180d7f9fe4d1586cc6740b42b1d71e5a59200d2099c2176545b08415"
+    }
+  ],
+  "source_snapshot": "After local commands. Occluding-class diagnostic text was added after the failed native attempts. Exact new native acceptance remains pending."
+}

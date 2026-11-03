@@ -25,6 +25,13 @@ class Dependencies(unittest.TestCase):
                        'stop_cancelled_real_compilation': True, 'exit': 0,
                        'remaining_owned_job_processes': 0,
                        'observed_children_terminated': [{'pid': 123, 'name': 'cmake.exe'}],
+                       'active_generation_before_faults': 33,
+                       'faults': [{'kind': kind, 'generation': 33, 'rejected': True,
+                                   'old_dispatch_continued': True, 'diagnostic': 'expected failure',
+                                   'counter': 3300 + i * 100, 'scene': 1, 'entity': 4}
+                                  for i, kind in enumerate(('compile', 'restore', 'initialize', 'start'))],
+                       'recovery': {'version': 40, 'counter': 3700, 'scene': 1, 'entity': 4,
+                                    'committed': True},
                        'sequence': [{'version': i, 'counter': i * 100, 'scene': 1, 'entity': 4}
                                     for i in range(33)]}
             result = subprocess.CompletedProcess([], 0, b'native stdout', b'native stderr')
@@ -37,6 +44,21 @@ class Dependencies(unittest.TestCase):
                 (evidence / 'receipt.json').write_text(json.dumps(receipt))
                 with self.assertRaisesRegex(RuntimeError, 'incomplete'):
                     verify_script_reload(root / 'NexoraEditor.exe', evidence, 32)
+                receipt['sequence'] = sequence
+                receipt['remaining_owned_job_processes'] = 0
+                faults = receipt['faults']
+                receipt['faults'] = []
+                (evidence / 'receipt.json').write_text(json.dumps(receipt))
+                with self.assertRaisesRegex(RuntimeError, 'failure/recovery.*incomplete'):
+                    verify_script_reload(root / 'NexoraEditor.exe', evidence, 32)
+                receipt['faults'] = faults
+                for key, broken, original in [('counter', 0, 3400), ('generation', 34, 33),
+                                               ('entity', 9, 4)]:
+                    faults[1][key] = broken
+                    (evidence / 'receipt.json').write_text(json.dumps(receipt))
+                    with self.assertRaisesRegex(RuntimeError, 'rejected candidates changed'):
+                        verify_script_reload(root / 'NexoraEditor.exe', evidence, 32)
+                    faults[1][key] = original
                 receipt['sequence'] = sequence
                 sequence[16]['counter'] = 0
                 (evidence / 'receipt.json').write_text(json.dumps(receipt))
