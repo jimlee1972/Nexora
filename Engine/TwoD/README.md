@@ -50,7 +50,9 @@ native resources or module callbacks by itself; integrated Editor reload remains
 World and validates that all metadata IDs still belong to that scene. It never edits either World.
 `RebindForReload` validates membership without allocation before redirecting to the identical
 state moved by the embedding at commit/retirement. Editor Worlds reject these reload operations;
-normal Editor snapshot/Restore ownership is unchanged. `GameplayBridge` can fork its camera,
+normal Editor snapshot/Restore ownership is unchanged. Catalog-backed bridges reject the single-scene fork/rebind API without mutation; catalog reload
+requires an explicit complete session branch rather than dropping its routing/transition state.
+`GameplayBridge` in single-scene mode can fork its camera,
 owned animation clocks/clip values and query snapshots over these isolated bindings. It requires
 distinct mutable scene/tile/pool storage; pooled branches retain the same handle owner. Its
 rebind operation preserves existing API context addresses while redirecting moved World/scene
@@ -303,3 +305,54 @@ default; renderer, diagnostic and SDK acceptance remain separate roadmap stages.
 
 The optional [emission companion contract](EmissionAssets.md) provides separate linear masks/metadata,
 Zig blob parsing and ordered selective bloom without changing Atlas/Clip or Sprite ABI.
+
+## Packaged authored 2D scenes
+
+`AuthoredScene` reads the existing ND2D schema-1 2D Studio document: NX2S World/Sprite/collider
+snapshot plus optional embedded Atlas, Clip and Tilemap. `TwoDDocument` uses this same codec;
+Shipping never links Editor. A `.scene` extension is supported by Studio and does not turn a
+3D Editor text scene into an ND2D document. Sprite source UUID catalogs and per-scene Zig module
+binding are not part of this format. Open/validate with the appropriate editor; incompatible
+bytes reject, rather than being treated as an empty scene.
+
+`SceneSession` owns immutable validated catalog sources and live Sprite/Tilemap metadata, borrowing
+an exclusively managed Play World. The session and World outlive `GameplayBridge` and every module
+using its stable API context. Serialize all operations on their construction thread. Stop modules
+before destroying the bridge/session; drain render readers before calling `Process` outside module
+callbacks, after `World::EndFrame`. Load requests never execute inside a Zig callback.
+
+Scene V1 supports exact catalog-path resolution, deferred Replace/Additive/Unload, status, primary
+and instance info without changing the C/Zig ABI. One request may be queued; another returns
+`BUSY`. Status retains the current and most recently completed request. Replace retires all
+nonpersistent session instances, Additive retains the primary (unless none exists), and unloading
+the primary selects the first retained instance. Persistent instances survive Replace and reject
+explicit unload. Unloading the last instance rejects. Duplicate Additive assets reject; Replace
+can reload the same asset. Camera info is zero because this 2D camera is a service value, not a
+3D camera entity.
+
+Preparation validates and stages the World, fresh monotonically allocated entity/scene IDs, remapped
+parents, Sprite/collider keys and owning Tilemaps before publication. The live World and every
+metadata owner remain unchanged on failure/exception. A successful no-throw publication expires
+all World/metadata borrows; retired scene records are collected without recycling IDs. Stale entity
+IDs cannot address replacement content. Requests are Queued/Applied/Failed/Cancelled; stopped APIs
+return `LIFECYCLE`, while status remains readable on the owner thread for cancellation inspection.
+Malformed/missing paths, flags, duplicate loads and forbidden unloads conserve output buffers.
+
+Limits are 64 catalog entries/live instances and 100,000 combined authored entities/tiles. Player
+also bounds all eager source payloads, including scene documents, to a combined 64 MiB. Embedded
+Atlas/Clip UUIDs may be shared only with identical payloads. Immutable assets are eagerly admitted
+and remain resident for the host session; scene unload retires live entities/metadata, not shared
+content residency. Missing/incompatible documents fail startup/export without replacing output.
+
+The catalog bridge routes Sprite/collider/animation and entity queries across all live instances;
+scene transitions invalidate query snapshots and prune retired animation state. Primary changes
+reset the service camera. Tilemap editing/queries address the primary's Tilemap (or return
+`UNSUPPORTED` without an Atlas); rendering globally sorts tiles/Sprites from all instances.
+Transient pool handles, content, UI, input and effects remain host-session services. Gameplay must
+release/reset its transient instances and bindings when changing modes; scenes do not silently
+reassign pooled handles to entities. Legacy single-scene bridge behavior is unchanged.
+
+See [Player descriptor/export](../../Apps/TwoDPlayer/README.md#authored-scene-catalog) and
+[Studio selection](../../Tools/TwoD/README.md#multiple-authored-scenes). Portable regressions are
+`twod.scene_session`, `twod.scene_project_zig`, `twod.authoring_contracts` and
+`twod.project_manifest`; the SDK consumer additionally exercises real Zig/native DX12 transitions.

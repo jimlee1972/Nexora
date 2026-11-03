@@ -156,6 +156,40 @@ test "diagnostic defaults are interactive" {
                 raise ValueError('effects-off resources retained')
         elif 'features=0' not in logs:
             raise ValueError('headless claimed native effects')
+    # Exercise the actual authored catalog through the packaged generic Shipping host.
+    (source/'game.zig').write_text('const nx = @import("nexora");\npub const Game = struct {\n    state: nx.scene_diagnostic.State = .{},\n    pub fn start(self: *Game, ctx: *const nx.game.Context) !void { try self.state.start(ctx); }\n    pub fn update(self: *Game, ctx: *const nx.game.Context, _: f64) !void { try self.state.update(ctx); }\n    pub fn stop(self: *Game, ctx: *const nx.game.Context) void { self.state.stop(ctx); }\n};\n', encoding='utf-8')
+    run('cmake', '--build', build, '--target', 'game_module')
+    shutil.copy2(build/'module/bin/SdkFixture.dll', source/'module.dll')
+    (source/'empty.txt').write_text('scene', encoding='utf-8')
+    for name in ('Start', 'Main'):
+        run(sdk/'bin/NexoraTwoDAssetCompiler.exe', 'scene-empty', source/'empty.txt', source/(name+'.scene'))
+    run(sdk/'bin/NexoraTwoDAssetCompiler.exe', 'scene-sprite', source/'asset.nx2atlas', source/'Title.scene')
+    scene_project = dict(schema=1, id='com.nexora.scenes', title='Authored scenes',
+        scene='Start.scene', module='module.dll', audio='off', assets=[],
+        scenes=[dict(id=[501, i], path=name+'.scene') for i, name in enumerate(('Start','Title','Main'), 1)])
+    (source/'game.json').write_text(json.dumps(scene_project), encoding='utf-8')
+    scene_package = output/'Scene relocated 陰陽'
+    run(sys.executable, sdk/'Tools/TwoD/ExportGame.py', source/'game.json',
+        '--runtime', sdk/'bin/NexoraGameHost.exe', '--output', scene_package,
+        '--compiler', sdk/'bin/NexoraTwoDAssetCompiler.exe', '--vc-redist', sdk/'bin',
+        '--executable-name', 'SdkFixture.exe')
+    for native in (False, True):
+        label = 'native' if native else 'headless'
+        report = output/f'scene-{label}.json'
+        command = [str(scene_package/'SdkFixture.exe'), '--frames', '60', '--report', str(report),
+                   '--save-directory', str(output/'scene-saves')]
+        if native: command += ['--native', '--backend', 'dx12']
+        result = subprocess.run(command, cwd=output, capture_output=True, timeout=180)
+        (output/f'scene-{label}.stdout.log').write_bytes(result.stdout)
+        (output/f'scene-{label}.stderr.log').write_bytes(result.stderr)
+        logs = (result.stdout + result.stderr).decode('utf-8', 'replace')
+        if result.returncode or 'SCENE DIAGNOSTIC PASS' not in logs or 'SCENE DIAGNOSTIC FAIL' in logs:
+            raise ValueError('packaged scene consumer failed: '+label+' '+logs[-3000:])
+        observed = json.loads(report.read_text(encoding='utf-8'))
+        if observed['status'] != 'PASS' or not observed['allocations_balanced']:
+            raise ValueError('scene host lifecycle regression')
+        if native and observed['native_frames'] != 60:
+            raise ValueError('scene native presentation did not run')
     # Rebuild through the same source-free SDK with an unreachable proxy. No SDK mutation,
     # source fallback, producer cache or compiler download is allowed in this consumer job.
     proxy_keys = ('HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy')
@@ -173,7 +207,7 @@ test "diagnostic defaults are interactive" {
         raise ValueError('consumer modified the SDK')
     (output/'acceptance.json').write_text(json.dumps(dict(status='PASS', source_commit=manifest['source_commit'],
         archive_sha256=archive_sha, two_processes=True, canonical_atlas_clip=True, real_zig_hd2d=True, hd2d_reload_cycles=2, offline_rebuild=True,
-        physical_windows='NOT_RUN', native_dx12='PASS'), indent=2)+'\n', encoding='utf-8')
+        authored_scene_headless=True, authored_scene_dx12=True, physical_windows='NOT_RUN', native_dx12='PASS'), indent=2)+'\n', encoding='utf-8')
 
 
 

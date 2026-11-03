@@ -158,3 +158,7 @@ CI 根因與精確版本完整驗證待完成。此為診斷檢查點，尚未�
 補強的原生 harness 要求編譯、狀態還原、候選初始化及候選啟動修改 World 後的失敗，都保留舊 dispatch／狀態／handle，再驗證正確腳本恢復。首次本機嘗試已觀察四次拒絕，但恢復完成前失去 runner，沒有終態 exit／收據，仍算未完成；新增 checkpoint 只保存部分觀察，不宣稱 PASS。更新後的 harness 與發布驗證仍待通過。
 
 下一份準備狀態修正讓 Linux 主視窗在首幀完成前維持隱藏，X11 取得視窗須在原15秒預算內找到可見視窗。原生 source-apply 的像素等待共用外層10秒手勢期限，失敗 fixture 也會保留。尚未驗收，也不宣稱這已證明四項 Cloud 失敗的完整根因。Windows 原生測試共用既有輸入桌面的明確選取與每次實際啟動前的自有前景啟動器，不對其他視窗送鍵。首次解壓 ZIP 故障嘗試因前景不屬於測試而拒絕開始 Play，本機啟動重驗另有遮蔽失敗，均保留。未採用 LP worker 數候選；該歷史完整 CTest 仍為 FAIL493/499。
+
+整合納入上游 main `1df6ab357da69ee3257097a9b5176695b7c96b9a`（PR #765 authored Scene V1）。GameplayBridge 同時保留 catalog 實體路由與既有 World 指標重新綁定契約。Catalog bridge 對單場景 fork／rebind 會無寫入拒絕，新增回歸檢查保留 World／primary／revision／API 狀態；不宣稱已完成 catalog 熱重載，該部分仍屬後續整合工作。合併後原生重建／範圍測試與精確版本 Cloud／Shipping／CI 仍須通過。
+
+整合後 Windows checkpoint：9個目標重建全部 exit0，6項 bridge／catalog／compiler／proxy／reload／packaged Play 範圍 CTest 全數通過（exit0、5.64秒）。見[收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Main-Integration-Windows.json)。不代表 GUI／完整 gate 驗收或增加完成數；新的精確版本 Cloud／Shipping／CI 仍須通過。

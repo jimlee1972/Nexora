@@ -130,6 +130,7 @@ public:
   [[nodiscard]] bool RebindForReload(runtime::World &world) noexcept;
 
 private:
+  friend class SceneSession;
   runtime::World *world_;
   runtime::Id scene_;
   std::map<runtime::Id, Sprite> sprites_;

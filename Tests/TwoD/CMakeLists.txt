@@ -297,3 +297,27 @@ endif()
 add_test(NAME twod.emission_asset_tool COMMAND "${Python3_EXECUTABLE}"
   "${CMAKE_CURRENT_SOURCE_DIR}/EmissionToolTests.py" "$<TARGET_FILE:NexoraTwoDAssetCompiler>" ${_nexora_emission_export_args})
 set_tests_properties(twod.emission_asset_tool PROPERTIES TIMEOUT 45 LABELS "twod;tools;assets")
+
+add_executable(NexoraTwoDSceneSessionTests SceneSessionTests.cpp)
+target_link_libraries(NexoraTwoDSceneSessionTests PRIVATE Nexora::TwoD)
+nexora_apply_defaults(NexoraTwoDSceneSessionTests)
+add_test(NAME twod.scene_session COMMAND NexoraTwoDSceneSessionTests)
+
+find_program(NEXORA_SCENE_TEST_ZIG NAMES zig)
+if(NEXORA_SCENE_TEST_ZIG)
+  add_test(NAME twod.scene_project_zig COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/SceneProjectAcceptance.py"
+    --app "$<TARGET_FILE:NexoraTwoDPlayer>" --compiler "$<TARGET_FILE:NexoraTwoDAssetCompiler>"
+    --zig "${NEXORA_SCENE_TEST_ZIG}" --cmake "${CMAKE_COMMAND}")
+  set_tests_properties(twod.scene_project_zig PROPERTIES TIMEOUT 300 LABELS "twod;scene;zig;export")
+endif()
+
+if(NEXORA_SCENE_TEST_ZIG AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND
+   NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND)
+  add_test(NAME twod.scene_project_native COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/SceneProjectAcceptance.py"
+    --app "$<TARGET_FILE:NexoraTwoDPlayer>" --compiler "$<TARGET_FILE:NexoraTwoDAssetCompiler>"
+    --zig "${NEXORA_SCENE_TEST_ZIG}" --cmake "${CMAKE_COMMAND}" --native)
+  set_tests_properties(twod.scene_project_native PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77
+    LABELS "twod;scene;zig;export;vulkan;virtual-display")
+endif()

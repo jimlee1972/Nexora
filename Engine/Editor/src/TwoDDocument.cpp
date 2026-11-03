@@ -1,115 +1,22 @@
 #include "Nexora/Editor/TwoDDocument.h"
+#include "Nexora/TwoD/AuthoredScene.h"
 #include <algorithm>
 #include <cstring>
 namespace nexora::editor {
-namespace {
-void Number(twod::Bytes &out, std::uint32_t v) {
-  for (unsigned i = 0; i < 4; ++i)
-    out.push_back(std::byte((v >> (i * 8)) & 255));
-}
-void Blob(twod::Bytes &out, std::span<const std::byte> bytes) {
-  Number(out, static_cast<std::uint32_t>(bytes.size()));
-  out.insert(out.end(), bytes.begin(), bytes.end());
-}
-struct Reader {
-  std::span<const std::byte> data;
-  std::size_t offset{};
-  bool valid{true};
-  std::uint32_t Number() {
-    if (data.size() - offset < 4) {
-      valid = false;
-      return 0;
-    }
-    std::uint32_t v = 0;
-    for (unsigned i = 0; i < 4; ++i)
-      v |= std::uint32_t(std::to_integer<unsigned>(data[offset++])) << (8 * i);
-    return v;
-  }
-  std::span<const std::byte> Blob() {
-    const auto size = Number();
-    if (!valid || size > data.size() - offset) {
-      valid = false;
-      return {};
-    }
-    auto b = data.subspan(offset, size);
-    offset += size;
-    return b;
-  }
-};
-bool References(const twod::SpriteScene &scene, const twod::Atlas &atlas, const twod::Clip &clip,
-                const twod::Tilemap &tiles) {
-  for (const auto &[id, s] : scene.Sprites()) {
-    (void)id;
-    if (s.source.has_value() || s.atlas != atlas.id || !atlas.Find(s.region))
-      return false;
-  }
-  if (!clip.frames.empty()) {
-    if (clip.atlas != atlas.id)
-      return false;
-    for (const auto &f : clip.frames)
-      if (!atlas.Find(f.region))
-        return false;
-  }
-  if (!tiles.Tiles().empty()) {
-    if (tiles.atlas != atlas.id)
-      return false;
-    for (const auto &[key, t] : tiles.Tiles()) {
-      (void)key;
-      if (!atlas.Find(t.region))
-        return false;
-    }
-  }
-  return true;
-}
-} // namespace
 TwoDDocument::TwoDDocument() : scene_(world_, world_.LoadScene("2D document")) { saved_ = Save(); }
 twod::Bytes TwoDDocument::Save() const {
-  auto scene = scene_.Snapshot();
-  if (!scene)
-    return {};
-  twod::Bytes out;
-  Number(out, 0x4432444e);
-  Number(out, 1);
-  Blob(out, *scene);
-  Blob(out, twod::EncodeAtlas(atlas_));
-  Blob(out, twod::EncodeClip(clip_));
-  Blob(out, tiles_.Encode());
-  return out;
+  return twod::EncodeAuthoredScene(scene_, atlas_, clip_, tiles_);
 }
 bool TwoDDocument::Restore(std::span<const std::byte> bytes) {
-  if (bytes.size() > 64 * 1024 * 1024)
+  const auto decoded = twod::AuthoredScene::Decode(bytes);
+  if (!decoded)
     return false;
-  Reader r{bytes};
-  if (r.Number() != 0x4432444e || r.Number() != 1)
-    return false;
-  const auto sceneBytes = r.Blob(), atlasBytes = r.Blob(), clipBytes = r.Blob(),
-             tileBytes = r.Blob();
-  if (!r.valid || r.offset != bytes.size() || sceneBytes.empty())
-    return false;
-  twod::Atlas atlas;
-  twod::Clip clip;
-  twod::Tilemap tiles;
-  if (!atlasBytes.empty()) {
-    auto a = twod::DecodeAtlas(atlasBytes);
-    if (!a)
-      return false;
-    atlas = std::move(*a);
-  }
-  if (!clipBytes.empty()) {
-    auto c = twod::DecodeClip(clipBytes);
-    if (!c)
-      return false;
-    clip = std::move(*c);
-  }
-  if (!tileBytes.empty()) {
-    auto t = twod::Tilemap::Decode(tileBytes);
-    if (!t)
-      return false;
-    tiles = std::move(*t);
-  }
-  runtime::World staging;
-  auto scene = twod::SpriteScene::Load(staging, sceneBytes);
-  if (!scene || !References(*scene, atlas, clip, tiles) || !scene_.Restore(sceneBytes))
+  // Allocate copies before publication so failures cannot partially replace document owners.
+  auto atlas = decoded->atlas;
+  auto clip = decoded->clip;
+  auto tiles = decoded->tiles;
+  const auto snapshot = decoded->scene->Snapshot();
+  if (!snapshot || !scene_.Restore(*snapshot))
     return false;
   atlas_ = std::move(atlas);
   clip_ = std::move(clip);
@@ -134,7 +41,7 @@ bool TwoDDocument::Transaction(const std::function<bool()> &change) {
     throw;
   }
   editing_ = false;
-  if (!applied || !References(scene_, atlas_, clip_, tiles_)) {
+  if (!applied || !twod::ValidateSceneReferences(scene_, atlas_, clip_, tiles_)) {
     static_cast<void>(Restore(before));
     return false;
   }

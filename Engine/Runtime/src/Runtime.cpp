@@ -207,6 +207,39 @@ Id World::LoadScene(std::string name, bool persistent) {
   return id;
 }
 
+std::optional<World::SceneImport> World::InstantiateScene(std::string_view snapshot,
+                                                          bool persistent) {
+  World staging;
+  const auto loaded = staging.LoadSceneSnapshot(snapshot);
+  if (!loaded)
+    return std::nullopt;
+  auto source = *staging.FindScene(*loaded);
+  const auto count = source.entities.size();
+  if (next_id_ == std::numeric_limits<Id>::max() ||
+      count >= std::numeric_limits<Id>::max() - next_id_)
+    throw std::overflow_error("World object IDs exhausted");
+  SceneImport result{next_id_, {}};
+  result.entities.reserve(count);
+  Id next = next_id_ + 1;
+  for (auto &entity : source.entities) {
+    const auto original = entity.id;
+    entity.id = next++;
+    result.entities.emplace(original, entity.id);
+  }
+  for (auto &entity : source.entities)
+    if (entity.parent)
+      entity.parent = result.entities.at(entity.parent);
+  source.id = result.scene;
+  source.persistent = persistent;
+  source.state = SceneState::LoadedInactive;
+  scenes_.push_back(std::move(source));
+  next_id_ = next;
+  return result;
+}
+void World::CollectUnloadedScenes() noexcept {
+  std::erase_if(scenes_, [](const Scene &scene) { return scene.state == SceneState::Unloaded; });
+}
+
 std::optional<std::string> World::SaveScene(Id id) const {
   return SaveScene(id, std::numeric_limits<std::size_t>::max());
 }
