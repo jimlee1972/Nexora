@@ -14,6 +14,7 @@
 #include "Nexora/TwoD/GameplayContent.h"
 #include "Nexora/TwoD/GameplayDisplay.h"
 #include "Nexora/TwoD/GameplayUi.h"
+#include "Nexora/TwoD/SceneSession.h"
 #include "Project.h"
 #include "TwoDValidation.h"
 #include "UiInputGate.h"
@@ -45,6 +46,7 @@ struct Context {
   NexoraInputSnapshot input{};
   std::size_t allocated{}, freed{};
   std::string_view scene_name{"Zig 2D"};
+  twod::SceneSession *scenes{};
 };
 template <class F> int32_t Call(void *p, F &&f) noexcept {
   if (!p)
@@ -127,6 +129,8 @@ NexoraGameplayHostV3 Host(Context &c) {
   };
   h.load_scene = [](void *p, const char *name, uint32_t length, uint32_t persistent, uint64_t *id) {
     return Call(p, [&](auto &s) -> int32_t {
+      if (s.scenes)
+        return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED; // Catalog loads use deferred Scene V1.
       if (!name || !id || length > 256 || persistent > 1)
         return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
       if (std::string_view(name, length) != s.scene_name)
@@ -137,13 +141,17 @@ NexoraGameplayHostV3 Host(Context &c) {
   };
   h.activate_scene = [](void *p, uint64_t id) {
     return Call(p, [&](auto &s) -> int32_t {
-      return id == s.scene && s.world.Activate(id) ? NEXORA_GAMEPLAY_OK
-                                                   : NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+      return !s.scenes && id == s.scene && s.world.Activate(id)
+                 ? NEXORA_GAMEPLAY_OK
+                 : NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
     });
   };
   h.spawn_entity = [](void *p, uint64_t scene, const NexoraEntitySpawnDescriptor *d, uint64_t *id) {
     return Call(p, [&](auto &s) -> int32_t {
-      if (!d || !id || scene != s.scene)
+      if (!d || !id ||
+          (s.scenes ? std::none_of(s.scenes->Instances().begin(), s.scenes->Instances().end(),
+                                   [scene](const auto &i) { return i.sprites.SceneId() == scene; })
+                    : scene != s.scene))
         return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
       if (d->struct_size < sizeof(*d) || d->components)
         return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
@@ -361,13 +369,62 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
                                      &assetHigh, &assetLow) == 0,
             "sample cooked Clip registration");
     }
+    std::vector<twod::SceneEntry> sceneCatalog;
+    if (project) {
+      for (const auto &entry : project->scenes) {
+        const auto source =
+            twod::AuthoredScene::Decode(readProjectAsset({"scene", entry.file, 0, false}));
+        Check(bool(source), "authored 2D scene decode");
+        if (source->atlas.id.high || source->atlas.id.low) {
+          const auto bytes = twod::EncodeAtlas(source->atlas);
+          const auto existing = content.ResolveAtlas(source->atlas.id);
+          Check(!existing || twod::EncodeAtlas(*existing->atlas) == bytes,
+                "conflicting authored scene Atlas identity");
+          if (!existing)
+            Check(contentApi.register_atlas(contentApi.context, bytes.data(), bytes.size(),
+                                            &assetHigh, &assetLow) == 0,
+                  "scene Atlas admission");
+        }
+        if (source->clip.id.high || source->clip.id.low) {
+          const auto bytes = twod::EncodeClip(source->clip);
+          const auto existing = content.ResolveClip(source->clip.id);
+          Check(!existing || twod::EncodeClip(*existing) == bytes,
+                "conflicting authored scene Clip identity");
+          if (!existing)
+            Check(contentApi.register_clip(contentApi.context, bytes.data(), bytes.size(),
+                                           &assetHigh, &assetLow) == 0,
+                  "scene Clip admission");
+        }
+        sceneCatalog.push_back({entry.path, entry.id, source});
+      }
+    }
+    std::unique_ptr<twod::SceneSession> scenes;
+    if (!sceneCatalog.empty()) {
+      scenes = std::make_unique<twod::SceneSession>(world, std::move(sceneCatalog));
+      const auto api = scenes->Api();
+      std::uint64_t high{}, low{}, request{};
+      Check(api.resolve_scene(api.context, project->scene.data(), uint32_t(project->scene.size()),
+                              &high, &low) == 0 &&
+                api.request_load(api.context, high, low, 0, 0, &request) == 0 && scenes->Process(),
+            "authored startup scene load");
+      Check(world.RequestUnload(sceneId), "legacy placeholder retirement");
+      world.EndFrame();
+      world.CollectUnloadedScenes();
+    }
     Check(!hasTiles || !project || bool(content.ResolveAtlas(tiles.atlas)) ||
               std::any_of(project->assets.begin(), project->assets.end(),
                           [](const auto &a) { return a.deferred && a.kind == "atlas"; }),
           "project tile atlas is unavailable");
-    twod::GameplayBridge bridge(
-        world, scene, [&content](auto id) { return content.ResolveClip(id); },
-        hasTiles ? &tiles : nullptr, &pool);
+    const twod::ClipResolver clipResolver = [&content](auto id) { return content.ResolveClip(id); };
+    auto bridgeOwner =
+        scenes ? std::make_unique<twod::GameplayBridge>(world, *scenes, clipResolver, &pool)
+               : std::make_unique<twod::GameplayBridge>(world, scene, clipResolver,
+                                                        hasTiles ? &tiles : nullptr, &pool);
+    auto &bridge = *bridgeOwner;
+    const auto findSprite = [&](runtime::Id id) -> const twod::Sprite * {
+      const auto *metadata = scenes ? scenes->FindEntity(id) : &scene;
+      return metadata ? metadata->Find(id) : nullptr;
+    };
     runtime::GameplayInput input;
     runtime::NativeGameplayGamepad gamepads;
     runtime::GameplayLifecycle lifecycle(
@@ -420,6 +477,8 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
     services.assets.struct_size = sizeof(services.assets);
     services.assets.abi_version = 1;
     Check(assets.GetApi(&services.assets) == 0, "asset service negotiation");
+    if (scenes)
+      services.scene = scenes->Api();
     services.content = contentApi;
     services.input = input.Api();
     services.lifecycle = lifecycle.Api();
@@ -521,7 +580,7 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
             : 0,
         [&](uint32_t kind, uint64_t handle) {
           return kind == NEXORA_TWOD_EFFECTS_ENTITY && world.FindEntity(handle) &&
-                 scene.Find(handle);
+                 findSprite(handle);
         },
         [&](uint64_t high, uint64_t low, uint32_t region) {
           const auto binding = content.ResolveAtlas({high, low});
@@ -580,6 +639,7 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
     updateDisplay();
     services.display = display.Api();
     Context context{world, bridge, sceneId, services};
+    context.scenes = scenes.get();
     if (project)
       context.scene_name = project->scene;
     runtime::GameplayModuleHost module(Host(context));
@@ -836,6 +896,8 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
         break;
       if (native && !canPresent) {
         world.EndFrame();
+        if (scenes)
+          static_cast<void>(scenes->Process()); // Failure is reported through Scene V1 status.
         continue;
       }
       const auto width = displayState.pixel_width;
@@ -862,7 +924,17 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
       // One extraction preserves transparent sorting across entities, transient instances and
       // tiles.
       std::vector<twod::SpriteInstance> instances;
-      auto poses = world.SceneWorldPoses(sceneId);
+      std::optional<std::vector<runtime::SceneWorldPose>> poses;
+      if (scenes) {
+        poses.emplace();
+        for (const auto &instance : scenes->Instances()) {
+          auto values = world.SceneWorldPoses(instance.sprites.SceneId());
+          Check(bool(values), "authored World poses");
+          poses->insert(poses->end(), values->begin(), values->end());
+        }
+      } else {
+        poses = world.SceneWorldPoses(sceneId);
+      }
       Check(bool(poses), "World poses");
       std::unordered_map<const twod::Sprite *, const NexoraTwoDEffectsSpriteV1 *> effectStyles;
       if (effectsState->enabled) {
@@ -871,7 +943,7 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
           const twod::Sprite *sprite{};
           if (style.kind == NEXORA_TWOD_EFFECTS_ENTITY) {
             if (world.FindEntity(style.handle))
-              sprite = scene.Find(style.handle);
+              sprite = findSprite(style.handle);
           } else if (const auto handle = effects.ResolvePoolIdentity(style.handle)) {
             if (const auto *instance =
                     pool.Find({handle->owner, handle->index, handle->generation}))
@@ -904,7 +976,7 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
       };
       uint64_t identity{};
       for (const auto &pose : *poses)
-        if (const auto *v = scene.Find(pose.id))
+        if (const auto *v = findSprite(pose.id))
           instances.push_back(
               {++identity, *v, pose.matrix, {}, lightingStyle(v), emissionStyle(v)});
       pool.ForEach([&](auto &v) {
@@ -915,13 +987,21 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
                              lightingStyle(&v.sprite),
                              emissionStyle(&v.sprite)});
       });
-      if (hasTiles) {
-        auto tileInputs = tiles.Collect(camera);
+      const auto appendTiles = [&](const twod::Tilemap &map) {
+        if (map.Tiles().empty())
+          return;
+        auto tileInputs = map.Collect(camera);
         Check(bool(tileInputs), "Tilemap collection");
         for (auto &value : tileInputs->instances) {
           value.id = ++identity;
           instances.push_back(value);
         }
+      };
+      if (scenes) {
+        for (const auto &instance : scenes->Instances())
+          appendTiles(instance.tiles);
+      } else if (hasTiles) {
+        appendTiles(tiles);
       }
       auto extracted = twod::ExtractSprites(instances, camera, resolver);
       Check(bool(extracted), "2D extraction");
@@ -990,6 +1070,8 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
         }
       }
       world.EndFrame();
+      if (scenes)
+        static_cast<void>(scenes->Process());
       if (!project && interactive && held(Nexora::Window::Key::Escape))
         break;
       if (interactive && frames)

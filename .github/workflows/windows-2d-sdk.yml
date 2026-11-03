@@ -1,7 +1,7 @@
 name: Windows 2D SDK candidate
 on:
   push:
-    branches: [main, 'feat/prebuilt-windows-sdk']
+    branches: [main, 'feat/prebuilt-windows-sdk', 'codex/authored-2d-scene-loading']
   pull_request:
 permissions:
   contents: read
@@ -13,13 +13,13 @@ jobs:
       actions: write
     steps:
       - name: Cancel superseded runs owned by this SDK task
-        if: github.actor == github.repository_owner && contains(fromJSON('["feat/prebuilt-windows-sdk","feat/hd2d-sdk-020"]'), github.head_ref || github.ref_name)
+        if: github.actor == github.repository_owner && contains(fromJSON('["feat/prebuilt-windows-sdk","feat/hd2d-sdk-020","codex/authored-2d-scene-loading"]'), github.head_ref || github.ref_name)
         uses: actions/github-script@v7
         with:
           script: |
             const {owner, repo} = context.repo;
             const branch = context.payload?.pull_request?.head?.ref || context.ref.replace(/^refs\/heads\//, '');
-            if (!['feat/prebuilt-windows-sdk', 'feat/hd2d-sdk-020'].includes(branch) || context.actor !== owner) return;
+            if (!['feat/prebuilt-windows-sdk', 'feat/hd2d-sdk-020', 'codex/authored-2d-scene-loading'].includes(branch) || context.actor !== owner) return;
             const head = (await github.rest.git.getRef({owner, repo, ref: `heads/${branch}`})).data.object.sha;
             for (const workflow_id of ['build.yml', 'windows-2d-sdk.yml']) {
               const runs = await github.paginate(github.rest.actions.listWorkflowRuns,
@@ -71,7 +71,7 @@ jobs:
           if ($redists.Count -ne 1) { throw 'Expected exactly one x64 CRT directory' }
           python Tools/SDK/SDK.py package --build build/sdk-producer --output build/sdk-delivery `
             --redist $redists[0].FullName --ninja "$env:RUNNER_TEMP/sdk-ninja/ninja.exe" `
-            --ninja-license "$env:RUNNER_TEMP/sdk-ninja/COPYING" --version 0.2.0 --commit $env:GITHUB_SHA
+            --ninja-license "$env:RUNNER_TEMP/sdk-ninja/COPYING" --version 0.3.0 --commit $env:GITHUB_SHA
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v4
         with:
@@ -133,6 +133,8 @@ jobs:
             evidence/report-*.json
             evidence/hd2d-*.json
             evidence/hd2d-*.log
+            evidence/scene-*.json
+            evidence/scene-*.log
             evidence/HD2D relocated 陰陽/inventory.json
             evidence/relocated game 陰陽/inventory.json
             ${{ runner.temp }}/sdk-toolchain-isolation.json

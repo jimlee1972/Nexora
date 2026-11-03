@@ -1,4 +1,5 @@
 #include "Nexora/TwoD/GameplayBridge.h"
+#include "Nexora/TwoD/SceneSession.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -70,7 +71,10 @@ NexoraTwoDInstance Encode(const Instance &v) {
 
 struct GameplayBridge::State {
   runtime::World &world;
-  SpriteScene &scene;
+  SpriteScene *scene{};
+  SceneSession *session{};
+  std::uint64_t revision{};
+  runtime::Id primary{};
   ClipResolver clips;
   Tilemap *tiles;
   InstancePool *pool;
@@ -86,15 +90,34 @@ struct GameplayBridge::State {
   std::array<bool, 2> ready{};
 
   State(runtime::World &w, SpriteScene &s, ClipResolver resolve, Tilemap *t, InstancePool *p)
-      : world(w), scene(s), clips(std::move(resolve)), tiles(t), pool(p),
+      : world(w), scene(&s), clips(std::move(resolve)), tiles(t), pool(p),
         indices{SpatialIndex{4}, SpatialIndex{4}} {}
 
+  State(runtime::World &w, SceneSession &s, ClipResolver resolve, InstancePool *p)
+      : world(w), session(&s), revision(s.Revision()), primary(s.Primary()),
+        clips(std::move(resolve)), tiles(nullptr), pool(p),
+        indices{SpatialIndex{4}, SpatialIndex{4}} {}
+  SpriteScene *Scene(runtime::Id entity) const {
+    return session ? session->FindEntity(entity) : scene;
+  }
+  Tilemap *Tiles() const { return session ? session->PrimaryTiles() : tiles; }
   bool Live(runtime::Id entity) const {
-    const auto *s = world.FindScene(scene.SceneId());
+    const auto *metadata = Scene(entity);
+    const auto *s = metadata ? world.FindScene(metadata->SceneId()) : nullptr;
     return s && s->state != runtime::SceneState::Unloading &&
            s->state != runtime::SceneState::Unloaded &&
            std::any_of(s->entities.begin(), s->entities.end(),
                        [entity](const auto &e) { return e.id == entity; });
+  }
+  void Synchronize() {
+    if (!session || revision == session->Revision())
+      return;
+    ready = {};
+    std::erase_if(animations, [&](const auto &entry) { return !Live(entry.first); });
+    if (primary != session->Primary())
+      camera = {{0, 0}, 20, 0};
+    primary = session->Primary();
+    revision = session->Revision();
   }
   template <class F> static int32_t Call(void *opaque, F &&f) noexcept {
     if (!opaque)
@@ -108,6 +131,7 @@ struct GameplayBridge::State {
       ~Leave() { flag = false; }
     } leave{s.entered};
     try {
+      s.Synchronize();
       return f(s);
     } catch (...) {
       return Lifecycle;
@@ -116,7 +140,7 @@ struct GameplayBridge::State {
   int32_t Source(std::uint32_t source) const {
     if (source > 1)
       return Invalid;
-    if (source == 1 && !tiles)
+    if (source == 1 && !Tiles())
       return Unsupported;
     return Ok;
   }
@@ -130,14 +154,14 @@ struct GameplayBridge::State {
         if (!s.Live(id))
           return Invalid;
         if (!v) {
-          s.scene.Remove(id);
+          s.Scene(id)->Remove(id);
           s.animations.erase(id);
           return Ok;
         }
-        if (v->flags > 15 || !s.scene.Set(id, Decode(*v)))
+        if (v->flags > 15 || !s.Scene(id)->Set(id, Decode(*v)))
           return Invalid;
         auto it = s.animations.find(id);
-        if (it != s.animations.end() && it->second.atlas != s.scene.Find(id)->atlas)
+        if (it != s.animations.end() && it->second.atlas != s.Scene(id)->Find(id)->atlas)
           s.animations.erase(it);
         return Ok;
       });
@@ -146,7 +170,7 @@ struct GameplayBridge::State {
       return Call(p, [&](auto &s) -> int32_t {
         if (!v || !s.Live(id))
           return Invalid;
-        const auto *sprite = s.scene.Find(id);
+        const auto *sprite = s.Scene(id)->Find(id);
         if (!sprite)
           return Invalid;
         if (sprite->source.has_value())
@@ -159,10 +183,10 @@ struct GameplayBridge::State {
       return Call(p, [&](auto &s) -> int32_t {
         if (!s.Live(id))
           return Invalid;
-        if (v && (v->kind > 1 || !s.scene.SetCollider(id, Decode(*v))))
+        if (v && (v->kind > 1 || !s.Scene(id)->SetCollider(id, Decode(*v))))
           return Invalid;
         if (!v)
-          s.scene.RemoveCollider(id);
+          s.Scene(id)->RemoveCollider(id);
         s.ready[0] = false;
         return Ok;
       });
@@ -171,7 +195,7 @@ struct GameplayBridge::State {
       return Call(p, [&](auto &s) -> int32_t {
         if (!v || !s.Live(id))
           return Invalid;
-        const auto *c = s.scene.FindCollider(id);
+        const auto *c = s.Scene(id)->FindCollider(id);
         if (!c)
           return Invalid;
         *v = Encode(*c);
@@ -200,15 +224,15 @@ struct GameplayBridge::State {
     };
     api.play_animation = [](void *p, uint64_t id, uint64_t hi, uint64_t lo, double speed) {
       return Call(p, [&](auto &s) -> int32_t {
-        if (!s.Live(id) || !s.scene.Find(id) || (!hi && !lo) || !std::isfinite(speed) ||
+        if (!s.Live(id) || !s.Scene(id)->Find(id) || (!hi && !lo) || !std::isfinite(speed) ||
             speed <= 0 || speed > 1000)
           return Invalid;
-        if (s.scene.Find(id)->source.has_value() || !s.clips)
+        if (s.Scene(id)->Find(id)->source.has_value() || !s.clips)
           return Unsupported;
         const auto clip = s.clips({hi, lo});
         if (!clip)
           return Unsupported;
-        const auto *current = s.scene.Find(id);
+        const auto *current = s.Scene(id)->Find(id);
         if (!s.Live(id) || !current)
           return Invalid;
         Playback playback;
@@ -219,7 +243,7 @@ struct GameplayBridge::State {
         auto sprite = *current;
         sprite.region = *playback.animator.RegionId();
         s.animations.insert_or_assign(id, std::move(playback));
-        s.scene.Set(id, sprite);
+        s.Scene(id)->Set(id, sprite);
         return Ok;
       });
     };
@@ -237,9 +261,9 @@ struct GameplayBridge::State {
       return Call(p, [&](auto &s) -> int32_t {
         auto it = s.animations.find(id);
         if (!result || (!events && capacity) || capacity > 65536 || !s.Live(id) ||
-            !s.scene.Find(id) || it == s.animations.end())
+            !s.Scene(id)->Find(id) || it == s.animations.end())
           return Invalid;
-        if (s.scene.Find(id)->source.has_value())
+        if (s.Scene(id)->Find(id)->source.has_value())
           return Unsupported;
         auto candidate = it->second.animator;
         auto update = candidate.Advance(delta);
@@ -252,9 +276,9 @@ struct GameplayBridge::State {
           *result = value;
           return events ? Unsupported : Ok;
         }
-        auto sprite = *s.scene.Find(id);
+        auto sprite = *s.Scene(id)->Find(id);
         sprite.region = update->region;
-        if (!s.scene.Set(id, sprite))
+        if (!s.Scene(id)->Set(id, sprite))
           return Invalid;
         it->second.animator = std::move(candidate);
         for (std::size_t i = 0; i < update->events.size(); ++i) {
@@ -271,7 +295,9 @@ struct GameplayBridge::State {
         const auto status = s.Source(source);
         if (status != Ok)
           return status;
-        auto shapes = source ? s.tiles->CollisionShapes() : s.scene.CollisionShapes();
+        auto shapes = source      ? s.Tiles()->CollisionShapes()
+                      : s.session ? s.session->CollisionShapes()
+                                  : s.scene->CollisionShapes();
         if (!shapes || !s.indices[source].Build(*shapes))
           return Invalid;
         s.ready[source] = true;
@@ -333,7 +359,7 @@ struct GameplayBridge::State {
     };
     api.paint_tiles = [](void *p, const NexoraTwoDTile *v, uint32_t count) {
       return Call(p, [&](auto &s) -> int32_t {
-        if (!s.tiles)
+        if (!s.Tiles())
           return Unsupported;
         if ((!v && count) || count > 100000)
           return Invalid;
@@ -344,7 +370,7 @@ struct GameplayBridge::State {
             return Invalid;
           tiles.push_back({v[i].x, v[i].y, v[i].layer, v[i].region, v[i].collision != 0});
         }
-        if (!s.tiles->Paint(tiles))
+        if (!s.Tiles()->Paint(tiles))
           return Invalid;
         s.ready[1] = false;
         return Ok;
@@ -352,9 +378,9 @@ struct GameplayBridge::State {
     };
     api.set_chunk_loaded = [](void *p, int32_t x, int32_t y, uint32_t loaded) {
       return Call(p, [&](auto &s) -> int32_t {
-        if (!s.tiles)
+        if (!s.Tiles())
           return Unsupported;
-        if (loaded > 1 || !s.tiles->SetChunkLoaded({x, y}, loaded != 0))
+        if (loaded > 1 || !s.Tiles()->SetChunkLoaded({x, y}, loaded != 0))
           return Invalid;
         s.ready[1] = false;
         return Ok;
@@ -362,12 +388,12 @@ struct GameplayBridge::State {
     };
     api.get_tile = [](void *p, int32_t x, int32_t y, int32_t layer, NexoraTwoDTile *v) {
       return Call(p, [&](auto &s) -> int32_t {
-        if (!s.tiles)
+        if (!s.Tiles())
           return Unsupported;
         if (!v)
           return Invalid;
-        auto it = s.tiles->Tiles().find({layer, y, x});
-        if (it == s.tiles->Tiles().end())
+        auto it = s.Tiles()->Tiles().find({layer, y, x});
+        if (it == s.Tiles()->Tiles().end())
           return Invalid;
         const auto &t = it->second;
         *v = {t.x, t.y, t.layer, t.region, t.collision ? 1U : 0U};
@@ -467,6 +493,12 @@ GameplayBridge::GameplayBridge(runtime::World &world, SpriteScene &scene, ClipRe
   if (&scene.WorldOwner() != &world)
     throw std::invalid_argument("2D gameplay scene must belong to the supplied World");
 }
+GameplayBridge::GameplayBridge(runtime::World &world, SceneSession &session, ClipResolver clips,
+                               InstancePool *pool)
+    : state_(std::make_unique<State>(world, session, std::move(clips), pool)) {
+  if (&session.WorldOwner() != &world)
+    throw std::invalid_argument("2D scene session must belong to the supplied World");
+}
 GameplayBridge::~GameplayBridge() = default;
 int32_t GameplayBridge::GetApi(NexoraTwoDApiV1 *output) noexcept {
   return State::Call(state_.get(), [&](auto &s) -> int32_t {
@@ -481,14 +513,19 @@ int32_t GameplayBridge::GetApi(NexoraTwoDApiV1 *output) noexcept {
 Camera GameplayBridge::RenderCamera(std::uint32_t width, std::uint32_t height) const {
   if (state_->thread != std::this_thread::get_id())
     throw std::logic_error("2D gameplay camera requires owner thread");
+  state_->Synchronize();
   const auto &c = state_->camera;
   return {{c.center.x, c.center.y}, c.vertical_size, c.rotation_radians, width, height};
 }
 void GameplayBridge::ForgetEntity(runtime::Id entity) {
   if (state_->thread != std::this_thread::get_id() || state_->entered)
     throw std::logic_error("2D gameplay teardown requires serialized owner thread");
-  state_->scene.Remove(entity);
-  state_->scene.RemoveCollider(entity);
+  if (state_->session)
+    state_->session->ForgetEntity(entity);
+  else {
+    state_->scene->Remove(entity);
+    state_->scene->RemoveCollider(entity);
+  }
   state_->animations.erase(entity);
   state_->ready[0] = false;
 }
