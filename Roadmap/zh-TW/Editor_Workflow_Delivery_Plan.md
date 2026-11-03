@@ -193,3 +193,8 @@ validation3/3、renderer20/20亦通過。下載封存的CRC與SHA-256已核對�
 只有一個Editor執行檔，沒有來源checkout。
 見[Windows收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Package-885693db.json)。
 完整Cloud／Shipping／CI、Sprite整合及最終交付仍未完成；維持4/9。
+
+精確885693db的42項CI與4個workflow現已全數成功，見
+[完整CI收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-CI-885693db.json)。
+獨立的原8870 Cloud已有至少10項失敗，仍須保存完整終態／Shipping並重驗精確版本。
+尚不合併或增加已驗收數。

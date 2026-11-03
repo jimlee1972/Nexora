@@ -296,6 +296,11 @@ Downloaded artifact13248684943 is147788 bytes, CRC-clean, SHA-256
 These hosted CI results do not replace the complete Codex Cloud gate, resolve the cause
 of another host's failures, or accept Windows delivery. No work-order count changes.
 
+All42 exact885693db CI checks and all4 workflows now succeed, including both Build events,
+Windows Editor package and the Windows2D SDK candidate. [Complete CI receipt](ED-WF-05-CI-885693db.json).
+The original8870 Codex Cloud run has since reached at least10 failures; its full terminal
+inventory and Shipping remain pending. Hosted CI success does not satisfy that separate gate.
+
 The still-running Cloud gate for `8870d63e` has reported failures in
 `showcase.linux_vulkan_interaction` (the original shadow-off pixel comparison) and
 `showcase.linux_vulkan_virtual_display` (the original 30-second child deadline).

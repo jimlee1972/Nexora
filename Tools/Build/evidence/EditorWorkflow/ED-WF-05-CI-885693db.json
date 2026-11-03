@@ -1,0 +1,388 @@
+{
+  "status": "ALL_HOSTED_CI_PASS_CODEX_CLOUD_GATE_PENDING",
+  "validated_head": "885693dbabdc89bcffba3b6946599311b1766021",
+  "validated_tree": "fcd905d3d7bc9de5af3ab5a8dd4ef43ed8dfdc69",
+  "checks": [
+    {
+      "id": 126070342974,
+      "name": "CI result",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669225295/job/126070342974",
+      "completed_at": "2026-11-03T17:00:18Z"
+    },
+    {
+      "id": 126066538805,
+      "name": "CI result",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669237971/job/126066538805",
+      "completed_at": "2026-11-03T16:53:47Z"
+    },
+    {
+      "id": 126035684282,
+      "name": "consumer",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669237989/job/126035684282",
+      "completed_at": "2026-11-03T16:08:36Z"
+    },
+    {
+      "id": 126034456388,
+      "name": "showcase-posix-shipping-package (ubuntu-latest, linux-showcase-shipping)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669225295/job/126034456388",
+      "completed_at": "2026-11-03T16:18:37Z"
+    },
+    {
+      "id": 126034456339,
+      "name": "desktop (ubuntu-latest, linux-development)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669225295/job/126034456339",
+      "completed_at": "2026-11-03T16:59:01Z"
+    },
+    {
+      "id": 126034456324,
+      "name": "mimalloc backend (macos-development)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669225295/job/126034456324",
+      "completed_at": "2026-11-03T16:20:07Z"
+    },
+    {
+      "id": 126034456160,
+      "name": "showcase-windows-shipping-package",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669225295/job/126034456160",
+      "completed_at": "2026-11-03T16:17:23Z"
+    },
+    {
+      "id": 126034456139,
+      "name": "modern-shaders-preview",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669225295/job/126034456139",
+      "completed_at": "2026-11-03T16:14:20Z"
+    },
+    {
+      "id": 126034456041,
+      "name": "mimalloc backend (windows-development)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669225295/job/126034456041",
+      "completed_at": "2026-11-03T16:20:28Z"
+    },
+    {
+      "id": 126034456028,
+      "name": "CMake configure smoke (android-development)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669225295/job/126034456028",
+      "completed_at": "2026-11-03T16:14:06Z"
+    },
+    {
+      "id": 126034455995,
+      "name": "desktop (macos-latest, macos-development)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669225295/job/126034455995",
+      "completed_at": "2026-11-03T16:44:06Z"
+    },
+    {
+      "id": 126034455827,
+      "name": "Zig object smoke (aarch64-linux-android)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669225295/job/126034455827",
+      "completed_at": "2026-11-03T16:14:22Z"
+    },
+    {
+      "id": 126034455799,
+      "name": "build-contract",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669225295/job/126034455799",
+      "completed_at": "2026-11-03T17:00:09Z"
+    },
+    {
+      "id": 126034455763,
+      "name": "desktop (windows-latest, windows-development)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669225295/job/126034455763",
+      "completed_at": "2026-11-03T16:48:02Z"
+    },
+    {
+      "id": 126034455646,
+      "name": "mimalloc backend (linux-development)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669225295/job/126034455646",
+      "completed_at": "2026-11-03T16:13:27Z"
+    },
+    {
+      "id": 126034455643,
+      "name": "showcase-posix-shipping-package (macos-latest, macos-showcase-shipping)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669225295/job/126034455643",
+      "completed_at": "2026-11-03T16:17:42Z"
+    },
+    {
+      "id": 126034455619,
+      "name": "Zig object smoke (aarch64-ios)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669225295/job/126034455619",
+      "completed_at": "2026-11-03T16:10:16Z"
+    },
+    {
+      "id": 126034455606,
+      "name": "CMake configure smoke (ios-development)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669225295/job/126034455606",
+      "completed_at": "2026-11-03T16:15:30Z"
+    },
+    {
+      "id": 126034455572,
+      "name": "showcase-windows-vulkan-package",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669225295/job/126034455572",
+      "completed_at": "2026-11-03T16:16:05Z"
+    },
+    {
+      "id": 126034455369,
+      "name": "Editor Linux display acceptance (Xvfb)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669225295/job/126034455369",
+      "completed_at": "2026-11-03T16:46:41Z"
+    },
+    {
+      "id": 126033478625,
+      "name": "desktop (macos-latest, macos-development)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669237971/job/126033478625",
+      "completed_at": "2026-11-03T16:41:21Z"
+    },
+    {
+      "id": 126033478544,
+      "name": "mimalloc backend (macos-development)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669237971/job/126033478544",
+      "completed_at": "2026-11-03T16:09:31Z"
+    },
+    {
+      "id": 126033478513,
+      "name": "desktop (ubuntu-latest, linux-development)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669237971/job/126033478513",
+      "completed_at": "2026-11-03T16:35:05Z"
+    },
+    {
+      "id": 126033478500,
+      "name": "CMake configure smoke (android-development)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669237971/job/126033478500",
+      "completed_at": "2026-11-03T16:01:07Z"
+    },
+    {
+      "id": 126033478475,
+      "name": "desktop (windows-latest, windows-development)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669237971/job/126033478475",
+      "completed_at": "2026-11-03T16:53:39Z"
+    },
+    {
+      "id": 126033478453,
+      "name": "showcase-posix-shipping-package (macos-latest, macos-showcase-shipping)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669237971/job/126033478453",
+      "completed_at": "2026-11-03T16:08:26Z"
+    },
+    {
+      "id": 126033478441,
+      "name": "mimalloc backend (linux-development)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669237971/job/126033478441",
+      "completed_at": "2026-11-03T16:08:21Z"
+    },
+    {
+      "id": 126033478429,
+      "name": "Zig object smoke (aarch64-linux-android)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669237971/job/126033478429",
+      "completed_at": "2026-11-03T16:03:27Z"
+    },
+    {
+      "id": 126033478407,
+      "name": "mimalloc backend (windows-development)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669237971/job/126033478407",
+      "completed_at": "2026-11-03T16:15:57Z"
+    },
+    {
+      "id": 126033478402,
+      "name": "modern-shaders-preview",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669237971/job/126033478402",
+      "completed_at": "2026-11-03T16:02:11Z"
+    },
+    {
+      "id": 126033478387,
+      "name": "build-contract",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669237971/job/126033478387",
+      "completed_at": "2026-11-03T16:47:19Z"
+    },
+    {
+      "id": 126033478361,
+      "name": "CMake configure smoke (ios-development)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669237971/job/126033478361",
+      "completed_at": "2026-11-03T16:01:07Z"
+    },
+    {
+      "id": 126033478289,
+      "name": "showcase-posix-shipping-package (ubuntu-latest, linux-showcase-shipping)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669237971/job/126033478289",
+      "completed_at": "2026-11-03T16:04:30Z"
+    },
+    {
+      "id": 126033478257,
+      "name": "showcase-windows-shipping-package",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669237971/job/126033478257",
+      "completed_at": "2026-11-03T16:04:52Z"
+    },
+    {
+      "id": 126033478250,
+      "name": "Zig object smoke (aarch64-ios)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669237971/job/126033478250",
+      "completed_at": "2026-11-03T15:59:50Z"
+    },
+    {
+      "id": 126033478227,
+      "name": "Editor Linux display acceptance (Xvfb)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669237971/job/126033478227",
+      "completed_at": "2026-11-03T16:34:20Z"
+    },
+    {
+      "id": 126033478035,
+      "name": "showcase-windows-vulkan-package",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669237971/job/126033478035",
+      "completed_at": "2026-11-03T16:12:43Z"
+    },
+    {
+      "id": 126032947187,
+      "name": "producer",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669237989/job/126032947187",
+      "completed_at": "2026-11-03T16:02:29Z"
+    },
+    {
+      "id": 126032820150,
+      "name": "Documentation and change detection",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669237971/job/126032820150",
+      "completed_at": "2026-11-03T15:58:58Z"
+    },
+    {
+      "id": 126032817830,
+      "name": "cleanup",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669237989/job/126032817830",
+      "completed_at": "2026-11-03T15:57:57Z"
+    },
+    {
+      "id": 126032773496,
+      "name": "Documentation and change detection",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669225295/job/126032773496",
+      "completed_at": "2026-11-03T16:00:33Z"
+    },
+    {
+      "id": 126032772935,
+      "name": "package",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669225273/job/126032772935",
+      "completed_at": "2026-11-03T16:42:18Z"
+    }
+  ],
+  "workflow_runs": [
+    {
+      "id": 41669237989,
+      "name": "Windows 2D SDK candidate",
+      "event": "pull_request",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "885693dbabdc89bcffba3b6946599311b1766021",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669237989"
+    },
+    {
+      "id": 41669237971,
+      "name": "Build",
+      "event": "pull_request",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "885693dbabdc89bcffba3b6946599311b1766021",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669237971"
+    },
+    {
+      "id": 41669225273,
+      "name": "Windows Editor package",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "885693dbabdc89bcffba3b6946599311b1766021",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669225273"
+    },
+    {
+      "id": 41669225295,
+      "name": "Build",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "885693dbabdc89bcffba3b6946599311b1766021",
+      "url": "https://github.com/jimlee1972/Nexora/actions/runs/41669225295"
+    }
+  ],
+  "limits": [
+    "42 successful checks and all4 workflows succeed at this exact immutable head.",
+    "Hosted platform CI does not replace Codex Cloud full Development and applicable Shipping gates.",
+    "Original8870 Cloud remains in progress with at least10 failures; retain its final complete inventory/fixtures.",
+    "ED-WF-05 remains unaccepted, PR763 remains draft and work orders4/9, Editor0/8 unchanged.",
+    "Later local328668e4 includes only diagnostic test changes and evidence/docs, not accepted by these exact-head CI results."
+  ]
+}

@@ -212,3 +212,8 @@ splash ordering/responsiveness and no-console checks pass. Both ZIP CRCs, artifa
 and all22697 inventory payload hashes are verified; one public Editor executable, no source
 checkout. [Windows receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Package-885693db.json).
 Full Cloud/Shipping/CI, Sprite integration and final delivery remain open;4/9 unchanged.
+
+All42 exact885693db CI checks and all4 workflows now succeed; see the
+[complete CI receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-CI-885693db.json).
+The separate original8870 Cloud run has at least10 failures and still requires its final
+inventory/Shipping results plus immutable-head revalidation. No merge or acceptance-count change.
