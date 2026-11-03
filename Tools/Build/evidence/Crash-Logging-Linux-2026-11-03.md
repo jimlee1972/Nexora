@@ -2,7 +2,8 @@
 
 Date: 2026-11-03 (Asia/Taipei). Scope: local process capture and gameplay persistence.
 Source base: `7c9164b6306e`; requested implementation is on `fix/persistent-game-crash-logs`.
-No Windows/macOS/Android/iOS native run or physical GPU acceptance is claimed by this evidence.
+No non-Linux native execution was performed in the cloud environment. Separate Windows CI
+results are recorded below; physical GPU and Android/iOS native acceptance are not claimed.
 
 ## Environment and commands
 
@@ -19,8 +20,8 @@ Shipping used the same optional entry targets.
 | --- | --- |
 | `cmake --preset linux-development` | PASS |
 | `cmake --build --preset linux-development -j 8` | PASS |
-| `ctest --preset linux-development --output-on-failure` | PASS: 251 passed, 14 skipped, 0 failed; 265 registered; 178.26 s |
-| `ctest --preset linux-development -R '^runtime.crash_diagnostics$' -V` | PASS: expanded native crash suite, 0.23 s |
+| `ctest --preset linux-development --output-on-failure` | PASS: 251 passed, 14 skipped, 0 failed; 265 registered; 177.54 s |
+| `ctest --preset linux-development -R '^runtime.crash_diagnostics$' -V` | PASS: expanded native crash/fault-injection suite, 0.45 s |
 | `cmake --preset linux-shipping -DNEXORA_BUILD_PROJECT_PLAYER=ON -DNEXORA_2D_GAME_TARGET=NexoraCrashGameSmoke` | PASS |
 | `cmake --build --preset linux-shipping -j 6` | PASS: monolithic Host, DedicatedServer, ProjectPlayer, TwoDPlayer and standalone game |
 | `clang-format --dry-run --Werror <all touched C++ headers/sources>` | PASS |
@@ -29,16 +30,20 @@ Shipping used the same optional entry targets.
 The final full suite includes the expanded lifecycle fixtures and a native worker crash carrying
 `Gameplay.worker-遊戲`, proving that non-ASCII fault context survives capture. Development and
 Shipping were rebuilt after the Unicode-context correction. The focused crash suite also passed
-before the final full regression run.
+before the final full regression run. Before the sink-order fix, the new regression failed with
+`rotation failure lost original Fatal`; after the fix all three I/O fault scenarios passed.
 
 ## Native subprocess acceptance
 
-`Tests/Runtime/CrashDiagnostics.py` passed 18 independent scenarios, plus explicit failure for a
+`Tests/Runtime/CrashDiagnostics.py` passed 21 independent scenarios, plus explicit failure for a
 non-directory output root:
 
 - Normal shutdown with nested Engine/session ownership, 64 concurrent records, control/NUL escaping,
   invalid gameplay wire length, and a recoverable game error in the critical journal.
-- Rotation with bounded 4 MiB game files; previous-run/session isolation.
+- Rotation with bounded 4 MiB game files; per-run/session isolation.
+- Portable primary-rotation failure preserves the exact original Fatal reason. On Linux,
+  redirecting only `game.log` to `/dev/full` preserves original Error/Fatal messages in `crash.log`;
+  redirecting only `crash.log` preserves them in `game.log` and reports the critical sink failure.
 - Standard and non-standard application exceptions, terminate and abort.
 - An ordinary worker crash with preserved Unicode context, a captured game job exception, a crashing job and owner stack exhaustion.
 - Real dynamically loaded gameplay module crashes during create, start, update, fixed-update,
@@ -66,6 +71,20 @@ The surviving game journal ended with:
 ```
 
 ASLR addresses/PIDs are observations of that one run, not stable golden values. Windows CI runs
-the same applicable cases and checks the MiniDump signature when the system backend is ready;
-that platform's result must be read from its actual CI/host run. POSIX symbolic stacks still need
+the applicable cases, requires its system MiniDump backend to be ready, and checks the MiniDump
+signature after each native crash; that platform's result must come from the actual CI/host run. POSIX symbolic stacks still need
 matching OS core/native reports and symbols; this log path never unwinds in the fatal handler.
+
+## Separate Windows CI and Apple build follow-up
+
+At head `dc7b0d12044ea8d570f74bf4bdd9cf72d801b095`, [Build 3532 Windows Development](https://github.com/jimlee1972/Nexora/actions/runs/41494304133/job/125451912307)
+passed all 439 registered tests, including the then-applicable gameplay crash suite (1.82 s).
+[Windows SDK candidate 135](https://github.com/jimlee1972/Nexora/actions/runs/41494304034)
+also passed. This evidence belongs to that exact earlier head, not to unrun follow-up changes.
+
+The same Build failed Apple compilation because the deprecated `ucontext.h` routines require
+`_XOPEN_SOURCE`. Signal capture only needs the context type, so Apple now includes `sys/ucontext.h`
+instead; no deprecated context-switching routines are enabled. Fresh native Apple and Windows CI
+must validate this follow-up. The Windows test now requires backend readiness rather than allowing
+unavailable dump support to skip its signature checks. Linux cloud validation does not substitute
+for those native jobs.

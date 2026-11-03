@@ -1,6 +1,6 @@
 # 持久化 crash 與遊戲診斷紀錄
 
-✅ Linux 本機捕捉／持久化驗收：18 種子程序情境與不可寫輸出拒絕通過，Development 完整 gate 及 Monolithic Shipping build 通過。其他原生平台尚未在此驗證。
+✅ Linux 本機捕捉／持久化驗收：21 種子程序情境與不可寫輸出拒絕通過，Development 完整 gate 及 Monolithic Shipping build 通過。其他原生平台尚未在此驗證。
 
 
 本文件定義 V1 Crash Reporting 與 Logging 的交付範圍。只有記憶體 crash ring 或
@@ -51,14 +51,17 @@ Windows 啟動時預留 `crash.dmp`；只有實際寫入的 dump 才是 crash �
 
 重啟不覆蓋或自動刪除 run 目錄。產品可在收集證據後自行採取保存政策，不應刪除仍使用中的
 目錄。沒有自動上傳，也無法補回安裝此功能前已經發生的 crash。指定不可寫目錄時會明確
-啟動失敗；執行中 I/O 失敗則盡可能回報 stderr 與獨立 crash file，不保證磁碟滿或斷電時耐久。
+啟動失敗。Error/Fatal 會先保存到獨立 critical sink，再嘗試 game log 寫入／輪替；
+任一 sink 失敗不會阻止另一個 sink 保存原始紀錄，輪替例外也不會丟失真正錯誤原因。
+執行中 I/O 失敗則盡可能回報 stderr 與獨立 crash file，不保證磁碟滿或斷電時耐久。
 
 ## 驗收與仍待平台驗證的範圍
 
 `runtime.crash_diagnostics` 使用獨立子程序與真正的 V3 動態 library，涵蓋正常/並行寫入、
 escaping、輪替、C++ 與非標準例外、terminate、abort、worker crash、模組 create/start/update/
 fixed-update/stop/destroy crash、callback 錯誤回傳、被捕捉的 job 例外與 job crash。
-POSIX 另驗證擁有者執行緒 stack exhaustion。測試在沒有 Flush 的情況下確認最後一筆已接受
+可攜式輪替障礙注入驗證 primary 輪替失敗後仍保留原始 Fatal；Linux 另以 `/dev/full`
+分別注入兩個 sink 的寫入失敗。POSIX 另驗證擁有者執行緒 stack exhaustion。測試在沒有 Flush 的情況下確認最後一筆已接受
 log、故障 callback、module map、異常 exit 與不可寫目錄的明確失敗；接入既有跨平台 CI。
 參見[驗收證據](../../Tools/Build/evidence/Crash-Logging-Linux-2026-11-03.md)。
 

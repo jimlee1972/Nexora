@@ -3,16 +3,44 @@
 #include "Nexora/Runtime/GameplayModuleHost.h"
 #include <csignal>
 #include <cstdlib>
+#include <fstream>
 #include <iostream>
 #include <stdexcept>
 #include <string>
 #include <thread>
 #include <vector>
+#if defined(__linux__)
+#include <fcntl.h>
+#include <unistd.h>
+#endif
 #if !defined(_WIN32)
 #include <sys/resource.h>
 #endif
 
 namespace {
+#if defined(__linux__)
+// Replace only one already-open sink; keep the other descriptor healthy.
+void FailSink(const std::filesystem::path &sink) {
+  const int full = ::open("/dev/full", O_WRONLY | O_CLOEXEC);
+  if (full < 0)
+    throw std::runtime_error("cannot open fault-injection device");
+  struct Close final {
+    int fd;
+    ~Close() { ::close(fd); }
+  } close{full};
+  for (const auto &entry : std::filesystem::directory_iterator("/proc/self/fd")) {
+    std::error_code error;
+    const auto target = std::filesystem::read_symlink(entry.path(), error);
+    if (!error && target == sink) {
+      const auto fd = std::stoi(entry.path().filename().string());
+      if (::dup2(full, fd) < 0)
+        throw std::runtime_error("cannot inject sink failure");
+      return;
+    }
+  }
+  throw std::runtime_error("diagnostic sink descriptor not found");
+}
+#endif
 void ExhaustStack(unsigned depth);
 void (*recurse)(unsigned) = ExhaustStack;
 void ExhaustStack(unsigned depth) {
@@ -46,6 +74,25 @@ int main(int argc, char **argv) {
     if (directory != core::DiagnosticSession::Directory())
       throw std::runtime_error("nested session changed directory");
     engine.Services().log->Write(core::LogLevel::Info, "Game", "accepted immediately before crash");
+#if defined(__linux__)
+    if (mode == "game-write-failure" || mode == "crash-write-failure") {
+      FailSink(directory / (mode == "game-write-failure" ? "game.log" : "crash.log"));
+      core::WriteDiagnostic(core::LogLevel::Error, "Gameplay",
+                            "retained error despite sink failure");
+      core::WriteDiagnostic(core::LogLevel::Fatal, "Gameplay",
+                            "retained fatal despite sink failure");
+      return 0;
+    }
+#endif
+    if (mode == "rotation-failure") {
+      while (std::filesystem::file_size(directory / "game.log") < 4 * 1024 * 1024 - 512)
+        core::WriteDiagnostic(core::LogLevel::Info, "Fill", std::string(256, 'a'));
+      std::filesystem::create_directories(directory / "game.3.log" / "obstruction");
+      std::ofstream(directory / "game.2.log") << "cannot replace a nonempty directory";
+      core::WriteDiagnostic(core::LogLevel::Fatal, "Gameplay",
+                            "retained fatal despite rotation failure " + std::string(4096, 'x'));
+      return 0;
+    }
     if (mode == "exception")
       throw std::runtime_error("game exception details");
     if (mode == "unknown-exception")

@@ -144,3 +144,11 @@ SDKs; concurrent external handler replacement is outside this session's contract
 
 Fault scopes preserve non-ASCII UTF-8 label bytes while replacing control bytes; the native worker
 crash regression includes a Chinese context label.
+
+Critical records are persisted to the preopened crash sink before primary game-log rotation or
+writes. A primary write/rotation failure therefore cannot discard the original Error/Fatal
+reason; a failed critical write is reported to stderr and does not prevent the primary write.
+Linux fault-injection regressions independently redirect each sink to `/dev/full`; a portable
+rotation obstruction verifies that a filesystem exception also preserves the original Fatal.
+Apple signal capture includes `sys/ucontext.h` for the context type without requesting the
+unneeded deprecated context-switching routines.

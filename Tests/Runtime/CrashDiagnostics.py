@@ -15,9 +15,11 @@ with tempfile.TemporaryDirectory(prefix="nexora-crash-證據-") as temporary:
     root = Path(temporary)
     modes = ("normal", "rotation", "exception", "unknown-exception", "terminate", "abort",
                  "worker-crash", "update-crash", "fixed-crash", "create-crash", "stop-crash", "start-crash", "destroy-crash",
-                 "update-error", "fixed-error", "job-exception", "job-crash")
+                 "update-error", "fixed-error", "job-exception", "job-crash", "rotation-failure")
     if os.name != "nt":
         modes += ("stack-overflow",)
+    if sys.platform.startswith("linux"):
+        modes += ("game-write-failure", "crash-write-failure")
     for mode in modes:
         destination = root / mode
         environment = dict(os.environ, NEXORA_LOG_DIR=str(destination))
@@ -28,18 +30,33 @@ with tempfile.TemporaryDirectory(prefix="nexora-crash-證據-") as temporary:
         log = (session / "game.log").read_text(errors="replace")
         crash = (session / "crash.log").read_text(errors="replace")
         require("build=" in crash and "platform=" in crash, f"{mode}: missing metadata")
+        if os.name == "nt":
+            require("minidump=ready" in crash, f"{mode}: Windows CI dump backend unavailable")
         require((session / "modules.txt").stat().st_size > 0, f"{mode}: missing module map")
         if mode != "rotation":
             require("accepted immediately before crash" in log, f"{mode}: lost accepted log")
         context = (session / "context.txt").read_text()
         require("game.primary_scene=42" in context and "game.primary_scene=41" not in context, f"{mode}: stale context snapshot")
-        if mode in ("normal", "rotation", "update-error", "fixed-error", "job-exception"):
+        if mode in ("game-write-failure", "rotation-failure", "crash-write-failure"):
+            require(result.returncode == 0, f"{mode}: fault injection did not finish: {result.stderr!r}")
+        elif mode in ("normal", "rotation", "update-error", "fixed-error", "job-exception"):
             require(result.returncode == 0, f"{mode}: unexpected failure {result.stderr!r}")
             require("session=closed" in log, f"{mode}: shutdown did not drain")
             require("fatal kind=" not in crash, f"{mode}: spurious native crash")
         else:
             require(result.returncode != 0, f"{mode}: crash swallowed")
-        if mode == "normal":
+        if mode == "game-write-failure":
+            require("retained error despite sink failure" in crash, "game sink failure lost original Error")
+            require("retained fatal despite sink failure" in crash, "game sink failure lost original Fatal")
+            require(b"game log persistence failed" in result.stderr, "game sink fault was not exercised")
+        elif mode == "rotation-failure":
+            require("retained fatal despite rotation failure" in crash, "rotation failure lost original Fatal")
+            require(b"game log persistence failed" in result.stderr, "rotation failure was not exercised")
+        elif mode == "crash-write-failure":
+            require("retained error despite sink failure" in log, "critical sink failure lost primary Error")
+            require("retained fatal despite sink failure" in log, "critical sink failure lost primary Fatal")
+            require(b"critical log persistence failed" in result.stderr, "critical sink fault was not reported")
+        elif mode == "normal":
             require(log.count("[Concurrent]") == 64, "concurrent log loss")
             require(r"first\x0aforged\x00tail" in log, "log injection/NUL not escaped")
             require("recoverable game failure" in crash, "game failure not persisted")
@@ -57,7 +74,7 @@ with tempfile.TemporaryDirectory(prefix="nexora-crash-證據-") as temporary:
             require(f"[Gameplay.{callback}] callback failed result=-3 generation=1" in crash, f"{mode}: missing callback failure")
         else:
             require("fatal kind=" in crash, f"{mode}: missing native crash record")
-            if os.name == "nt" and "minidump=ready" in crash:
+            if os.name == "nt":
                 require((session / "crash.dmp").read_bytes().startswith(b"MDMP"), f"{mode}: missing native minidump")
             if mode == "worker-crash":
                 require("context=Gameplay.worker-遊戲" in crash, "Unicode fault context was corrupted")

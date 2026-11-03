@@ -30,7 +30,11 @@
 #include <cerrno>
 #include <fcntl.h>
 #include <sys/stat.h>
+#if defined(__APPLE__)
+#include <sys/ucontext.h>
+#else
 #include <ucontext.h>
+#endif
 #include <unistd.h>
 #endif
 
@@ -494,19 +498,24 @@ void WriteDiagnostic(LogLevel level, std::string_view category, std::string_view
     std::lock_guard lock(state.mutex);
     if (!state.owners)
       return;
+    // Preserve the original failure before primary-sink I/O can fail or rotation can throw.
+    // Neither sink's write result may prevent the other from receiving a critical record.
+    if (level >= LogLevel::Error) {
+      if (state.crash_bytes + record.size() <= kFileLimit) {
+        if (Write(crash_file, record.data(), record.size()))
+          state.crash_bytes += record.size();
+        else
+          std::fputs("Nexora diagnostics: critical log persistence failed\n", stderr);
+      }
+      Sync(crash_file);
+    }
     if (state.bytes + record.size() > kFileLimit)
       Rotate(state);
     if (!Write(state.log, record.data(), record.size()))
       throw std::runtime_error("game.log write failed");
     state.bytes += record.size();
-    if (level >= LogLevel::Error) {
-      if (state.crash_bytes + record.size() <= kFileLimit) {
-        (void)Write(crash_file, record.data(), record.size());
-        state.crash_bytes += record.size();
-      }
-      Sync(crash_file);
+    if (level >= LogLevel::Error)
       Sync(state.log);
-    }
   } catch (...) {
     constexpr char error[] = "Nexora diagnostics: game log persistence failed\n";
     std::fputs(error, stderr);

@@ -1,6 +1,6 @@
 # Persistent crash and game diagnostics
 
-✅ Linux local capture/persistence acceptance: 18 subprocess scenarios plus invalid-output rejection; Development full gate and Monolithic Shipping build passed. Other native platforms remain unverified here.
+✅ Linux local capture/persistence acceptance: 21 subprocess scenarios plus invalid-output rejection; Development full gate and Monolithic Shipping build passed. Other native platforms remain unverified here.
 
 
 This is the delivery contract for the V1 Crash Reporting and Logging sections. A memory crash
@@ -54,7 +54,10 @@ Windows reserves `crash.dmp` at startup; only a populated dump is crash evidence
 Run directories are preserved across launches and are not automatically deleted. Products can
 apply their own retention policy after collecting evidence; do not delete a currently active run.
 There is no automatic upload and no claim to recover logs from a crash that preceded installation.
-Explicit unwritable output roots fail startup visibly. Runtime I/O failures are reported to stderr
+Explicit unwritable output roots fail startup visibly. Error/Fatal records reach the independent
+critical sink before game-log write/rotation attempts. Failure of either sink does not prevent
+the other sink from retaining the record; game-log rotation exceptions preserve the original reason.
+Runtime I/O failures are reported to stderr
 and the independent crash file where possible; no disk-full/power-loss durability is promised.
 
 ## Acceptance and remaining platform scope
@@ -62,7 +65,9 @@ and the independent crash file where possible; no disk-full/power-loss durabilit
 `runtime.crash_diagnostics` runs independent child processes, including a real V3 dynamic library,
 for normal/concurrent writes, escaping, rotation, C++ and non-standard exceptions, terminate,
 abort, worker crashes, module create/start/update/fixed-update/stop/destroy crashes, callback error results, captured job
-exceptions and job crashes. POSIX additionally exercises owner-thread stack exhaustion.
+exceptions and job crashes. Portable rotation-obstruction injection verifies critical preservation
+after primary rotation fails; Linux also independently fails each sink using `/dev/full`.
+POSIX additionally exercises owner-thread stack exhaustion.
 It verifies the last accepted log without calling Flush, faulting callback, module map, preserved
 abnormal exit and explicit bad-output failure. The test is enabled in existing cross-platform CI.
 See [acceptance evidence](../../Tools/Build/evidence/Crash-Logging-Linux-2026-11-03.md).
