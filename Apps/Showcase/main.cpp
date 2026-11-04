@@ -1,3 +1,4 @@
+#include "Nexora/Core/Diagnostics.h"
 #include "Nexora/Core/Engine.h"
 #include "Nexora/Foundation/BuildInfo.h"
 #include "Nexora/Foundation/GameplayABI.h"
@@ -1210,7 +1211,7 @@ void WriteReport(const std::filesystem::path &path, const std::string &report) {
 
 } // namespace
 
-int main(int argc, char **argv) {
+int RunShowcase(int argc, char **argv) {
   CommandLine command;
   std::string error;
   if (!ParseCommandLine(argc, argv, command, error)) {
@@ -1250,4 +1251,8 @@ int main(int argc, char **argv) {
     std::cerr << "NexoraShowcase fatal error: " << exception.what() << "\n";
     return 1;
   }
+}
+
+int main(int argc, char **argv) {
+  return nexora::core::RunDiagnosed("NexoraShowcase", [&] { return RunShowcase(argc, argv); });
 }

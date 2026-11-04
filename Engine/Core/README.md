@@ -103,3 +103,52 @@ wire round-trips, malformed packets, correlation, resource isolation, and plugin
 Remote inspector/profiler transports, authentication, device discovery, and Android/iOS/Desktop/
 Server host adapters remain target-host gates; this Linux portable layer does not claim remote
 observation on those devices.
+
+## Persistent process diagnostics
+
+`Diagnostics.h` owns a reference-counted process diagnostic session. Applications use
+`RunDiagnosed` outside their dispatch/catch/teardown path; Engine initialization acquires a shared
+fallback session. Session creation and final destruction belong to the same application thread,
+and all producers and nested sessions must finish before final destruction. The first owner
+selects the root; nested owners reuse it and do not replace process handlers. Original handlers
+and the owner thread's alternate signal stack are restored at final shutdown. Initialization
+failure rolls back installed handlers/files and fails visibly, rather than claiming persistence.
+
+`AsyncLogService::Write` journals each admitted record synchronously to the active process session
+before returning, independently of the async consumer. Admission/observer/rejection semantics are
+unchanged; this adds a bounded formatting allocation, a process journal mutex and OS-write latency
+to producers. `WriteDiagnostic` and the bounded pointer/length `WriteGameplayDiagnostic` never
+propagate exceptions; they do not invoke UI or module callbacks. Control characters/backslashes
+are escaped so messages cannot forge new lines. Error/Fatal records request OS flush and retain
+critical copies in the independent crash descriptor; Fatal severity alone does not terminate the
+process. Job callback exceptions retain their existing Failed/Wait behavior and are also journaled.
+
+A fatal native handler uses preopened descriptors and fixed stack formatting without logger locks
+or draining the worker. POSIX restores default termination and re-raises the original signal;
+Windows uses SEH/CRT handlers and preloaded DbgHelp for best-effort dumps. No in-handler symbolic
+unwind is attempted. The owner thread has an alternate signal stack; other threads' ordinary
+native crashes are captured, but stack exhaustion on arbitrary external threads is unverified.
+Native capture is best effort under OS/process/storage failure, not a recovery or sandbox boundary.
+
+See [the diagnostic delivery contract](../../Roadmap/en/Crash_Logging_Delivery_Plan.md) for roots,
+rotation, per-run artifacts, ownership, failure behavior, platform gates and evidence. This changes
+the C++ Core service surface and requires rebuilding C++ clients; stable C/Gameplay ABI layouts and
+module dependencies are unchanged. Raw signal handling cannot catch SIGKILL, kernel OOM kill,
+power loss or crashes before entry bootstrap; already written breadcrumbs can still remain.
+
+`SetDiagnosticMetadata` atomically replaces a bounded `context.txt` snapshot (up to 32 keys,
+64-byte keys and 1,024-byte values); unchanged values avoid I/O, and failed publication is retried
+on a later update. Module snapshots and metadata are produced in ordinary execution, never in a
+signal handler. Applications must serialize ownership of process handlers with external crash
+SDKs; concurrent external handler replacement is outside this session's contract.
+
+Fault scopes preserve non-ASCII UTF-8 label bytes while replacing control bytes; the native worker
+crash regression includes a Chinese context label.
+
+Critical records are persisted to the preopened crash sink before primary game-log rotation or
+writes. A primary write/rotation failure therefore cannot discard the original Error/Fatal
+reason; a failed critical write is reported to stderr and does not prevent the primary write.
+Linux fault-injection regressions independently redirect each sink to `/dev/full`; a portable
+rotation obstruction verifies that a filesystem exception also preserves the original Fatal.
+Apple signal capture includes `sys/ucontext.h` for the context type without requesting the
+unneeded deprecated context-switching routines.

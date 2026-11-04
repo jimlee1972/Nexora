@@ -1,5 +1,6 @@
 #include "Nexora/Core/Log.h"
 #include "LogAdmission.h"
+#include "Nexora/Core/Diagnostics.h"
 
 #include <algorithm>
 #include <condition_variable>
@@ -84,8 +85,11 @@ void AsyncLogService::Write(LogLevel level, std::string category, std::string me
   if (detail::AdmitLog({std::chrono::system_clock::now(), level, std::move(category),
                         std::move(message), thread_id},
                        implementation_->pending_capacity, implementation_->pending,
-                       implementation_->next_sequence, implementation_->rejected_records))
+                       implementation_->next_sequence, implementation_->rejected_records)) {
+    const auto &record = implementation_->pending.back();
+    WriteDiagnostic(record.level, record.category, record.message);
     implementation_->available.notify_one();
+  }
 }
 void AsyncLogService::Flush() {
   std::unique_lock lock{implementation_->mutex};

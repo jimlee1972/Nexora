@@ -1,4 +1,5 @@
 #include "Nexora/Runtime/Shipping.h"
+#include "Nexora/Core/Diagnostics.h"
 
 #include <algorithm>
 #include <array>
@@ -118,6 +119,9 @@ std::optional<CrashReport> CrashReporter::Capture(const CrashContext &context) c
   report.truncated = retained != context.breadcrumbs.size();
   report.breadcrumbs.insert(report.breadcrumbs.end(), context.breadcrumbs.end() - retained,
                             context.breadcrumbs.end());
+  core::WriteDiagnostic(core::LogLevel::Error, "CrashReporter", report.reason);
+  for (const auto &breadcrumb : report.breadcrumbs)
+    core::WriteDiagnostic(core::LogLevel::Error, "CrashReporter.breadcrumb", breadcrumb);
   return report;
 }
 

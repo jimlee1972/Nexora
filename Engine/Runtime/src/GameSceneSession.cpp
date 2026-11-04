@@ -1,4 +1,5 @@
 #include "Nexora/Runtime/GameSceneSession.h"
+#include "Nexora/Core/Diagnostics.h"
 #include <algorithm>
 #include <limits>
 #include <stdexcept>
@@ -46,6 +47,7 @@ bool GameSceneSession::RebindForReload(game::GameWorld &world) noexcept {
   return true;
 }
 void GameSceneSession::Error(std::string_view text) noexcept {
+  core::WriteDiagnostic(core::LogLevel::Error, "Gameplay.scene", text);
   error_.fill('\0');
   if (!foundation::IsValidUtf8(text))
     text = "Scene transition failed.";
@@ -242,6 +244,7 @@ bool GameSceneSession::Process(const Prepare &prepare) {
     live = std::move(candidate);
     instances_.swap(instances);
     primary_ = selected;
+    core::SetDiagnosticMetadata("game.primary_scene", primary_);
     if (presentation)
       presentation->Commit();
     status_ = {

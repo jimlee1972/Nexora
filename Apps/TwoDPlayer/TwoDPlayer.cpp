@@ -1,4 +1,5 @@
 #include "TwoDPlayer.h"
+#include "Nexora/Core/Diagnostics.h"
 #include "Nexora/Core/Engine.h"
 #include "Nexora/Game/GameplayHostBridge.h"
 #include "Nexora/Runtime/GameplayAudio.h"
@@ -66,7 +67,8 @@ NexoraGameplayHostV3 Host(Context &c) {
                    NEXORA_GAMEPLAY_CAPABILITY_SERVICES_API |
                    NEXORA_GAMEPLAY_CAPABILITY_POINTER_INPUT;
   h.context = &c;
-  h.log = [](void *, uint32_t, const char *text, uint32_t length) {
+  h.log = [](void *, uint32_t level, const char *text, uint32_t length) {
+    core::WriteGameplayDiagnostic(level, text, length);
     if (text && length <= 65536)
       std::cerr.write(text, length) << '\n';
   };
@@ -187,7 +189,8 @@ NexoraGameplayHostV3 Host(Context &c) {
 }
 } // namespace
 
-int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3Fn builtin) {
+namespace nexora::player {
+static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn builtin) {
   try {
     bool native{}, interactive{}, requireMovement{}, audioOutput{}, framesSpecified{}, gpuTiming{};
     unsigned audioOpenAttempts{}, audioOpenSuccesses{}, audioPumpFailures{};
@@ -1205,7 +1208,15 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
     std::cout << evidence;
     return 0;
   } catch (const std::exception &e) {
+    core::WriteDiagnostic(core::LogLevel::Error, "TwoDPlayer", e.what());
     std::cerr << e.what() << '\n';
     return 1;
   }
+}
+
+} // namespace nexora::player
+
+int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3Fn builtin) {
+  return core::RunDiagnosed("NexoraTwoDPlayer",
+                            [&] { return RunTwoDPlayerImpl(argc, argv, builtin); });
 }

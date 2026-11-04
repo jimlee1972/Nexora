@@ -312,6 +312,13 @@ case workload nor deadline is extended. [Scoped receipt](ED-WF-05-SDK-Direct-Win
 Latest main crash-logging integration and all immutable full/native gates remain required;
 no new work-order acceptance or final ZIP claim follows.
 
+Resolved integration with main `b1671eaa`(PR764) now builds all14 selected Windows targets
+and passes all15 scoped CTests(658.98s,zero failures/skips). Both save-state calls retain the
+read-only capture guard and the new gameplay diagnostic scope, with quiescence, rollback and
+retired-resource isolation preserved. [Integrated source/binary/log receipt](ED-WF-05-Crash-Integration-Windows.json).
+This is scoped native compiler/service/CLI evidence; fresh immutable Cloud/Shipping/CI and
+Windows extracted-package/native32 acceptance remain required. No count or final-delivery claim.
+
 ## Linux Showcase failure evidence follow-up (unaccepted)
 
 The immutable `885693db` GitHub Linux Editor display job126033478227 succeeds:

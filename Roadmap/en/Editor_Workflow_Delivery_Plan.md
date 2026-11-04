@@ -226,3 +226,9 @@ Scoped Windows rebuild and4 original cases pass; the separated original script/a
 rejection cases pass2/2 without extending original limits. [SDK evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-SDK-Direct-Windows.json).
 Latest-main integration and full immutable Cloud/Shipping/CI/native package revalidation remain
 pending;4/9 unchanged.
+
+Mainb1671eaa crash logging is integrated with the SDK fix. Both migration save-state calls
+retain capture protection and diagnostic context. All14 selected Windows targets build and
+all15 scoped native CTests pass(658.98s). [Integration receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Crash-Integration-Windows.json).
+Full immutable Cloud/Shipping/CI and refreshed extracted/native Windows package acceptance
+are still required;4/9 unchanged.

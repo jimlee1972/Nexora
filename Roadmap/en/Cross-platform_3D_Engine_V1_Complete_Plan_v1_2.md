@@ -20021,7 +20021,7 @@ Audio Scope Fade/Release Policy  ✅
 Networking Framework             ❌
 Low-level Network Interface      △ Future boundary / transport plugin
 
-Crash Infrastructure             ✅
+Crash Infrastructure             Partial (see Crash_Logging_Delivery_Plan.md)
 Cloud Crash Backend              △ Optional
 Memory Budget System              ✅
 Automated Tests                  ✅
@@ -20500,6 +20500,8 @@ MSDF
 All languages are not required to use the same rendering mode.
 
 ## Crash Reporting / MiniDump / Symbolication
+
+Local capture delivery and platform limits: [Crash Logging Delivery](Crash_Logging_Delivery_Plan.md).
 
 Crash Infrastructure uses a Backend abstraction and does not tightly bind Engine Core to a single third-party SDK.
 

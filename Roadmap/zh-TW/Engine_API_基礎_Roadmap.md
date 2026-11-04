@@ -1,5 +1,8 @@
 # Nexora Engine API 基礎 Roadmap
 
+本機 crash/game log 持久化與原生 gameplay callback 捕捉見 [Crash Logging Delivery](Crash_Logging_Delivery_Plan.md)。平台與實體主機 gate 仍分開驗收，此 supporting slice 不代表本 roadmap 的整體里程碑完成。
+
+
 > 版本：v1.0｜狀態：規劃基線｜更新：2026-09-21
 
 > **進度：100%**（portable roadmap scope；API-M1～API-M6 均通過本文定義的 gate。

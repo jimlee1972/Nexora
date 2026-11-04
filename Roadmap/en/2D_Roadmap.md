@@ -1,5 +1,8 @@
 # Nexora 2D Engine Roadmap
 
+Local crash/game-log persistence is tracked in [Crash Logging Delivery](Crash_Logging_Delivery_Plan.md). It includes native gameplay callback capture and keeps platform/physical-host gates separate; it does not complete this roadmap’s broader milestones.
+
+
 The approved [Editor workflow delivery plan](Editor_Workflow_Delivery_Plan.md) tracks the remaining
 Sprite source C/Zig/catalog, Editor authoring, animation and pool integration in
 [Epic #741](https://github.com/jimlee1972/Nexora/issues/741). Plan acceptance is 4/9 (44.4%): ED-WF-01 ✅ PR #751, ED-WF-02 ✅ PR #754, ED-WF-03 ✅ PR #756, ED-WF-04 ✅ PR #758;

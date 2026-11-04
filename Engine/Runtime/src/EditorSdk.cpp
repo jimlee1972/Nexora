@@ -1,4 +1,5 @@
 #include "Nexora/Runtime/EditorSdk.h"
+#include "Nexora/Core/Diagnostics.h"
 
 #include "Nexora/Foundation/PluginAbi.h"
 #include "Nexora/Foundation/Types.h"
@@ -935,6 +936,8 @@ bool PlaySession::ReportRuntimeFailure() noexcept {
   input_focused_ = false;
   pause_reason_ = PauseReason::RuntimeFailure;
   ++stats_.crashes;
+  core::WriteDiagnostic(core::LogLevel::Error, "Gameplay.PlaySession",
+                        "runtime failure; play paused and input released");
   return true;
 }
 
@@ -949,7 +952,19 @@ bool PlaySession::Resume() noexcept {
 bool PlaySession::ExecuteFixedTick(bool manual) {
   if (!PlayWorld() || !fixed_update_)
     return false;
-  if (!fixed_update_(*PlayWorld(), fixed_delta_seconds_)) {
+  core::DiagnosticScope scope("Gameplay.PlaySession.fixed_update");
+  bool success{};
+  try {
+    success = fixed_update_(*PlayWorld(), fixed_delta_seconds_);
+  } catch (const std::exception &error) {
+    core::WriteDiagnostic(core::LogLevel::Error, "Gameplay.PlaySession.fixed_update", error.what());
+    throw;
+  } catch (...) {
+    core::WriteDiagnostic(core::LogLevel::Error, "Gameplay.PlaySession.fixed_update",
+                          "non-standard callback exception");
+    throw;
+  }
+  if (!success) {
     static_cast<void>(ReportRuntimeFailure());
     return false;
   }

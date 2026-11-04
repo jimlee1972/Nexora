@@ -206,3 +206,8 @@ SDK修正透過共用CMake入口移除每代Zig建置程式的重編譯，保留
 原腳本案例與腳本測試拒絕案例2/2通過，未延長原期限。
 見[SDK證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-SDK-Direct-Windows.json)。
 最新main整合及精確版本完整Cloud／Shipping／CI／原生封裝重驗仍待完成；維持4/9。
+
+已整合mainb1671eaa當機日誌與SDK修正；兩次狀態保存呼叫同時保留capture保護與診斷
+情境。Windows選定14個目標重建成功，15項範圍原生CTest全通過（658.98秒）。
+見[整合收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Crash-Integration-Windows.json)。
+精確版本完整Cloud／Shipping／CI與更新後Windows解壓／原生封裝驗收仍須通過；維持4/9。

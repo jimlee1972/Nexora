@@ -1,5 +1,8 @@
 # Nexora Engine API Foundation Roadmap
 
+Local crash/game-log persistence is tracked in [Crash Logging Delivery](Crash_Logging_Delivery_Plan.md). It includes native gameplay callback capture and keeps platform/physical-host gates separate; it does not complete this roadmap’s broader milestones.
+
+
 > Version: v1.0 | Status: planning baseline | Updated: 2026-09-21
 
 > **Progress: 100%** for the portable roadmap scope: API-M1 through API-M6 meet the gates
