@@ -1625,6 +1625,14 @@ before the full-property revert. The original exact asset/identity/opaque-byte a
 checks and 180-second whole-test deadline remain required. Both output pipes are drained during
 input/result waits. Failures retain the temporary project, per-launch output, and timestamped
 input records at the path printed by CTest; successful runs clean their owned temporary tree.
+Key and pointer phases now await those actual post-EndFrame acknowledgments immediately instead
+of first adding a fixed200ms delay to every observed phase. Unobserved operations, including
+scene shortcuts, retain their existing200ms native-frame settle. Transport uses the remaining
+original8-second phase budget (at most8seconds outside a phase); failure/timeout still fails the
+scenario. Timestamped completion/error records accompany input-start records in `input.jsonl`.
+All original GUI predicates, asset/identity/opaque-byte checks, read-only actions and the180-second
+whole-test deadline remain. Process-level Python tests verify transport/trace policy, not native
+X11 or complete Prefab acceptance.
 The older aggregate Undo failure did not retain its assets, so this instrumentation must not
 be presented as proof of that historical failure's root cause.
 

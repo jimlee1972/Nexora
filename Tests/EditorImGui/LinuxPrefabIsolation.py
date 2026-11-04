@@ -19,6 +19,44 @@ def require(value, message):
         raise RuntimeError(message)
 
 
+def send_input(xdotool, arguments, environment, actions, drain, *, deadline=None,
+               awaiting_ack=False):
+    """Bound one transport call; callers with awaiting_ack must await actual GUI state."""
+    started = time.monotonic()
+    timeout = 8 if deadline is None else min(8, deadline - started)
+    actions.write(json.dumps({'time': started, 'input': arguments,
+                              'timeout_seconds': max(0, timeout),
+                              'awaiting_gui_ack': awaiting_ack}) + '\n')
+    actions.flush()
+    require(timeout > 0, 'Native input phase deadline expired before transport')
+    result = {'started': started, 'input_result': arguments,
+              'returncode': None, 'timed_out': False}
+    try:
+        completed = subprocess.run([xdotool, *arguments], env=environment, check=True,
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+                                   timeout=timeout)
+        result['returncode'] = completed.returncode
+    except subprocess.TimeoutExpired as error:
+        result['timed_out'] = True
+        result['stderr'] = (error.stderr or b'').decode('utf-8', errors='replace')
+        raise
+    except subprocess.CalledProcessError as error:
+        result['returncode'] = error.returncode
+        result['stderr'] = (error.stderr or b'').decode('utf-8', errors='replace')
+        raise
+    finally:
+        result['time'] = time.monotonic()
+        actions.write(json.dumps(result) + '\n')
+        actions.flush()
+    if not awaiting_ack:
+        # Unobserved operations (including scene shortcuts) still hold through native frames.
+        settle_until = time.monotonic() + .2
+        if deadline is not None:
+            settle_until = min(settle_until, deadline)
+        while time.monotonic() < settle_until:
+            drain(max(0, settle_until - time.monotonic()))
+
+
 def asset(path):
     raw = path.read_bytes()
     require(raw[:8] == b'NXPFAB1\n' and len(raw) >= 72, 'Actual wrapped prefab header missing')
@@ -87,14 +125,9 @@ def main():
             (scratch / f'editor-{launch_number}.stderr.log').write_bytes(captured)
             (scratch / f'editor-{launch_number}.stdout.log').write_bytes(standard_output)
 
-        def send(*arguments):
-            actions.write(json.dumps({'time': time.monotonic(), 'input': arguments}) + '\n')
-            actions.flush()
-            subprocess.run([args.xdotool, *arguments], env=env, check=True,
-                           stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-            deadline = time.monotonic() + .2
-            while time.monotonic() < deadline:
-                drain(max(0, deadline - time.monotonic()))
+        def send(*arguments, deadline=None, awaiting_ack=False):
+            send_input(args.xdotool, arguments, env, actions, drain,
+                       deadline=deadline, awaiting_ack=awaiting_ack)
 
         def observation():
             # Ignore an incomplete final pipe read; a future drain completes the same record.
@@ -119,12 +152,12 @@ def main():
                 deadline = time.monotonic() + 8
                 parts = [physical[part] for part in chord.split('+')]
                 for name, index in parts:
-                    send('keydown', name)
+                    send('keydown', name, deadline=deadline, awaiting_ack=True)
                     wait_ui(lambda value: (value['shift'] if index is None else
                                           value['keys'][index]) == '1',
                             f'GUI did not observe {name} down', deadline)
                 for name, index in reversed(parts):
-                    send('keyup', name)
+                    send('keyup', name, deadline=deadline, awaiting_ack=True)
                     wait_ui(lambda value: (value['shift'] if index is None else
                                           value['keys'][index]) == '0',
                             f'GUI did not observe {name} up', deadline)
@@ -139,12 +172,13 @@ def main():
                 x, y, _ = map(float, value[f'c{history}'].split(','))
                 before = tuple(map(int, value['undo' if history == 8 else 'redo'].split(',')))
             x, y = round(x), round(y)
-            send('mousemove', '--window', window, str(x), str(y))
+            send('mousemove', '--window', window, str(x), str(y),
+                 deadline=deadline, awaiting_ack=True)
             wait_ui(lambda value: value['pointer'] == f'{x},{y}' and value['down'] == '0',
                     'GUI did not observe pointer at click target', deadline)
-            send('mousedown', '1')
+            send('mousedown', '1', deadline=deadline, awaiting_ack=True)
             wait_ui(lambda value: value['down'] == '1', 'GUI did not observe mouse down', deadline)
-            send('mouseup', '1')
+            send('mouseup', '1', deadline=deadline, awaiting_ack=True)
             value = wait_ui(lambda value: value['down'] == '0',
                             'GUI did not observe mouse up', deadline)
             if history is not None:

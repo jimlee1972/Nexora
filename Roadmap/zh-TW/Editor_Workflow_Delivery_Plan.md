@@ -237,3 +237,15 @@ Windows範圍Editor／字型重建通過（111.99秒）；啟用診斷的`editor
 見[失敗與映射收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Font-Mapping-Windows.json)。
 精確來源完整Cloud／Shipping／CI及原生啟動／封裝驗收仍待完成；不合併、不增加驗收標記，
 尚未交付最終ZIP，工單維持4/9。
+
+原0c82完整Cloud矩陣已封存為FAIL449/504、55項失敗、零跳過／重試；Development／Shipping
+四個configure／build命令均exit0。45項原輸出明列Logs唯讀錯誤，其餘10項保留各自的
+逾時／斷言／啟動失敗分類。
+見[完整原始收據及Prefab失敗快照](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Cloud-0c82cf37.json)。
+獨立的可寫狀態目錄矩陣不會改判這輪結果。
+
+保留的Prefab案例在176.397秒內記錄456個輸入，已進行到後段唯讀檢查。前455個已返回的
+傳輸除了既有真實GUI ACK，各自還包含固定200毫秒等待。測試現直接等待鍵盤／指標階段的
+ACK，保留未受觀測操作的等待、全部情境斷言及原8秒階段／180秒外限。傳輸另記完成／錯誤，
+並使用階段剩餘期限，暴露卡住的命令而不重試。原紀錄沒有完成欄，不能證明唯一逾時原因。
+Windows Python程序政策測試10/10通過；原生Prefab及精確來源完整驗收仍待完成。

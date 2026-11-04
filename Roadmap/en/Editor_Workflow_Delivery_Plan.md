@@ -263,3 +263,17 @@ same35 reported misses, faces and atlas extent. This warm-host CPU evidence does
 CI improvement. [Failure and mapping receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Font-Mapping-Windows.json).
 Full exact-source Cloud/Shipping/CI and original native startup/package acceptance remain open;
 no merge, new acceptance mark or final ZIP. Work orders4/9 unchanged.
+
+The original0c82 complete Cloud matrix is sealed FAIL449/504,55 failures,zero skips/retries;
+all four Development/Shipping configure/build commands exit0. Forty-five original outputs
+explicitly report read-only Logs; ten keep their distinct timeout/assertion/startup classification.
+[Full original receipt and Prefab failure snapshot](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Cloud-0c82cf37.json).
+The separate writable-state matrix does not change that result.
+
+The preserved Prefab case records456 inputs over176.397s, late in readonly checks. Its first455
+completed transports each include a fixed200ms settle, in addition to existing actual GUI ACKs.
+The harness now awaits ACK-bound key/pointer phases directly, preserving unobserved settles,
+all scenario assertions and original8s phase/180s outer bounds. Transport completion/error records
+and a remaining-phase command bound expose blocked commands without retry. The original trace
+has no completion records, so it does not prove an exclusive timeout cause. Windows Python
+process-policy tests pass10/10; native Prefab/full exact-source acceptance remains pending.
