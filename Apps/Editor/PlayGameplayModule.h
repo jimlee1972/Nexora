@@ -5,6 +5,7 @@
 #include "Nexora/Game/GameplayHostBridge.h"
 #include "Nexora/Runtime/GameplayModuleHost.h"
 #include "Nexora/Runtime/GameplayServices.h"
+#include "PlayApiProxy.h"
 #include "PlayDebugLines.h"
 #include "PlayInputState.h"
 #include "PlaySceneServices.h"
@@ -225,7 +226,11 @@ public:
     SetInputFocus(false);
     input_user_ = 0;
     module_.reset();
+    // Keep the revoked top-level proxy alive while this host owner lives. Observers may test
+    // World/allocator revocation after Unload; its provider sees world_ == nullptr below.
+    static_cast<void>(gate_.SetPhase(PlayServiceGate::Phase::Live));
     packaged_services_.scene = {};
+    scene_proxy_.reset();
 #if defined(NEXORA_HAS_2D)
     if (two_d_) {
       try {
@@ -269,6 +274,7 @@ public:
 
 private:
   friend struct PlayGameplayDiagnosticsTestAccess;
+  friend class ReloadablePlayGameplayModule;
   static void Increment(std::uint64_t &value) noexcept {
     if (value != std::numeric_limits<std::uint64_t>::max())
       ++value;
@@ -290,14 +296,27 @@ private:
         !api.get_active_scene || !api.get_scene_info)
       return false;
     api.struct_size = sizeof(api);
-    packaged_services_.scene = api;
+    scene_proxy_.emplace(gate_, api);
+#define NX_SCENE_PROXY(field, writes)                                                              \
+  scene_proxy_                                                                                     \
+      ->Bind<&NexoraGameplaySceneApiV1::field,                                                     \
+             offsetof(NexoraGameplaySceneApiV1, field) + sizeof(NexoraGameplaySceneApiV1::field),  \
+             writes>()
+    NX_SCENE_PROXY(resolve_scene, false);
+    NX_SCENE_PROXY(request_load, true);
+    NX_SCENE_PROXY(request_unload, true);
+    NX_SCENE_PROXY(get_status, false);
+    NX_SCENE_PROXY(get_active_scene, false);
+    NX_SCENE_PROXY(get_scene_info, false);
+#undef NX_SCENE_PROXY
+    packaged_services_.scene = scene_proxy_->Get();
     return true;
   }
   bool BindTwoD(runtime::World &world, const PlayTwoDBinding &binding, bool native = false) {
 #if defined(NEXORA_HAS_2D)
     if (!binding.scene && !binding.assets)
       return true;
-    two_d_ = PlayTwoDServices::Bind(world, binding, native);
+    two_d_ = PlayTwoDServices::Bind(world, binding, native, &gate_);
     return bool(two_d_);
 #else
     static_cast<void>(world);
@@ -532,8 +551,32 @@ private:
         return self.RecordResult(NEXORA_GAMEPLAY_ERROR_LIFECYCLE);
       return self.RecordResult(self.debug_lines_.Add(*line));
     };
-    return host;
+    host_proxy_.emplace(gate_, host);
+#define NX_HOST_PROXY(field, writes)                                                               \
+  host_proxy_->Bind<&NexoraGameplayHostV3::field,                                                  \
+                    offsetof(NexoraGameplayHostV3, field) + sizeof(NexoraGameplayHostV3::field),   \
+                    writes>()
+    NX_HOST_PROXY(log, false);
+    NX_HOST_PROXY(read_component, false);
+    NX_HOST_PROXY(write_component, true);
+    NX_HOST_PROXY(allocate, true);
+    NX_HOST_PROXY(deallocate, true);
+    NX_HOST_PROXY(load_scene, true);
+    NX_HOST_PROXY(activate_scene, true);
+    NX_HOST_PROXY(spawn_entity, true);
+    NX_HOST_PROXY(despawn_entity, true);
+    NX_HOST_PROXY(capture_input, false);
+    NX_HOST_PROXY(resolve_asset, false);
+    NX_HOST_PROXY(raycast, true); // The provider prunes its mutable collider cache.
+    NX_HOST_PROXY(debug_draw_line, true);
+    NX_HOST_PROXY(get_diagnostics, false);
+    NX_HOST_PROXY(get_twod_api, false);
+    NX_HOST_PROXY(capture_pointer_input, false);
+    NX_HOST_PROXY(get_services_api, false);
+#undef NX_HOST_PROXY
+    return host_proxy_->Get();
   }
+  PlayServiceGate gate_;
   runtime::World *world_{};
   // Borrowed through module Stop/Destroy. The packaged owner supplies the canonical session API;
   // the existing custom 2D service registry stays separate until an explicit adapter is supported.
@@ -554,6 +597,8 @@ private:
   std::unique_ptr<PlayTwoDServices> two_d_;
   std::vector<std::uint64_t> retired_two_d_textures_;
 #endif
+  std::optional<PlayApiProxy<NexoraGameplayHostV3>> host_proxy_;
+  std::optional<PlayApiProxy<NexoraGameplaySceneApiV1>> scene_proxy_;
   std::optional<runtime::GameplayModuleHost> module_;
 };
 } // namespace nexora::editor::preview

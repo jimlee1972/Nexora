@@ -83,6 +83,20 @@ int main() {
   assert(twoD.rebuild_queries(twoD.context, 0) == 0);
   // A rejected host preparation retains transforms, metadata, tiles, primary and request status.
   const auto snapshot = world.SaveScene(initial);
+  // A catalog bridge must not enter the legacy single-scene reload path: it owns no
+  // single scene pointer, and dropping its catalog would lose routing/transition state.
+  const auto revision = session.Revision();
+  {
+    auto candidate_world = world;
+    auto metadata = session.FindEntity(child)->ForkForReload(candidate_world);
+    auto candidate_pool = pool.ForkForReload();
+    assert(metadata && candidate_pool);
+    assert(!bridge.ForkForReload(candidate_world, *metadata, nullptr, candidate_pool.get()));
+    assert(!bridge.RebindForReload(world, *session.FindEntity(child), nullptr, &pool));
+  }
+  assert(session.Revision() == revision && session.Primary() == initial &&
+         world.SaveScene(initial) == snapshot &&
+         twoD.get_sprite(twoD.context, child, &sprite) == 0);
   auto request = Load(api, "Title.scene");
   assert(!session.Process([](const auto &, auto) { return false; }));
   assert(Status(api, request).state == 3 && session.Primary() == initial &&

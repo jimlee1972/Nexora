@@ -767,7 +767,16 @@ inclusion requests coverage; actual missing members are retained from `FindGlyph
 The generated Traditional set still requires its conditional Windows CP950 exact-set comparison.
 
 `NEXORA_EDITOR_FONT_PATHS` precedes bounded host defaults (colon-separated on POSIX;
-semicolon-separated on Windows). Native Unicode filesystem reads own the source data. The
+semicolon-separated on Windows). Native Unicode filesystem reads own the source data. Windows
+host-default system fonts use owned read-only file mappings instead of eagerly copying each
+whole TTC before inspection. The opened file's size must match the bounded admission size;
+in-place writes/truncation are excluded for the mapping lifetime. Delete sharing permits atomic
+replacement/retirement while the old mapped object remains valid. The plan retains the file,
+mapping and view through every DPI rebuild, and releases them together. A mapping/open/size failure
+rejects that candidate through the existing fallback policy. Explicit configured/test sources
+retain owning byte copies by default, including their existing source-removal behavior; POSIX
+reads are unchanged. The pinned ImGui still makes its own admitted per-atlas input copies.
+The 64 MiB source cap counts logical mapped bytes as well as copied bytes, not just heap storage. The
 ordinary process plan is cached on first use; restart to change configuration. Linux/macOS use
 finite installed-font locations. Noto CJK TTC selection checks the TC family name and actual
 outline coverage, instead of assuming face 0 or treating an index as evidence. A TTC's 10 faces
@@ -800,6 +809,13 @@ there is no new GUI font-selection/status flow.
 Coverage subtraction uses actual `FindGlyphNoFallback` results from a process-once independent
 default atlas; it does not assume every scalar in U+0020–U+00FF exists. Reported probe timing
 includes the first baseline-atlas build.
+
+With `NEXORA_EDITOR_FONT_DIAGNOSTICS` enabled, font preparation also flushes bounded stage
+checkpoints for profile/default coverage, the installed-plan cache lock, candidate reads,
+face inspection, outline probes and atlas construction. They contain candidate/face indices
+and monotonic timestamps, never font paths or family names. The Windows startup integration
+gate enables these diagnostics to retain the last reached stage on its original deadline;
+the diagnostic does not change glyph admission, fallback, atlas limits or readiness policy.
 
 `editor.font_glyphs` passed in 0.21 s after baseline correction. Its original geometric
 TrueType/CFF fixtures exercise real non-fallback lookup, ink/UV, missing glyphs, DPI round trips,

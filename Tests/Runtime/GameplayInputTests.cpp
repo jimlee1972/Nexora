@@ -10,6 +10,61 @@ void Require(bool value, const char *message) {
   if (!value)
     throw std::runtime_error(message);
 }
+void ReloadInput() {
+  using nexora::runtime::GameplayInput;
+  auto live = std::make_unique<GameplayInput>();
+  const NexoraGameplayInputBindingV1 binding{sizeof(binding), 1, 1, 0, 69, 1, 0, 0};
+  auto api = live->Api();
+  Require(api.bind(api.context, 0, 1, &binding) == 0 &&
+              api.bind(api.context, 7, 2, &binding) == 0 && live->BeginFrame() &&
+              live->Submit(0, 1, 0, 69, 1) && live->Submit(7, 1, 0, 69, 1) &&
+              live->SubmitPointer(0, 100, 200) && live->SubmitPointer(0, 110, 190, 2, -3),
+          "reload input fixture failed");
+  const auto read = [](NexoraGameplayInputApiV1 table, std::uint32_t user, std::uint32_t action) {
+    NexoraGameplayActionStateV1 state{};
+    state.struct_size = sizeof(state);
+    state.abi_version = 1;
+    Require(table.read_action(table.context, user, action, &state) == 0, "reload action read");
+    return state;
+  };
+  for (unsigned generation = 1; generation <= 32; ++generation) {
+    std::thread wrong([&] { Require(!live->ForkForReload(), "foreign input fork admitted"); });
+    wrong.join();
+    const auto before = read(api, 0, 1);
+    auto branch = live->ForkForReload();
+    Require(bool(branch), "input fork failed");
+    auto next = branch->Api();
+    const auto restored = read(next, 0, 1);
+    Require(restored.sequence == before.sequence && restored.value == before.value &&
+                restored.held == before.held && restored.pressed == before.pressed &&
+                restored.released == before.released && read(next, 7, 2).held,
+            "input reload lost bindings, users, sequence or transitions");
+    NexoraGameplayPointerStateV1 pointer{};
+    pointer.struct_size = sizeof(pointer);
+    pointer.abi_version = 1;
+    Require(next.read_pointer(next.context, 0, &pointer) == 0 && pointer.focused &&
+                pointer.sequence == before.sequence && pointer.x == 110 && pointer.y == 190 &&
+                pointer.delta_x == (generation == 1 ? 10 : 0) &&
+                pointer.wheel_y == (generation == 1 ? -3 : 0),
+            "input reload lost pointer anchor or accumulated motion");
+    auto rejected = live->ForkForReload();
+    Require(rejected->SetFocused(false) && read(api, 0, 1).held,
+            "failed input branch revoked live focus");
+    // Retired cached tables can clear only their own bindings, preserving candidate controls.
+    Require(api.clear_bindings(api.context, 0, 1) == 0 && read(next, 0, 1).held,
+            "retired input cleanup released transferred held action");
+    live = std::move(branch);
+    api = live->Api();
+    Require(live->BeginFrame() && read(api, 0, 1).held && !read(api, 0, 1).pressed &&
+                live->Submit(0, 1, 0, 69, 0) && read(api, 0, 1).released &&
+                live->Submit(0, 1, 0, 69, 1),
+            "published input branch stopped processing original bindings");
+  }
+  Require(live->SetFocused(false), "input focus revoke failed");
+  auto unfocused = live->ForkForReload();
+  Require(unfocused && unfocused->Submit(0, 1, 0, 69, 1) && !read(unfocused->Api(), 0, 1).held,
+          "input fork resurrected unfocused controls");
+}
 void Run() {
   nexora::runtime::GameplayInput input;
   auto api = input.Api();
@@ -143,6 +198,7 @@ void Run() {
 } // namespace
 int main() {
   try {
+    ReloadInput();
     Run();
     return 0;
   } catch (const std::exception &error) {

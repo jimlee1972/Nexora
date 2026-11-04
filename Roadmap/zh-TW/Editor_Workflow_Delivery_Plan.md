@@ -51,6 +51,10 @@ PR #762 首版 Linux CI 在 runner 改為 Ubuntu 26／GNU 15.2 後未通過：�
 [原生輸入修正](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Input-CI-Failure.md)
 改用已驗證的 X11 實體功能鍵代碼，保留全部 Runtime／畫面／期限斷言；仍須重跑修正版原生與
 完整 gate，不增加已驗收數。
+PR #762 已合併為 `f7537be874d8`，tree 與 `d093841b` 相同。
+[Cloud 收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Cloud-d093841b.json)記錄496/496
+及五個 gate 均 exit0；[CI 清單](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-CI-d093841b.json)
+記錄41項成功檢查／三個 workflow。此基礎修正不代表 ED-WF-05 已驗收，完成度維持4/9。
 [ED-WF-02 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02.md)及[雲端收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02-Cloud.json)記錄已驗收的 PR #754：42 項 CI 成功、雲端 490/490 與 Shipping 建置通過，保留初次環境／本機畫面擷取失敗。Beads 已安全採用既有歷史並恢復同步；Epic `nexora-whr` 與 `.1`～`.9` 對應連結的 GitHub 工單。
 已驗收的 [ED-WF-03 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03.md)、[雲端收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03-Cloud.json)及[CI 清單](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03-CI.json)記錄 PR #756：原生 GUI／核心通過、雲端 490/490 與 Shipping、42 項 CI 全數通過，且合併 tree 相同。ED-WF-04 已由 PR #758 驗收。
 已驗收的 [ED-WF-04 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04.md)、
@@ -115,3 +119,145 @@ GitHub README 維持讀者導向，整體 milestone 未變時不加入逐工單�
 
 依 Beads skill 使用固定 CLI 與外部任務路徑。同步失敗則保留資料並記錄精確阻礙，不初始化、
 替換或 force 共享歷史；GitHub 工單維持可見，不能將失敗同步回報為成功。
+
+本機未提交的後續整合已串接實際 Play 2D 資源分支與場景服務配額；32 次交接保留動畫時間、
+物件池 handle、輸入邊緣狀態與貼圖識別。此為 Windows 程序範圍證據，未包含於 PR762；
+主程式交易與 watcher 結果准入、實際 Editor 腳本修改及完整精確版本驗證仍待完成，不調整完成度。
+
+[Editor 主交易檢查點](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Transaction-Windows.md)
+加入裸 World／設定專案／2D 的嚴格世代交易。14個原生 target 建置、23項 Windows 範圍測試
+及兩次真實無參數 GUI 啟動通過；主程式 C++ fixture 記錄96次成功交接／576次預期拒絕。
+實際腳本修改的 watcher／compiler 准入與完整精確版本 Cloud／Shipping／CI 仍待完成；
+ED-WF-05 尚未驗收，完成度維持4/9。
+
+[啟動診斷追蹤](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Startup-Diagnostic.md)
+保留 PR763 Windows 打包啟動失敗，加入有界的首幀紀錄。本機兩次無參數啟動仍通過；
+CI 根因與精確版本完整驗證待完成。此為診斷檢查點，尚未驗收修復，完成度維持4/9。
+
+[即時腳本檢查點](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05.md#live-script-workflow-checkpoint-unaccepted)
+已將實際設定式 Play 接到背景內容觀察、共用編譯入口與保留狀態的准入交易。
+本機 SDK／建置／協調器回歸3/3通過，真實 Editor 一次來源修改與替換通過。
+加強的32次原生驗收仍在執行，啟動 CI 仍失敗；精確版本完整驗證及其他情境待完成，
+驗收維持4/9、Editor0/8。
+
+後續證據：本機32次嘗試在11次替換後因 Editor 提前退出而失敗，不能驗收。
+0f901cb3 的 Cloud 也為 FAIL（498/499，按鍵釋放／pose 觀察失敗）。
+已將實際解壓 ZIP 的 Windows32次驗收接到目前施工分支的自動包裝及手動 workflow；原輸入／啟動期限保留。
+見[目前證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05.md)，完成度不變。
+
+操作人員已確認：本機11次替換後是使用者手動關閉 Editor，分類為使用者中斷，
+不是產品崩潰；仍未滿足32次驗收。隔離 Windows CI 驗收待完成，獨立的 Cloud 按鍵失敗仍待處理。
+
+[啟動工作區／可見性收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Startup-Fit-Windows.json)
+記錄 Windows 原生啟動／品牌／入口5/5通過（26.58秒）。隱藏主視窗先適配螢幕工作區；
+測試自己的啟動器建立前景父程序情境，不替代 Editor，不放寬像素／回應／NoActivate／期限。
+新精確版本 CI／Cloud 與解壓 ZIP32次仍待驗收，工單與里程碑計數不變。
+
+
+`51bd8a16` 的雲端 Windows 封裝已通過原啟動 gate 與實際解壓 ZIP 的32次重載：計數0→27512、保留 Scene1／entity4、實際 Ctrl+P 與等 mtime 修改、觀察到的編譯子程序已排空、正常 exit0 且所屬 Job 程序0。下載產物雜湊與 ZIP CRC 已核對，見[封裝收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Package-51bd8a16.json)。這是 Windows 範圍證據，非最終驗收。完整 Cloud 重驗仍為 FAIL495/499，四項 Prefab GUI 失敗；Development／Shipping 建置命令皆 exit0，原中鍵案例則通過。另有四個 macOS／iOS 工作遭 abandoned／cancelled，造成兩個 CI 總 gate 失敗。不合併、不增加已驗收數。
+補強的原生 harness 要求編譯、狀態還原、候選初始化及候選啟動修改 World 後的失敗，都保留舊 dispatch／狀態／handle，再驗證正確腳本恢復。首次本機嘗試已觀察四次拒絕，但恢復完成前失去 runner，沒有終態 exit／收據，仍算未完成；新增 checkpoint 只保存部分觀察，不宣稱 PASS。更新後的 harness 與發布驗證仍待通過。
+
+下一份準備狀態修正讓 Linux 主視窗在首幀完成前維持隱藏，X11 取得視窗須在原15秒預算內找到可見視窗。原生 source-apply 的像素等待共用外層10秒手勢期限，失敗 fixture 也會保留。尚未驗收，也不宣稱這已證明四項 Cloud 失敗的完整根因。Windows 原生測試共用既有輸入桌面的明確選取與每次實際啟動前的自有前景啟動器，不對其他視窗送鍵。首次解壓 ZIP 故障嘗試因前景不屬於測試而拒絕開始 Play，本機啟動重驗另有遮蔽失敗，均保留。未採用 LP worker 數候選；該歷史完整 CTest 仍為 FAIL493/499。
+
+整合納入上游 main `1df6ab357da69ee3257097a9b5176695b7c96b9a`（PR #765 authored Scene V1）。GameplayBridge 同時保留 catalog 實體路由與既有 World 指標重新綁定契約。Catalog bridge 對單場景 fork／rebind 會無寫入拒絕，新增回歸檢查保留 World／primary／revision／API 狀態；不宣稱已完成 catalog 熱重載，該部分仍屬後續整合工作。合併後原生重建／範圍測試與精確版本 Cloud／Shipping／CI 仍須通過。
+
+整合後 Windows checkpoint：9個目標重建全部 exit0，6項 bridge／catalog／compiler／proxy／reload／packaged Play 範圍 CTest 全數通過（exit0、5.64秒）。見[收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Main-Integration-Windows.json)。不代表 GUI／完整 gate 驗收或增加完成數；新的精確版本 Cloud／Shipping／CI 仍須通過。
+
+8870雲端 Windows 建置與原五項啟動檢查通過，但封裝驗證在32次重載前的啟動器前景條件
+被拒絕；完整 job log 與73,590-byte失敗封存保留。後續啟動器在工作區內以自有 Button 的
+內部座標、有限訊息確認，以及拒絕直接啟用時的受控原生點擊／放開建立前景。本機三次
+啟動器獨立原生試驗通過、沒有殘留視窗，不代表新的 Editor 驗收。Linux hosted display
+另因 packaged Play 的兩處私有搜尋仍選到未顯示 Editor 而觸發 X_SetInputFocus BadMatch，
+現於原預算內都要求 onlyvisible。見[啟動器／失敗收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Launcher-Windows.json)。
+精確版本 Editor／Cloud／Shipping／完整CI仍待通過，不增加已驗收數。
+
+進行中的8870 Cloud另有兩項Showcase失敗：關閉陰影的像素比較，以及原30秒虛擬顯示
+子程序期限。範圍修正保留逾時部分輸出、拒絕驗收的啟動收據，以及已排空／回收的Xvfb
+診斷；失敗的互動測試目錄、直接寫檔的子程序輸出與輸入命令紀錄亦保留。
+13項可攜證據規則測試通過。此為證據收集修正，不宣稱原生失敗已解決，也未改動
+期限或斷言。完整gate終態與精確版本重驗仍待完成。
+見[診斷證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05.md#linux-showcase-failure-evidence-follow-up-unaccepted)。
+同一Cloud後續另回報原game-build worker與script-build CTest期限失敗，保留測試目錄
+供診斷，不豁免逾時。
+
+精確885693db的hosted Linux Editor CI已通過250/250項（1406.98秒），包含先前
+Prefab／滑鼠釋放／packaged Play失敗案例與兩項SDK建置；範圍原生Player4/4、Editor
+validation3/3、renderer20/20亦通過。下載封存的CRC與SHA-256已核對。
+見[範圍收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Linux-CI-885693db.json)。
+此結果不替代完整Codex Cloud／Shipping或Windows封裝驗收；完成度維持4/9。
+
+885693db解壓後的Windows ZIP已通過32次原生來源替換、四項真實失敗／回滾、正確
+恢復與Stop／編譯程序排空（Editor exit0、所屬Job0）。Scene1／entity4維持，計數
+0→32570→37300。搬移與無參數Editor／遊戲啟動、準備畫面順序／回應及無console檢查
+通過。兩層ZIP的CRC、封存SHA-256與全部22697筆inventory檔案雜湊均已核對；公開根目錄
+只有一個Editor執行檔，沒有來源checkout。
+見[Windows收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Package-885693db.json)。
+完整Cloud／Shipping／CI、Sprite整合及最終交付仍未完成；維持4/9。
+
+精確885693db的42項CI與4個workflow現已全數成功，見
+[完整CI收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-CI-885693db.json)。
+獨立的原8870 Cloud已有至少10項失敗，仍須保存完整終態／Shipping並重驗精確版本。
+尚不合併或增加已驗收數。
+
+原8870 Cloud已封存為FAIL491/502、11項失敗、零跳過／重試；Development／Shipping
+四個configure／build命令均exit0。見[完整收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Cloud-8870d63e.json)。
+SDK修正透過共用CMake入口移除每代Zig建置程式的重編譯，保留既有入口／測試、各模組
+最佳化／target、compiler-rt與私有快取。Windows範圍重建及原4項案例通過；拆分後的
+原腳本案例與腳本測試拒絕案例2/2通過，未延長原期限。
+見[SDK證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-SDK-Direct-Windows.json)。
+最新main整合及精確版本完整Cloud／Shipping／CI／原生封裝重驗仍待完成；維持4/9。
+
+已整合mainb1671eaa當機日誌與SDK修正；兩次狀態保存呼叫同時保留capture保護與診斷
+情境。Windows選定14個目標重建成功，15項範圍原生CTest全通過（658.98秒）。
+見[整合收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Crash-Integration-Windows.json)。
+精確版本完整Cloud／Shipping／CI與更新後Windows解壓／原生封裝驗收仍須通過；維持4/9。
+
+使用者確認先前本機Editor提前退出是手動關閉；該中斷執行不列為崩潰，也不算完成32次
+重載驗收。精確0c82的Windows CI另在`prepare-display-returned`之前啟動失敗，主視窗
+仍隱藏，字型準備的原因尚待定位。Showcase CI已觀測導覽step6／210.028秒，卻讀到空的
+最後匯出檔。匯出讀取現於原五秒期限內等候schema有效JSON與非空Markdown，並保存該次
+接受的字串作為證據。Windows無介面回歸直接呼叫正式函式：原讀取器失敗，修訂版通過
+延遲空檔／部分／完整發布及不完整檔案的有界拒絕。變更的原生CI與完整Cloud gate仍待
+通過；尚不合併、不增加驗收標記，也不交付最終ZIP。
+啟動後續補上選用、即時flush的字型子階段檢查點，Windows啟動fixture會啟用；保留原35秒
+準備期限與字元涵蓋。這些紀錄用於定位下一次失敗，並不代表已修復啟動問題。
+Windows範圍Editor／字型重建通過（111.99秒）；啟用診斷的`editor.font_glyphs`通過
+（案例0.98秒／CTest1.11秒），正式函式的匯出回歸通過。
+[失敗封存、來源雜湊與本機驗證](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-CI-Followup-Windows.json)
+保留原CI失敗證據；新來源完整驗收仍未完成。
+
+精確cc282e0d的Windows啟動仍失敗（37.54秒）：首個完整字型檔讀取耗23.668898秒，之後
+第二次讀取在原35秒準備期限前沒有結束檢查點；底層檔案系統延遲原因尚未證實。Windows
+預設系統字型現使用擁有式唯讀檔案映射，保護檔案大小／禁止原地寫入，並允許原子汰換；
+明確來源與POSIX保留原擁有式複製。來源／字元／圖集上限、挑選／預檢及ImGui自己的逐圖集
+複製均保留。範圍Editor／字型重建107.71秒通過，最後比對測試重建45.33秒；字型套件含
+映射生命週期／汰換測試1/1通過（案例1.19秒／CTest1.59秒）。Windows實際系統字型的全部
+7182個設定字元在涵蓋／UV／像素／raster雜湊一致，包含相同35個缺字、face與圖集大小。
+這是快取已暖的本機CPU證據，不能證明CI冷啟動改善。
+見[失敗與映射收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Font-Mapping-Windows.json)。
+精確來源完整Cloud／Shipping／CI及原生啟動／封裝驗收仍待完成；不合併、不增加驗收標記，
+尚未交付最終ZIP，工單維持4/9。
+
+原0c82完整Cloud矩陣已封存為FAIL449/504、55項失敗、零跳過／重試；Development／Shipping
+四個configure／build命令均exit0。45項原輸出明列Logs唯讀錯誤，其餘10項保留各自的
+逾時／斷言／啟動失敗分類。
+見[完整原始收據及Prefab失敗快照](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Cloud-0c82cf37.json)。
+獨立的可寫狀態目錄矩陣不會改判這輪結果。
+
+保留的Prefab案例在176.397秒內記錄456個輸入，已進行到後段唯讀檢查。前455個已返回的
+傳輸除了既有真實GUI ACK，各自還包含固定200毫秒等待。測試現直接等待鍵盤／指標階段的
+ACK，保留未受觀測操作的等待、全部情境斷言及原8秒階段／180秒外限。傳輸另記完成／錯誤，
+並使用階段剩餘期限，暴露卡住的命令而不重試。原紀錄沒有完成欄，不能證明唯一逾時原因。
+Windows Python程序政策測試10/10通過；原生Prefab及精確來源完整驗收仍待完成。
+
+精確b2550b33的Windows原始與搬移後無參數啟動均通過：四次首幀準備耗時為
+3109／1500／1578／1500毫秒，白畫面比例0、輸入有回應、正常exit0且沒有孤兒視窗。
+封裝gate接著在Zig執行前失敗：Ninja產生的批次檔第2行無法進入中文私有工作目錄。
+見[部分封裝收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Package-b2550b33.json)。
+受控的舊命令在UTF-8可執行，卻在隱藏、子程序自有的OEM437主控台重現失敗，父程序
+字碼頁不變。SDK現透過短命令啟動私有CMake腳本，依序轉交原生argv，保留字面參數、
+原編譯／測試選項、錯誤傳遞及程序擁有邊界。Windows範圍重建與原5項案例通過；
+最後強化的OEM437政策套件及真實Zig中文暫存目錄案例2/2通過（46.14秒）。
+政策替身本身不代表Zig／Player驗收，見[SDK收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-SDK-Argv-Windows.json)。
+精確來源完整Cloud／Shipping／CI與更新後原生封裝gate仍須通過；ED-WF-05尚未驗收，
+工單維持4/9，尚不交付最終ZIP。

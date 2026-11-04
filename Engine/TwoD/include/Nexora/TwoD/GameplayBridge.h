@@ -25,6 +25,17 @@ public:
   [[nodiscard]] Camera RenderCamera(std::uint32_t width, std::uint32_t height) const;
   // Call for each WorldCommandBuffer::LastDestroyed(), including descendants, before teardown.
   void ForgetEntity(runtime::Id);
+  // Owner-thread unpublished branch over identical cloned World/scene/pool/tile state.
+  // Copies camera, animation clocks and query snapshots, plus the host-owned clip resolver.
+  // All borrowed owners/resolver captures outlive this branch; allocation may throw.
+  // These single-scene operations reject catalog-backed bridges without changing either owner.
+  [[nodiscard]] std::unique_ptr<GameplayBridge> ForkForReload(runtime::World &, SpriteScene &,
+                                                              Tilemap * = nullptr,
+                                                              InstancePool * = nullptr) const;
+  // Retarget only after the embedding moves identical state at commit/retirement. Keeps the
+  // API context address and animation clocks; fails without writes on invalid bindings/reentry.
+  [[nodiscard]] bool RebindForReload(runtime::World &, SpriteScene &, Tilemap * = nullptr,
+                                     InstancePool * = nullptr) noexcept;
 
 private:
   struct State;

@@ -30,6 +30,7 @@ def main():
     args = parser.parse_args()
     scratch = Path(tempfile.mkdtemp(prefix='nexora-native-instance-source-'))
     process = xvfb = driver = None
+    passed = False
     try:
         root, oracle = scratch / 'project', scratch / 'retained.scene'
         subprocess.run([args.fixture, '--write-native-selected-fixture', str(root), str(oracle)], check=True)
@@ -70,7 +71,7 @@ def main():
             # the single down/up gesture. Only pointer motion is repeated when layout moves.
             deadline = time.monotonic() + 10
             for _ in range(3):
-                point = wait_native_pixels(driver, display, window, name, icon=icon)
+                point = wait_native_pixels(driver, display, window, name, icon=icon, deadline=deadline)
                 driver.pointer_move(*point, deadline)
                 value = driver.wait(lambda v: name in v and v.get('focused') == '1' and
                                               v.get('buttons') == '000',
@@ -152,16 +153,22 @@ def main():
             if read_only:
                 require(files(root) == before, 'Read-only teardown wrote project files')
             process = driver = None
+        passed = True
         print('Native source confirmation/Cancel, exact selected publication, archive/Scene conservation and readonly passed')
     finally:
-        if process is not None and process.poll() is None:
+        if driver is not None:
+            driver.abort()
+        elif process is not None and process.poll() is None:
             process.kill()
-            process.wait(timeout=10)
+            process.communicate(timeout=10)
         if xvfb is not None:
             if xvfb.poll() is None:
                 xvfb.terminate()
             xvfb.communicate(timeout=10)
-        shutil.rmtree(scratch)
+        if passed:
+            shutil.rmtree(scratch)
+        else:
+            print(f'Native instance source fixtures retained: {scratch}', flush=True)
 
 
 if __name__ == '__main__':

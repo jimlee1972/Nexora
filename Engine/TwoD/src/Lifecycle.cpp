@@ -26,6 +26,21 @@ InstancePool::InstancePool(std::size_t capacity) : owner_(Owner()) {
   for (std::size_t i = capacity; i > 0; --i)
     free_.push_back(static_cast<std::uint32_t>(i - 1));
 }
+InstancePool::InstancePool(const InstancePool &source, ReloadCopy)
+    : owner_(source.owner_), slots_(source.slots_), free_(source.free_), count_(source.count_) {}
+std::unique_ptr<InstancePool> InstancePool::ForkForReload() const {
+  if (updating_)
+    return {};
+  return std::unique_ptr<InstancePool>(new InstancePool(*this, ReloadCopy{}));
+}
+bool InstancePool::SwapReloadState(InstancePool &branch) noexcept {
+  if (updating_ || branch.updating_ || owner_ != branch.owner_)
+    return false;
+  slots_.swap(branch.slots_);
+  free_.swap(branch.free_);
+  std::swap(count_, branch.count_);
+  return true;
+}
 Instance *InstancePool::Find(InstanceHandle h) noexcept {
   if (h.owner != owner_ || h.index >= slots_.size())
     return nullptr;

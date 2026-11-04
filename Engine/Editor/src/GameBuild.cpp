@@ -119,7 +119,8 @@ std::optional<runtime::ByteBuffer> Read(const Path &path, std::size_t limit, std
   return source ? std::move(source->bytes) : std::nullopt;
 }
 std::optional<std::vector<Path>> ScriptFiles(const Path &root, const Path &directory,
-                                             std::string *error) {
+                                             std::string *error,
+                                             const core::CancellationToken &cancel = {}) {
   if (!Physical(root) || directory.empty() || directory == "." || directory.is_absolute()) {
     Fail(error, "A script manifest must be inside a dedicated project-relative source directory.");
     return {};
@@ -129,9 +130,14 @@ std::optional<std::vector<Path>> ScriptFiles(const Path &root, const Path &direc
       !Ordinary(root / directory, true))
     return {};
   std::vector<Path> result;
+  std::size_t entries{};
   std::error_code ec;
   for (std::filesystem::recursive_directory_iterator it(root / directory, ec), end;
        it != end && !ec; it.increment(ec)) {
+    if (cancel.IsCancellationRequested() || ++entries > 2 * kMaximumGameBuildSourceFiles) {
+      Fail(error, "Script source enumeration cancelled or exceeds traversal limits.");
+      return {};
+    }
     const auto path = it->path();
     if (it->is_directory(ec)) {
       if (!Ordinary(path, true)) {
@@ -428,6 +434,60 @@ std::optional<GameBuildToolchain> ReadGameBuildToolchain(const Path &profile, co
   return tools;
 }
 
+std::optional<GameScriptSources> ObserveGameScriptSources(const GameScriptBuildRequest &request,
+                                                          const core::CancellationToken &cancel,
+                                                          std::string *error) {
+  if (error)
+    error->clear();
+  if (!request.maximum_source_files ||
+      request.maximum_source_files > kMaximumGameBuildSourceFiles ||
+      request.maximum_source_bytes > kMaximumGameBuildSourceBytes ||
+      cancel.IsCancellationRequested()) {
+    Fail(error, "Script observation cancelled or has invalid source limits.");
+    return {};
+  }
+  const auto directory = request.script_manifest.parent_path();
+  auto files = ScriptFiles(request.project_root, directory, error, cancel);
+  if (!files || files->size() > request.maximum_source_files ||
+      std::ranges::find(*files, request.script_manifest) == files->end()) {
+    if (files)
+      Fail(error, "Script manifest is missing or source count exceeds admission limits.");
+    return {};
+  }
+  // Missing descriptors remain observations: script-only SDK callers have no scene project.
+  auto paths = *files;
+  paths.emplace_back("project.nexora");
+  paths.emplace_back("project.build.json");
+  std::ranges::sort(paths);
+  GameScriptSources result;
+  result.reserve(paths.size());
+  std::size_t bytes{};
+  for (const auto &path : paths) {
+    if (cancel.IsCancellationRequested()) {
+      Fail(error, "Script observation cancelled during content capture.");
+      return {};
+    }
+    const bool descriptor = path == "project.nexora" || path == "project.build.json";
+    const auto limit = descriptor
+                           ? std::min<std::size_t>(256 * 1024, request.maximum_source_bytes - bytes)
+                           : request.maximum_source_bytes - bytes;
+    const auto source = ReadGameBuildSource(request.project_root, path, limit, descriptor, error);
+    if (!source)
+      return {};
+    const auto size = source->bytes ? source->bytes->size() : 0;
+    result.push_back({path, size, source->bytes ? Fingerprint(*source->bytes) : std::string{},
+                      source->bytes.has_value()});
+    bytes += size;
+  }
+  const auto after = ScriptFiles(request.project_root, directory, error, cancel);
+  if (!after || *after != *files) {
+    if (after)
+      Fail(error, "Script source inventory changed during observation.");
+    return {};
+  }
+  return result;
+}
+
 struct PreparedGameScript::Implementation final {
   DirectoryOwner operation;
   Path root, script_directory, library;
@@ -482,7 +542,7 @@ std::optional<PreparedGameScript> PrepareGameScript(GameScriptBuildRequest reque
     Fail(error, "Script compilation requires a physical temporary parent outside the project.");
     return {};
   }
-  const auto files = ScriptFiles(state->root, state->script_directory, error);
+  const auto files = ScriptFiles(state->root, state->script_directory, error, cancel);
   if (!files)
     return {};
   if (files->size() > request.maximum_source_files) {

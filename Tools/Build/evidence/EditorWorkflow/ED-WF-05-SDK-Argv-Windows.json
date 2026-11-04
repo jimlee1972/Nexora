@@ -1,0 +1,186 @@
+{
+  "schema": 1,
+  "baseline_commit": "b2550b3344c29d50352197ba953d81888eb5dcb3",
+  "status": "SCOPED_WINDOWS_PASS_FULL_ACCEPTANCE_PENDING",
+  "source_files": [
+    {
+      "path": "CMake/Modules/NexoraGameProject.cmake",
+      "bytes": 7409,
+      "sha256": "c04430590af9ed27a77f856376b598f8da5b3fee78e7dbed6c4f0bf3127fdd12"
+    },
+    {
+      "path": "Tests/Editor/CMakeLists.txt",
+      "bytes": 42487,
+      "sha256": "22ed2f012e5108fdcda5c2ea05902a6054aa722d200b3618e44cb2683b6bc187"
+    },
+    {
+      "path": "Tests/Editor/GameSDKCommandTests.py",
+      "bytes": 6536,
+      "sha256": "46899dd0c430defa0525be852336ebbc37765d8c3ecec16e5e201df53745ab2b"
+    },
+    {
+      "path": "Tests/Editor/GameScriptBuildTests.cpp",
+      "bytes": 10664,
+      "sha256": "62b4f49ec830739db1ef25546e712bf6059d52a0914e4a68bd7ed388ade042ff"
+    }
+  ],
+  "scope": "Actual Windows CMake/Ninja command transport and canonical Zig module preparation. No desktop GUI repetition, no full Cloud/CI/package acceptance.",
+  "reproductions": [
+    {
+      "receipt": {
+        "scope": "Native old grouped-command transport reproduction; not Zig/Player acceptance",
+        "exit_code": 0,
+        "batch_count": 1,
+        "child_output_created": true,
+        "batch_prefixes": [
+          [
+            "@echo off",
+            "cd /D \"C:\\Users\\Jim-PC\\AppData\\Local\\Temp\\Nexora SDK \u9670\u967d commands tpcnh6wl\\build\" || (set FAIL_LINE=2& goto :ABORT)"
+          ]
+        ]
+      },
+      "files": [
+        {
+          "path": "build/editor-workflow-native/ed-wf05-sdk-old-batch-reproduction/receipt.json",
+          "bytes": 376,
+          "sha256": "6750d751e89b05b8643c8f570192fdc941b948ddc3d4b028f3db99c4caa05494"
+        },
+        {
+          "path": "build/editor-workflow-native/ed-wf05-sdk-old-batch-reproduction/build-output.log",
+          "bytes": 81,
+          "sha256": "c60f2b70aeccb2c9b4934a42240eb0688850f4f9b2967831a91ad9f8870940ec"
+        }
+      ]
+    },
+    {
+      "receipt": {
+        "scope": "Old grouped-command transport, hidden child-owned OEM437 console; not Zig/Player acceptance",
+        "exit_code": 1,
+        "batch_count": 1,
+        "child_output_created": false,
+        "parent_console_codepage_before": 65001,
+        "parent_console_codepage_after": 65001,
+        "private_console_codepage": 437,
+        "batch_prefixes": [
+          [
+            "@echo off",
+            "cd /D \"C:\\Users\\Jim-PC\\AppData\\Local\\Temp\\Nexora SDK \u9670\u967d commands 12eoaiyt\\build\" || (set FAIL_LINE=2& goto :ABORT)"
+          ]
+        ]
+      },
+      "files": [
+        {
+          "path": "build/editor-workflow-native/ed-wf05-sdk-old-oem-batch-reproduction/receipt.json",
+          "bytes": 515,
+          "sha256": "f95c587a39457238661e58e34a51870afda0882a26f3ace324a13d734b080901"
+        },
+        {
+          "path": "build/editor-workflow-native/ed-wf05-sdk-old-oem-batch-reproduction/build-output.log",
+          "bytes": 382,
+          "sha256": "ec56b02fc6b243eb9f72b1082f16b86046efcfbd0bf09deeaca9de8c63e72ce3"
+        }
+      ]
+    }
+  ],
+  "native_gates": [
+    {
+      "name": "ed-wf05-sdk-argv-build",
+      "result": {
+        "seconds": 175.3896463,
+        "exit_code": 0,
+        "log": "C:\\Users\\Jim-PC\\.codex\\worktrees\\editor-workflow\\Nexora\\build\\editor-workflow-native\\ed-wf05-sdk-argv-build.log"
+      },
+      "files": [
+        {
+          "path": "build/editor-workflow-native/ed-wf05-sdk-argv-build-exit.json",
+          "bytes": 185,
+          "sha256": "78107cee41a0890b38f69fed9222f3edfd376d16805586002eaf31c148b59609"
+        },
+        {
+          "path": "build/editor-workflow-native/ed-wf05-sdk-argv-build.log",
+          "bytes": 7886,
+          "sha256": "82dd11b07bfda092982b18f2509f63af045acc6427e5a2b06012cae1c6d0f0d0"
+        }
+      ]
+    },
+    {
+      "name": "ed-wf05-sdk-argv-tests",
+      "result": {
+        "scope": "Scoped Windows SDK/native compile and publication; no desktop GUI or full Cloud acceptance",
+        "command": "ctest --test-dir build/editor-workflow-native -C Development --output-on-failure -V --parallel 1 -R ^editor\\.(game_build_sdk_commands|game_build_sdk_bytes|game_script_build|game_script_authored_tests|game_build)$",
+        "seconds": 545.4783622,
+        "exit_code": 0
+      },
+      "files": [
+        {
+          "path": "build/editor-workflow-native/ed-wf05-sdk-argv-tests-exit.json",
+          "bytes": 388,
+          "sha256": "ef758b894f2e7eac8966d9be4b429886227c7a6d4ff08cd0c7be9e3cc4ccca28"
+        },
+        {
+          "path": "build/editor-workflow-native/ed-wf05-sdk-argv-tests.log",
+          "bytes": 8314,
+          "sha256": "5affbf6a0b0b18634d187f30799f0653f5da1f5dc31d8bb1308af3e4978bb0a6"
+        }
+      ],
+      "passed_cases": 5
+    },
+    {
+      "name": "ed-wf05-sdk-unicode-build",
+      "result": {
+        "seconds": 70.7739274,
+        "exit_code": 0,
+        "log": "C:\\Users\\Jim-PC\\.codex\\worktrees\\editor-workflow\\Nexora\\build\\editor-workflow-native\\ed-wf05-sdk-unicode-build.log"
+      },
+      "files": [
+        {
+          "path": "build/editor-workflow-native/ed-wf05-sdk-unicode-build-exit.json",
+          "bytes": 187,
+          "sha256": "ff82b886e166d06135428599d7227f1e8b66eb3411248a751084b1081ef43cb4"
+        },
+        {
+          "path": "build/editor-workflow-native/ed-wf05-sdk-unicode-build.log",
+          "bytes": 2857,
+          "sha256": "3aa8fe40bcebf3b08ee291458da04df4536de76d9301a76eace6d89a8316c52c"
+        }
+      ]
+    },
+    {
+      "name": "ed-wf05-sdk-oem-unicode-tests",
+      "result": {
+        "seconds": 46.6813206,
+        "command": "ctest --test-dir build/editor-workflow-native -C Development --output-on-failure -V --parallel 1 -R ^editor\\.(game_build_sdk_commands|game_script_unicode_temporary)$",
+        "scope": "Final OEM437 policy fixture plus real Zig Unicode private compilation; original cases remain separate",
+        "exit_code": 0
+      },
+      "files": [
+        {
+          "path": "build/editor-workflow-native/ed-wf05-sdk-oem-unicode-tests-exit.json",
+          "bytes": 351,
+          "sha256": "3c55919ca93c30868c8f6741e1a183a589f73dbd1214db1c9b3e6a2263517435"
+        },
+        {
+          "path": "build/editor-workflow-native/ed-wf05-sdk-oem-unicode-tests.log",
+          "bytes": 3572,
+          "sha256": "a7e0934902f42931b02186380e63fdd74b5f4203218f70c31cd2f6736cdc4cf5"
+        }
+      ],
+      "passed_cases": 2
+    }
+  ],
+  "policy_only": "Python interpreter stub verifies command transport/order/options only; it is not Zig or Player acceptance.",
+  "unchanged": "Original compile/test roots, per-module optimization and MSVC target, compiler-rt, private cache ownership, success marker and cancellation/drain process boundary. macOS host-linker branch unchanged.",
+  "pending": [
+    "Full exact-source Codex Cloud Development configure/build/CTest",
+    "Applicable Shipping configure/build",
+    "Exact-source required CI",
+    "Refreshed original Windows startup, relocated game and 32-reload/fault/recovery package gates"
+  ],
+  "accepted_work_orders": 4,
+  "total_work_orders": 9,
+  "validation_detail": [
+    "Initial 5 cases passed in 543.51 CTest seconds; policy fixture subsequently strengthened to hidden child-owned OEM437.",
+    "Final 2 refreshed cases passed in 46.14 CTest seconds: OEM437 three-case policy suite plus real Zig Unicode-private-temporary module compilation, both test roots, Player admission and unchanged authored files.",
+    "Parent console code page remained 65001 in the controlled old-command negative reproduction; no shared desktop Editor GUI was launched."
+  ]
+}

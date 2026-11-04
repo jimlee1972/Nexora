@@ -33,6 +33,14 @@ known struct size. Successful copies retain the caller's size and unknown traili
 preserve all output bytes. The provider must outlive every module holding its table. Calls from
 another thread fail and must not race with destruction. No native pointer is exposed.
 
+For a serialized embedding reload, `ForkForReload` creates an unpublished owning input branch
+with the same per-user bindings, raw controls, action edges, pointer anchors/deltas/wheel values,
+active device, focus and sequence. It acquires no native device and does not synthesize a frame,
+focus transition or key release. Allocation may throw without changing the source; foreign-thread
+forks reject before reading state. Candidate binding/input changes affect only that branch.
+The embedding retains each branch through all callbacks using its borrowed API context and owns
+candidate admission/retirement. This copies no native gamepad adapter or Editor capture filter.
+
 ## Copied mouse pointer
 
 `read_pointer` / Zig `api.pointer` copies absolute client position, accumulated frame delta,

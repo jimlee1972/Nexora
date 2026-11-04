@@ -264,8 +264,28 @@ void StartupSplash::PrepareMainWindow() {
           return TRUE;
         // No cross-thread HWND ownership: DestroyWindow must not wait for a
         // main owner whose Ready()/failure cleanup is waiting for this thread.
-        if (!IsWindowVisible(hwnd))
+        if (!IsWindowVisible(hwnd)) {
           Evidence("main-window-hidden");
+          // Prepare a fully visible first client on small desktops too. Resizing this hidden
+          // owner queues the ordinary Window/RenderSurface extent change before its first draw.
+          MONITORINFO monitor{sizeof(MONITORINFO)};
+          RECT bounds{};
+          if (GetMonitorInfoW(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), &monitor) &&
+              GetWindowRect(hwnd, &bounds)) {
+            const auto &work = monitor.rcWork;
+            const auto width = std::min(bounds.right - bounds.left, work.right - work.left);
+            const auto height = std::min(bounds.bottom - bounds.top, work.bottom - work.top);
+            if (width > 0 && height > 0) {
+              const auto left = std::clamp(bounds.left, work.left, work.right - width);
+              const auto top = std::clamp(bounds.top, work.top, work.bottom - height);
+              if ((left != bounds.left || top != bounds.top ||
+                   width != bounds.right - bounds.left || height != bounds.bottom - bounds.top) &&
+                  !SetWindowPos(hwnd, nullptr, left, top, width, height,
+                                SWP_NOACTIVATE | SWP_NOZORDER))
+                std::cerr << "could not fit the hidden Editor to its monitor work area\n";
+            }
+          }
+        }
         for (const auto type : {ICON_SMALL, ICON_BIG}) {
           const int size = GetSystemMetricsForDpi(type == ICON_SMALL ? SM_CXSMICON : SM_CXICON,
                                                   GetDpiForWindow(hwnd));

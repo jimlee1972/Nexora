@@ -205,6 +205,32 @@ SpriteScene::SpriteScene(runtime::World &world, runtime::Id scene) : world_(&wor
       record->state == runtime::SceneState::Unloading)
     throw std::invalid_argument("2D scene must be live");
 }
+std::optional<SpriteScene> SpriteScene::ForkForReload(runtime::World &world) const {
+  if (&world == world_ || world_->Kind() != runtime::WorldKind::Play ||
+      world.Kind() != runtime::WorldKind::Play)
+    return {};
+  auto branch = *this;
+  if (!branch.RebindForReload(world))
+    return {};
+  return branch;
+}
+bool SpriteScene::RebindForReload(runtime::World &world) noexcept {
+  if (world_->Kind() != runtime::WorldKind::Play || world.Kind() != runtime::WorldKind::Play)
+    return false;
+  const auto *record = world.FindScene(scene_);
+  if (!record || record->state == runtime::SceneState::Unloading ||
+      record->state == runtime::SceneState::Unloaded)
+    return false;
+  std::size_t sprites{}, colliders{};
+  for (const auto &entity : record->entities) {
+    sprites += sprites_.contains(entity.id);
+    colliders += colliders_.contains(entity.id);
+  }
+  if (sprites != sprites_.size() || colliders != colliders_.size())
+    return false;
+  world_ = &world;
+  return true;
+}
 bool SpriteScene::Set(runtime::Id entity, Sprite sprite) {
   const auto *scene = world_->FindScene(scene_);
   if (!scene || scene->state == runtime::SceneState::Unloading ||

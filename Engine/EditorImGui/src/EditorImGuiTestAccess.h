@@ -133,7 +133,7 @@ public:
   SavedGameDecisionPosition(const EditorImGuiHost &, std::size_t);
   // Host-local owning override for deterministic font tests, applied before a new SetDisplay.
   static void FontSources(EditorImGuiHost &, std::span<const std::string> paths,
-                          bool require_traditional_face = false);
+                          bool require_traditional_face = false, bool map_installed_file = false);
   [[nodiscard]] static EditorFontTestState FontState(const EditorImGuiHost &);
   [[nodiscard]] static EditorFontGlyphTestState FontGlyph(const EditorImGuiHost &, std::uint32_t);
   [[nodiscard]] static std::vector<std::uint16_t> TraditionalFontScalars();

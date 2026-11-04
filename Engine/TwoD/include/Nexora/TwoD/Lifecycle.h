@@ -1,5 +1,6 @@
 #pragma once
 #include "Nexora/TwoD/Scene.h"
+#include <memory>
 #include <span>
 
 namespace nexora::twod {
@@ -25,8 +26,18 @@ public:
   [[nodiscard]] Instance *Find(InstanceHandle handle) noexcept;
   void ForEach(const std::function<void(Instance &)> &update);
   [[nodiscard]] std::size_t Size() const noexcept { return count_; }
+  // Owner-thread reload branch: copies slots/free-list/generations without changing handle
+  // identity. Allocation can throw; reentrant structural access returns null. A branch must
+  // stay unpublished until its embedding transaction commits; ordinary pools remain distinct.
+  [[nodiscard]] std::unique_ptr<InstancePool> ForkForReload() const;
+  // Infallible state exchange for branches of this owner, preserving the pool object's address.
+  // Rejects unrelated owners and either pool's ForEach. Find pointers expire on success.
+  [[nodiscard]] bool SwapReloadState(InstancePool &branch) noexcept;
 
 private:
+  friend class GameplayBridge;
+  struct ReloadCopy final {};
+  InstancePool(const InstancePool &source, ReloadCopy);
   struct Slot {
     Instance value;
     std::uint32_t generation{1};

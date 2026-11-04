@@ -599,6 +599,23 @@ GameplayUi::GameplayUi(std::uint64_t white_texture_id) : state_(std::make_unique
   state_->white = std::move(font);
 }
 GameplayUi::~GameplayUi() = default;
+GameplayUi::GameplayUi(std::unique_ptr<State> state) noexcept : state_(std::move(state)) {}
+std::unique_ptr<GameplayUi> GameplayUi::ForkForReload() const {
+  if (!ReloadReady())
+    return {};
+  return std::unique_ptr<GameplayUi>(new GameplayUi(std::make_unique<State>(*state_)));
+}
+bool GameplayUi::ReloadReady() const noexcept {
+  return state_->thread == std::this_thread::get_id() && !state_->open;
+}
+bool GameplayUi::SwapReloadState(GameplayUi &branch) noexcept {
+  if (state_->thread != std::this_thread::get_id() ||
+      branch.state_->thread != std::this_thread::get_id() || state_->open || branch.state_->open ||
+      state_->white != branch.state_->white)
+    return false;
+  state_.swap(branch.state_);
+  return true;
+}
 int32_t GameplayUi::GetApi(NexoraGameplayUiApiV1 *out) noexcept {
   return State::Call(state_.get(), [&](State &) {
     if (!out)

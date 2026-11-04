@@ -70,7 +70,7 @@ NexoraTwoDInstance Encode(const Instance &v) {
 } // namespace
 
 struct GameplayBridge::State {
-  runtime::World &world;
+  runtime::World *world;
   SpriteScene *scene{};
   SceneSession *session{};
   std::uint64_t revision{};
@@ -90,11 +90,11 @@ struct GameplayBridge::State {
   std::array<bool, 2> ready{};
 
   State(runtime::World &w, SpriteScene &s, ClipResolver resolve, Tilemap *t, InstancePool *p)
-      : world(w), scene(&s), clips(std::move(resolve)), tiles(t), pool(p),
+      : world(&w), scene(&s), clips(std::move(resolve)), tiles(t), pool(p),
         indices{SpatialIndex{4}, SpatialIndex{4}} {}
 
   State(runtime::World &w, SceneSession &s, ClipResolver resolve, InstancePool *p)
-      : world(w), session(&s), revision(s.Revision()), primary(s.Primary()),
+      : world(&w), session(&s), revision(s.Revision()), primary(s.Primary()),
         clips(std::move(resolve)), tiles(nullptr), pool(p),
         indices{SpatialIndex{4}, SpatialIndex{4}} {}
   SpriteScene *Scene(runtime::Id entity) const {
@@ -103,7 +103,7 @@ struct GameplayBridge::State {
   Tilemap *Tiles() const { return session ? session->PrimaryTiles() : tiles; }
   bool Live(runtime::Id entity) const {
     const auto *metadata = Scene(entity);
-    const auto *s = metadata ? world.FindScene(metadata->SceneId()) : nullptr;
+    const auto *s = metadata ? world->FindScene(metadata->SceneId()) : nullptr;
     return s && s->state != runtime::SceneState::Unloading &&
            s->state != runtime::SceneState::Unloaded &&
            std::any_of(s->entities.begin(), s->entities.end(),
@@ -500,6 +500,46 @@ GameplayBridge::GameplayBridge(runtime::World &world, SceneSession &session, Cli
     throw std::invalid_argument("2D scene session must belong to the supplied World");
 }
 GameplayBridge::~GameplayBridge() = default;
+std::unique_ptr<GameplayBridge> GameplayBridge::ForkForReload(runtime::World &world,
+                                                              SpriteScene &scene, Tilemap *tiles,
+                                                              InstancePool *pool) const {
+  if (state_->thread != std::this_thread::get_id() || state_->entered || state_->session)
+    return {};
+  const auto *record = world.FindScene(scene.SceneId());
+  if (&world == state_->world || &scene == state_->scene ||
+      state_->world->Kind() != runtime::WorldKind::Play ||
+      world.Kind() != runtime::WorldKind::Play || &scene.WorldOwner() != &world ||
+      scene.SceneId() != state_->scene->SceneId() || bool(tiles) != bool(state_->tiles) ||
+      bool(pool) != bool(state_->pool) || (tiles && tiles == state_->tiles) ||
+      (pool && (pool == state_->pool || pool->owner_ != state_->pool->owner_)) || !record ||
+      record->state == runtime::SceneState::Unloaded ||
+      record->state == runtime::SceneState::Unloading)
+    return {};
+  auto branch = std::make_unique<GameplayBridge>(world, scene, state_->clips, tiles, pool);
+  branch->state_->camera = state_->camera;
+  branch->state_->animations = state_->animations;
+  branch->state_->indices = state_->indices;
+  branch->state_->ready = state_->ready;
+  return branch;
+}
+bool GameplayBridge::RebindForReload(runtime::World &world, SpriteScene &scene, Tilemap *tiles,
+                                     InstancePool *pool) noexcept {
+  if (state_->thread != std::this_thread::get_id() || state_->entered || state_->session)
+    return false;
+  const auto *record = world.FindScene(scene.SceneId());
+  if (state_->world->Kind() != runtime::WorldKind::Play ||
+      world.Kind() != runtime::WorldKind::Play || &scene.WorldOwner() != &world ||
+      scene.SceneId() != state_->scene->SceneId() || bool(tiles) != bool(state_->tiles) ||
+      bool(pool) != bool(state_->pool) || (pool && pool->owner_ != state_->pool->owner_) ||
+      !record || record->state == runtime::SceneState::Unloaded ||
+      record->state == runtime::SceneState::Unloading)
+    return false;
+  state_->world = &world;
+  state_->scene = &scene;
+  state_->tiles = tiles;
+  state_->pool = pool;
+  return true;
+}
 int32_t GameplayBridge::GetApi(NexoraTwoDApiV1 *output) noexcept {
   return State::Call(state_.get(), [&](auto &s) -> int32_t {
     if (!output)

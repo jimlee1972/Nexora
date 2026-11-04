@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cstdio>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -25,6 +26,56 @@
 
 namespace Nexora::EditorImGuiDetail {
 namespace {
+#if defined(_WIN32)
+struct FontMapping final {
+  HANDLE file{INVALID_HANDLE_VALUE}, mapping{};
+  const void *view{};
+  ~FontMapping() {
+    if (view)
+      UnmapViewOfFile(view);
+    if (mapping)
+      CloseHandle(mapping);
+    if (file != INVALID_HANDLE_VALUE)
+      CloseHandle(file);
+  }
+};
+#endif
+std::shared_ptr<const FontSourceData> ReadFontSource(const std::filesystem::path &path,
+                                                     std::size_t size, bool map_installed_file) {
+#if defined(_WIN32)
+  if (map_installed_file) {
+    auto owner = std::make_shared<FontMapping>();
+    // Keep the opened object immutable for every borrowed atlas input. Atomic replacement is
+    // allowed, but in-place writes/truncation cannot invalidate validation or mapped bounds.
+    owner->file = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE,
+                              nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    LARGE_INTEGER actual{};
+    if (owner->file == INVALID_HANDLE_VALUE || !GetFileSizeEx(owner->file, &actual) ||
+        actual.QuadPart != static_cast<LONGLONG>(size))
+      return {};
+    owner->mapping = CreateFileMappingW(owner->file, nullptr, PAGE_READONLY, 0, 0, nullptr);
+    if (!owner->mapping)
+      return {};
+    owner->view = MapViewOfFile(owner->mapping, FILE_MAP_READ, 0, 0, size);
+    if (!owner->view)
+      return {};
+    auto result = std::make_shared<FontSourceData>();
+    result->bytes = {static_cast<const std::byte *>(owner->view), size};
+    result->owner = std::move(owner);
+    return result;
+  }
+#else
+  static_cast<void>(map_installed_file);
+#endif
+  auto owner = std::make_shared<std::vector<std::byte>>(size);
+  std::ifstream input(path, std::ios::binary);
+  if (!input.read(reinterpret_cast<char *>(owner->data()), static_cast<std::streamsize>(size)))
+    return {};
+  auto result = std::make_shared<FontSourceData>();
+  result->bytes = *owner;
+  result->owner = std::move(owner);
+  return result;
+}
 std::span<const std::uint32_t> DefaultFontCoverage() {
   static const auto coverage = [] {
     // This atlas never becomes a context's atlas or changes the current context. Build exactly
@@ -86,6 +137,16 @@ bool FontDiagnosticsEnabled() noexcept {
   return std::getenv("NEXORA_EDITOR_FONT_DIAGNOSTICS") != nullptr;
 #endif
 }
+void FontDiagnosticCheckpoint(const char *phase, std::size_t candidate, int face) noexcept {
+  if (!FontDiagnosticsEnabled())
+    return;
+  const auto now = std::chrono::duration_cast<std::chrono::microseconds>(
+                       std::chrono::steady_clock::now().time_since_epoch())
+                       .count();
+  std::fprintf(stderr, "editor font checkpoint: phase=%s candidate=%zu face=%d monotonic_us=%lld\n",
+               phase, candidate, face, static_cast<long long>(now));
+  std::fflush(stderr);
+}
 std::vector<std::uint32_t> BuildFontProfile(std::span<const std::uint32_t> simplified_ranges) {
   std::set<std::uint32_t> points;
   const auto append = [&](std::uint32_t first, std::uint32_t last) {
@@ -116,9 +177,14 @@ std::vector<std::uint32_t> BuildFontProfile(std::span<const std::uint32_t> simpl
 }
 std::vector<FontSource> InstalledFontSources() {
   std::vector<FontSource> result;
+#if defined(_WIN32)
+  constexpr bool map_host_defaults = true;
+#else
+  constexpr bool map_host_defaults = false;
+#endif
   const auto add = [&](const std::filesystem::path &path, bool require_traditional = false) {
     if (result.size() < 16)
-      result.push_back({Utf8(path), require_traditional});
+      result.push_back({Utf8(path), require_traditional, map_host_defaults});
   };
   std::string configured;
 #if defined(_WIN32)
@@ -203,7 +269,9 @@ std::shared_ptr<const FontPlan> PrepareFontPlan(std::span<const std::uint32_t> p
   }
   // The first actual default-atlas build is inside this probe's timing interval. Subsequent
   // plans reuse its immutable scalar set; no pointer to that temporary atlas is retained.
+  FontDiagnosticCheckpoint("default-coverage-begin");
   const auto baseline = DefaultFontCoverage();
+  FontDiagnosticCheckpoint("default-coverage-end");
   if (baseline.size() > FontProfileLimit || !std::is_sorted(baseline.begin(), baseline.end()) ||
       std::adjacent_find(baseline.begin(), baseline.end()) != baseline.end() ||
       std::any_of(baseline.begin(), baseline.end(), [](std::uint32_t scalar) {
@@ -220,6 +288,7 @@ std::shared_ptr<const FontPlan> PrepareFontPlan(std::span<const std::uint32_t> p
     if (remaining.empty() || plan->faces.size() == 4)
       break;
     ++plan->candidates;
+    FontDiagnosticCheckpoint("source-begin", plan->candidates);
     if (source.path.empty() || source.path.size() > 4096 ||
         source.path.find('\0') != source.path.npos) {
       ++plan->rejected;
@@ -243,13 +312,15 @@ std::shared_ptr<const FontPlan> PrepareFontPlan(std::span<const std::uint32_t> p
       ++plan->rejected;
       continue;
     }
-    auto bytes = std::make_shared<std::vector<std::byte>>(static_cast<std::size_t>(size));
-    std::ifstream input(path, std::ios::binary);
-    if (!input.read(reinterpret_cast<char *>(bytes->data()), static_cast<std::streamsize>(size))) {
+    FontDiagnosticCheckpoint("source-read-begin", plan->candidates);
+    auto bytes = ReadFontSource(path, static_cast<std::size_t>(size), source.map_installed_file);
+    if (!bytes) {
       ++plan->rejected;
       continue;
     }
-    const auto identities = InspectFontFaces(*bytes);
+    FontDiagnosticCheckpoint("source-read-end", plan->candidates);
+    const auto identities = InspectFontFaces(bytes->bytes);
+    FontDiagnosticCheckpoint("face-inspection-end", plan->candidates);
     bool admitted = false, scalable = false, bitmap_only = false;
     const bool require_tc = source.require_traditional_face ||
                             std::ranges::any_of(identities, [](const auto &identity) {
@@ -262,8 +333,10 @@ std::shared_ptr<const FontPlan> PrepareFontPlan(std::span<const std::uint32_t> p
       if (!identity.scalable || (require_tc && !TraditionalFamily(identity.family)))
         continue;
       FontOutlineCoverage coverage;
-      if (!ProbeFontOutlines(*bytes, identity.index, remaining, coverage) ||
-          coverage.scalars.empty())
+      FontDiagnosticCheckpoint("outline-begin", plan->candidates, identity.index);
+      const bool probed = ProbeFontOutlines(bytes->bytes, identity.index, remaining, coverage);
+      FontDiagnosticCheckpoint("outline-end", plan->candidates, identity.index);
+      if (!probed || coverage.scalars.empty())
         continue;
       // Reserve default-font/packing headroom before invoking ImGui's whole-atlas builder.
       if (coverage.area > (FontAtlasMaximumPixels - 65536) / 2 ||
@@ -293,7 +366,9 @@ std::shared_ptr<const FontPlan> PrepareFontPlan(std::span<const std::uint32_t> p
 std::shared_ptr<const FontPlan> InstalledFontPlan(std::span<const std::uint32_t> profile) {
   static std::mutex mutex;
   static std::shared_ptr<const FontPlan> cached;
+  FontDiagnosticCheckpoint("plan-cache-lock-begin");
   const std::lock_guard guard(mutex);
+  FontDiagnosticCheckpoint("plan-cache-lock-end");
   if (!cached)
     cached = PrepareFontPlan(profile, InstalledFontSources());
   return cached;

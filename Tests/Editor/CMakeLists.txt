@@ -5,6 +5,18 @@ add_executable(NexoraGameBuildProgressTests GameBuildProgressTests.cpp)
 target_link_libraries(NexoraGameBuildProgressTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraGameBuildProgressTests)
 add_test(NAME editor.game_build_progress COMMAND NexoraGameBuildProgressTests)
+add_executable(NexoraGameScriptCompilerTests GameScriptCompilerTests.cpp)
+target_include_directories(NexoraGameScriptCompilerTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+target_link_libraries(NexoraGameScriptCompilerTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraGameScriptCompilerTests)
+add_test(NAME editor.game_script_compiler COMMAND NexoraGameScriptCompilerTests)
+set_tests_properties(editor.game_script_compiler PROPERTIES TIMEOUT 30)
+add_executable(NexoraPlayApiProxyTests PlayApiProxyTests.cpp)
+target_include_directories(NexoraPlayApiProxyTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+target_link_libraries(NexoraPlayApiProxyTests PRIVATE Nexora::Runtime)
+nexora_apply_defaults(NexoraPlayApiProxyTests)
+add_test(NAME editor.play_api_proxy COMMAND NexoraPlayApiProxyTests)
+set_tests_properties(editor.play_api_proxy PROPERTIES TIMEOUT 30)
 add_test(NAME editor.windows_package_admission
   COMMAND "${Python3_EXECUTABLE}" -m unittest discover
     -s "${PROJECT_SOURCE_DIR}/Tools/Editor/tests" -p test_windows_package.py)
@@ -37,6 +49,14 @@ if(WIN32 AND NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL)
       "$<TARGET_FILE:NexoraEditor>")
 endif()
 if(NEXORA_ENABLE_ASSET_PIPELINE)
+  # The native-argv adapter is Windows/Linux; macOS retains its host-linker workaround.
+  if(NEXORA_EDITOR_GAME_NINJA_EXECUTABLE AND (WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux"))
+    add_test(NAME editor.game_build_sdk_commands
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/GameSDKCommandTests.py"
+        --cmake "${CMAKE_COMMAND}" --ninja "${NEXORA_EDITOR_GAME_NINJA_EXECUTABLE}"
+        --module "${PROJECT_SOURCE_DIR}/CMake/Modules/NexoraGameProject.cmake")
+    set_tests_properties(editor.game_build_sdk_commands PROPERTIES TIMEOUT 60)
+  endif()
   add_executable(NexoraGameBuildSDKTests GameBuildSDKTests.cpp)
   target_include_directories(NexoraGameBuildSDKTests PRIVATE "${PROJECT_BINARY_DIR}/Engine/Editor/generated")
   nexora_apply_defaults(NexoraGameBuildSDKTests)
@@ -68,6 +88,16 @@ if(NEXORA_ENABLE_ASSET_PIPELINE)
       COMMAND NexoraGameScriptBuildTests "$<TARGET_FILE:NexoraProjectPlayer>"
         "${CMAKE_COMMAND}" "${NEXORA_EDITOR_GAME_NINJA_EXECUTABLE}" "${NEXORA_ZIG_EXECUTABLE}")
     set_tests_properties(editor.game_script_build PROPERTIES TIMEOUT 300)
+    add_test(NAME editor.game_script_authored_tests
+      COMMAND NexoraGameScriptBuildTests "$<TARGET_FILE:NexoraProjectPlayer>"
+        "${CMAKE_COMMAND}" "${NEXORA_EDITOR_GAME_NINJA_EXECUTABLE}" "${NEXORA_ZIG_EXECUTABLE}"
+        --authored-test-rejection)
+    set_tests_properties(editor.game_script_authored_tests PROPERTIES TIMEOUT 300)
+    add_test(NAME editor.game_script_unicode_temporary
+      COMMAND NexoraGameScriptBuildTests "$<TARGET_FILE:NexoraProjectPlayer>"
+        "${CMAKE_COMMAND}" "${NEXORA_EDITOR_GAME_NINJA_EXECUTABLE}" "${NEXORA_ZIG_EXECUTABLE}"
+        --unicode-temporary-parent)
+    set_tests_properties(editor.game_script_unicode_temporary PROPERTIES TIMEOUT 300)
   endif()
   add_executable(NexoraGameProjectExportTests GameProjectExportTests.cpp)
   target_link_libraries(NexoraGameProjectExportTests PRIVATE Nexora::Editor)

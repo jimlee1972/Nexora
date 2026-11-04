@@ -334,6 +334,59 @@ def verify(package, evidence, editor_play=False):
                                         'physical_host_acceptance': 'NOT_RUN'})
 
 
+def verify_script_reload(editor, evidence, cycles):
+    test = Path(__file__).resolve().parents[2] / 'Tests/Editor/WindowsScriptReload.py'
+    evidence = Path(evidence)
+    stdout = evidence.parent / 'script-reload.stdout.log'
+    stderr = evidence.parent / 'script-reload.stderr.log'
+    try:
+        result = subprocess.run([
+            sys.executable, str(test), '--editor', str(editor), '--evidence-dir', str(evidence),
+            '--cycles', str(cycles)], capture_output=True, timeout=4200)
+    except subprocess.TimeoutExpired as error:
+        stdout.write_bytes(error.stdout or b'')
+        stderr.write_bytes(error.stderr or b'')
+        raise RuntimeError('Extracted Editor source-edit reload acceptance timed out; see retained evidence') from error
+    stdout.write_bytes(result.stdout)
+    stderr.write_bytes(result.stderr)
+    if result.returncode != 0:
+        raise RuntimeError('Extracted Editor source-edit reload acceptance failed; see retained evidence')
+    receipt = json.loads((evidence / 'receipt.json').read_text(encoding='utf-8'))
+    sequence = receipt.get('sequence', [])
+    if (receipt.get('status') != 'PASS' or receipt.get('cycles') != cycles or cycles != 32 or
+            receipt.get('full_32_cycle_gate') is not True or
+            [entry.get('version') for entry in sequence] != list(range(cycles + 1)) or
+            receipt.get('actual_ctrl_p') is not True or receipt.get('preserved_mtime_edits') is not True or
+            receipt.get('stop_cancelled_real_compilation') is not True or
+            not receipt.get('observed_children_terminated') or
+            receipt.get('remaining_owned_job_processes') != 0 or receipt.get('exit') != 0):
+        raise RuntimeError('Extracted Editor reload receipt is incomplete')
+    if (any(type(entry.get(key)) is not int or entry[key] < (0 if key == 'counter' else 1)
+            for entry in sequence for key in ('counter', 'scene', 'entity')) or
+            len({(entry['scene'], entry['entity']) for entry in sequence}) != 1 or
+            any(current['counter'] <= previous['counter']
+                for previous, current in zip(sequence, sequence[1:]))):
+        raise RuntimeError('Extracted Editor reload receipt does not preserve state/handles')
+    faults = receipt.get('faults', [])
+    recovery = receipt.get('recovery', {})
+    if ([entry.get('kind') for entry in faults] != ['compile', 'restore', 'initialize', 'start'] or
+            any(entry.get('rejected') is not True or entry.get('old_dispatch_continued') is not True or
+                not isinstance(entry.get('diagnostic'), str) or not entry['diagnostic']
+                for entry in faults) or recovery.get('committed') is not True or
+            recovery.get('version') != cycles + 8):
+        raise RuntimeError('Extracted Editor reload failure/recovery receipt is incomplete')
+    continuity = sequence[-1:] + faults + [recovery]
+    if (any(type(entry.get(key)) is not int or entry[key] < (0 if key == 'counter' else 1)
+            for entry in continuity for key in ('counter', 'scene', 'entity')) or
+            any(type(entry.get('generation')) is not int or entry['generation'] <= 0 for entry in faults) or
+            type(receipt.get('active_generation_before_faults')) is not int or
+            any(entry['generation'] != receipt['active_generation_before_faults'] for entry in faults) or
+            len({(entry['scene'], entry['entity']) for entry in continuity}) != 1 or
+            any(current['counter'] <= previous['counter']
+                for previous, current in zip(continuity, continuity[1:]))):
+        raise RuntimeError('Extracted Editor rejected candidates changed state/handles')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--editor', type=Path, required=True)
@@ -345,6 +398,7 @@ def main():
     parser.add_argument('--ninja', type=Path)
     parser.add_argument('--zig-root', type=Path)
     parser.add_argument('--ninja-license', type=Path)
+    parser.add_argument('--script-reload-cycles', type=int, choices=(0, 32), default=0)
     parser.add_argument('--commit', required=True)
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
@@ -353,6 +407,8 @@ def main():
     game_tools = (args.game_runtime_profile, args.cmake_root, args.ninja, args.zig_root, args.ninja_license)
     if any(game_tools) and not all(game_tools):
         parser.error('Game builds require the runtime profile and all explicit tool/resource/license paths')
+    if args.script_reload_cycles and not all(game_tools):
+        parser.error('Script reload acceptance requires the complete installed SDK/toolchain')
     require_gui_subsystem(args.editor.resolve())
     if args.output.exists():
         parser.error('Output must be new; existing packages are never overwritten')
@@ -411,6 +467,11 @@ def main():
                     if not json.loads((extracted / 'build-info.json').read_text())['game_build_tools']:
                         raise RuntimeError('Extracted Editor lost private game-build tools')
                     verify(extracted, args.output / 'verification/extracted', editor_play=True)
+                    if args.script_reload_cycles:
+                        reload_evidence = args.output / 'verification/extracted/script-reload'
+                        verify_script_reload(extracted / 'NexoraEditor.exe', reload_evidence,
+                                             args.script_reload_cycles)
+                        require_package_inventory(extracted)
             except Exception:
                 archive.unlink(missing_ok=True)
                 raise

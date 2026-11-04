@@ -43,6 +43,15 @@ public:
   bool Pump(std::uint32_t frames);
   [[nodiscard]] NexoraGameplayAudioApiV1 Api() noexcept;
   [[nodiscard]] NexoraGameplayAudioStateApiV1 StateApi() noexcept;
+  // Unpublished owner-thread mixer branch: copies voice IDs/cursors, assets/generations,
+  // gains, counters and budgets without opening/copying a native device or invoking a sink.
+  // Playback may be staged against the source's output availability; Pump needs a real sink.
+  // Allocation may throw and leaves the source unchanged.
+  [[nodiscard]] std::unique_ptr<GameplayAudio> ForkForReload() const;
+  // Exchanges only mixer state with a related branch; native output stays with each owner.
+  // The embedding MUST route generation-owned API proxies before retirement/commit: raw API
+  // contexts remain attached to their original mixer object, rather than following voices.
+  [[nodiscard]] bool SwapReloadMixer(GameplayAudio &branch) noexcept;
 
 private:
   struct Impl;

@@ -30,6 +30,13 @@ HWND FindSplash() {
 }
 HWND probe_main{};
 bool probe_received{};
+struct TestLauncher final {
+  HWND window{};
+  ~TestLauncher() {
+    if (window)
+      DestroyWindow(window);
+  }
+};
 LRESULT CALLBACK ProbeProcedure(HWND hwnd, UINT message, WPARAM wp, LPARAM lp) {
   if (message == WM_APP + 101) {
     probe_received = true;
@@ -43,6 +50,8 @@ LRESULT CALLBACK TeardownProbe(int code, WPARAM wp, LPARAM lp) {
   return CallNextHookEx(nullptr, code, wp, lp);
 }
 void Capture(HWND hwnd, const char *filename = "editor-startup-splash.bmp") {
+  Require(SetWindowPos(hwnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE) != 0,
+          "Cannot expose the owned splash in normal window order");
   Require(SUCCEEDED(DwmFlush()), "Desktop composition flush failed");
   RECT r{};
   GetClientRect(hwnd, &r);
@@ -94,6 +103,7 @@ void Capture(HWND hwnd, const char *filename = "editor-startup-splash.bmp") {
 } // namespace
 int main() try {
   using namespace nexora::editor::app;
+  TestLauncher launcher;
   Require(!FindSplash(), "Unexpected initial splash");
   {
     StartupSplash cli(false);
@@ -113,6 +123,13 @@ int main() try {
     Require(AreDpiAwarenessContextsEqual(GetThreadDpiAwarenessContext(),
                                          DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2),
             "Main owner DPI awareness lost");
+    launcher.window =
+        CreateWindowExW(WS_EX_TOOLWINDOW, L"STATIC", L"Nexora native test launcher", WS_POPUP, 0, 0,
+                        1, 1, nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
+    Require(launcher.window != nullptr, "Owned foreground launcher missing");
+    ShowWindow(launcher.window, SW_SHOW);
+    SetForegroundWindow(launcher.window);
+    Require(GetForegroundWindow() == launcher.window, "Owned foreground launcher not admitted");
     for (auto stage : {StartupStage::Settings, StartupStage::Project, StartupStage::Graphics,
                        StartupStage::Scene, StartupStage::Workspace})
       splash.Stage(stage);
@@ -191,6 +208,26 @@ int main() try {
   SetWindowLongPtrW(main_window, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(failure_old_proc));
   Require(failure_ready && probe_received && !FindSplash(),
           "Prepared failure did not service notification or left an orphan splash");
+  MONITORINFO monitor{sizeof(MONITORINFO)};
+  Require(GetMonitorInfoW(MonitorFromWindow(main_window, MONITOR_DEFAULTTONEAREST), &monitor) != 0,
+          "Main fixture monitor is unavailable");
+  const auto work = monitor.rcWork;
+  Require(SetWindowPos(main_window, nullptr, work.left - 80, work.top - 80,
+                       work.right - work.left + 160, work.bottom - work.top + 160,
+                       SWP_NOACTIVATE | SWP_NOZORDER) != 0,
+          "Oversized hidden main fixture could not be prepared");
+  {
+    StartupSplash fitted(true);
+    fitted.PrepareMainWindow();
+    RECT actual{};
+    Require(GetWindowRect(main_window, &actual) != 0 && actual.left >= work.left &&
+                actual.top >= work.top && actual.right <= work.right &&
+                actual.bottom <= work.bottom,
+            "Prepared main extends outside its monitor work area");
+    Require(!IsWindowVisible(main_window) && GetForegroundWindow() == foreground,
+            "Fitting the hidden main revealed it or stole focus");
+    fitted.Ready();
+  }
   DestroyWindow(main_window);
   std::cout << "Native screen pixels, hidden main, synchronous teardown, DPI, lifecycle and "
                "icons passed\n";

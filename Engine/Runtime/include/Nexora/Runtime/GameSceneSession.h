@@ -59,6 +59,13 @@ public:
   [[nodiscard]] std::string_view ErrorText() const noexcept;
   [[nodiscard]] GameSceneError Status(std::uint64_t, NexoraSceneTransitionV1 &) const noexcept;
   [[nodiscard]] NexoraGameplaySceneApiV1 Api() noexcept;
+  // Owner-thread snapshot over an identical unpublished GameWorld. Copies catalog/instance
+  // mappings, pending/completed requests, monotonic IDs and diagnostics without processing work.
+  // Source must not be stopped or processing. Allocation may throw without changing the source.
+  [[nodiscard]] std::unique_ptr<GameSceneSession> ForkForReload(game::GameWorld &) const;
+  // Retarget identical moved state at retirement/publication; preserves cached API context.
+  // The embedding keeps both GameWorld owners alive through module/library finalizers.
+  [[nodiscard]] bool RebindForReload(game::GameWorld &) noexcept;
 
 private:
   struct Request final {
@@ -70,7 +77,7 @@ private:
   };
   [[nodiscard]] Id Camera(const World &, Id) const noexcept;
   void Error(std::string_view) noexcept;
-  game::GameWorld &game_;
+  game::GameWorld *game_;
   std::shared_ptr<const LoadedGameProject> project_;
   std::vector<GameSceneInstance> instances_;
   std::optional<Request> pending_;

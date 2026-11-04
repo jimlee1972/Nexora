@@ -3,12 +3,59 @@
 
 import contextlib
 import io
+import json
 import os
 import subprocess
 import sys
+import time
 import unittest
 
 from LinuxDisplayAcceptance import collect_output
+from LinuxPrefabIsolation import send_input
+
+
+class PrefabInputTransportTests(unittest.TestCase):
+    def test_ack_bound_input_preserves_trace_without_blind_settle(self):
+        actions = io.StringIO()
+        send_input(sys.executable, ['-c', 'pass'], os.environ.copy(), actions,
+                   lambda _: self.fail('ACK-bound input added a fixed settle'),
+                   deadline=time.monotonic() + 8, awaiting_ack=True)
+        records = [json.loads(line) for line in actions.getvalue().splitlines()]
+        self.assertTrue(records[0]['awaiting_gui_ack'])
+        self.assertGreater(records[0]['timeout_seconds'], 0)
+        self.assertLessEqual(records[0]['timeout_seconds'], 8)
+        self.assertEqual(records[1]['returncode'], 0)
+        self.assertFalse(records[1]['timed_out'])
+
+    def test_unobserved_input_retains_native_frame_settle(self):
+        drains = []
+        def drain(timeout):
+            drains.append(timeout)
+            time.sleep(timeout)
+        send_input(sys.executable, ['-c', 'pass'], os.environ.copy(), io.StringIO(), drain)
+        self.assertTrue(drains)
+        self.assertTrue(all(0 <= timeout <= .2 for timeout in drains))
+
+    def test_failed_command_retains_error_and_stays_failed(self):
+        actions = io.StringIO()
+        with self.assertRaises(subprocess.CalledProcessError) as caught:
+            send_input(sys.executable, ['-c', 'import sys; sys.stderr.write("input failed"); sys.exit(7)'],
+                       os.environ.copy(), actions, lambda _: self.fail('Settled after failure'))
+        self.assertEqual(caught.exception.returncode, 7)
+        result = json.loads(actions.getvalue().splitlines()[-1])
+        self.assertEqual(result['returncode'], 7)
+        self.assertEqual(result['stderr'], 'input failed')
+
+    def test_transport_timeout_uses_remaining_phase_and_stays_failed(self):
+        actions = io.StringIO()
+        with self.assertRaises(subprocess.TimeoutExpired):
+            send_input(sys.executable, ['-c', 'import time; time.sleep(10)'], os.environ.copy(),
+                       actions, lambda _: self.fail('Settled after timeout'),
+                       deadline=time.monotonic() + .2, awaiting_ack=True)
+        records = [json.loads(line) for line in actions.getvalue().splitlines()]
+        self.assertLessEqual(records[0]['timeout_seconds'], .2)
+        self.assertTrue(records[1]['timed_out'])
+        self.assertIsNone(records[1]['returncode'])
 
 
 class ValidationOutputTests(unittest.TestCase):

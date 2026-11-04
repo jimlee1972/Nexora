@@ -504,6 +504,105 @@ Authored Sprite persistence, Tilemap binding, seamless hot reload and full physi
 remain open. ED/2D milestone counts do not change.
 [Linux validation](../../Tools/Build/evidence/EditorEDM3-MainPlayTwoDServices-Linux-2026-10-16.md).
 
+### Stateful reload integration prework (ED-WF-05, not accepted)
+
+`PlayApiProxy.h` provides a generation-owned stable C table context and an owner-thread phase
+guard for cached callbacks. Tables advertise only explicitly bound, size-admitted members.
+Capture rejects host writes; candidate/retired phases reject external writes while allowing
+isolated memory updates. Forbidden calls mark the guard so Runtime capture/candidate validation
+can reject ignored errors. Storage retains its own error namespace. Providers can be redirected
+without changing an already cached proxy context, which is required when audio mixer state is
+exchanged while the native output device stays with its original owner. Every gate, proxy,
+provider and retired branch must outlive module callbacks and DLL finalizers using them.
+
+The main Play host and optional 2D services negotiate their cached tables through this guard.
+Fresh 2D binding rejects capture/candidate/retired phases; it cannot substitute for a resource
+fork. The main Editor now uses `ReloadablePlayGameplayModule` to coordinate strict generation
+World transfer and capture/candidate/retired/live phases.
+These proxies do not authorize arbitrary native side effects or replace registered-work draining.
+Input/audio and 2D resource fork contracts describe the unpublished state they will coordinate.
+Immutable-head validation of Editor watcher/compiler admission and native source-edit seamless-reload acceptance
+remain required; the work-order count is unchanged.
+
+`PlayTwoDServices::ForkForReload` now coordinates the actual resource owners over an
+identical unpublished World, only after the source guard enters Capture. It retains Sprite and
+collider/query metadata, camera, animation clocks, pool handles, input edges/bindings and shortcut
+consumption, UI state/frame owners, immutable assets, native gamepad adapter and audio retry/clock
+bookkeeping. It never calls fresh Bind, resets focus, installs defaults, opens native output or
+creates texture registrations. Open UI frames and invalid/aliased/foreign-thread sources reject.
+
+The candidate owns an independent mixer and copied PCM residency. Commit swaps only related mixer
+state, transfers the existing native output owner and redirects both cached audio proxies before
+retired callbacks; devices and pending output queues are not reopened/copied. Exact parent-generation
+identity rejects stale branches. Texture registrations stay with the live owner on failure and
+transfer once on success; discarded/retired branches cannot retire them. Closed resource snapshots
+and copied Worlds may allocate, so all preparation precedes final admission. Rebind requires
+identical moved World state; it is not arbitrary scene replacement. Actual native source-edit
+reload remains pending; local service/transaction tests do not accept that workflow.
+
+`PlaySceneServices` also forks scene/spawn quota counters and collider records, then retargets
+identical moved Play storage. Ordinary Bind resets these values and must not be used for reload.
+Retired callbacks retain private World/service state until their DLL finalizers finish.
+
+The main facade retains one stable host/service/proxy owner per code generation. Actual Runtime
+work leases drain before save; capture guards cover cached callbacks and final admission checks
+both old and candidate guards, including ignored errors and unfinished UI frames. Completed reloaded-hook UI frames are
+captured before allocation-free transfer, so paused Play need not tick to display them. Candidate allocations and World/resource
+mutations stay private. Successful retirement moves staged storage into the existing PlaySession
+World address, quarantines old callbacks on the previous storage and transfers native audio/texture
+ownership before Stop/Destroy/library finalizers. Only then does commit release the old context.
+Rejection destroys candidate code/finalizers before releasing its context and restores old dispatch.
+An accepted prepared compiler result stays owned through DLL unload; this is not a code sandbox.
+
+Configured project Play also forks the complete GameWorld and GameSceneSession: CPU audio, physics
+and character bindings, scene/template/entity mappings, pending/completed requests and request IDs.
+Scene request tables have the same generation guard as the top-level host. Native palette/resources
+remain retained; no transition is processed in candidate preparation. The ordinary native frame
+boundary processes transferred requests after commit. Borrowed legacy scene providers without a
+complete transaction remain playable but explicitly require restart for replacement; the main
+configured-project path supplies complete hooks. See [the scene-session contract](../../Engine/Runtime/GameSceneSession.md).
+
+Rejected/private and retired generations do not publish a full-session teardown observation. Active
+payload counts come from the current ledger; session peaks and saturating rejection/reclamation
+counters survive accepted generations. Final Unload alone advances the session teardown serial.
+The bounded C++ transaction fixture covers32 successes per plain/configured/2D path and576 expected
+rejections, real lease draining, cached old-host/capture and external storage attempts, animation/pool
+/input/UI/texture continuity, retained scene requests and GameWorld audio/physics/character state.
+These are process/CPU fixtures, not native source edits or physical device acceptance. Native
+watcher/compiler workflow acceptance and the final complete gates remain required; ED-WF-05 is unaccepted.
+
+### Background scripts during configured Play
+
+Saved ScriptProject mode now selects the canonical SDK compiler when the user starts Play.
+The configured scene starts in an isolated Play World; its first compiled module waits for the
+ordinary scene/render boundary to be ready. SceneOnly settings and existing manual DLL/batch
+workflows keep their prior behavior. No compilation or project code starts merely by opening a project.
+
+`LiveGameScript` observes owning source snapshots on one background worker every 500 ms, reuses
+`WatcherDebouncer` with 250 ms settling, and submits only the latest project/Play/source generation
+to `GameScriptCompiler`. Detection uses content fingerprints and sorted inventory, including same-size
+changes with preserved timestamps; generated Zig/cache/Git directories are excluded. Repeated compiler
+errors do not rebuild indefinitely; another observed edit retries. Invalid observation revokes a pending
+result. Project identity or saved Build Settings changes suspend replacement until the scope is restored
+or Play restarts. Compiler phases appear in Game status; bounded sanitized output reaches Console.
+
+The old module keeps dispatching while compilation runs. At an owner-frame boundary, the main
+application checks scope and exact prepared sources/artifact again, then calls LoadPrepared or the
+strict ReloadPrepared transaction. Paused Play can accept a replacement without ticking. Failures
+retain the active generation; modules without safe migration require restart. Stop, project close/change
+and shutdown cancel both workers, drain their real futures/tool processes and discard results before
+releasing gameplay/World ownership. Prepared libraries stay owned through module finalizers.
+
+The source observer shares the build producer's canonical dedicated-subtree policy. It bounds file
+count, aggregate bytes and directory traversal; it is a cooperative edit detector, not code signing.
+See [build contracts](../../Engine/Editor/GameBuild.md). Optional `NEXORA_SCRIPT_RELOAD_EVIDENCE=1`
+records real module diagnostics, compilation phases and admitted generations for native verification;
+it is off by default. [The Windows harness](../../Tests/Editor/WindowsScriptReload.py) drives the
+actual Ctrl+P command and edits authored Zig while the same Editor remains open. Its generated
+fixture/evidence is private build output; a short smoke does not accept the required 32-cycle gate.
+Full immutable-head Cloud/Shipping/CI, actual 32 source replacements, cancellation/project-switch
+coverage and subsequent Sprite integration remain required; ED-WF-05 is not accepted.
+
 ### Bounded 2D Game View
 
 With an attached 2D gameplay bridge, the Game panel offers explicit 3D/2D view selection.
@@ -1526,6 +1625,14 @@ before the full-property revert. The original exact asset/identity/opaque-byte a
 checks and 180-second whole-test deadline remain required. Both output pipes are drained during
 input/result waits. Failures retain the temporary project, per-launch output, and timestamped
 input records at the path printed by CTest; successful runs clean their owned temporary tree.
+Key and pointer phases now await those actual post-EndFrame acknowledgments immediately instead
+of first adding a fixed200ms delay to every observed phase. Unobserved operations, including
+scene shortcuts, retain their existing200ms native-frame settle. Transport uses the remaining
+original8-second phase budget (at most8seconds outside a phase); failure/timeout still fails the
+scenario. Timestamped completion/error records accompany input-start records in `input.jsonl`.
+All original GUI predicates, asset/identity/opaque-byte checks, read-only actions and the180-second
+whole-test deadline remain. Process-level Python tests verify transport/trace policy, not native
+X11 or complete Prefab acceptance.
 The older aggregate Undo failure did not retain its assets, so this instrumentation must not
 be presented as proof of that historical failure's root cause.
 
@@ -1649,7 +1756,10 @@ and restoration, and workspace preparation. The process adopts the existing nati
 adapter's per-monitor V2 policy before its first HWND; the splash also handles WM_DPICHANGED.
 Stages are descriptive: no timer, percentage, sleep or minimum display duration is introduced.
 On Windows the RenderSurface forwards the existing Window `initiallyVisible=false` option;
-no main HWND is shown during settings, graphics, Scene or workspace initialization. The first
+no main HWND is shown during settings, graphics, Scene or workspace initialization. Before the first
+draw, PrepareMainWindow fits only the hidden Editor outer rectangle to its selected monitor work
+area, including its nonclient border/taskbar allowance. It preserves activation and Z-order; normal
+Window resize events update the surface before drawing. No global display mode changes. The first
 hidden frame records the complete UI and submits it. DX12 bypasses compositor-capacity waiting
 only for that first never-shown frame and waits for its actual GPU fence; `Occluded` remains the
 true DXGI result. The application accepts that one hidden completion for reveal, closes the
@@ -1667,7 +1777,9 @@ ordinary initialization; it does not turn an initialization failure into success
 
 Normal no-mode/no-argument GUI startup and explicit graphical commands share this owner.
 Help, invalid arguments, ordinary headless create/open/build commands never create a splash.
-Linux/macOS retain their existing startup via a no-op adapter. Opt-in
+Linux also keeps its main window unmapped until the first completed UI/present, without a native
+splash; X11 acceptance waits for a visible window within the existing acquisition budget. macOS
+retains its existing startup via a no-op adapter. Opt-in
 `NEXORA_EDITOR_STARTUP_EVIDENCE=1` records actual open/stage/first-frame/close boundaries.
 The Windows helper checks black/cyan/white screen pixels, DPI, icons, hidden-main preparation,
 no cross-thread owner/topmost state, exception cleanup and a forced synchronous teardown callback.
@@ -1675,7 +1787,11 @@ The bounded **real NexoraEditor.exe** integration launches twice with no argumen
 normal default recent-project store. Native WinEvent observations reject premature main visibility;
 500 ms WM_NULL probes check splash/main responsiveness, screen captures inspect prepared content,
 foreground/native mouse input is exercised, and WM_CLOSE must exit within ten seconds. Startup
-has a 35-second deadline; failure retains stdout/stderr, event observations and BMPs. CTest has an
+has a 35-second deadline; failure retains stdout/stderr, event observations and BMPs. Native tests
+establish a small, owned tool-window launcher in the foreground to model an interactive parent
+launch; it has no taskbar entry and is never treated as the Editor. Constructor/preparation
+non-activation checks remain, as do real Editor PID/class, first-show/pixel and input assertions.
+The launcher is destroyed after testing; foreign windows and their topmost state are not modified. CTest has an
 outer timeout. The packager repeats this against staged and actually extracted installations,
 alongside the existing shipped-tools Build/Play, CLI, exact resources and source-preservation gates.
 Hosted results do not establish physical multi-monitor, desktop taskbar or clean-host acceptance.

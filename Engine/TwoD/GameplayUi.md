@@ -49,6 +49,16 @@ The module calls `begin_frame(width,height)`, submits panels/text/buttons, then 
 Frame nesting and draw calls outside a frame return `LIFECYCLE`. The host must end a started frame
 before replacing input, or call the host-only `CancelFrame()` to discard partial commands
 after a failed/stopped module callback. Cancellation clears selection and capture but preserves registered fonts/images.
+For an embedding reload transaction, `ForkForReload` copies a closed frame's input, focus,
+pressed capture, navigation order, handle/texture counters, commands and retirement records.
+Fonts/images remain shared immutable owners, so copied upload spans retain their backing bytes.
+The branch is unpublished; failed preparation can destroy it without changing live UI state.
+`SwapReloadState` exchanges only closed-frame branches of the same owner without allocation.
+Existing C API context addresses stay valid, owned by the opposite branch after exchange; keep
+that retired branch alive through old module callbacks/finalizers. Retired font/image removal
+cannot retire payloads still owned by the live branch or an owning frame. Foreign-thread calls,
+open frames and unrelated owners reject without exchange. This does not submit or retire native
+GPU work and does not by itself implement Editor reload or external service isolation.
 A frame is bounded to 65,536 quads, 4,096 button IDs and 65,536 UTF-8 bytes
 per label. Coordinates are top-left logical pixels, dimensions at most 16,384, colors pack red in
 the least significant byte using Presentation's existing linear RGBA8 blending contract.
@@ -67,6 +77,14 @@ The snapshot may outlive the UI owner and module reload. Native surfaces copy up
 the existing Presentation contract; keep the snapshot alive until Draw returns. Surface teardown
 and immutable texture retirement remain host responsibilities. Reloaded modules may reuse the live
 UI table/font handles; session teardown must stop modules before destroying the owner.
+
+For module replacement, `ForkForReload` copies closed-frame interaction/handle/counter state and
+shares only immutable image/font payloads. `ReloadReady()` is a nonallocating owner-thread check
+that no `begin_frame` transaction remains open. The embedding must check it after candidate
+initialization as well as before forking, and capture any completed candidate UI frame before
+allocation-free publication. An unfinished candidate frame rejects replacement while the old
+module/UI continue. A completed reloaded-hook frame can become visible without a gameplay tick,
+including paused Play. Native upload and physical appearance remain separate acceptance gates.
 
 ## Verification
 

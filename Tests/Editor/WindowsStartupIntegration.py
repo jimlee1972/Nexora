@@ -11,9 +11,10 @@ import subprocess
 import sys
 import tempfile
 import time
+from WindowsNativeTestDesktop import foreground_launcher, input_desktop
 
 
-def verify_startup(editor, evidence, environment=None):
+def _verify_startup(editor, evidence, environment=None):
     evidence = Path(evidence).resolve()
     evidence.mkdir(parents=True, exist_ok=True)
     user = C.WinDLL('user32', use_last_error=True)
@@ -27,6 +28,11 @@ def verify_startup(editor, evidence, environment=None):
     user.GetWindow.argtypes = [W.HWND, W.UINT]
     user.GetForegroundWindow.restype = W.HWND
     user.SetForegroundWindow.argtypes = [W.HWND]
+    user.SetWindowPos.argtypes = [W.HWND, W.HWND, C.c_int, C.c_int, C.c_int, C.c_int, W.UINT]
+    user.WindowFromPoint.argtypes = [W.POINT]
+    user.WindowFromPoint.restype = W.HWND
+    user.GetAncestor.argtypes = [W.HWND, W.UINT]
+    user.GetAncestor.restype = W.HWND
     user.IsWindowVisible.argtypes = [W.HWND]
     user.GetWindowThreadProcessId.argtypes = [W.HWND, C.POINTER(W.DWORD)]
     user.GetWindowTextW.argtypes = [W.HWND, W.LPWSTR, C.c_int]
@@ -68,12 +74,27 @@ def verify_startup(editor, evidence, environment=None):
         return bool(user.SendMessageTimeoutW(hwnd, 0, 0, 0, 2, 500, C.byref(result)))
 
     def capture(hwnd, path, splash=False):
+        # Screen pixels must belong to this real Editor window, rather than an unrelated
+        # foreground application. Raise only its normal Z-order: preserve NOACTIVATE and
+        # the existing assertion that the splash must never become globally topmost.
+        require(user.SetWindowPos(hwnd, None, 0, 0, 0, 0, 0x1 | 0x2 | 0x10),
+                'Cannot expose the owned Editor window for native pixel observation')
+        C.WinDLL('dwmapi').DwmFlush()
         rect = W.RECT()
         user.GetClientRect(hwnd, C.byref(rect))
         origin = W.POINT()
         user.ClientToScreen(hwnd, C.byref(origin))
         width, height = rect.right, rect.bottom
         require(width > 0 and height > 0, 'Empty main client')
+        for x, y in ((1, 1), (width-2, 1), (1, height-2), (width-2, height-2),
+                     (width//2, height//2)):
+            visible = user.WindowFromPoint(W.POINT(origin.x+x, origin.y+y))
+            require(visible and user.GetAncestor(visible, 2) == hwnd,
+                    'Editor client is occluded; desktop pixels cannot verify its rendering; '
+                    f'origin=({origin.x},{origin.y}), client=({width},{height}), '
+                    f'point=({origin.x+x},{origin.y+y}), virtual_screen='
+                    f'{tuple(user.GetSystemMetrics(index) for index in (76,77,78,79))}, '
+                    f'occluding_class={text(visible, True) if visible else "<none>"}')
         dc = user.GetDC(None)
         memory = gdi.CreateCompatibleDC(dc)
         bitmap = gdi.CreateCompatibleBitmap(dc, width, height)
@@ -122,6 +143,7 @@ def verify_startup(editor, evidence, environment=None):
     user.UnhookWinEvent.argtypes = [W.HANDLE]
     env = dict(os.environ if environment is None else environment)
     env['NEXORA_EDITOR_STARTUP_EVIDENCE'] = '1'
+    env['NEXORA_EDITOR_FONT_DIAGNOSTICS'] = '1'
     results = []
     with tempfile.TemporaryDirectory(prefix='Nexora no-argument GUI 陰陽 ') as temporary:
         root = Path(temporary).resolve()
@@ -179,7 +201,7 @@ def verify_startup(editor, evidence, environment=None):
             hook = user.SetWinEventHook(0x8000, 0x8003, None, event, 0, 0, 2)
             require(hook, 'Cannot observe native window lifecycle')
             try:
-                with log.open('wb') as stderr, (evidence/f'no-arguments-{attempt}.stdout.log').open('wb') as stdout:
+                with foreground_launcher(evidence/f'launcher-{attempt}.json'), log.open('wb') as stderr, (evidence/f'no-arguments-{attempt}.stdout.log').open('wb') as stdout:
                     # Deliberately no --frames, --graphical, or --recent-projects override.
                     process = subprocess.Popen([str(editor)], cwd=root, env=env, stdout=stdout, stderr=stderr)
                     deadline = time.monotonic()+35
@@ -202,7 +224,9 @@ def verify_startup(editor, evidence, environment=None):
                             break
                         time.sleep(0.005)
                     require('splash-show' in observed and 'main-show' in observed,
-                            'Startup/Ready deadline exceeded (possible teardown deadlock)')
+                            'Startup/Ready deadline exceeded (possible teardown deadlock); '
+                            f'events={observed}, responsive_splash_probes={probes}; '
+                            + log.read_text(errors='replace')[-12000:])
                     require(probes > 0, 'Splash was never externally observed responsive')
                     require(responsive(main), 'Prepared main is unresponsive')
                     require(not splash or not user.IsWindowVisible(splash), 'Splash survived Ready')
@@ -210,6 +234,9 @@ def verify_startup(editor, evidence, environment=None):
                     # Actual native mouse input on the title bar, without selecting/opening a project.
                     rect = W.RECT()
                     user.GetWindowRect(main, C.byref(rect))
+                    target = user.WindowFromPoint(W.POINT(rect.left+200, rect.top+12))
+                    require(target and user.GetAncestor(target, 2) == main,
+                            'Editor title bar is occluded; refusing input to another application')
                     user.SetCursorPos(rect.left+200, rect.top+12)
                     user.mouse_event(2, 0, 0, 0, 0)
                     user.mouse_event(4, 0, 0, 0, 0)
@@ -247,6 +274,11 @@ def verify_startup(editor, evidence, environment=None):
               'message_timeout_ms': 500, 'shutdown_timeout_seconds': 10}
     (evidence/'result.json').write_text(json.dumps(result, indent=2)+'\n')
     return result
+
+
+def verify_startup(editor, evidence, environment=None):
+    with input_desktop(evidence):
+        return _verify_startup(editor, evidence, environment)
 
 
 if __name__ == '__main__':
