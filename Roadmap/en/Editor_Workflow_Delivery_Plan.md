@@ -277,3 +277,18 @@ all scenario assertions and original8s phase/180s outer bounds. Transport comple
 and a remaining-phase command bound expose blocked commands without retry. The original trace
 has no completion records, so it does not prove an exclusive timeout cause. Windows Python
 process-policy tests pass10/10; native Prefab/full exact-source acceptance remains pending.
+
+Exactb2550b33 Windows startup passes both original and relocated no-argument launches:
+four first-frame readiness durations are3109/1500/1578/1500ms, white fraction0, responsive
+input, normal exit0 and no orphan windows. The package gate then fails before Zig execution:
+Ninja's generated batch file cannot enter the Unicode private working directory at line2.
+[Partial package receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Package-b2550b33.json).
+The controlled old-command reproduction passes in UTF-8 but fails in a hidden child-owned
+OEM437 console, while the parent's code page remains unchanged. The SDK now dispatches serial
+native argv through a short private CMake script, preserving literal data, existing compiler/test
+options, failure propagation and process ownership. Scoped Windows builds and the original five
+cases pass; the final strengthened OEM437 policy suite and real Zig Unicode-temporary case pass2/2
+(46.14s). The policy stub alone is not Zig/Player acceptance.
+[SDK receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-SDK-Argv-Windows.json).
+Full exact-source Cloud/Shipping/CI and refreshed native package gates remain required;
+ED-WF-05 stays unaccepted, work orders4/9, with no final ZIP delivery.

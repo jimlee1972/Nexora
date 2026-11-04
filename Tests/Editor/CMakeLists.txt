@@ -49,6 +49,14 @@ if(WIN32 AND NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL)
       "$<TARGET_FILE:NexoraEditor>")
 endif()
 if(NEXORA_ENABLE_ASSET_PIPELINE)
+  # The native-argv adapter is Windows/Linux; macOS retains its host-linker workaround.
+  if(NEXORA_EDITOR_GAME_NINJA_EXECUTABLE AND (WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux"))
+    add_test(NAME editor.game_build_sdk_commands
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/GameSDKCommandTests.py"
+        --cmake "${CMAKE_COMMAND}" --ninja "${NEXORA_EDITOR_GAME_NINJA_EXECUTABLE}"
+        --module "${PROJECT_SOURCE_DIR}/CMake/Modules/NexoraGameProject.cmake")
+    set_tests_properties(editor.game_build_sdk_commands PROPERTIES TIMEOUT 60)
+  endif()
   add_executable(NexoraGameBuildSDKTests GameBuildSDKTests.cpp)
   target_include_directories(NexoraGameBuildSDKTests PRIVATE "${PROJECT_BINARY_DIR}/Engine/Editor/generated")
   nexora_apply_defaults(NexoraGameBuildSDKTests)
@@ -85,6 +93,11 @@ if(NEXORA_ENABLE_ASSET_PIPELINE)
         "${CMAKE_COMMAND}" "${NEXORA_EDITOR_GAME_NINJA_EXECUTABLE}" "${NEXORA_ZIG_EXECUTABLE}"
         --authored-test-rejection)
     set_tests_properties(editor.game_script_authored_tests PROPERTIES TIMEOUT 300)
+    add_test(NAME editor.game_script_unicode_temporary
+      COMMAND NexoraGameScriptBuildTests "$<TARGET_FILE:NexoraProjectPlayer>"
+        "${CMAKE_COMMAND}" "${NEXORA_EDITOR_GAME_NINJA_EXECUTABLE}" "${NEXORA_ZIG_EXECUTABLE}"
+        --unicode-temporary-parent)
+    set_tests_properties(editor.game_script_unicode_temporary PROPERTIES TIMEOUT 300)
   endif()
   add_executable(NexoraGameProjectExportTests GameProjectExportTests.cpp)
   target_link_libraries(NexoraGameProjectExportTests PRIVATE Nexora::Editor)

@@ -64,6 +64,14 @@ per-snapshot build-runner bootstrap. Library modules keep ReleaseSafe, entry/aut
 keep Debug, the Windows target remains MSVC and compiler-rt remains bundled. A failing authored
 test rejects preparation even if library compilation succeeded. SDK/caches remain private and
 owned exactly as before; no cross-project compiler state or authored build glue is introduced.
+The Windows/Linux Ninja command remains short and runs a private generated CMake script, rather
+than joining expanded compiler/test commands into a code-page-sensitive Windows batch file.
+Delimiter-safe bracket literals preserve native argv data (including Unicode and shell characters)
+without variable/shell reinterpretation. `execute_process` runs library, entry tests and authored
+tests in order; a nonzero or launch error stops before the original stdout success marker.
+Each step has the original private cache/CWD, and descendants remain inside the existing managed
+process cancellation/drain boundary. The generated script is private binary-directory state,
+outside authored input and published game inventories. The macOS host-linker branch is unchanged.
 SDK glue is embedded as data in EditorCore from canonical configure dependencies, materialized
 only in the private build operation. No engine checkout is required at runtime or in a game output.
 Configured CMake/Ninja/Zig executables and authored script tests are authorized code, not sandboxed;

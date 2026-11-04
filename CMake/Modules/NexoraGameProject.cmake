@@ -1,5 +1,36 @@
 include_guard(GLOBAL)
 
+# Serialize arguments as CMake bracket literals rather than shell/batch text. The extra first
+# newline is discarded by CMake's bracket parser, preserving a leading newline in an argument.
+function(_nexora_game_argument output value)
+  set(delimiter "=")
+  while(TRUE)
+    string(FIND "${value}" "]${delimiter}]" collision)
+    if(collision EQUAL -1)
+      break()
+    endif()
+    string(APPEND delimiter "=")
+  endwhile()
+  set(${output} "[${delimiter}[\n${value}]${delimiter}]" PARENT_SCOPE)
+endfunction()
+
+function(_nexora_game_append_command script)
+  file(APPEND "${script}" "execute_process(\n  COMMAND")
+  math(EXPR last "${ARGC} - 1")
+  foreach(index RANGE 1 ${last})
+    _nexora_game_argument(argument "${ARGV${index}}")
+    file(APPEND "${script}" " ${argument}")
+  endforeach()
+  _nexora_game_argument(directory "${CMAKE_BINARY_DIR}")
+  file(APPEND "${script}" "\n  WORKING_DIRECTORY ${directory}\n")
+  file(APPEND "${script}" [=[  RESULT_VARIABLE _nexora_game_result
+)
+if(NOT "${_nexora_game_result}" STREQUAL "0")
+  message(FATAL_ERROR "Zig SDK command failed: ${_nexora_game_result}")
+endif()
+]=])
+endfunction()
+
 # Shared by command-line projects and future Editor build actions.
 function(nexora_add_game_module target)
   cmake_parse_arguments(GAME "" "PROJECT;OUTPUT;ZIG" "" ${ARGN})
@@ -90,15 +121,24 @@ function(nexora_add_game_module target)
   endif()
   set(test_directory "${CMAKE_CURRENT_BINARY_DIR}/nexora-game-tests/${target}")
   file(MAKE_DIRECTORY "${test_directory}")
+  # Joining all three expanded SDK commands can make Ninja emit a UTF-8 .bat file. cmd.exe
+  # then interprets its Unicode working-directory line through the active code page. Keep the
+  # Ninja command short; execute each native argv vector directly through CMake instead.
+  string(SHA256 command_id "${target}")
+  set(command_script "${CMAKE_CURRENT_BINARY_DIR}/nexora-game-${command_id}.cmake")
+  file(WRITE "${command_script}" "# Engine-owned private game build commands.\n")
+  _nexora_game_append_command("${command_script}" ${environment} "${GAME_ZIG}"
+    build-lib -dynamic -fcompiler-rt --name "${module_name}"
+    "-femit-bin=${module_file}" ${module_args_ReleaseSafe})
+  _nexora_game_append_command("${command_script}" ${environment} "${GAME_ZIG}" test
+    "-femit-bin=${test_directory}/entry${CMAKE_EXECUTABLE_SUFFIX}" ${module_args_Debug})
+  _nexora_game_append_command("${command_script}" ${environment} "${GAME_ZIG}" test
+    "-femit-bin=${test_directory}/script${CMAKE_EXECUTABLE_SUFFIX}"
+    --dep nexora -ODebug ${target_args} "-Mroot=${script_path}"
+    -ODebug ${target_args} "-Mnexora=${sdk_root}/Bindings/Zig/nexora.zig")
+  _nexora_game_append_command("${command_script}" "${CMAKE_COMMAND}" -E echo
+    NEXORA_SCRIPT_TESTS_PASSED)
   add_custom_target(${target}
-    COMMAND ${environment} "${GAME_ZIG}" build-lib -dynamic -fcompiler-rt
-      --name "${module_name}" "-femit-bin=${module_file}" ${module_args_ReleaseSafe}
-    COMMAND ${environment} "${GAME_ZIG}" test
-      "-femit-bin=${test_directory}/entry${CMAKE_EXECUTABLE_SUFFIX}" ${module_args_Debug}
-    COMMAND ${environment} "${GAME_ZIG}" test
-      "-femit-bin=${test_directory}/script${CMAKE_EXECUTABLE_SUFFIX}"
-      --dep nexora -ODebug ${target_args} "-Mroot=${script_path}"
-      -ODebug ${target_args} "-Mnexora=${sdk_root}/Bindings/Zig/nexora.zig"
-    COMMAND "${CMAKE_COMMAND}" -E echo NEXORA_SCRIPT_TESTS_PASSED
+    COMMAND "${CMAKE_COMMAND}" -P "${command_script}"
     WORKING_DIRECTORY "${CMAKE_BINARY_DIR}" VERBATIM)
 endfunction()

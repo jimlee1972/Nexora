@@ -1,0 +1,128 @@
+{
+  "schema": 1,
+  "commit": "b2550b3344c29d50352197ba953d81888eb5dcb3",
+  "tree": "f4d4c33ac7b6d07abb1b4d5ce615996f7509b609",
+  "status": "FAIL",
+  "run_url": "https://github.com/jimlee1972/Nexora/actions/runs/41870175670",
+  "job_id": 126714782600,
+  "failure_artifact": {
+    "path": "build/editor-workflow-native/pr763-b255-package-failure.zip",
+    "bytes": 154613,
+    "sha256": "e06cdfa631cc1d4b7950f81cf7a94f84b862ef67d5caeadec076fee2ee541603",
+    "artifact_id": 13344292586,
+    "zip_crc_verified": true
+  },
+  "startup": [
+    {
+      "path": "editor-package/Tests/Editor/startup-integration",
+      "result": {
+        "status": "PASS",
+        "launches": [
+          {
+            "argv": [],
+            "normal_recent_store": true,
+            "events": [
+              "splash-show",
+              "main-create-observed",
+              "main-show"
+            ],
+            "splash_responsive_probes": 557,
+            "main_responsive": true,
+            "foreground_input": true,
+            "white_fraction": 0.0,
+            "normal_close_exit": 0,
+            "orphan_windows": false,
+            "opened_to_main_frame_ready_ms": 3109,
+            "stderr_sha256": "62ec3fde6b88dbca06672ccd6247463e194f3db6cc47e3a741331b8de7f0428b"
+          },
+          {
+            "argv": [],
+            "normal_recent_store": true,
+            "events": [
+              "splash-show",
+              "main-create-observed",
+              "main-show"
+            ],
+            "splash_responsive_probes": 254,
+            "main_responsive": true,
+            "foreground_input": true,
+            "white_fraction": 0.0,
+            "normal_close_exit": 0,
+            "orphan_windows": false,
+            "opened_to_main_frame_ready_ms": 1500,
+            "stderr_sha256": "4c2d7cbe4b29a2dbf03c14d9ab389897d2de3b3a0599824ccb8e7650a5cf743f"
+          }
+        ],
+        "startup_timeout_seconds": 35,
+        "message_timeout_ms": 500,
+        "shutdown_timeout_seconds": 10
+      }
+    },
+    {
+      "path": "editor-delivery/verification/no-argument-startup",
+      "result": {
+        "status": "PASS",
+        "launches": [
+          {
+            "argv": [],
+            "normal_recent_store": true,
+            "events": [
+              "splash-show",
+              "main-create-observed",
+              "main-show"
+            ],
+            "splash_responsive_probes": 273,
+            "main_responsive": true,
+            "foreground_input": true,
+            "white_fraction": 0.0,
+            "normal_close_exit": 0,
+            "orphan_windows": false,
+            "opened_to_main_frame_ready_ms": 1578,
+            "stderr_sha256": "7cb826d09448abe7053d0d125a04f081d5d1234394dd999d04603c4137144b8e"
+          },
+          {
+            "argv": [],
+            "normal_recent_store": true,
+            "events": [
+              "splash-show",
+              "main-create-observed",
+              "main-show"
+            ],
+            "splash_responsive_probes": 255,
+            "main_responsive": true,
+            "foreground_input": true,
+            "white_fraction": 0.0,
+            "normal_close_exit": 0,
+            "orphan_windows": false,
+            "opened_to_main_frame_ready_ms": 1500,
+            "stderr_sha256": "b9e1fabca9109a6eb3e94f338b421daaf82e988a4d1d4edac6e6e9f81af4884b"
+          }
+        ],
+        "startup_timeout_seconds": 35,
+        "message_timeout_ms": 500,
+        "shutdown_timeout_seconds": 10
+      }
+    }
+  ],
+  "native_32_reload": "NOT_RUN on this source: prerequisite script-game-build failed",
+  "final_delivery_accepted": false,
+  "operator_interrupted_local_run": "Manual close by user; neither crash nor completed 32-reload acceptance",
+  "launcher_only": {
+    "status": "PASS",
+    "launches": 3,
+    "actual_owned_mouse_click": true,
+    "mouse_release_acknowledged": true,
+    "remaining_owned_windows": 0,
+    "scope": "Native test launcher only; no Editor acceptance"
+  },
+  "failure": {
+    "stage": "script-game-build",
+    "reason": "Ninja generated batch file failed in Unicode private working directory at line 2 before Zig compiler execution",
+    "log_sha256": "031075ae382fcef05ab9cd1643c660602f5d9e5403f3f6072a13fddebae7d370"
+  },
+  "job_log": {
+    "path": "build/editor-workflow-native/pr763-b255-package-job.log",
+    "bytes": 184541,
+    "sha256": "1ee93301917eca67dc28249bbd1dd938b228acf570279a27861bd429b833de82"
+  }
+}

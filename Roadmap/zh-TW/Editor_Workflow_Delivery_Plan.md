@@ -249,3 +249,15 @@ Windows範圍Editor／字型重建通過（111.99秒）；啟用診斷的`editor
 ACK，保留未受觀測操作的等待、全部情境斷言及原8秒階段／180秒外限。傳輸另記完成／錯誤，
 並使用階段剩餘期限，暴露卡住的命令而不重試。原紀錄沒有完成欄，不能證明唯一逾時原因。
 Windows Python程序政策測試10/10通過；原生Prefab及精確來源完整驗收仍待完成。
+
+精確b2550b33的Windows原始與搬移後無參數啟動均通過：四次首幀準備耗時為
+3109／1500／1578／1500毫秒，白畫面比例0、輸入有回應、正常exit0且沒有孤兒視窗。
+封裝gate接著在Zig執行前失敗：Ninja產生的批次檔第2行無法進入中文私有工作目錄。
+見[部分封裝收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Package-b2550b33.json)。
+受控的舊命令在UTF-8可執行，卻在隱藏、子程序自有的OEM437主控台重現失敗，父程序
+字碼頁不變。SDK現透過短命令啟動私有CMake腳本，依序轉交原生argv，保留字面參數、
+原編譯／測試選項、錯誤傳遞及程序擁有邊界。Windows範圍重建與原5項案例通過；
+最後強化的OEM437政策套件及真實Zig中文暫存目錄案例2/2通過（46.14秒）。
+政策替身本身不代表Zig／Player驗收，見[SDK收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-SDK-Argv-Windows.json)。
+精確來源完整Cloud／Shipping／CI與更新後原生封裝gate仍須通過；ED-WF-05尚未驗收，
+工單維持4/9，尚不交付最終ZIP。

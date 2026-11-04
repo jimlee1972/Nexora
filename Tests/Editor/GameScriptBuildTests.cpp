@@ -34,9 +34,13 @@ auto Files(const Path &root) {
 void Run(const Path &fixture, int argc, char **argv) {
   const bool authored_test_rejection =
       argc == 6 && std::string_view(argv[5]) == "--authored-test-rejection";
-  Require(argc == 5 || authored_test_rejection, "expected Player/CMake/Ninja/Zig paths");
+  const bool unicode_temporary_parent =
+      argc == 6 && std::string_view(argv[5]) == "--unicode-temporary-parent";
+  Require(argc == 5 || authored_test_rejection || unicode_temporary_parent,
+          "expected Player/CMake/Ninja/Zig paths");
   const auto project = fixture / Path{u8"專案 scripts"};
-  const auto temporary = fixture / "operations";
+  const auto temporary = fixture / (unicode_temporary_parent ? Path{u8"private SDK 陰陽 operations"}
+                                                             : Path{"operations"});
   std::filesystem::create_directories(project / "Code");
   std::filesystem::create_directory(temporary);
   const std::string script = R"zig(const nx = @import("nexora");
@@ -114,6 +118,10 @@ pub const Game = struct {
           "canonical SDK tests did not execute");
   Require(Files(project) == original && !exists(project / "project.nexora"),
           "script-only compilation required scene/project cooking or changed authored sources");
+  if (unicode_temporary_parent) {
+    Require(!Read(first->Library()).empty(), "Unicode temporary-parent module is empty");
+    return;
+  }
   if (authored_test_rejection) {
     const auto first_bytes = Read(first->Library());
     Write(project / "Code/game.zig",
@@ -189,7 +197,10 @@ int main(int argc, char **argv) {
     Require(resolved == fixture && resolved.parent_path() == parent,
             "fixture cleanup escaped root");
     std::filesystem::remove_all(resolved);
-    if (argc == 6)
+    if (argc == 6 && std::string_view(argv[5]) == "--unicode-temporary-parent")
+      std::cout
+          << "Canonical SDK compiled, tested and admitted a module through Unicode private paths\n";
+    else if (argc == 6)
       std::cout
           << "Canonical SDK authored-test rejection preserved the prior candidate and project\n";
     else
