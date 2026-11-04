@@ -1,9 +1,12 @@
 #include "Nexora/Core/Engine.h"
+#include "Nexora/Core/Diagnostics.h"
+#include "Nexora/Core/ProcessMemory.h"
 
 #include <stdexcept>
 
 namespace nexora::core {
 struct Engine::Implementation final {
+  std::unique_ptr<DiagnosticSession> diagnostics;
   std::unique_ptr<TrackingAllocator> memory;
   std::unique_ptr<JobSystem> jobs;
   std::unique_ptr<VirtualFileSystem> vfs;
@@ -19,6 +22,10 @@ Engine::~Engine() { Shutdown(); }
 void Engine::Initialize(const EngineConfiguration &configuration) {
   if (implementation_->initialized)
     throw std::logic_error("engine is already initialized");
+  auto diagnostics = std::make_unique<DiagnosticSession>();
+  RefreshDiagnosticModules();
+  if (const auto rss = CurrentProcessResidentBytes())
+    SetDiagnosticMetadata("memory.rss_at_engine_start", *rss);
   auto memory = std::make_unique<TrackingAllocator>();
   auto log = std::make_unique<AsyncLogService>(configuration.crash_ring_capacity);
   auto jobs = std::make_unique<JobSystem>(configuration.worker_count);
@@ -47,6 +54,7 @@ void Engine::Initialize(const EngineConfiguration &configuration) {
     log->Stop();
     throw std::runtime_error("failed to mount temp root");
   }
+  implementation_->diagnostics = std::move(diagnostics);
   implementation_->memory = std::move(memory);
   implementation_->log = std::move(log);
   implementation_->jobs = std::move(jobs);
@@ -71,6 +79,7 @@ void Engine::Shutdown() noexcept {
   implementation_->jobs.reset();
   implementation_->log.reset();
   implementation_->memory.reset();
+  implementation_->diagnostics.reset();
   implementation_->initialized = false;
 }
 bool Engine::IsInitialized() const noexcept { return implementation_->initialized; }

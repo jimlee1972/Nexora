@@ -1,3 +1,4 @@
+#include "Nexora/Core/Diagnostics.h"
 #include <iostream>
 
 #include "Nexora/Core/Engine.h"
@@ -6,7 +7,7 @@
 #include "Nexora/Renderer/FramePipeline.h"
 #include "Nexora/Renderer/PipelineCache.h"
 
-int main() {
+int RunHost() {
   const auto info = nexora::foundation::GetBuildInfo();
   std::cout << "Nexora " << info.engine_version << " (build " << nexora::foundation::GetBuildId()
             << ", ABI " << info.abi_version << ", " << info.build_configuration << ", "
@@ -33,4 +34,8 @@ int main() {
   }
   engine.Shutdown();
   return 0;
+}
+
+int main() {
+  return nexora::core::RunDiagnosed("NexoraHost", [&] { return RunHost(); });
 }

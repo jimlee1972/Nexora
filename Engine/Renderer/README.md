@@ -630,3 +630,8 @@ emit no failure report. Synthetic CPU-only corruptions exercise every failure fi
 retaining rejection; they neither emulate native GPU work nor establish a Windows/WARP root cause.
 Native preflight/full-suite differences remain an open hardening issue; diagnostics alone do not
 close stability or physical-GPU acceptance.
+
+RenderGraph recording and external pass callbacks install a Core `DiagnosticScope` with the pass
+name on the executing thread. Native crash records can therefore identify the faulting pass on
+both coordinator and recording workers. This adds no per-pass file write and does not alter
+callback lifetime, scheduling, exception propagation or submission ownership.

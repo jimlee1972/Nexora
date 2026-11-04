@@ -1,5 +1,6 @@
 include(NexoraTarget)
 add_library(NexoraCore ${NEXORA_MODULE_LIBRARY_TYPE}
+  src/Diagnostics.cpp
   src/Engine.cpp
   src/JobSystem.cpp
   src/Log.cpp

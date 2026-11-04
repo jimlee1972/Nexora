@@ -1,3 +1,4 @@
+#include "Nexora/Core/Diagnostics.h"
 #include "Nexora/RHI/Device.h"
 
 #include <stdexcept>
@@ -46,17 +47,27 @@ std::unique_ptr<Device> CreateDeviceWithOptions(Backend backend,
   }
   if (options.enable_d3d12_preview_runtime && backend != Backend::Direct3D12)
     throw std::invalid_argument("preview runtime is D3D12-only");
-  switch (backend) {
-  case Backend::Null:
-    return CreateValidationDevice();
-  case Backend::Direct3D12:
-    return CreateDirect3D12Device(options);
-  case Backend::Vulkan:
-    return CreateVulkanDevice(options);
-  case Backend::Metal:
-    return CreateMetalDevice(options);
-  }
-  throw std::invalid_argument("unknown RHI backend");
+  const auto create = [&]() -> std::unique_ptr<Device> {
+    switch (backend) {
+    case Backend::Null:
+      return CreateValidationDevice();
+    case Backend::Direct3D12:
+      return CreateDirect3D12Device(options);
+    case Backend::Vulkan:
+      return CreateVulkanDevice(options);
+    case Backend::Metal:
+      return CreateMetalDevice(options);
+    }
+    throw std::invalid_argument("unknown RHI backend");
+  };
+  auto device = create();
+  const auto caps = device->Capabilities();
+  constexpr std::array names{"Null", "Direct3D12", "Vulkan", "Metal"};
+  core::SetDiagnosticMetadata("renderer.backend", names[static_cast<unsigned>(backend)]);
+  core::SetDiagnosticMetadata("gpu.vendor_id", caps.vendor_id);
+  core::SetDiagnosticMetadata("gpu.device_id", caps.device_id);
+  core::SetDiagnosticMetadata("gpu.driver_version", caps.driver_version);
+  return device;
 }
 
 bool IsBackendAvailable(Backend backend) noexcept {

@@ -1,5 +1,8 @@
 # Nexora 2D 引擎 Roadmap
 
+本機 crash/game log 持久化與原生 gameplay callback 捕捉見 [Crash Logging Delivery](Crash_Logging_Delivery_Plan.md)。平台與實體主機 gate 仍分開驗收，此 supporting slice 不代表本 roadmap 的整體里程碑完成。
+
+
 核准的 [Editor 工作流程交付計畫](Editor_Workflow_Delivery_Plan.md)以
 [Epic #741](https://github.com/jimlee1972/Nexora/issues/741) 追蹤尚待完成的 Sprite 來源
 C／Zig／catalog、Editor 編輯、動畫及 pool 整合。計畫驗收為 4/9（44.4%）：ED-WF-01 ✅ PR #751、ED-WF-02 ✅ PR #754、ED-WF-03 ✅ PR #756, ED-WF-04 ✅ PR #758，不因此提高完整

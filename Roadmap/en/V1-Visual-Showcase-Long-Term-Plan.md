@@ -1,5 +1,8 @@
 # Nexora V1 Visual Showcase Demo Long-Term Plan
 
+Local crash/game-log persistence is tracked in [Crash Logging Delivery](Crash_Logging_Delivery_Plan.md). It includes native gameplay callback capture and keeps platform/physical-host gates separate; it does not complete this roadmap’s broader milestones.
+
+
 Stage handoff (2026-10-10): paused at the operator request after the verified DX12/Vulkan performance and physical delivery update. The Windows recorder still captures at 10 FPS; a 30 FPS cadence draft is not applied or accepted. Full concept-art revision, final paced budget and same-version movies remain open. [Status](../../Apps/Showcase/evidence/Windows-DX12-Target-Reuse-Local-2026-10-10/status.zh-TW.md).
 
 ✅ Committed DX12 target reuse `7c4534b8` passes Windows 125/125, all 18 exact-source hosted Build 2105 jobs and all 18 GTX 960 Shipping quality reports. Standard DX12 improves from 51.71–55.16 to 131.52–134.91 FPS; unpaused Standard/UI is 133.43 FPS DX12 and 126.30 FPS Vulkan. Both requested-vsync-on runs average 60 FPS, retaining p99 18.04 / 18.24 ms. Repaired Vulkan Build 2092 also passes all 18 jobs. Both same-artifact physical tours pass (74 captures and 51 checksums each); final 16.7 ms budget, full concept-art acceptance and current movies remain open (VIS 5/7). [Evidence](../../Apps/Showcase/evidence/Windows-DX12-Target-Reuse-Local-2026-10-10/acceptance.md).

@@ -455,3 +455,15 @@ add_executable(NexoraGameplayLifecycleTests GameplayLifecycleTests.cpp)
 target_link_libraries(NexoraGameplayLifecycleTests PRIVATE Nexora::Runtime)
 nexora_apply_defaults(NexoraGameplayLifecycleTests)
 add_test(NAME runtime.gameplay_lifecycle COMMAND NexoraGameplayLifecycleTests)
+
+add_library(NexoraCrashGameplayModule MODULE CrashGameplayModule.cpp)
+target_link_libraries(NexoraCrashGameplayModule PRIVATE Nexora::Foundation)
+nexora_apply_defaults(NexoraCrashGameplayModule)
+add_executable(NexoraCrashDiagnosticsFixture CrashDiagnosticsFixture.cpp)
+target_link_libraries(NexoraCrashDiagnosticsFixture PRIVATE Nexora::Runtime)
+nexora_apply_defaults(NexoraCrashDiagnosticsFixture)
+add_dependencies(NexoraCrashDiagnosticsFixture NexoraCrashGameplayModule)
+add_test(NAME runtime.crash_diagnostics
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CrashDiagnostics.py"
+    $<TARGET_FILE:NexoraCrashDiagnosticsFixture> $<TARGET_FILE:NexoraCrashGameplayModule>)
+set_tests_properties(runtime.crash_diagnostics PROPERTIES TIMEOUT 120)

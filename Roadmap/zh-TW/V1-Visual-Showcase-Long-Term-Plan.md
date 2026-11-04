@@ -1,5 +1,8 @@
 # Nexora V1 可視化展示 Demo 長期規劃
 
+本機 crash/game log 持久化與原生 gameplay callback 捕捉見 [Crash Logging Delivery](Crash_Logging_Delivery_Plan.md)。平台與實體主機 gate 仍分開驗收，此 supporting slice 不代表本 roadmap 的整體里程碑完成。
+
+
 階段交接（2026-10-10）：依使用者要求，在已驗證的 DX12／Vulkan 效能及實體交付更新後暫停。Windows 錄影仍為 10 FPS，30 FPS 採樣準備稿尚未套用或驗收。完整概念圖美術、最終 paced 預算與同版影片仍未完成。[目前狀態](../../Apps/Showcase/evidence/Windows-DX12-Target-Reuse-Local-2026-10-10/status.zh-TW.md)。
 
 ✅ 已提交 DX12 目標重用 `7c4534b8` 通過 Windows 125/125、同來源 hosted Build 2105 全部 18 項與 GTX 960 Shipping 全部 18 份品質報告。Standard DX12 從 51.71–55.16 提升至 131.52–134.91 FPS；未暫停 Standard／UI 為 DX12 133.43、Vulkan 126.30 FPS。requested vsync on 均平均約 60 FPS，保留 p99 18.04／18.24 ms。Vulkan 修正 Build 2092 亦全部 18 項通過。同一執行檔雙後端實體完整導覽均通過（各 74 張截圖、51 項雜湊）；最終 16.7 ms 預算、完整概念圖美術驗收與本版影片仍未完成（VIS 5/7）。[證據](../../Apps/Showcase/evidence/Windows-DX12-Target-Reuse-Local-2026-10-10/acceptance.md)。

@@ -1,3 +1,4 @@
+#include "Nexora/Core/Diagnostics.h"
 #include "Nexora/Runtime/GameProjectPackage.h"
 #include "Nexora/Runtime/ProjectPackage.h"
 #if defined(NEXORA_PROJECT_PLAYER_2D)
@@ -142,7 +143,7 @@ template <typename Char> std::filesystem::path ArgumentPath(const Char *argument
     return std::filesystem::path(
         std::u8string(argument, argument + std::char_traits<Char>::length(argument)));
 }
-template <typename Char> int Dispatch(int argc, Char **argv) try {
+template <typename Char> int DispatchImpl(int argc, Char **argv) try {
 #if defined(NEXORA_PROJECT_PLAYER_NATIVE)
   if (argc == 1) {
     if (const auto game = nexora::player::TryRunInstalledGame())
@@ -251,8 +252,13 @@ template <typename Char> int Dispatch(int argc, Char **argv) try {
   return 2;
 #endif
 } catch (const std::exception &error) {
+  nexora::core::WriteDiagnostic(nexora::core::LogLevel::Error, "ProjectPlayer", error.what());
   std::cerr << "ProjectPlayer failed: " << error.what() << '\n';
   return 1;
+}
+template <typename Char> int Dispatch(int argc, Char **argv) {
+  return nexora::core::RunDiagnosed("NexoraProjectPlayer",
+                                    [&] { return DispatchImpl(argc, argv); });
 }
 } // namespace
 

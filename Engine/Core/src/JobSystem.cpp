@@ -1,4 +1,5 @@
 #include "Nexora/Core/JobSystem.h"
+#include "Nexora/Core/Diagnostics.h"
 
 #include <algorithm>
 #include <chrono>
@@ -102,12 +103,17 @@ struct JobSystem::Implementation final {
         std::lock_guard lock{work.state->mutex};
         work.state->status = JobStatus::Running;
       }
+      DiagnosticScope diagnostic_scope("JobSystem.job");
       try {
         work.descriptor.function(work.descriptor.cancellation);
         Complete(work.state, work.descriptor.cancellation.IsCancellationRequested()
                                  ? JobStatus::Cancelled
                                  : JobStatus::Completed);
+      } catch (const std::exception &error) {
+        WriteDiagnostic(LogLevel::Error, "JobSystem.job", error.what());
+        Complete(work.state, JobStatus::Failed, std::current_exception());
       } catch (...) {
+        WriteDiagnostic(LogLevel::Error, "JobSystem.job", "non-standard job exception");
         Complete(work.state, JobStatus::Failed, std::current_exception());
       }
     }

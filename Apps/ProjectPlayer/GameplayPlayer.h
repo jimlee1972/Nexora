@@ -1,4 +1,5 @@
 #pragma once
+#include "Nexora/Core/Diagnostics.h"
 
 #include "Nexora/Game/GameplayHostBridge.h"
 #include "Nexora/Presentation/RenderSurface.h"
@@ -121,8 +122,9 @@ struct PlayerGameplay final {
     host.get_services_api = [](void *context, NexoraGameplayServicesApiV1 *api) -> int32_t {
       return static_cast<PlayerGameplay *>(context)->services.GetApi(api);
     };
-    host.log = [](void *, std::uint32_t, const char *message, std::uint32_t length) {
-      if (message)
+    host.log = [](void *, std::uint32_t level, const char *message, std::uint32_t length) {
+      core::WriteGameplayDiagnostic(level, message, length);
+      if (message && length <= 16 * 1024)
         std::cerr.write(message, length) << '\n';
     };
     host.read_component = [](void *context, std::uint64_t entity, std::uint64_t type, void *data,
