@@ -14,9 +14,16 @@ struct FontSource final {
   std::string path; // UTF-8; opened through std::filesystem's native path conversion.
   bool
       require_traditional_face{}; // TTC face selection uses its family name, never a guessed index.
+  bool map_installed_file{}; // Windows host defaults only; configured sources retain owning copies.
+};
+struct FontSourceData final {
+  std::shared_ptr<const void> owner;
+  std::span<const std::byte> bytes;
+  [[nodiscard]] const std::byte *data() const { return bytes.data(); }
+  [[nodiscard]] std::size_t size() const { return bytes.size(); }
 };
 struct FontFace final {
-  std::shared_ptr<const std::vector<std::byte>> bytes;
+  std::shared_ptr<const FontSourceData> bytes;
   int index{};
   std::string path, family;
   std::vector<std::uint32_t> scalars;

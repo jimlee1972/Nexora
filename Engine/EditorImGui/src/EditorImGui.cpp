@@ -9682,14 +9682,14 @@ EditorImGuiTestAccess::SceneShortcutInput(const EditorImGuiHost &host) noexcept 
 }
 
 void EditorImGuiTestAccess::FontSources(EditorImGuiHost &host, std::span<const std::string> paths,
-                                        bool require_traditional_face) {
+                                        bool require_traditional_face, bool map_installed_file) {
   Activate(host.state_->context);
   auto &state = *host.state_;
   ImGui::GetIO().Fonts->Clear(); // Retire atlas input copies and borrowed ranges first.
   state.font_plan.reset();
   state.font_sources.emplace();
   for (const auto &path : paths)
-    state.font_sources->push_back({path, require_traditional_face});
+    state.font_sources->push_back({path, require_traditional_face, map_installed_file});
   state.dpi_bucket = 0;
 }
 EditorFontTestState EditorImGuiTestAccess::FontState(const EditorImGuiHost &host) {

@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <memory>
 #include <set>
 #include <stdexcept>
 #if defined(_WIN32)
@@ -175,10 +176,58 @@ void Collection(const std::filesystem::path &fixtures) {
           Access::FontGlyph(host, 0x4E2D).ink_pixels > 0,
       "TTC source was selected by an arbitrary face index instead of TC name and outline coverage");
 }
+void MappedSourceLifetime(const std::filesystem::path &fixtures,
+                          const std::filesystem::path &temporary) {
+#if defined(_WIN32)
+  const auto source = temporary / std::filesystem::path(u8"映射字型.ttf");
+  std::filesystem::copy_file(fixtures / "NexoraSyntheticGlyphTest.ttf", source);
+  struct CloseHandleOwner final {
+    void operator()(void *handle) const { CloseHandle(handle); }
+  };
+  {
+    const std::unique_ptr<void, CloseHandleOwner> writer(CreateFileW(
+        source.c_str(), GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+    Require(writer.get() != INVALID_HANDLE_VALUE, "Mapped rejection fixture could not open writer");
+    Host rejected;
+    Access::FontSources(rejected, std::array{Utf8(source)}, false, true);
+    rejected.SetDisplay(800, 600, 1);
+    Require(Access::FontState(rejected).fallback && !Access::FontGlyph(rejected, 0x4E2D).present,
+            "Mapped input admitted a concurrently writable source");
+  }
+  Host host;
+  Access::FontSources(host, std::array{Utf8(source)}, false, true);
+  host.SetDisplay(800, 600, 1);
+  const auto initial = Access::FontGlyph(host, 0x4E2D);
+  Require(initial.present && initial.ink_pixels, "Mapped font lost scalable glyph coverage");
+  const auto writer = CreateFileW(source.c_str(), GENERIC_WRITE,
+                                  FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr,
+                                  OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+  const auto writer_error = GetLastError();
+  if (writer != INVALID_HANDLE_VALUE)
+    CloseHandle(writer);
+  Require(writer == INVALID_HANDLE_VALUE && writer_error == ERROR_SHARING_VIOLATION,
+          "Live mapped atlas did not protect its validated source from mutation/truncation");
+  const auto retired = temporary / "retired-font.ttf";
+  std::filesystem::rename(source, retired);
+  Require(std::filesystem::remove(retired), "Mapped source did not permit atomic retirement");
+  host.SetDisplay(800, 600, 2);
+  Bound(Access::FontState(host));
+  Require(Access::FontGlyph(host, 0x4E2D).ink_pixels > 0,
+          "DPI rebuild lost the mapped owner after source retirement");
+  host.SetDisplay(800, 600, 1);
+  Require(Access::FontGlyph(host, 0x4E2D).raster_hash == initial.raster_hash,
+          "Mapped source retirement changed the rebuilt raster");
+#else
+  static_cast<void>(fixtures);
+  static_cast<void>(temporary);
+#endif
+}
 } // namespace
 int main(int argc, char **argv) {
   try {
-    if (argc == 2 && std::string_view(argv[1]) == "--system") {
+    if (argc == 2 && (std::string_view(argv[1]) == "--system" ||
+                      std::string_view(argv[1]) == "--system-compare")) {
       Host host;
       host.SetDisplay(1280, 720, 1);
       const auto state = Access::FontState(host);
@@ -196,6 +245,26 @@ int main(int argc, char **argv) {
         const auto glyph = Access::FontGlyph(host, scalar);
         std::cout << "system scalar=" << scalar << " present=" << glyph.present
                   << " ink=" << glyph.ink_pixels << '\n';
+      }
+      if (std::string_view(argv[1]) == "--system-compare") {
+        Host copied;
+        Access::FontSources(copied, state.paths);
+        copied.SetDisplay(1280, 720, 1);
+        const auto copy = Access::FontState(copied);
+        Bound(copy);
+        Require(copy.profile == state.profile && copy.missing == state.missing &&
+                    copy.faces == state.faces && copy.families == state.families &&
+                    copy.width == state.width && copy.height == state.height,
+                "System mapped/copy font admission or atlas shape differs");
+        for (const auto scalar : state.profile) {
+          const auto expected = Access::FontGlyph(copied, scalar);
+          const auto actual = Access::FontGlyph(host, scalar);
+          Require(actual.present == expected.present && actual.uv == expected.uv &&
+                      actual.ink_pixels == expected.ink_pixels &&
+                      actual.raster_hash == expected.raster_hash,
+                  "System mapped/copy glyph raster differs");
+        }
+        std::cout << "system owning-copy parity scalars=" << state.profile.size() << " matched\n";
       }
       return 0; // Diagnostic mode: absent system coverage is reported, never asserted as accepted.
     }
@@ -226,6 +295,7 @@ int main(int argc, char **argv) {
     RealAtlas(unicode, true);
     RejectedSources(fixtures, invalid);
     Collection(fixtures);
+    MappedSourceLifetime(fixtures, temporary.root);
     return 0;
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';

@@ -767,7 +767,16 @@ inclusion requests coverage; actual missing members are retained from `FindGlyph
 The generated Traditional set still requires its conditional Windows CP950 exact-set comparison.
 
 `NEXORA_EDITOR_FONT_PATHS` precedes bounded host defaults (colon-separated on POSIX;
-semicolon-separated on Windows). Native Unicode filesystem reads own the source data. The
+semicolon-separated on Windows). Native Unicode filesystem reads own the source data. Windows
+host-default system fonts use owned read-only file mappings instead of eagerly copying each
+whole TTC before inspection. The opened file's size must match the bounded admission size;
+in-place writes/truncation are excluded for the mapping lifetime. Delete sharing permits atomic
+replacement/retirement while the old mapped object remains valid. The plan retains the file,
+mapping and view through every DPI rebuild, and releases them together. A mapping/open/size failure
+rejects that candidate through the existing fallback policy. Explicit configured/test sources
+retain owning byte copies by default, including their existing source-removal behavior; POSIX
+reads are unchanged. The pinned ImGui still makes its own admitted per-atlas input copies.
+The 64 MiB source cap counts logical mapped bytes as well as copied bytes, not just heap storage. The
 ordinary process plan is cached on first use; restart to change configuration. Linux/macOS use
 finite installed-font locations. Noto CJK TTC selection checks the TC family name and actual
 outline coverage, instead of assuming face 0 or treating an index as evidence. A TTC's 10 faces

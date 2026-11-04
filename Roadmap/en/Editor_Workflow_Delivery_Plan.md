@@ -250,3 +250,16 @@ Scoped Windows Editor/font rebuild passes(111.99s), `editor.font_glyphs` passes 
 diagnostics enabled(0.98s case/1.11s CTest), and the real-function export regression passes.
 [Failure archives, source hashes and local validation](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-CI-Followup-Windows.json)
 retain the original failed CI evidence; full new-source acceptance remains open.
+
+Exactcc282e0d Windows startup still fails(37.54s): the first whole-font read takes23.668898s,
+then the second read has no end checkpoint before the unchanged35-second readiness bound.
+The underlying filesystem delay is unproven. Windows default system fonts now use owned read-only
+file mappings with stable-size/write exclusion and atomic-retirement sharing; explicit sources
+and POSIX retain owning copies. Source/profile/atlas caps, selection/preflight and ImGui's own
+per-atlas copies remain. Scoped Editor/font build passes107.71s; final parity-test rebuild45.33s;
+glyph suite including mapping lifetime/retirement passes1/1(1.19s case/1.59s CTest). Real Windows
+system-font comparison matches all7182 profile scalars(presence/UV/ink/raster hash), including the
+same35 reported misses, faces and atlas extent. This warm-host CPU evidence does not establish cold
+CI improvement. [Failure and mapping receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Font-Mapping-Windows.json).
+Full exact-source Cloud/Shipping/CI and original native startup/package acceptance remain open;
+no merge, new acceptance mark or final ZIP. Work orders4/9 unchanged.

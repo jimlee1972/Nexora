@@ -26,6 +26,56 @@
 
 namespace Nexora::EditorImGuiDetail {
 namespace {
+#if defined(_WIN32)
+struct FontMapping final {
+  HANDLE file{INVALID_HANDLE_VALUE}, mapping{};
+  const void *view{};
+  ~FontMapping() {
+    if (view)
+      UnmapViewOfFile(view);
+    if (mapping)
+      CloseHandle(mapping);
+    if (file != INVALID_HANDLE_VALUE)
+      CloseHandle(file);
+  }
+};
+#endif
+std::shared_ptr<const FontSourceData> ReadFontSource(const std::filesystem::path &path,
+                                                     std::size_t size, bool map_installed_file) {
+#if defined(_WIN32)
+  if (map_installed_file) {
+    auto owner = std::make_shared<FontMapping>();
+    // Keep the opened object immutable for every borrowed atlas input. Atomic replacement is
+    // allowed, but in-place writes/truncation cannot invalidate validation or mapped bounds.
+    owner->file = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE,
+                              nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    LARGE_INTEGER actual{};
+    if (owner->file == INVALID_HANDLE_VALUE || !GetFileSizeEx(owner->file, &actual) ||
+        actual.QuadPart != static_cast<LONGLONG>(size))
+      return {};
+    owner->mapping = CreateFileMappingW(owner->file, nullptr, PAGE_READONLY, 0, 0, nullptr);
+    if (!owner->mapping)
+      return {};
+    owner->view = MapViewOfFile(owner->mapping, FILE_MAP_READ, 0, 0, size);
+    if (!owner->view)
+      return {};
+    auto result = std::make_shared<FontSourceData>();
+    result->bytes = {static_cast<const std::byte *>(owner->view), size};
+    result->owner = std::move(owner);
+    return result;
+  }
+#else
+  static_cast<void>(map_installed_file);
+#endif
+  auto owner = std::make_shared<std::vector<std::byte>>(size);
+  std::ifstream input(path, std::ios::binary);
+  if (!input.read(reinterpret_cast<char *>(owner->data()), static_cast<std::streamsize>(size)))
+    return {};
+  auto result = std::make_shared<FontSourceData>();
+  result->bytes = *owner;
+  result->owner = std::move(owner);
+  return result;
+}
 std::span<const std::uint32_t> DefaultFontCoverage() {
   static const auto coverage = [] {
     // This atlas never becomes a context's atlas or changes the current context. Build exactly
@@ -127,9 +177,14 @@ std::vector<std::uint32_t> BuildFontProfile(std::span<const std::uint32_t> simpl
 }
 std::vector<FontSource> InstalledFontSources() {
   std::vector<FontSource> result;
+#if defined(_WIN32)
+  constexpr bool map_host_defaults = true;
+#else
+  constexpr bool map_host_defaults = false;
+#endif
   const auto add = [&](const std::filesystem::path &path, bool require_traditional = false) {
     if (result.size() < 16)
-      result.push_back({Utf8(path), require_traditional});
+      result.push_back({Utf8(path), require_traditional, map_host_defaults});
   };
   std::string configured;
 #if defined(_WIN32)
@@ -257,15 +312,14 @@ std::shared_ptr<const FontPlan> PrepareFontPlan(std::span<const std::uint32_t> p
       ++plan->rejected;
       continue;
     }
-    auto bytes = std::make_shared<std::vector<std::byte>>(static_cast<std::size_t>(size));
     FontDiagnosticCheckpoint("source-read-begin", plan->candidates);
-    std::ifstream input(path, std::ios::binary);
-    if (!input.read(reinterpret_cast<char *>(bytes->data()), static_cast<std::streamsize>(size))) {
+    auto bytes = ReadFontSource(path, static_cast<std::size_t>(size), source.map_installed_file);
+    if (!bytes) {
       ++plan->rejected;
       continue;
     }
     FontDiagnosticCheckpoint("source-read-end", plan->candidates);
-    const auto identities = InspectFontFaces(*bytes);
+    const auto identities = InspectFontFaces(bytes->bytes);
     FontDiagnosticCheckpoint("face-inspection-end", plan->candidates);
     bool admitted = false, scalable = false, bitmap_only = false;
     const bool require_tc = source.require_traditional_face ||
@@ -280,7 +334,7 @@ std::shared_ptr<const FontPlan> PrepareFontPlan(std::span<const std::uint32_t> p
         continue;
       FontOutlineCoverage coverage;
       FontDiagnosticCheckpoint("outline-begin", plan->candidates, identity.index);
-      const bool probed = ProbeFontOutlines(*bytes, identity.index, remaining, coverage);
+      const bool probed = ProbeFontOutlines(bytes->bytes, identity.index, remaining, coverage);
       FontDiagnosticCheckpoint("outline-end", plan->candidates, identity.index);
       if (!probed || coverage.scalars.empty())
         continue;
