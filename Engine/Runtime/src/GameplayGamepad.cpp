@@ -1,5 +1,10 @@
+#if defined(_WIN32) && !defined(_WIN32_WINNT)
+// Expose notification declarations; entry points are dynamically negotiated at runtime.
+#define _WIN32_WINNT 0x0602
+#endif
 #include "Nexora/Runtime/GameplayGamepad.h"
 #include "GameplayDevicePresence.h"
+#include "GameplayDeviceScan.h"
 #include "GameplayDirectInputState.h"
 #include "GameplayXInputState.h"
 #include <algorithm>
@@ -8,6 +13,7 @@
 #include <cstdio>
 #include <cstring>
 #include <cwchar>
+#include <exception>
 #include <string>
 #if defined(__linux__)
 #include <fcntl.h>
@@ -18,6 +24,8 @@
 #define NOMINMAX
 #endif
 #include <windows.h>
+
+#include <cfgmgr32.h>
 
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
@@ -39,7 +47,12 @@ struct NativeGameplayGamepad::WindowsState {
   IDirectInput8W *direct{};
   std::array<Joystick, 4> joysticks{};
   std::array<bool, 4> xinputConnected{};
-  std::chrono::steady_clock::time_point nextScan{};
+  detail::DeviceScanSchedule scan;
+  HMODULE notificationLibrary{};
+  HCMNOTIFICATION notification{};
+  using RegisterNotification = decltype(&CM_Register_Notification);
+  using UnregisterNotification = decltype(&CM_Unregister_Notification);
+  UnregisterNotification unregisterNotification{};
   using Read = DWORD(WINAPI *)(DWORD, XINPUT_STATE *);
   Read read{};
   using Write = DWORD(WINAPI *)(DWORD, XINPUT_VIBRATION *);
@@ -50,6 +63,8 @@ struct NativeGameplayGamepad::WindowsState {
   WindowsState() {
     (void)DirectInput8Create(GetModuleHandleW(nullptr), DIRECTINPUT_VERSION, IID_IDirectInput8W,
                              reinterpret_cast<void **>(&direct), nullptr);
+    if (direct)
+      StartDeviceNotifications();
     library = LoadLibraryExW(L"xinput1_4.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (!library)
       library = LoadLibraryExW(L"xinput9_1_0.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
@@ -66,6 +81,17 @@ struct NativeGameplayGamepad::WindowsState {
     }
   }
   ~WindowsState() {
+    if (notification) {
+      // The OS drains pending callbacks here, before scan or this DLL can be destroyed.
+      const auto result = unregisterNotification(notification);
+      if (result != CR_SUCCESS) {
+        std::fprintf(stderr, "native_gamepad notification teardown failed=%lu\n",
+                     static_cast<unsigned long>(result));
+        std::terminate(); // Never free a context whose callback registration may still be live.
+      }
+    }
+    if (notificationLibrary)
+      FreeLibrary(notificationLibrary);
     if (write) {
       XINPUT_VIBRATION zero{};
       for (DWORD id = 0; id < 4; ++id)
@@ -77,6 +103,44 @@ struct NativeGameplayGamepad::WindowsState {
       direct->Release();
     if (library)
       FreeLibrary(library);
+  }
+  static DWORD CALLBACK DeviceChanged(HCMNOTIFICATION, void *context, CM_NOTIFY_ACTION action,
+                                      PCM_NOTIFY_EVENT_DATA, DWORD) noexcept {
+    if (action == CM_NOTIFY_ACTION_DEVICEINTERFACEARRIVAL ||
+        action == CM_NOTIFY_ACTION_DEVICEINTERFACEREMOVAL)
+      static_cast<detail::DeviceScanSchedule *>(context)->Notify();
+    return ERROR_SUCCESS;
+  }
+  void StartDeviceNotifications() {
+    notificationLibrary = LoadLibraryExW(L"cfgmgr32.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+    unsigned long failure = GetLastError();
+    if (notificationLibrary) {
+      const auto registerAddress = GetProcAddress(notificationLibrary, "CM_Register_Notification");
+      const auto unregisterAddress =
+          GetProcAddress(notificationLibrary, "CM_Unregister_Notification");
+      RegisterNotification registerNotification{};
+      static_assert(sizeof(registerAddress) == sizeof(registerNotification));
+      static_assert(sizeof(unregisterAddress) == sizeof(unregisterNotification));
+      std::memcpy(&registerNotification, &registerAddress, sizeof(registerNotification));
+      std::memcpy(&unregisterNotification, &unregisterAddress, sizeof(unregisterNotification));
+      failure = ERROR_PROC_NOT_FOUND;
+      if (registerNotification && unregisterNotification) {
+        CM_NOTIFY_FILTER filter{};
+        filter.cbSize = sizeof(filter);
+        filter.FilterType = CM_NOTIFY_FILTER_TYPE_DEVICEINTERFACE;
+        // Preserve discovery of generic/virtual joysticks as well as USB HID and XInput pads.
+        filter.Flags = CM_NOTIFY_FILTER_FLAG_ALL_INTERFACE_CLASSES;
+        HCMNOTIFICATION registered{};
+        failure = registerNotification(&filter, &scan, DeviceChanged, &registered);
+        if (failure == CR_SUCCESS)
+          notification = registered;
+      }
+    }
+    if (notification)
+      std::fprintf(stderr, "native_gamepad discovery=device_notifications\n");
+    else
+      std::fprintf(stderr, "native_gamepad discovery=timed_fallback notification_error=%lu\n",
+                   failure);
   }
   static void Release(Joystick &joystick) {
     if (joystick.device) {
@@ -200,6 +264,9 @@ bool NativeGameplayGamepad::Poll(GameplayInput &input, std::uint32_t user) {
   std::array<XINPUT_STATE, 4> states{};
   for (std::uint32_t id = 0; id < 4; ++id) {
     const bool connected = windows_->read && windows_->read(id, &states[id]) == ERROR_SUCCESS;
+    // A wireless XInput state change can free/reserve a slot without a PnP interface edge.
+    if (windows_->xinputConnected[id] != connected)
+      windows_->scan.Notify();
     auto &joystick = windows_->joysticks[id];
     if (connected && joystick.device) {
       WindowsState::Release(joystick);
@@ -217,8 +284,7 @@ bool NativeGameplayGamepad::Poll(GameplayInput &input, std::uint32_t user) {
       windows_->rumbleMask |= 1u << id;
   }
   const auto now = std::chrono::steady_clock::now();
-  if (windows_->direct && now >= windows_->nextScan) {
-    windows_->nextScan = now + std::chrono::seconds(1);
+  if (windows_->direct && windows_->scan.Begin(now, windows_->notification != nullptr)) {
     for (auto &joystick : windows_->joysticks)
       joystick.seen = false;
     const auto result = windows_->direct->EnumDevices(DI8DEVCLASS_GAMECTRL, WindowsState::Enumerate,
@@ -232,6 +298,8 @@ bool NativeGameplayGamepad::Poll(GameplayInput &input, std::uint32_t user) {
             return false;
         }
       }
+    else
+      windows_->scan.RetryAfterFailure(std::chrono::steady_clock::now());
   }
   for (std::uint32_t id = 0; id < 4; ++id) {
     auto &joystick = windows_->joysticks[id];

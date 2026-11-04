@@ -72,6 +72,23 @@ class PromotionTests(unittest.TestCase):
         self.save()
         self.assertEqual(self.verify(), self.receipt)
 
+    def test_notification_release_requires_device_discovery_receipt(self):
+        self.manifest['version'] = '0.3.1'
+        self.tag = 'sdk-2d-windows-x64-v0.3.1'
+        (self.release/'sdk.json').write_text(json.dumps(self.manifest), encoding='utf-8')
+        with zipfile.ZipFile(self.archive, 'w') as zipped:
+            zipped.writestr('sdk.json', json.dumps(self.manifest))
+        self.receipt['archive_sha256'] = hashlib.sha256(self.archive.read_bytes()).hexdigest()
+        self.receipt.update(authored_scene_headless=True, authored_scene_dx12=True)
+        self.save()
+        with self.assertRaisesRegex(ValueError, 'gamepad notification'): self.verify()
+        self.receipt['gamepad_device_notifications'] = False
+        self.save()
+        with self.assertRaisesRegex(ValueError, 'gamepad notification'): self.verify()
+        self.receipt['gamepad_device_notifications'] = True
+        self.save()
+        self.assertEqual(self.verify(), self.receipt)
+
     def test_reject_changed_source_tag_hash_and_acceptance(self):
         for key, value in [('status', 'FAIL'), ('source_commit', 'b'*40),
                 ('archive_sha256', '0'*64), ('real_zig_hd2d', False),
