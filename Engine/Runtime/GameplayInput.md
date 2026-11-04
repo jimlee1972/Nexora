@@ -89,12 +89,24 @@ replacing an adapter while reusing input, the host disconnects its old slots fir
 owner loop and is not a realtime callback. Public C++ consumers must rebuild for the private
 Windows ownership member; no C/Zig wire layout changes.
 
-Windows also enumerates attached DirectInput game controllers at most once per second, using
-the system `dinput8` and `dxguid` libraries (private Windows-only linkage). The adapter owns its
+Windows enumerates attached DirectInput game controllers on initial discovery, PnP interface
+arrival/removal, and XInput connection changes that free/reserve a shared slot. Stable input frames
+do not periodically call the potentially blocking `EnumDevices`. The adapter dynamically loads
+System32 `cfgmgr32.dll` and negotiates device-notification entry points; its callback only marks an
+atomic pending request and never accesses DirectInput, gameplay input, or the host COM apartment.
+It claims that request before enumeration, so a notification during enumeration remains pending.
+Enumeration failure retains device ownership and retries no sooner than one second after failure
+completion. If notification loading/registration is unavailable, one diagnostic explicitly reports
+the bounded one-second fallback discovery mode instead of silently losing hotplug support.
+
+The system `dinput8` and `dxguid` libraries remain private Windows-only linkage. The adapter owns its
 DirectInput interface and device COM references until removal/destruction on the creating thread;
 it does not initialize or change the host COM apartment. Nonexclusive background polling does not
 take exclusive device access. GameplayInput still discards all samples while unfocused. Polling
 and a bounded single reacquisition attempt run on the caller thread, without a worker or wait loop.
+Destroy on that owner thread: notification unregistration drains pending callbacks before freeing
+their context or unloading the library. A failure to close that owned registration terminates
+rather than freeing a potentially live callback context. No notification work enters a game DLL.
 Acquisition clears old controls and defers the first snapshot to the following input frame,
 avoiding an initial zero cache being interpreted as half-pressed triggers.
 Failed reads immediately disconnect the slot; successful full snapshots restore held state after
@@ -148,6 +160,9 @@ native controller. Windows DLL polling and physical input still require target-h
 The same test also covers copied DirectInput DS4 face/system/POV and six-axis routing, raw generic
 controls, full-snapshot clearing on slot reuse, focus recovery, disconnect, bounds and wrong-thread
 rejection. Those decoder tests do not establish physical-device acceptance.
+It also checks stable 60 Hz polls without re-enumeration, burst coalescing, a notification arriving
+during enumeration, completion-relative retry backoff, and the explicit legacy fallback schedule.
+These scheduling regressions do not measure OS scan time or establish physical hotplug acceptance.
 
 ## Optional motor output and lifecycle
 

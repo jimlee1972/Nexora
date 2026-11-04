@@ -1,7 +1,7 @@
 name: Windows 2D SDK candidate
 on:
   push:
-    branches: [main, 'feat/prebuilt-windows-sdk', 'codex/authored-2d-scene-loading']
+    branches: [main, 'feat/prebuilt-windows-sdk', 'codex/authored-2d-scene-loading', 'codex/windows-gamepad-device-notifications']
   pull_request:
 permissions:
   contents: read
@@ -71,7 +71,7 @@ jobs:
           if ($redists.Count -ne 1) { throw 'Expected exactly one x64 CRT directory' }
           python Tools/SDK/SDK.py package --build build/sdk-producer --output build/sdk-delivery `
             --redist $redists[0].FullName --ninja "$env:RUNNER_TEMP/sdk-ninja/ninja.exe" `
-            --ninja-license "$env:RUNNER_TEMP/sdk-ninja/COPYING" --version 0.3.0 --commit $env:GITHUB_SHA
+            --ninja-license "$env:RUNNER_TEMP/sdk-ninja/COPYING" --version 0.3.1 --commit $env:GITHUB_SHA
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v4
         with:

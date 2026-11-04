@@ -127,6 +127,7 @@ test "diagnostic defaults are interactive" {
     for name, digest in inventory['files'].items():
         if hashlib.sha256((hd2d/name).read_bytes()).hexdigest() != digest:
             raise ValueError('HD2D inventory mismatch')
+    gamepad_notifications = False
     for native in (False, True):
         label = 'native' if native else 'fallback'
         report = output/f'hd2d-{label}.json'
@@ -149,6 +150,9 @@ test "diagnostic defaults are interactive" {
             'HD2D STOP PASS phase_mask=4095 reloads=2' not in logs or 'FAIL' in logs):
             raise ValueError('HD2D lifecycle/fallback regression: '+label+'; diagnostic logs: '+logs[-3000:])
         if native:
+            gamepad_notifications = 'native_gamepad discovery=device_notifications' in logs
+            if tuple(map(int, manifest['version'].split('.'))) >= (0, 3, 1) and not gamepad_notifications:
+                raise ValueError('SDK did not enable device-notification gamepad discovery')
             if observed['native_frames'] != 144 or 'features=7' not in logs:
                 raise ValueError('SDK did not execute native HD2D effects')
             if any(observed[k] for k in ('effects_scene_bytes','effects_shadow_bytes',
@@ -207,7 +211,9 @@ test "diagnostic defaults are interactive" {
         raise ValueError('consumer modified the SDK')
     (output/'acceptance.json').write_text(json.dumps(dict(status='PASS', source_commit=manifest['source_commit'],
         archive_sha256=archive_sha, two_processes=True, canonical_atlas_clip=True, real_zig_hd2d=True, hd2d_reload_cycles=2, offline_rebuild=True,
-        authored_scene_headless=True, authored_scene_dx12=True, physical_windows='NOT_RUN', native_dx12='PASS'), indent=2)+'\n', encoding='utf-8')
+        authored_scene_headless=True, authored_scene_dx12=True,
+        gamepad_device_notifications=gamepad_notifications,
+        physical_windows='NOT_RUN', native_dx12='PASS'), indent=2)+'\n', encoding='utf-8')
 
 
 

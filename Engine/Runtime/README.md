@@ -1224,6 +1224,11 @@ See [GameplayLifecycle.md](GameplayLifecycle.md) for owner-thread ownership, ret
 sequences, explicit close opt-in/tokens, bounded XInput output, errors and Zig pause/save policy.
 Native physical Windows acceptance remains separate from the portable contract.
 
+Windows gamepad discovery now uses a copied pending PnP notification instead of periodic full
+DirectInput enumeration on stable input frames. The owner thread retains all device COM references
+and drains notification callbacks before teardown; unsupported notifications retain an explicitly
+reported bounded fallback. See [the input contract](GameplayInput.md#native-gamepad-adapter-and-evidence).
+
 ## Typed Zig script lifecycle
 
 The optional [packaged game scene session](GameSceneSession.md) adds queued Replace/Additive/unload
