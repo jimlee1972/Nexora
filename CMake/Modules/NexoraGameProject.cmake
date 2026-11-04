@@ -39,7 +39,7 @@ function(nexora_add_game_module target)
   set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${GAME_PROJECT}")
   set(target_args)
   if(WIN32)
-    list(APPEND target_args -Dtarget=x86_64-windows-msvc)
+    list(APPEND target_args -target x86_64-windows-msvc)
   endif()
   set(environment "${CMAKE_COMMAND}" -E env
     "ZIG_GLOBAL_CACHE_DIR=${CMAKE_BINARY_DIR}/zig-global-cache"
@@ -70,12 +70,35 @@ function(nexora_add_game_module target)
       WORKING_DIRECTORY "${CMAKE_BINARY_DIR}" VERBATIM)
     return()
   endif()
-  set(arguments --build-file "${sdk_root}/Tools/Zig/build.zig"
-    "-Dscript=${script_path}" "-Dname=${module_name}" ${target_args})
+  # Private snapshots have different SDK paths. Bootstrapping `zig build` at each path
+  # recompiles its build runner before it can even diagnose an invalid authored script.
+  # Compile the same engine-owned entry and both test roots directly. Every module keeps
+  # build.zig's target/optimization settings; caches and output remain private to the caller.
+  foreach(optimization IN ITEMS ReleaseSafe Debug)
+    set(module_args_${optimization}
+      --dep nexora --dep game -O${optimization} ${target_args}
+      "-Mroot=${sdk_root}/Tools/Zig/game_entry.zig"
+      --dep nexora -O${optimization} ${target_args} "-Mgame=${script_path}"
+      -O${optimization} ${target_args} "-Mnexora=${sdk_root}/Bindings/Zig/nexora.zig")
+  endforeach()
+  if(WIN32)
+    set(module_file "${GAME_OUTPUT}/bin/${module_name}.dll")
+    file(MAKE_DIRECTORY "${GAME_OUTPUT}/bin")
+  else()
+    set(module_file "${GAME_OUTPUT}/lib/lib${module_name}.so")
+    file(MAKE_DIRECTORY "${GAME_OUTPUT}/lib")
+  endif()
+  set(test_directory "${CMAKE_CURRENT_BINARY_DIR}/nexora-game-tests/${target}")
+  file(MAKE_DIRECTORY "${test_directory}")
   add_custom_target(${target}
-    COMMAND ${environment} "${GAME_ZIG}" build ${arguments}
-      -Doptimize=ReleaseSafe --prefix "${GAME_OUTPUT}"
-    COMMAND ${environment} "${GAME_ZIG}" build test ${arguments} --summary all
+    COMMAND ${environment} "${GAME_ZIG}" build-lib -dynamic -fcompiler-rt
+      --name "${module_name}" "-femit-bin=${module_file}" ${module_args_ReleaseSafe}
+    COMMAND ${environment} "${GAME_ZIG}" test
+      "-femit-bin=${test_directory}/entry${CMAKE_EXECUTABLE_SUFFIX}" ${module_args_Debug}
+    COMMAND ${environment} "${GAME_ZIG}" test
+      "-femit-bin=${test_directory}/script${CMAKE_EXECUTABLE_SUFFIX}"
+      --dep nexora -ODebug ${target_args} "-Mroot=${script_path}"
+      -ODebug ${target_args} "-Mnexora=${sdk_root}/Bindings/Zig/nexora.zig"
     COMMAND "${CMAKE_COMMAND}" -E echo NEXORA_SCRIPT_TESTS_PASSED
     WORKING_DIRECTORY "${CMAKE_BINARY_DIR}" VERBATIM)
 endfunction()

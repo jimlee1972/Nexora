@@ -217,3 +217,12 @@ All42 exact885693db CI checks and all4 workflows now succeed; see the
 [complete CI receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-CI-885693db.json).
 The separate original8870 Cloud run has at least10 failures and still requires its final
 inventory/Shipping results plus immutable-head revalidation. No merge or acceptance-count change.
+
+The original8870 Cloud run is sealed as FAIL491/502,11 failures,zero skips/retries; all four
+Development/Shipping configure/build commands exit0. [Complete receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Cloud-8870d63e.json).
+SDK follow-up removes per-snapshot Zig build-runner bootstrap through the common CMake entry,
+preserving canonical code/tests, per-module optimization/target, compiler-rt and private caches.
+Scoped Windows rebuild and4 original cases pass; the separated original script/authored-test
+rejection cases pass2/2 without extending original limits. [SDK evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-SDK-Direct-Windows.json).
+Latest-main integration and full immutable Cloud/Shipping/CI/native package revalidation remain
+pending;4/9 unchanged.

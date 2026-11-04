@@ -32,7 +32,9 @@ auto Files(const Path &root) {
   return result;
 }
 void Run(const Path &fixture, int argc, char **argv) {
-  Require(argc == 5, "expected Player/CMake/Ninja/Zig paths");
+  const bool authored_test_rejection =
+      argc == 6 && std::string_view(argv[5]) == "--authored-test-rejection";
+  Require(argc == 5 || authored_test_rejection, "expected Player/CMake/Ninja/Zig paths");
   const auto project = fixture / Path{u8"專案 scripts"};
   const auto temporary = fixture / "operations";
   std::filesystem::create_directories(project / "Code");
@@ -112,6 +114,20 @@ pub const Game = struct {
           "canonical SDK tests did not execute");
   Require(Files(project) == original && !exists(project / "project.nexora"),
           "script-only compilation required scene/project cooking or changed authored sources");
+  if (authored_test_rejection) {
+    const auto first_bytes = Read(first->Library());
+    Write(project / "Code/game.zig",
+          script +
+              "\ntest \"authored test rejection\" { return error.InjectedScriptTestFailure; }\n");
+    Require(
+        !editor::PrepareGameScript(request, {}, &error) && !error.empty() &&
+            Read(first->Library()) == first_bytes,
+        "a compiled module with failing authored tests was admitted or changed a prior candidate");
+    Write(project / "Code/game.zig", script);
+    Require(first->Current() && Files(project) == original,
+            "failed authored tests changed project sources or the previous candidate baseline");
+    return;
+  }
   auto second = editor::PrepareGameScript(request, {}, &error);
   Require(second.has_value(), error.c_str());
   Require(first->Library() != second->Library() &&
@@ -173,8 +189,13 @@ int main(int argc, char **argv) {
     Require(resolved == fixture && resolved.parent_path() == parent,
             "fixture cleanup escaped root");
     std::filesystem::remove_all(resolved);
-    std::cout << "Standalone canonical SDK compilation, unique candidates, source/artifact guards "
-                 "and failure conservation passed\n";
+    if (argc == 6)
+      std::cout
+          << "Canonical SDK authored-test rejection preserved the prior candidate and project\n";
+    else
+      std::cout
+          << "Standalone canonical SDK compilation, unique candidates, source/artifact guards "
+             "and failure conservation passed\n";
     return 0;
   } catch (const std::exception &error) {
     std::cerr << error.what() << "\nFixture retained at " << fixture << '\n';

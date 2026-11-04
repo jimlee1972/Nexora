@@ -198,3 +198,11 @@ validation3/3、renderer20/20亦通過。下載封存的CRC與SHA-256已核對�
 [完整CI收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-CI-885693db.json)。
 獨立的原8870 Cloud已有至少10項失敗，仍須保存完整終態／Shipping並重驗精確版本。
 尚不合併或增加已驗收數。
+
+原8870 Cloud已封存為FAIL491/502、11項失敗、零跳過／重試；Development／Shipping
+四個configure／build命令均exit0。見[完整收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Cloud-8870d63e.json)。
+SDK修正透過共用CMake入口移除每代Zig建置程式的重編譯，保留既有入口／測試、各模組
+最佳化／target、compiler-rt與私有快取。Windows範圍重建及原4項案例通過；拆分後的
+原腳本案例與腳本測試拒絕案例2/2通過，未延長原期限。
+見[SDK證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-SDK-Direct-Windows.json)。
+最新main整合及精確版本完整Cloud／Shipping／CI／原生封裝重驗仍待完成；維持4/9。

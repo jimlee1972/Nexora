@@ -284,6 +284,34 @@ Upstream integration includes main `1df6ab357da69ee3257097a9b5176695b7c96b9a` (P
 
 [Post-merge Windows receipt](ED-WF-05-Main-Integration-Windows.json): all9 targets build(exit0), and6 scoped CTests pass(exit0,5.64s), including the catalog/legacy guard regression and strict reload/packaged DLL lifetimes. These are CPU/service checks, not a new GUI or full-gate pass.
 
+## SDK build-runner follow-up (unaccepted)
+
+The original8870 Cloud five gates are now terminal: Development configure/build0/0,
+complete CTest exit8(491/502 pass,11 failures,zero skips/retries), supported Shipping
+configure/build0/0. [Complete original receipt](ED-WF-05-Cloud-8870d63e.json) retains exact
+commands, failed assertions, output hashes, ten zombies and the151335970-byte archive
+SHA-256 `bbc9d9509ffff4ac684e3ea64633d7067a8f29f5afad8a74356b14a5be901d2f`.
+The archive was verified in Cloud and was not downloaded locally. Its one diagnostic attempt
+failed Xvfb readiness before Editor/input in a different sandbox; it cannot explain the original
+keyup failure or replace the full failed gate.
+
+SDK diagnosis retains two completed operations176.048/94.660s before an intentional invalid
+source operation exhausts the old300s outer case. A scoped Windows experiment measures
+private SDK/cache83.36/81.29s, shared cache alone122.05/79.25s(not adopted), and stable SDK
+52.27/42.62s with no extra build-runner cache entry for the second generation. Direct compilation
+of the same canonical SDK entry takes42.15/40.25s with fresh private SDK/cache; both entry and
+authored tests run, actual DLL loading/ABI null negotiation passes, and invalid source rejects
+without changing the two prior DLL hashes. These timing samples do not establish Linux causality.
+
+The smaller implementation uses direct Zig build-lib/test/test in the shared CMake SDK entry,
+preserving per-module optimization/target, compiler-rt and private ownership. Standalone
+build.zig and the macOS host-linker path remain unchanged. Windows rebuild exits0; the original
+four scoped tests pass4/4(374.33s), including real source-free game publication. The independent
+authored-test-failure regression and original script case then pass2/2(181.53s); neither original
+case workload nor deadline is extended. [Scoped receipt](ED-WF-05-SDK-Direct-Windows.json).
+Latest main crash-logging integration and all immutable full/native gates remain required;
+no new work-order acceptance or final ZIP claim follows.
+
 ## Linux Showcase failure evidence follow-up (unaccepted)
 
 The immutable `885693db` GitHub Linux Editor display job126033478227 succeeds:
@@ -301,11 +329,11 @@ Windows Editor package and the Windows2D SDK candidate. [Complete CI receipt](ED
 The original8870 Codex Cloud run has since reached at least10 failures; its full terminal
 inventory and Shipping remain pending. Hosted CI success does not satisfy that separate gate.
 
-The still-running Cloud gate for `8870d63e` has reported failures in
+The original Cloud gate for `8870d63e` reported failures in
 `showcase.linux_vulkan_interaction` (the original shadow-off pixel comparison) and
 `showcase.linux_vulkan_virtual_display` (the original 30-second child deadline).
-These are failures, not accepted retries. Full CTest and Shipping terminal results remain
-pending. Neither input mapping nor CPU scheduling is established as the cause.
+These remain original failures; its complete terminal inventory and successful Shipping build
+are retained above. Neither input mapping nor CPU scheduling is established as the cause.
 The same run later reports `editor.game_build` failing its original coordinator worker
 deadline (476.44 seconds including unwinding; CTest limit600), and
 `editor.game_script_build` hitting its registered300-second CTest limit. Their original

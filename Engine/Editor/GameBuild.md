@@ -59,6 +59,11 @@ dedicated project-relative script source directory. No configured script is sile
 The entire bounded source subtree is frozen, excluding `.git`, `.zig-cache` and `zig-out`; file
 additions/removals and byte changes reject final publication. Compilation consumes that snapshot
 through the canonical `nexora_add_game_module` CMake/Zig adapter and runs its entry/authored tests.
+On Windows/Linux this invokes Zig's compiler directly on the canonical SDK roots, avoiding
+per-snapshot build-runner bootstrap. Library modules keep ReleaseSafe, entry/authored tests
+keep Debug, the Windows target remains MSVC and compiler-rt remains bundled. A failing authored
+test rejects preparation even if library compilation succeeded. SDK/caches remain private and
+owned exactly as before; no cross-project compiler state or authored build glue is introduced.
 SDK glue is embedded as data in EditorCore from canonical configure dependencies, materialized
 only in the private build operation. No engine checkout is required at runtime or in a game output.
 Configured CMake/Ninja/Zig executables and authored script tests are authorized code, not sandboxed;
