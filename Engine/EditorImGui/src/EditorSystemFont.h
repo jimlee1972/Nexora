@@ -36,6 +36,8 @@ BuildFontProfile(std::span<const std::uint32_t> simplified_ranges);
 [[nodiscard]] std::span<const std::uint16_t> TraditionalCommonScalars();
 // Presence enables diagnostics, including an empty value. MSVC owns and frees its CRT copy.
 [[nodiscard]] bool FontDiagnosticsEnabled() noexcept;
+// Opt-in, flushed checkpoints identify a stalled preparation phase without exposing paths.
+void FontDiagnosticCheckpoint(const char *phase, std::size_t candidate = 0, int face = -1) noexcept;
 [[nodiscard]] std::vector<FontSource> InstalledFontSources();
 // The default baseline comes from a process-once independent built-in atlas, including only
 // actual configured glyphs. Its first build is included in the plan's probe timing.

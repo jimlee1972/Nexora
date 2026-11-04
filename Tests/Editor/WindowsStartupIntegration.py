@@ -143,6 +143,7 @@ def _verify_startup(editor, evidence, environment=None):
     user.UnhookWinEvent.argtypes = [W.HANDLE]
     env = dict(os.environ if environment is None else environment)
     env['NEXORA_EDITOR_STARTUP_EVIDENCE'] = '1'
+    env['NEXORA_EDITOR_FONT_DIAGNOSTICS'] = '1'
     results = []
     with tempfile.TemporaryDirectory(prefix='Nexora no-argument GUI 陰陽 ') as temporary:
         root = Path(temporary).resolve()

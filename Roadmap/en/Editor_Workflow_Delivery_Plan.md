@@ -232,3 +232,21 @@ retain capture protection and diagnostic context. All14 selected Windows targets
 all15 scoped native CTests pass(658.98s). [Integration receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Crash-Integration-Windows.json).
 Full immutable Cloud/Shipping/CI and refreshed extracted/native Windows package acceptance
 are still required;4/9 unchanged.
+
+The user confirms the earlier local Editor exit was operator initiated. That interrupted
+run is neither a crash nor a completed 32-reload acceptance. Exact0c82 Windows CI separately
+fails startup before `prepare-display-returned`, with the main window still hidden; the
+font preparation cause remains under investigation. Showcase CI observes tour step6 at
+210.028 seconds but reads an empty final export. The export reader now waits for complete
+schema-valid JSON and nonempty Markdown within the original five-second deadline, retaining
+the accepted strings as evidence. A headless Windows regression invokes the actual production
+functions: the original reader fails, the revised reader passes delayed empty/partial/complete
+publication and bounded incomplete-output rejection. Native CI and full Cloud gates for these
+changes remain pending; no merge, new acceptance mark or final ZIP delivery.
+Startup follow-up adds opt-in flushed font substage checkpoints, enabled by the Windows
+startup fixture, without changing the original35-second readiness bound or glyph coverage.
+The checkpoint identifies where a later failure stops; it does not itself prove a startup fix.
+Scoped Windows Editor/font rebuild passes(111.99s), `editor.font_glyphs` passes with
+diagnostics enabled(0.98s case/1.11s CTest), and the real-function export regression passes.
+[Failure archives, source hashes and local validation](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-CI-Followup-Windows.json)
+retain the original failed CI evidence; full new-source acceptance remains open.

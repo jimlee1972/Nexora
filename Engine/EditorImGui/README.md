@@ -801,6 +801,13 @@ Coverage subtraction uses actual `FindGlyphNoFallback` results from a process-on
 default atlas; it does not assume every scalar in U+0020–U+00FF exists. Reported probe timing
 includes the first baseline-atlas build.
 
+With `NEXORA_EDITOR_FONT_DIAGNOSTICS` enabled, font preparation also flushes bounded stage
+checkpoints for profile/default coverage, the installed-plan cache lock, candidate reads,
+face inspection, outline probes and atlas construction. They contain candidate/face indices
+and monotonic timestamps, never font paths or family names. The Windows startup integration
+gate enables these diagnostics to retain the last reached stage on its original deadline;
+the diagnostic does not change glyph admission, fallback, atlas limits or readiness policy.
+
 `editor.font_glyphs` passed in 0.21 s after baseline correction. Its original geometric
 TrueType/CFF fixtures exercise real non-fallback lookup, ink/UV, missing glyphs, DPI round trips,
 owned memory and Unicode paths, TC face selection, recognized-invalid/bitmap rejection and

@@ -334,13 +334,33 @@ public static class NexoraAcceptanceWindow {
         $jsonPath = Join-Path $staged 'showcase-lab.json'
         $markdownPath = Join-Path $staged 'showcase-lab.md'
         $deadline = [DateTime]::UtcNow.AddSeconds(5)
-        while (-not ((Test-Path -LiteralPath $jsonPath) -and (Test-Path -LiteralPath $markdownPath))) {
+        $snapshot = $null
+        while ([DateTime]::UtcNow -lt $deadline) {
+            if ((Test-Path -LiteralPath $jsonPath) -and (Test-Path -LiteralPath $markdownPath)) {
+                try {
+                    # The producer opens both files before writing either. Existence alone
+                    # can admit an empty/partial export; retain one complete owning read.
+                    $jsonText = [IO.File]::ReadAllText($jsonPath, [Text.Encoding]::UTF8)
+                    $markdownText = [IO.File]::ReadAllText($markdownPath, [Text.Encoding]::UTF8)
+                    if (-not [string]::IsNullOrWhiteSpace($jsonText) -and
+                        -not [string]::IsNullOrWhiteSpace($markdownText)) {
+                        $candidate = $jsonText | ConvertFrom-Json -ErrorAction Stop
+                        if ($null -ne $candidate -and $candidate.schema -eq 'nexora.showcase.rooms.v1') {
+                            $snapshot = $candidate
+                            break
+                        }
+                    }
+                } catch {
+                    # A writer may still be flushing; the original deadline remains the bound.
+                }
+            }
             Require ([DateTime]::UtcNow -lt $deadline) 'Fresh Runtime state export is missing.'
             Start-Sleep -Milliseconds 50
         }
-        $snapshot = Get-Content -LiteralPath $jsonPath -Raw | ConvertFrom-Json
-        Copy-Item -LiteralPath $jsonPath -Destination (Join-Path $evidence ($name + '.json'))
-        Copy-Item -LiteralPath $markdownPath -Destination (Join-Path $evidence ($name + '.md'))
+        Require ($null -ne $snapshot -and [DateTime]::UtcNow -lt $deadline) 'Fresh complete Runtime state export is missing.'
+        $utf8 = [Text.UTF8Encoding]::new($false)
+        [IO.File]::WriteAllText((Join-Path $evidence ($name + '.json')), $jsonText, $utf8)
+        [IO.File]::WriteAllText((Join-Path $evidence ($name + '.md')), $markdownText, $utf8)
         Press-Key 114
         return $snapshot
     }

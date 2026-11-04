@@ -5199,6 +5199,7 @@ void EditorImGuiHost::SetDisplay(float width, float height, float dpi_scale) {
   ImGui::GetIO().DisplayFramebufferScale = {dpi_scale, dpi_scale};
   const float bucket = DpiBucket(dpi_scale);
   if (bucket != state_->dpi_bucket) {
+    Nexora::EditorImGuiDetail::FontDiagnosticCheckpoint("display-fonts-begin");
     state_->dpi_bucket = bucket;
     auto &fonts = *ImGui::GetIO().Fonts;
     fonts.Clear();
@@ -5206,18 +5207,21 @@ void EditorImGuiHost::SetDisplay(float width, float height, float dpi_scale) {
     config.SizePixels = 13.0F * bucket;
     fonts.AddFontDefault(&config);
     if (!state_->font_plan) {
+      Nexora::EditorImGuiDetail::FontDiagnosticCheckpoint("profile-begin");
       const auto *simplified = fonts.GetGlyphRangesChineseSimplifiedCommon();
       std::size_t length = 0;
       while (simplified[length] != 0)
         ++length;
       state_->font_profile = Nexora::EditorImGuiDetail::BuildFontProfile(
           std::span<const std::uint32_t>{simplified, length});
+      Nexora::EditorImGuiDetail::FontDiagnosticCheckpoint("profile-end");
       // Planning subtracts the built-in atlas's actual configured glyphs, never an assumed
       // Latin range. Keep the complete profile for truthful final-atlas missing diagnostics.
       state_->font_plan = state_->font_sources
                               ? Nexora::EditorImGuiDetail::PrepareFontPlan(state_->font_profile,
                                                                            *state_->font_sources)
                               : Nexora::EditorImGuiDetail::InstalledFontPlan(state_->font_profile);
+      Nexora::EditorImGuiDetail::FontDiagnosticCheckpoint("plan-end");
     }
     const auto started = std::chrono::steady_clock::now();
     state_->font_atlas_fallback = state_->font_plan->faces.empty();
@@ -5237,7 +5241,9 @@ void EditorImGuiHost::SetDisplay(float width, float height, float dpi_scale) {
         break;
       }
     }
+    Nexora::EditorImGuiDetail::FontDiagnosticCheckpoint("atlas-build-begin");
     const bool built = !state_->font_atlas_fallback && fonts.Build();
+    Nexora::EditorImGuiDetail::FontDiagnosticCheckpoint("atlas-build-end");
     if (!built || fonts.TexWidth <= 0 || fonts.TexHeight <= 0 || fonts.TexWidth > 4096 ||
         fonts.TexHeight > 4096 ||
         std::uint64_t(fonts.TexWidth) * fonts.TexHeight * 4 >
@@ -5247,8 +5253,10 @@ void EditorImGuiHost::SetDisplay(float width, float height, float dpi_scale) {
       fonts.Clear();
       fonts.TexDesiredWidth = 0;
       fonts.AddFontDefault(&config);
+      Nexora::EditorImGuiDetail::FontDiagnosticCheckpoint("fallback-atlas-begin");
       if (!fonts.Build())
         throw std::runtime_error("Default Editor font atlas could not be built");
+      Nexora::EditorImGuiDetail::FontDiagnosticCheckpoint("fallback-atlas-end");
       state_->font_atlas_fallback = true;
     }
     state_->missing_font_scalars.clear();
@@ -5274,6 +5282,7 @@ void EditorImGuiHost::SetDisplay(float width, float height, float dpi_scale) {
     fonts.SetTexID(static_cast<ImTextureID>(TextureId(0, 1)));
     ImGui::GetIO().FontGlobalScale = 1.0F / bucket;
     ++state_->font_generation;
+    Nexora::EditorImGuiDetail::FontDiagnosticCheckpoint("display-fonts-end");
   }
   state_->dpi_scale = dpi_scale;
   detail::ApplyTheme(state_->color_theme);

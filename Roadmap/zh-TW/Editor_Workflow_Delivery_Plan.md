@@ -211,3 +211,17 @@ SDK修正透過共用CMake入口移除每代Zig建置程式的重編譯，保留
 情境。Windows選定14個目標重建成功，15項範圍原生CTest全通過（658.98秒）。
 見[整合收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Crash-Integration-Windows.json)。
 精確版本完整Cloud／Shipping／CI與更新後Windows解壓／原生封裝驗收仍須通過；維持4/9。
+
+使用者確認先前本機Editor提前退出是手動關閉；該中斷執行不列為崩潰，也不算完成32次
+重載驗收。精確0c82的Windows CI另在`prepare-display-returned`之前啟動失敗，主視窗
+仍隱藏，字型準備的原因尚待定位。Showcase CI已觀測導覽step6／210.028秒，卻讀到空的
+最後匯出檔。匯出讀取現於原五秒期限內等候schema有效JSON與非空Markdown，並保存該次
+接受的字串作為證據。Windows無介面回歸直接呼叫正式函式：原讀取器失敗，修訂版通過
+延遲空檔／部分／完整發布及不完整檔案的有界拒絕。變更的原生CI與完整Cloud gate仍待
+通過；尚不合併、不增加驗收標記，也不交付最終ZIP。
+啟動後續補上選用、即時flush的字型子階段檢查點，Windows啟動fixture會啟用；保留原35秒
+準備期限與字元涵蓋。這些紀錄用於定位下一次失敗，並不代表已修復啟動問題。
+Windows範圍Editor／字型重建通過（111.99秒）；啟用診斷的`editor.font_glyphs`通過
+（案例0.98秒／CTest1.11秒），正式函式的匯出回歸通過。
+[失敗封存、來源雜湊與本機驗證](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-CI-Followup-Windows.json)
+保留原CI失敗證據；新來源完整驗收仍未完成。

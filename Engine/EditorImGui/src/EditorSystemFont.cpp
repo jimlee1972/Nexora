@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cstdio>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -85,6 +86,16 @@ bool FontDiagnosticsEnabled() noexcept {
 #else
   return std::getenv("NEXORA_EDITOR_FONT_DIAGNOSTICS") != nullptr;
 #endif
+}
+void FontDiagnosticCheckpoint(const char *phase, std::size_t candidate, int face) noexcept {
+  if (!FontDiagnosticsEnabled())
+    return;
+  const auto now = std::chrono::duration_cast<std::chrono::microseconds>(
+                       std::chrono::steady_clock::now().time_since_epoch())
+                       .count();
+  std::fprintf(stderr, "editor font checkpoint: phase=%s candidate=%zu face=%d monotonic_us=%lld\n",
+               phase, candidate, face, static_cast<long long>(now));
+  std::fflush(stderr);
 }
 std::vector<std::uint32_t> BuildFontProfile(std::span<const std::uint32_t> simplified_ranges) {
   std::set<std::uint32_t> points;
@@ -203,7 +214,9 @@ std::shared_ptr<const FontPlan> PrepareFontPlan(std::span<const std::uint32_t> p
   }
   // The first actual default-atlas build is inside this probe's timing interval. Subsequent
   // plans reuse its immutable scalar set; no pointer to that temporary atlas is retained.
+  FontDiagnosticCheckpoint("default-coverage-begin");
   const auto baseline = DefaultFontCoverage();
+  FontDiagnosticCheckpoint("default-coverage-end");
   if (baseline.size() > FontProfileLimit || !std::is_sorted(baseline.begin(), baseline.end()) ||
       std::adjacent_find(baseline.begin(), baseline.end()) != baseline.end() ||
       std::any_of(baseline.begin(), baseline.end(), [](std::uint32_t scalar) {
@@ -220,6 +233,7 @@ std::shared_ptr<const FontPlan> PrepareFontPlan(std::span<const std::uint32_t> p
     if (remaining.empty() || plan->faces.size() == 4)
       break;
     ++plan->candidates;
+    FontDiagnosticCheckpoint("source-begin", plan->candidates);
     if (source.path.empty() || source.path.size() > 4096 ||
         source.path.find('\0') != source.path.npos) {
       ++plan->rejected;
@@ -244,12 +258,15 @@ std::shared_ptr<const FontPlan> PrepareFontPlan(std::span<const std::uint32_t> p
       continue;
     }
     auto bytes = std::make_shared<std::vector<std::byte>>(static_cast<std::size_t>(size));
+    FontDiagnosticCheckpoint("source-read-begin", plan->candidates);
     std::ifstream input(path, std::ios::binary);
     if (!input.read(reinterpret_cast<char *>(bytes->data()), static_cast<std::streamsize>(size))) {
       ++plan->rejected;
       continue;
     }
+    FontDiagnosticCheckpoint("source-read-end", plan->candidates);
     const auto identities = InspectFontFaces(*bytes);
+    FontDiagnosticCheckpoint("face-inspection-end", plan->candidates);
     bool admitted = false, scalable = false, bitmap_only = false;
     const bool require_tc = source.require_traditional_face ||
                             std::ranges::any_of(identities, [](const auto &identity) {
@@ -262,8 +279,10 @@ std::shared_ptr<const FontPlan> PrepareFontPlan(std::span<const std::uint32_t> p
       if (!identity.scalable || (require_tc && !TraditionalFamily(identity.family)))
         continue;
       FontOutlineCoverage coverage;
-      if (!ProbeFontOutlines(*bytes, identity.index, remaining, coverage) ||
-          coverage.scalars.empty())
+      FontDiagnosticCheckpoint("outline-begin", plan->candidates, identity.index);
+      const bool probed = ProbeFontOutlines(*bytes, identity.index, remaining, coverage);
+      FontDiagnosticCheckpoint("outline-end", plan->candidates, identity.index);
+      if (!probed || coverage.scalars.empty())
         continue;
       // Reserve default-font/packing headroom before invoking ImGui's whole-atlas builder.
       if (coverage.area > (FontAtlasMaximumPixels - 65536) / 2 ||
@@ -293,7 +312,9 @@ std::shared_ptr<const FontPlan> PrepareFontPlan(std::span<const std::uint32_t> p
 std::shared_ptr<const FontPlan> InstalledFontPlan(std::span<const std::uint32_t> profile) {
   static std::mutex mutex;
   static std::shared_ptr<const FontPlan> cached;
+  FontDiagnosticCheckpoint("plan-cache-lock-begin");
   const std::lock_guard guard(mutex);
+  FontDiagnosticCheckpoint("plan-cache-lock-end");
   if (!cached)
     cached = PrepareFontPlan(profile, InstalledFontSources());
   return cached;
