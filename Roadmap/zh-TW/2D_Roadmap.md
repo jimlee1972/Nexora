@@ -828,8 +828,8 @@ NX2S schema 3 新增明確的來源存在標記及身分；不含來源的場景
 
 [契約](../../Engine/TwoD/SpriteAssets.md#source-references-in-scenes-and-extraction) ·
 [Linux 驗證](../../Engine/TwoD/evidence/SpriteSourceScenes-Linux-2026-10-28.md)。
-C++ 消費端須重建。來源 descriptor 與模組內嵌 Player 擷取已於下方交付；主 Editor 的來源索引／
-Inspector／Play 擷取、檔案 catalog、來源動畫重載及完整原生／平台驗收仍屬後續工作。本次可攜場景切片不關閉 Editor M3-08、
+C++ 消費端須重建。來源 descriptor、模組內嵌 Player 擷取，以及 Editor 來源索引／不可變 Play
+擷取已於下方交付；Inspector 來源指定、檔案 catalog、來源動畫重載及完整原生／平台驗收仍屬後續工作。本次可攜場景切片不關閉 Editor M3-08、
 M6／M7，也不改變 9/11（82%）。
 
 ## HD-2D 擴充工單
@@ -884,3 +884,11 @@ Sprite source；Asset catalog kind 3 維持 opaque bytes。標準 Player 能力�
 原生像素；詳見[驗收證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceAPI-Linux-2026-11-12.md)。
 檔案 catalog、主 Editor 來源製作／capture 及來源動畫重載仍待完成。
 ED-WF 驗收維持 4/9、Editor 0/8、2D 9/11；M6／M7 實機驗收判定不變。
+
+## ✅ Editor Sprite 來源快照（2026-11-12）
+
+型別化來源索引／重匯入現可保有既有 Sprite metadata，凍結的專案／cooked Play 擷取會驗證
+精確 Atlas 相依閉包。主 Editor gameplay 場景／pool 實例可解析這些不可變快照；真實合成
+原生像素驗證裁切／Pivot 幾何、負縮放與重匯入後的舊擁有者保留。[證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md)。
+Inspector 來源指定、製作場景持久化、Build、來源動畫／重載與完整 Editor 驗收仍待完成。
+ED-WF 維持 4/9、Editor 0/8、2D 9/11；M6／M7 實機 gate 不變。

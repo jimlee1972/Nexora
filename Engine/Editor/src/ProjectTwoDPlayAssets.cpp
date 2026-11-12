@@ -98,7 +98,11 @@ bool Identity(std::span<const std::byte> bytes, runtime::AssetUuid id, std::stri
          normalized == type;
 }
 runtime::ByteBuffer Encode(const TwoDAssetPayload &payload) {
-  return payload.Atlas() ? twod::EncodeAtlas(*payload.Atlas()) : twod::EncodeClip(*payload.Clip());
+  if (const auto atlas = payload.Atlas())
+    return twod::EncodeAtlas(*atlas);
+  if (const auto clip = payload.Clip())
+    return twod::EncodeClip(*clip);
+  return twod::EncodeSpriteAsset(*payload.SpriteSource());
 }
 bool Admitted(const ContentItem &item, std::span<const std::byte> bytes) {
   if (!item.twod || item.twod->Id() != item.id || item.twod->Type() != item.type ||

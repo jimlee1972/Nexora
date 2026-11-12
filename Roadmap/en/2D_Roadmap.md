@@ -934,7 +934,8 @@ Repacking updates the next frame's UVs while retained frames keep their prior At
 
 [Contract](../../Engine/TwoD/SpriteAssets.md#source-references-in-scenes-and-extraction) ·
 [Linux verification](../../Engine/TwoD/evidence/SpriteSourceScenes-Linux-2026-10-28.md).
-Public C++ consumers rebuild. Main Editor source indexing/Inspector/Play capture, Player catalogs,
+Public C++ consumers rebuild. Editor source indexing/immutable Play capture are delivered below;
+Inspector source assignment and Player catalogs remain open.
 Source descriptors and embedded-module Player extraction are delivered below; file catalogs,
 source-animation reload and complete native/platform acceptance remain separate. This portable scene slice does not close Editor M3-08, M6/M7 or change 9/11 (82%).
 
@@ -992,3 +993,12 @@ relocated, source-free module-embedded content and native pixels across geometry
 see [acceptance evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceAPI-Linux-2026-11-12.md).
 File catalogs, main Editor source authoring/capture and source-animation reload remain open.
 ED-WF acceptance stays 4/9, Editor 0/8, 2D 9/11; physical M6/M7 acceptance is unchanged.
+
+## ✅ Editor Sprite source snapshots (2026-11-12)
+
+Typed source indexing/reimport now owns existing Sprite metadata, and frozen project/cooked Play
+capture validates its exact Atlas closure. Main Editor gameplay scene/pool instances resolve those
+immutable snapshots; real composed native pixels verify trim/Pivot geometry, negative scale and
+old-owner retention across reimport. [Evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md).
+Inspector source assignment, authoring persistence, Build, source animation/reload and complete
+Editor acceptance remain open. ED-WF stays 4/9, Editor 0/8, 2D 9/11; M6/M7 physical gates unchanged.
