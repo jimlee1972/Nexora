@@ -752,8 +752,8 @@ privacy, not an extension signature verifier or a telemetry transport implementa
   does not replace its dock selection, and pending default Scene/Content selection is cleared.
   New layouts retain normal appearing-panel focus. Explicit pointer, keyboard, menu and Play focus
   requests still work.
-  `editor.layout_restart` destroys and recreates the context, verifies both Hierarchy/Project
-  selections, exact floating Content geometry and byte-identical layout saves over three restarts
+  `editor.layout_restart` destroys and recreates the context, verifies Hierarchy/Project and
+  Scene/Game selections, exact floating Content geometry and byte-identical saves over three restarts
   at 100/125/150/200% DPI, then checks explicit tab focus. This is portable UI evidence; physical
   docking/input acceptance remains separate. Test-only observation definitions are consistently
   guarded, and the desktop CI matrix rebuilds the real graphical Editor with `BUILD_TESTING=OFF`.

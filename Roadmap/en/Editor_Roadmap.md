@@ -3,7 +3,7 @@
 ### ✅ Saved dock selection and test-free graphical builds (2026-11-12)
 
 When restoring a layout, shell panels no longer take focus merely by appearing, preserving Hierarchy/
-Project selection across fresh contexts and native process restarts. Four DPI buckets retain
+Project and Scene/Game selection across fresh contexts and native process restarts. Four DPI buckets retain
 floating Content geometry and byte-identical layouts; new-layout and explicit focus remain available.
 Test-only scene comparison/extension observations are guarded consistently, restoring graphical
 `BUILD_TESTING=OFF` compilation; desktop CI now rebuilds that configuration after its normal gates.

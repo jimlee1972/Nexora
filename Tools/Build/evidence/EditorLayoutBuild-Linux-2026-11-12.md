@@ -13,7 +13,7 @@ replacing the saved Hierarchy selection. After `LoadLayout`, persistent shell pa
 normal appearing-panel focus; explicit pointer, keyboard, menu and Play focus remain enabled.
 No persisted layout format changes.
 
-`editor.layout_restart` checks Hierarchy and Project separately at 100/125/150/200% DPI. Each case
+`editor.layout_restart` checks Hierarchy, Project, Scene and Game separately at 100/125/150/200% DPI. Each case
 destroys its host, recreates three fresh contexts, checks selected and actually visible tabs,
 exact floating Content position/size and byte-identical layout saves, then explicitly switches to
 the other tab. The initial corrected focused run passed in 14.96 s. The native X11 display gate additionally
@@ -52,8 +52,17 @@ then rebuilds after the final focus correction and presents 8/8 native frames wi
 one upload and zero rejected textures. Dynamic-symbol inspection confirms no
 `EditorImGuiTestAccess::` definitions in that test-free library.
 
-The final source-head unfiltered Development CTest and hosted CI receipts are recorded in the
-associated delivery PR. These are independent of the earlier failed/interrupted candidate below.
+The expanded restart regression passes in 30.35 s. The native material/project-input reopen fixtures
+previously assumed Scene would always replace a saved Game tab. They now explicitly focus Scene
+through the actual Ctrl+1 shortcut, then retain all viewport, pixel, material, input and read-only
+conservation assertions. Focus and viewport observation share the original twelve-second bound.
+Both updated native fixtures pass 2/2 in 16.33 s. Their original failure logs remain retained; a
+second provisional traversal was stopped after 469 cases so the final fixtures could be included
+in one complete gate. Production code is unchanged by this fixture correction.
+
+Final source-head unfiltered Development CTest and hosted CI receipts are recorded in
+[delivery PR #768](https://github.com/jimlee1972/Nexora/pull/768). These are independent of the
+earlier failed/interrupted candidates below.
 
 The first full-gate attempt retained an environment failure (missing clang++) and optional font-tool
 skip; staging Clang 19 and the pinned font requirements cleared both focused checks. Its native

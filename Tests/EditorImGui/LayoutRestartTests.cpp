@@ -26,7 +26,7 @@ void Draw(EditorImGuiHost &host, ProductShell &shell, int count = 6) {
     static_cast<void>(host.EndFrame());
   }
 }
-void Check(float dpi, const char *selected) {
+void Check(float dpi, const char *selected, const char *other) {
   std::string saved;
   ProductShell shell;
   {
@@ -62,9 +62,6 @@ void Check(float dpi, const char *selected) {
     const auto restored = host.SaveLayout();
     Require(restored == saved, "restart changed serialized layout");
     // Explicit user focus must still select another dock tab after restoration.
-    const char *other = selected_window->ID == ImHashStr("Hierarchy###nexora.hierarchy")
-                            ? "Project###nexora.project"
-                            : "Hierarchy###nexora.hierarchy";
     ImGui::SetWindowFocus(other);
     Draw(host, shell);
     Require(Window(other)->DockTabIsVisible, "explicit tab focus stopped working");
@@ -74,9 +71,12 @@ void Check(float dpi, const char *selected) {
 
 int main() {
   try {
-    for (const float dpi : {1.0F, 1.25F, 1.5F, 2.0F})
-      for (const char *selected : {"Hierarchy###nexora.hierarchy", "Project###nexora.project"})
-        Check(dpi, selected);
+    for (const float dpi : {1.0F, 1.25F, 1.5F, 2.0F}) {
+      Check(dpi, "Hierarchy###nexora.hierarchy", "Project###nexora.project");
+      Check(dpi, "Project###nexora.project", "Hierarchy###nexora.hierarchy");
+      Check(dpi, "Scene###nexora.scene", "Game###nexora.game");
+      Check(dpi, "Game###nexora.game", "Scene###nexora.scene");
+    }
     std::cout << "Saved dock selection and floating geometry survive fresh UI contexts.\n";
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';

@@ -3,7 +3,7 @@
 ### ✅ 保存停靠分頁與無測試圖形版建置（2026-11-12）
 
 還原保存版面時，常駐面板不再因首次顯示而搶走焦點，重建 UI context 與原生程序重啟均保留
-Hierarchy／Project 選取。四個 DPI 縮放層級保持浮動 Content 位置／大小與完整版面資料相同，
+Hierarchy／Project 與 Scene／Game 選取。四個 DPI 縮放層級保持浮動 Content 位置／大小與完整版面資料相同，
 新建版面與明確的焦點操作仍維持原行為。測試專用的 scene comparison／extension 觀察函式補齊條件保護，
 恢復圖形版 `BUILD_TESTING=OFF` 編譯；桌面 CI 在一般 gates 後另建置此組態。
 參閱[限定 Linux 證據](../../Tools/Build/evidence/EditorLayoutBuild-Linux-2026-11-12.md)。
