@@ -144,3 +144,12 @@ GitHub README 維持讀者導向，整體 milestone 未變時不加入逐工單�
 catalog／封裝工作仍由 `nexora-whr.6.3`／PR #770 獨立負責。Inspector 來源指定、製作場景
 儲存重開、Build 與即時動畫／重載仍待完成。本 supporting 切片不驗收 ED-WF-07；
 流程 **4/9**、Editor **0/8**、2D **9/11** 維持不變。
+
+## 來源原生驗收候選
+
+ED-WF-06 剩餘的驗證（`nexora-whr.6.4`）透過搬移後的 catalog 遊戲，以非對稱原生像素
+實測 SDK／C ABI 的來源 Flip 與 Atlas 重排。只替換 Atlas 後，場景及負縮放 pool 的 handle、
+作者端 transform 與來源身分維持不變。Development 及嚴格 Shipping 原生驗證已通過；
+[證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-NativeSource-Linux-2026-11-12.md)
+保留初次案例／設定失敗。完整回歸 486/486 通過，沒有失敗或跳過；指定版本 CI 及 PR
+合併仍是 ED-WF-06 驗收前提。**4/9**、Editor **0/8**、2D **9/11** 維持不變。

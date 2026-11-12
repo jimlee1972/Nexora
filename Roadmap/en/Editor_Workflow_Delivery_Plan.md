@@ -160,3 +160,13 @@ see [cloud evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSn
 Catalog/package work remains independently owned by `nexora-whr.6.3` / PR #770. Inspector source
 assignment, authoring save/reopen, Build and live animation/reload remain open. This supporting
 slice does not accept ED-WF-07; workflow **4/9**, Editor **0/8**, 2D **9/11** remain unchanged.
+
+## Native source acceptance candidate
+
+The remaining ED-WF-06 proof (`nexora-whr.6.4`) exercises actual SDK/C ABI source flips and Atlas
+repacks with asymmetric native pixels in a relocated catalog game. Scene and negative-scale pool
+handles, authored transforms and source identity survive Atlas-only replacement. Development and
+strict Shipping native checks pass; [evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-NativeSource-Linux-2026-11-12.md)
+retains failed fixture/setup attempts. Full regression passes 486/486 without failures or skips;
+exact-head CI and its PR merge remain required before accepting ED-WF-06. **4/9**, Editor **0/8**
+and 2D **9/11** stay unchanged.
