@@ -122,8 +122,10 @@ embedded or rewritten during scene save; repacking/reloading refreshes geometry 
 next extraction while existing frames retain their prior Atlas generation. Isolated Play can load
 these scenes and preserves the existing authoring-only Restore rule.
 
-This completes portable C++ scene/general extraction source binding. Main Editor project indexing,
-Inspector/Play capture and Player catalogs still need explicit source admission; C/Zig descriptors,
+This completes portable C++ scene/general extraction source binding. The optional
+[GameplayContent source table](GameplayContent.md#optional-sprite-source-registry-table) now registers
+and resolves immutable sources with dependency and retirement protection. It is not yet advertised through the canonical gameplay Host. Main Editor project indexing, Inspector/Play
+capture and Player catalogs still need explicit source admission; C/Zig descriptors,
 automatic source-asset animation and pool publication remain separate work. Passing only a resolved
 legacy `Sprite` to `SpriteScene::Set` still discards its transient quad; store `source` instead.
 

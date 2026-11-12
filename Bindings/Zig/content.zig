@@ -1,6 +1,8 @@
-//! Register cooked .nx2atlas / .nx2clip bytes without native paths or gameplay C++.
+//! Register cooked content without native paths or gameplay C++ (SpriteApi is optional).
 pub const atlas_kind: u32 = 1;
 pub const clip_kind: u32 = 2;
+// Independent of assets.zig catalog kinds: catalog kind 3 remains opaque bytes.
+pub const sprite_source_kind: u32 = 3;
 pub const Asset = extern struct {
     high: u64 = 0,
     low: u64 = 0,
@@ -10,6 +12,21 @@ pub const Asset = extern struct {
     height: u32 = 0,
     atlas_high: u64 = 0,
     atlas_low: u64 = 0,
+};
+/// Optional host-provided table. The original Api/Host layouts are unchanged;
+/// this table is not yet advertised by the canonical gameplay host.
+pub const SpriteApi = extern struct {
+    struct_size: u32 = @sizeOf(SpriteApi),
+    abi_version: u32 = 1,
+    context: ?*anyopaque = null,
+    register_sprite_source: ?*const fn (?*anyopaque, ?*const anyopaque, u64, *u64, *u64) callconv(.c) i32 = null,
+    pub fn valid(self: *const SpriteApi) bool {
+        return self.struct_size >= @sizeOf(SpriteApi) and self.abi_version == 1 and self.register_sprite_source != null;
+    }
+    pub fn registerSpriteSource(self: *const SpriteApi, cooked: []const u8, high: *u64, low: *u64) i32 {
+        if (!self.valid() or cooked.len == 0 or cooked.len > 64 * 1024 * 1024) return -1;
+        return self.register_sprite_source.?(self.context, cooked.ptr, cooked.len, high, low);
+    }
 };
 pub const Api = extern struct {
     struct_size: u32 = @sizeOf(Api),

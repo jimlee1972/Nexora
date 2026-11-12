@@ -21,8 +21,10 @@ public:
   GameplayContent(const GameplayContent &) = delete;
   GameplayContent &operator=(const GameplayContent &) = delete;
   [[nodiscard]] int32_t GetApi(NexoraGameplayContentApiV1 *) noexcept;
+  [[nodiscard]] int32_t GetSpriteApi(NexoraGameplaySpriteContentApiV1 *) noexcept;
   [[nodiscard]] std::optional<AtlasBinding> ResolveAtlas(AssetId) const;
   [[nodiscard]] std::shared_ptr<const Clip> ResolveClip(AssetId) const;
+  [[nodiscard]] std::shared_ptr<const SpriteAsset> ResolveSprite(AssetId) const;
   [[nodiscard]] int32_t Remove(AssetId) noexcept;
   [[nodiscard]] Usage Statistics() const;
   [[nodiscard]] std::vector<std::uint64_t> CollectRetiredTextures();

@@ -28,6 +28,12 @@ bool Same(const Atlas &a, const Atlas &b) {
   return a.id == b.id && a.width == b.width && a.height == b.height && a.gutter == b.gutter &&
          a.nearest == b.nearest && a.regions == b.regions && a.rgba == b.rgba;
 }
+bool Compatible(const SpriteAsset &source, const Atlas &atlas) {
+  SpriteInstance witness;
+  witness.id = 1;
+  witness.matrix = runtime::ToMatrix({});
+  return ResolveSpriteAsset(source, atlas, std::move(witness)).has_value();
+}
 } // namespace
 struct GameplayContent::State final {
   struct Entry final {
@@ -35,6 +41,7 @@ struct GameplayContent::State final {
     std::shared_ptr<const Clip> clip;
     std::uint64_t texture{};
     std::size_t bytes{};
+    std::shared_ptr<const SpriteAsset> sprite;
   };
   struct Retired final {
     std::weak_ptr<const void> owner;
@@ -67,8 +74,10 @@ struct GameplayContent::State final {
   void Retire(const Entry &entry) {
     if (entry.atlas)
       retired.push_back({entry.atlas, entry.texture, entry.bytes, entry.atlas->rgba.size()});
-    else
+    else if (entry.clip)
       retired.push_back({entry.clip, 0, entry.bytes, 0});
+    else
+      retired.push_back({entry.sprite, 0, entry.bytes, 0});
   }
   std::thread::id thread{std::this_thread::get_id()};
   std::map<Key, Entry> entries;
@@ -109,6 +118,15 @@ struct GameplayContent::State final {
               e.atlas->height,
               id.first,
               id.second};
+    if (e.sprite)
+      return {id.first,
+              id.second,
+              NEXORA_CONTENT_SPRITE_SOURCE,
+              1,
+              e.sprite->sourceWidth,
+              e.sprite->sourceHeight,
+              e.sprite->atlas.high,
+              e.sprite->atlas.low};
     return {
         id.first, id.second, NEXORA_CONTENT_CLIP, static_cast<std::uint32_t>(e.clip->frames.size()),
         0,        0,         e.clip->atlas.high,  e.clip->atlas.low};
@@ -124,13 +142,16 @@ struct GameplayContent::State final {
         return Invalid;
       const auto key = Identity(atlas->id);
       const auto old = s.entries.find(key);
-      if (old != s.entries.end() && old->second.clip)
+      if (old != s.entries.end() && !old->second.atlas)
         return Invalid;
-      for (const auto &[_, entry] : s.entries)
+      for (const auto &[_, entry] : s.entries) {
         if (entry.clip && entry.clip->atlas == atlas->id)
           for (const auto &frame : entry.clip->frames)
             if (!atlas->Find(frame.region))
               return Invalid;
+        if (entry.sprite && entry.sprite->atlas == atlas->id && !Compatible(*entry.sprite, *atlas))
+          return Invalid;
+      }
       if (old != s.entries.end() && Same(*old->second.atlas, *atlas)) {
         *high = key.first;
         *low = key.second;
@@ -147,7 +168,7 @@ struct GameplayContent::State final {
       const auto previous = old == s.entries.end() ? 0 : old->second.bytes;
       if (old != s.entries.end())
         s.Retire(old->second);
-      s.entries.insert_or_assign(key, Entry{std::move(owner), {}, texture, size});
+      s.entries.insert_or_assign(key, Entry{std::move(owner), {}, texture, size, {}});
       s.bytes = s.bytes - previous + size;
       *high = key.first;
       *low = key.second;
@@ -165,7 +186,7 @@ struct GameplayContent::State final {
         return Invalid;
       const auto key = Identity(clip->id);
       const auto old = s.entries.find(key);
-      if (old != s.entries.end() && old->second.atlas)
+      if (old != s.entries.end() && !old->second.clip)
         return Invalid;
       const auto dependency = s.entries.find(Identity(clip->atlas));
       if (dependency == s.entries.end() || !dependency->second.atlas)
@@ -183,7 +204,45 @@ struct GameplayContent::State final {
       auto owner = std::make_shared<const Clip>(std::move(*clip));
       if (old != s.entries.end())
         s.Retire(old->second);
-      s.entries.insert_or_assign(key, Entry{{}, std::move(owner), 0, size});
+      s.entries.insert_or_assign(key, Entry{{}, std::move(owner), 0, size, {}});
+      s.bytes = s.bytes - previous + size;
+      *high = key.first;
+      *low = key.second;
+      return Ok;
+    });
+  }
+  static int SpriteBytes(void *ctx, const void *data, std::uint64_t length, std::uint64_t *high,
+                         std::uint64_t *low) noexcept {
+    return Call(ctx, [&](State &s) {
+      if (!Buffer(data, length, high, low))
+        return Invalid;
+      auto sprite = DecodeSpriteAsset(
+          {static_cast<const std::byte *>(data), static_cast<std::size_t>(length)});
+      if (!sprite)
+        return Invalid;
+      const auto key = Identity(sprite->id);
+      const auto old = s.entries.find(key);
+      if (old != s.entries.end() && !old->second.sprite)
+        return Invalid;
+      const auto dependency = s.entries.find(Identity(sprite->atlas));
+      if (dependency == s.entries.end() || !dependency->second.atlas)
+        return Missing;
+      if (!Compatible(*sprite, *dependency->second.atlas))
+        return Invalid;
+      if (old != s.entries.end() && *old->second.sprite == *sprite) {
+        *high = key.first;
+        *low = key.second;
+        return Ok;
+      }
+      const auto size = sizeof(SpriteAsset);
+      if (!s.Budget(key, size))
+        return Missing;
+      s.PrepareRetirement(old == s.entries.end() ? nullptr : &old->second);
+      auto owner = std::make_shared<const SpriteAsset>(std::move(*sprite));
+      const auto previous = old == s.entries.end() ? 0 : old->second.bytes;
+      if (old != s.entries.end())
+        s.Retire(old->second);
+      s.entries.insert_or_assign(key, Entry{{}, {}, 0, size, std::move(owner)});
       s.bytes = s.bytes - previous + size;
       *high = key.first;
       *low = key.second;
@@ -201,7 +260,8 @@ struct GameplayContent::State final {
         return !assets ? Ok : Missing;
       }
       std::uint32_t index = 0;
-      for (const auto kind : {NEXORA_CONTENT_ATLAS, NEXORA_CONTENT_CLIP})
+      for (const auto kind :
+           {NEXORA_CONTENT_ATLAS, NEXORA_CONTENT_CLIP, NEXORA_CONTENT_SPRITE_SOURCE})
         for (const auto &[id, entry] : s.entries) {
           const auto value = Describe(id, entry);
           if (value.kind == static_cast<std::uint32_t>(kind))
@@ -238,6 +298,16 @@ int32_t GameplayContent::GetApi(NexoraGameplayContentApiV1 *out) noexcept {
     return Ok;
   });
 }
+int32_t GameplayContent::GetSpriteApi(NexoraGameplaySpriteContentApiV1 *out) noexcept {
+  return State::Call(state_.get(), [&](State &) {
+    if (!out)
+      return Invalid;
+    if (out->struct_size < sizeof(*out))
+      return Missing;
+    *out = {sizeof(*out), 1, state_.get(), State::SpriteBytes};
+    return Ok;
+  });
+}
 std::optional<AtlasBinding> GameplayContent::ResolveAtlas(AssetId id) const {
   if (state_->thread != std::this_thread::get_id())
     throw std::logic_error("Content owner thread");
@@ -252,6 +322,12 @@ std::shared_ptr<const Clip> GameplayContent::ResolveClip(AssetId id) const {
   const auto found = state_->entries.find(Identity(id));
   return found == state_->entries.end() ? nullptr : found->second.clip;
 }
+std::shared_ptr<const SpriteAsset> GameplayContent::ResolveSprite(AssetId id) const {
+  if (state_->thread != std::this_thread::get_id())
+    throw std::logic_error("Content owner thread");
+  const auto found = state_->entries.find(Identity(id));
+  return found == state_->entries.end() ? nullptr : found->second.sprite;
+}
 int32_t GameplayContent::Remove(AssetId id) noexcept {
   return State::Call(state_.get(), [&](State &s) {
     if (!id.high && !id.low)
@@ -261,7 +337,7 @@ int32_t GameplayContent::Remove(AssetId id) noexcept {
       return Missing;
     if (found->second.atlas)
       for (const auto &[_, e] : s.entries)
-        if (e.clip && e.clip->atlas == id)
+        if ((e.clip && e.clip->atlas == id) || (e.sprite && e.sprite->atlas == id))
           return Lifecycle;
     if (s.retired.size() >= 65536)
       return Missing;
