@@ -226,12 +226,74 @@ candidates and adds this native-argument repair, including complete-log/JUnit ha
 bilingual, formatting and documentation-routing checks pass; repaired-head hosted CI is the
 remaining merge gate.
 
+## Windows snapshot publication race
+
+Published head `ec4b51b2` passed the hosted Windows SDK producer/consumer, but PR Vulkan job
+`131218056002` failed on a concrete sharing violation while reading `showcase-lab.json` during
+an export. Its replay snapshot is valid and intentionally paused; the completion snapshot is null.
+The test reader previously treated file existence as completed publication and reopened the live
+files for copying, allowing both file-lock failures and partial JSON reads. This evidence does not
+establish the cause of every earlier intermittent tour failure.
+
+The self-contained packaged acceptance script now reads a complete JSON object and nonempty
+Markdown with bounded retries inside the original five-second export deadline, and retains the
+owned strings for evidence writes. No app simulation, input, seven-step/210-second assertion or
+300-second completion deadline changes. A deterministic PowerShell regression loads the actual
+reader via its AST without launching the Windows app. It reproduces the old exclusive-writer
+sharing violation, verifies complete publication and owned evidence, and rejects eight invalid or
+incomplete states. Its initial run exposed JSON-array admission; the explicit root-object check
+repairs that case and all cases then pass under official PowerShell 7.5.4 on Linux. Windows
+PowerShell 5 runs the same regression before native Vulkan acceptance in hosted CI. Fresh full
+Linux validation and repaired-head hosted results remain required before merge.
+
+The same published head's Windows mimalloc job `131218056211` confirms the Unicode generator and
+both Sprite cooks now succeed. It then reports `KeyError: assets/0000.nxcook` in the new test's
+inventory cross-check: native Windows digest keys contain backslashes, while the public inventory
+uses POSIX paths. The test now uses `relative_to(...).as_posix()` without changing any file/hash
+assertion or export behavior. Focused relocated catalog acceptance passes in 1.46 s on Linux.
+That hosted run has **251 passes, seven existing unsupported skips and one failure / 259**;
+earlier shorthand describing 258 passes counted skipped cases and must not be read as executed
+passes. The early snapshot-reader full traversal was deliberately interrupted after one passing
+test (exit 130) to freeze this additional repair; its log is retained separately. A fresh complete
+gate covers the final combined repairs.
+
+## Accepted Editor snapshot integration
+
+PR #771 merged as main `f0e497e6` while the combined repair gate was running. That traversal is
+retained as intentionally interrupted after 158 passing cases (exit 130), without claiming a full
+pass. Local merge `5e205010` integrates the accepted immutable Editor indexing/reimport/Play capture
+foundation and resolves five documentation conflicts by retaining both delivered slices. No runtime
+source conflict occurred. Workflow artifact paths and both new Editor source tests are preserved.
+The Windows fixture/snapshot-reader repairs are restored unchanged after integration. A fresh
+Development/Shipping build and full unfiltered traversal validate the combined tree; workflow 4/9,
+Editor 0/8 and full ED-WF-06/07 acceptance remain unchanged.
+
+The integrated runtime plus frozen Windows verification repairs (committed as
+`689a81ec49c584b989dc27ca674ab83ac1c379e6`) passed a fresh complete gate: Development and
+Monolithic Minimal Shipping configure/build, followed by **485/485 Linux tests, zero failures/skips,
+1378.70 seconds, exit 0**, without retries. All 18 recorded source/workflow hashes match. The three
+accepted Editor source cases pass together with the catalog work: `twod.editor_sprite_sources`
+0.0167996 s, `editor.sprite_source_play` 0.0133694 s and actual `editor.sprite_source_native`
+1.49664 s. File-catalog Zig/native passes in 42.6902 s, embedded mode in 36.7861 s, catalog export
+in 0.988307 s and layout restart in 30.3291 s.
+
+After the quiet full gate, both strict Shipping package suites pass again using the rebuilt actual
+Shipping Player: independent C-only preload/deferred/corruption/opaque checks and real Zig
+`--catalog --shipping`, with `development_test_copy=False`, two extracted instances and balanced
+allocations. These Shipping runs are CPU admission/extraction, not native or clean-host acceptance.
+PowerShell 7.5.4 passes the synchronized writer-lock/owning-snapshot regression; Windows PowerShell
+5 still requires actual hosted execution. Documentation routing 16/16, final Markdown/bilingual,
+touched C++ formatting, Python compilation, workflow YAML and diff checks pass. The machine receipt
+retains exact full/interrupted inventories, hashes, initial failures and rebuilt binary identities.
+Exact published-head hosted CI remains required before squash merge.
+
 ## Acceptance limits
 
 This slice adds file/registry admission and packaging. Host source-table exposure and source-bearing
 Sprite/pool descriptors come from accepted PR #769. The joint file-catalog fixture exercises those
-existing APIs through source-bound Player pixels; main Editor source indexing/Inspector/Undo/Play/Build
-and source-animation reload remain open. Source-free native and SDK behavior remains covered by the
+existing APIs through source-bound Player pixels. Immutable Editor source indexing/reimport and Play
+capture come from accepted PR #771; Inspector assignment, Undo, authoring save/reopen, Build and
+source-animation reload remain open. Source-free native and SDK behavior remains covered by the
 unfiltered regression suite. No
 Windows, macOS, Android, iOS, physical-device or clean-host run is claimed from this Linux session.
 ED-WF-06 remains open, ED-WF acceptance stays **4/9**, and graphical Editor stays **0/8**.

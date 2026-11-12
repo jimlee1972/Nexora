@@ -558,7 +558,7 @@
       131191206317,
       131191228642
     ],
-    "diagnostic": "Both Windows mimalloc jobs compiled and passed 258/259 tests; sprite catalog fixture aborted with 3221226505 receiving a Unicode path through narrow main.",
+    "diagnostic": "Both Windows mimalloc jobs compiled; the Sprite fixture generator abort was the only failing case among259 registered tests. Existing unsupported skips must not be counted as executed passes.",
     "repair": "Windows wmain and native filesystem::path arguments for both fixture modes; MinGW -municode; exception diagnostic and exit 1. Unicode input, payloads and assertions unchanged.",
     "configure_build": {
       "development": "passed"
@@ -631,5 +631,266 @@
     },
     "shipping": "Prior integrated Shipping build and strict C-only/real-Zig package verdicts remain applicable: all production file hashes unchanged; only test entrypoint/link option changed.",
     "hosted_validation": "Repaired-head CI required before merge; no local Windows execution claimed."
+  },
+  "editor_integrated_windows_repair_candidate": {
+    "main": "f0e497e60f582fb38d74b9cd6099634600911a17",
+    "implementation_files": {
+      "Apps/TwoDPlayer/Project.h": "e252a247e2a4a724bd766d2dd9cc452720ca798db3684f83f794f1c5e3c3ea2c",
+      "Apps/TwoDPlayer/TwoDPlayer.cpp": "7205abb301a53911f2f2b05860894214b8dfc55787e894f2c64e2e15045cfe49",
+      "Bindings/Zig/assets.zig": "4974f0bf41d28cec0e10f78489f453658c71c56eda14d94b6ad7653e77b898ff",
+      "Bindings/Zig/content.zig": "7d5e6c7e626f9ca717f1d90a58832382f0d6bda8192f377933d900c101a96d9b",
+      "Engine/API/include/nexora/gameplay_assets.h": "4987624c1f4cef27cb3d2f47aadc48d644b32302b9488181d13c27c3b8c33ce5",
+      "Engine/TwoD/src/GameplayAssets.cpp": "4f935468bd5c39c138bd68c458ab92c1c52c5bcb03dac122da2765e6f65286b7",
+      "Tests/TwoD/CMakeLists.txt": "e23c46ed5e35618989a4421c3786d12809beec5817238ca00302630ba5323ba0",
+      "Tests/TwoD/GameplayAssetsLayout.zig": "d38ca1d5a11e2019a02dea9e938e82e34d9166de6390d4faf4d2eaa8131e6ec8",
+      "Tests/TwoD/GameplayAssetsTests.cpp": "0757ed94d315214f33acd4ee8bd2169733a945aa1df5478979e29bd2d31d79a8",
+      "Tests/TwoD/ProjectManifestTests.cpp": "f40d5edd91465481f0836d60fea639451dc04d53c32e346e74558515eff13fd2",
+      "Tests/TwoD/SpriteCatalogAcceptance.py": "042eb949bf3dd1a9f5e5e8a3bda18a52dd260a93eb627cab91f4f5ff006312de",
+      "Tests/TwoD/SpriteCatalogModule.cpp": "a22cb4473d0cddcc8a97cb302876c9f317a351ccdd660dbfa1fb7c2f2b2e3fdd",
+      "Tests/TwoD/SpriteSourcePlayer.zig": "d1d6147b039a136dea2c268737102cdde0f9a674631fd9d171f9be5b49a4c5b8",
+      "Tests/TwoD/SpriteSourcePlayerAcceptance.py": "c0c41a2e514997a05c1c020db5ff39dfdf076ffa6038ffa775c2ebc5b6c913c7",
+      "Tools/TwoD/ExportGame.py": "d0722f7fa5c28111f67e2300f811aa2ee6ecf7f0a46faa3ae03bac0a53224aa7",
+      "Tools/Package/AcceptShowcaseWindows.ps1": "e1b2d433b17f0b3e9fe98acedec11d83045f2fca2b8f19acf4a3c91735874896",
+      "Tools/Package/TestShowcaseStateExport.ps1": "826a785f2e2312246623002776d94f2e49a330a6bef0d7df814fca344ef2cfda",
+      ".github/workflows/build.yml": "c313551e7b97ed7e7d2a96a48058030781d4fa4da7ca9a53d8edb352b034c48f"
+    },
+    "failure_diagnostics_sha256": "c313551e7b97ed7e7d2a96a48058030781d4fa4da7ca9a53d8edb352b034c48f",
+    "source_state": "Accepted main integration plus frozen Windows fixture and snapshot-reader repairs",
+    "regression_fixture": "Publisher lock held until reader confirms sharing violation, then release; independent PowerShell regression rerun after fixture synchronization. Full CTest does not invoke this Windows script and all implementation/CTest source hashes stay unchanged.",
+    "configured_head": "5e205010e18fd40f1bc84158b5eea45a343ba4ed",
+    "head": "689a81ec49c584b989dc27ca674ab83ac1c379e6",
+    "failed_hosted_candidate": {
+      "head": "ec4b51b2c138dd8c123fb0aba7426f006540d09a",
+      "sdk_run": 43228477083,
+      "sdk_jobs_success": 3,
+      "vulkan_job": 131218056002,
+      "vulkan_failure": "Windows sharing violation on showcase-lab.json while exporting; valid intentionally-paused replay snapshot and null completion snapshot.",
+      "mimalloc_jobs": [
+        131218056211,
+        131218441317
+      ],
+      "mimalloc_failure": "Unicode fixture and cooks succeed; native backslash digest keys differ from POSIX inventory keys (KeyError assets/0000.nxcook).",
+      "mimalloc_inventory": {
+        "registered": 259,
+        "passed": 251,
+        "skipped": 7,
+        "failed": 1
+      },
+      "push_vulkan_job": 131218439366,
+      "push_vulkan_conclusion": "success"
+    },
+    "publication_reader": {
+      "command": "/workspace/work/editor-completion/powershell/pwsh -NoLogo -NoProfile -File Tools/Package/TestShowcaseStateExport.ps1",
+      "platform": "Linux PowerShell 7.5.4",
+      "result": "pass",
+      "invalid_or_incomplete_states": 8,
+      "sharing_race_reproduced": true,
+      "owns_evidence": true,
+      "existing_export_deadline_seconds": 5,
+      "existing_tour_seconds": 210,
+      "existing_completion_deadline_seconds": 300,
+      "regression_before_final_fix": "Initial reader admitted a JSON array; explicit object-root check repairs it.",
+      "log_sha256": "bcd6e654bf918bbd34a1aa7fce06c90b30e641169fa77e34e30365eaca5c87f2",
+      "windows_powershell5": "Runs before native Vulkan acceptance in repaired-head CI; not executed locally."
+    },
+    "interrupted_gates": [
+      {
+        "log": "snapshot-reader-interrupted-ctest.log",
+        "passed": 1,
+        "exit_code": 130,
+        "reason": "Add test-only POSIX inventory path normalization",
+        "sha256": "4edef12b5c9d6ba459066c41cab616d561f1080e5983a1838224db046a348165"
+      },
+      {
+        "log": "windows-test-repair-before-editor-merge-interrupted.log",
+        "passed": 158,
+        "exit_code": 130,
+        "reason": "Integrate accepted Editor source snapshot main f0e497e6 and resolve documentation conflicts",
+        "sha256": "da6a6a318ee231adc76e7a5282b56f286c587d85b5e60802232c8c9d2a9e17b8"
+      }
+    ],
+    "full_development": {
+      "command": "CTEST_PARALLEL_LEVEL=2 ctest --preset linux-development --output-junit /workspace/work/editor-completion/catalog-editor-merge-full-junit.xml",
+      "tests": 485,
+      "failures": 0,
+      "skipped": 0,
+      "seconds": 1378.7,
+      "exit_code": 0,
+      "selected_tests": [
+        {
+          "name": "api.sprite_source_baseline_guard",
+          "classname": "api.sprite_source_baseline_guard",
+          "time": "0.602627",
+          "status": "run"
+        },
+        {
+          "name": "api.m6_c_consumer",
+          "classname": "api.m6_c_consumer",
+          "time": "0.00204864",
+          "status": "run"
+        },
+        {
+          "name": "twod.editor_sprite_sources",
+          "classname": "twod.editor_sprite_sources",
+          "time": "0.0167996",
+          "status": "run"
+        },
+        {
+          "name": "twod.sprite_catalog_export",
+          "classname": "twod.sprite_catalog_export",
+          "time": "0.988307",
+          "status": "run"
+        },
+        {
+          "name": "twod.gameplay_assets",
+          "classname": "twod.gameplay_assets",
+          "time": "0.0532194",
+          "status": "run"
+        },
+        {
+          "name": "gameplay.zig_assets_wire_layout",
+          "classname": "gameplay.zig_assets_wire_layout",
+          "time": "2.58445",
+          "status": "run"
+        },
+        {
+          "name": "twod.sprite_source_player",
+          "classname": "twod.sprite_source_player",
+          "time": "36.7861",
+          "status": "run"
+        },
+        {
+          "name": "twod.sprite_source_catalog_player",
+          "classname": "twod.sprite_source_catalog_player",
+          "time": "42.6902",
+          "status": "run"
+        },
+        {
+          "name": "editor.layout_restart",
+          "classname": "editor.layout_restart",
+          "time": "30.3291",
+          "status": "run"
+        },
+        {
+          "name": "editor.linux_xvfb_lifetime",
+          "classname": "editor.linux_xvfb_lifetime",
+          "time": "0.472288",
+          "status": "run"
+        },
+        {
+          "name": "editor.sprite_source_play",
+          "classname": "editor.sprite_source_play",
+          "time": "0.0133694",
+          "status": "run"
+        },
+        {
+          "name": "editor.sprite_source_native",
+          "classname": "editor.sprite_source_native",
+          "time": "1.49664",
+          "status": "run"
+        }
+      ],
+      "junit_sha256": "0aeed8691e0e022121b2ffcdd31c9e7efae3516084ae6cde40b0e064c0ab6366",
+      "log_sha256": "8fabe06afd7c0830e35045fe1a679d33488babecd03bc41c978e5ab883d8bcd2"
+    },
+    "configure_build": {
+      "development": "passed",
+      "shipping": "passed; Monolithic Minimal,2D ON,Editor/EditorSDK OFF,testing OFF"
+    },
+    "shipping": {
+      "c_only": {
+        "command": "python3 /workspace/work/editor-completion/validate-sprite-shipping.py",
+        "exit_code": 0,
+        "development_test_copy": false,
+        "log_sha256": "68cce4218f045f02c79998ba2cfb7380ba4d05099ae9bd01d20496fc391b1f46"
+      },
+      "real_zig_file_catalog": {
+        "arguments": "--catalog --shipping",
+        "exit_code": 0,
+        "development_test_copy": false,
+        "report": {
+          "status": "PASS",
+          "module_abi": 3,
+          "project_mode": true,
+          "api": 1,
+          "native_frames": 0,
+          "movement_frames": 0,
+          "entity_x": -1.0,
+          "final_width": 320,
+          "final_height": 240,
+          "viewport_x": 0.0,
+          "viewport_y": 0.0,
+          "viewport_width": 320.0,
+          "viewport_height": 240.0,
+          "native_ui_draws": 0,
+          "effects_completed_frame": 0,
+          "effects_revision": 0,
+          "effects_timing_mask": 0,
+          "effects_timing_source": 0,
+          "effects_timing_status": 0,
+          "effects_shadow_ms": null,
+          "effects_world_ms": null,
+          "effects_bloom_ms": null,
+          "effects_composite_ms": null,
+          "effects_scene_bytes": 0,
+          "effects_shadow_bytes": 0,
+          "effects_bloom_bytes": 0,
+          "effects_upload_capacity_bytes": 0,
+          "effects_peak_bytes": 0,
+          "effects_peak_textures": 0,
+          "native_ui_texture_uploads": 0,
+          "resize_generations": 0,
+          "surface_backend_requested": "none",
+          "render_device_ids_available": false,
+          "render_vendor_id": 0,
+          "render_device_id": 0,
+          "initial_dpi_scale": 0.0,
+          "minimum_dpi_scale": 0.0,
+          "maximum_dpi_scale": 0.0,
+          "focus_lost_events": 0,
+          "focus_gained_events": 0,
+          "key_press_events": 0,
+          "mouse_press_events": 0,
+          "wheel_events": 0,
+          "unfocused_movement_frames": 0,
+          "sprite_instanced_draws": 0,
+          "sprite_gpu_instances": 0,
+          "sprite_instance_upload_bytes": 0,
+          "asset_active_bytes": 0,
+          "asset_retired_bytes": 172,
+          "asset_staging_bytes": 0,
+          "asset_peak_content_bytes": 172,
+          "audio_active_bytes": 0,
+          "audio_retired_bytes": 0,
+          "audio_peak_live_bytes": 0,
+          "pool_capacity": 1024,
+          "visible": 2,
+          "reloaded": false,
+          "validation_package": false,
+          "resumed": false,
+          "initial_x": 0.0,
+          "ui_frames": 0,
+          "ui_saves": 0,
+          "ui_opens": 0,
+          "cooked_reloads": 0,
+          "audio_submitted_frames": 0,
+          "audio_open_attempts": 0,
+          "audio_open_successes": 0,
+          "audio_pump_failures": 0,
+          "save_reopened": false,
+          "audible_acceptance": "NOT VERIFIED",
+          "allocations_balanced": true,
+          "physical_windows": "NOT RUN"
+        },
+        "evidence": "/workspace/work/editor-completion/catalog-editor-merge-shipping-source/attempt-yefzdatw"
+      },
+      "scope": "Actual Shipping Player CPU admission/extraction; native Development pixels tested in full gate, not native or clean-host Shipping."
+    },
+    "binaries_sha256": {
+      "build/linux-development/Apps/TwoDPlayer/NexoraTwoDPlayer": "84518423691935fb365bc450360cd7c697180799f69bc30df776cabd4af97825",
+      "build/linux-shipping/Apps/TwoDPlayer/NexoraTwoDPlayer": "478d879c12783594db94c728c64070b6e48d3d9769f21bb8e4a01336c49d581a",
+      "build/linux-development/Tests/TwoD/NexoraGameplayAssetsTests": "d3680cfb6f8a3b8e4f6905ffb9b7be242ecf5712a3056700e3473b63c46ebf04"
+    },
+    "hosted_validation": "Pending at publication; exact published-head CI must succeed before merge."
   }
 }
