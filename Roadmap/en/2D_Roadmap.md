@@ -3,9 +3,9 @@
 Local crash/game-log persistence is tracked in [Crash Logging Delivery](Crash_Logging_Delivery_Plan.md). It includes native gameplay callback capture and keeps platform/physical-host gates separate; it does not complete this roadmap’s broader milestones.
 
 
-The approved [Editor workflow delivery plan](Editor_Workflow_Delivery_Plan.md) tracks the remaining
-Sprite source C/Zig/catalog, Editor authoring, animation and pool integration in
-[Epic #741](https://github.com/jimlee1972/Nexora/issues/741). Plan acceptance is 4/9 (44.4%): ED-WF-01 ✅ PR #751, ED-WF-02 ✅ PR #754, ED-WF-03 ✅ PR #756, ED-WF-04 ✅ PR #758;
+The approved [Editor workflow delivery plan](Editor_Workflow_Delivery_Plan.md) tracks Sprite
+source C/Zig/catalog delivery and the remaining Editor authoring, animation and pool integration in
+[Epic #741](https://github.com/jimlee1972/Nexora/issues/741). Plan acceptance is 5/9 (55.6%): ED-WF-01 ✅ PR #751, ED-WF-02 ✅ PR #754, ED-WF-03 ✅ PR #756, ED-WF-04 ✅ PR #758; ED-WF-06 ✅ [acceptance](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md);
 it does not promote full Editor, physical M6/M7 or advanced Sprite rendering acceptance.
 
 > Version: v1.7 | Status: cloud delivery accepted; PC host gates open | Updated: 2026-10-19
@@ -980,7 +980,7 @@ active/live budgets are covered by the [Linux evidence](../../Tools/Build/eviden
 Original gameplay descriptors and the content table are unchanged. Content kind 3 identifies a
 Sprite source only in the content registry; asset catalog kind 3 remains opaque bytes. Canonical
 Player capability exposure, source descriptors and embedded-module Player extraction are delivered
-below; Editor authoring and source-animation reload remain open. ED-WF acceptance stays 4/9; 2D stays 9/11 (82%), with M6/M7
+below; Editor authoring and source-animation reload remain open. ED-WF acceptance stays 5/9; 2D stays 9/11 (82%), with M6/M7
 physical/clean-host acceptance separate.
 
 ## ✅ Gameplay Sprite source APIs and Player extraction (2026-11-12)
@@ -992,14 +992,14 @@ source registration and extracts immutable source/Atlas closure. A real SDK-buil
 relocated, source-free module-embedded content and native pixels across geometry/Atlas replacement;
 see [acceptance evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceAPI-Linux-2026-11-12.md).
 Inspector source assignment, authoring persistence/Build capture and source-animation reload remain open.
-ED-WF acceptance stays 4/9, Editor 0/8, 2D 9/11; physical M6/M7 acceptance is unchanged.
+ED-WF acceptance stays 5/9, Editor 0/8, 2D 9/11; physical M6/M7 acceptance is unchanged.
 
 ✅ The independent [Sprite catalog slice](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SpriteCatalog-Linux-2026-11-12.md)
 adds catalog kind 4, preloaded/deferred Player file admission and canonical source export with
 explicit Atlas closure checks. Relocated-package C ABI tests preserve opaque kind 3 and source-free
 consumers. A real Zig file-catalog game additionally checks relocated source Sprite/pool native
-pixels and replacement through the accepted source API. Main Editor authoring and complete
-ED-WF-06 acceptance remain open; milestone counts do not change.
+pixels and replacement through the accepted source API. Main Editor authoring remains open in ED-WF-07. The combined ED-WF-06 acceptance below
+raises workflow completion to 5/9; graphical Editor and 2D milestone counts do not change.
 
 ## ✅ Editor Sprite source snapshots (2026-11-12)
 
@@ -1008,9 +1008,9 @@ capture validates its exact Atlas closure. Main Editor gameplay scene/pool insta
 immutable snapshots; real composed native pixels verify trim/Pivot geometry, negative scale and
 old-owner retention across reimport. [Evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md).
 Inspector source assignment, authoring persistence, Build, source animation/reload and complete
-Editor acceptance remain open. ED-WF stays 4/9, Editor 0/8, 2D 9/11; M6/M7 physical gates unchanged.
+Editor acceptance remain open. ED-WF stays 5/9, Editor 0/8, 2D 9/11; M6/M7 physical gates unchanged.
 
-## Sprite source native acceptance candidate (2026-11-12)
+## ✅ ED-WF-06 source API and Player acceptance (2026-11-12)
 
 The actual SDK-built Zig file-catalog fixture now verifies asymmetric X/Y/combined flips,
 Pivot-relative geometry and negative-scale pools, followed by an Atlas-only extent/region repack
@@ -1018,5 +1018,7 @@ with stable source identity and handles. Development and strict Shipping native 
 the original embedded/catalog modes and C-only compatibility cases remain unchanged.
 [Evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-NativeSource-Linux-2026-11-12.md)
 retains initial fixture/setup failures. Full regression passes 486/486 without failures or skips;
-exact-head CI and merge remain required before ED-WF-06 acceptance. Counts stay 4/9, Editor 0/8
-and 2D 9/11.
+all 41 latest exact-head hosted checks pass and PR #772 is merged. The combined
+[acceptance record](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md) completes ED-WF-06
+with legacy compatibility, immutable cooked closure and feature-OFF builds. Workflow acceptance
+is 5/9 (55.6%); Editor 0/8, 2D 9/11 and physical/clean-host gates remain unchanged.

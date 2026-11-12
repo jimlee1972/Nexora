@@ -2,10 +2,10 @@
 
 [English](../en/Editor_Workflow_Delivery_Plan.md) · [Epic #741](https://github.com/jimlee1972/Nexora/issues/741)
 
-更新：2026-11-01。基線：`8c4aa989ee7443cc0b2129d54f0f0f77c73d2b49`。
+更新：2026-11-12。基線：`8c4aa989ee7443cc0b2129d54f0f0f77c73d2b49`。
 最初文件發布基底：`67db45d23e631b0e05b42c23716245a34ae996d5`。
 ED-WF-04 整合基底：main `a21c1ca2293e4200de8dcaa4b892ffef34687c9c`，包含外觀更新。
-驗收快照：**4/9 工單（44.4%）**；ED-WF-01 已由 [PR #751](https://github.com/jimlee1972/Nexora/pull/751)、ED-WF-02 由 [PR #754](https://github.com/jimlee1972/Nexora/pull/754)、ED-WF-03 由 [PR #756](https://github.com/jimlee1972/Nexora/pull/756)、ED-WF-04 由 [PR #758](https://github.com/jimlee1972/Nexora/pull/758) 合併。
+驗收快照：**5/9 工單（55.6%）**；ED-WF-01 已由 [PR #751](https://github.com/jimlee1972/Nexora/pull/751)、ED-WF-02 由 [PR #754](https://github.com/jimlee1972/Nexora/pull/754)、ED-WF-03 由 [PR #756](https://github.com/jimlee1972/Nexora/pull/756)、ED-WF-04 由 [PR #758](https://github.com/jimlee1972/Nexora/pull/758) 合併，ED-WF-06 由 [PR #772](https://github.com/jimlee1972/Nexora/pull/772) 及其前置切片完成驗收。
 後續已驗收項目及 merged PR／證據記於 Epic。完整圖形化 Editor 驗收維持 **0/8**；
 本計畫不自動驗收實體裝置或乾淨主機 gates。
 
@@ -31,7 +31,7 @@ SortingGroup、九宮格／Tiled、遮罩及進階動畫狀態機不在本批範
 | ED-WF-03 | [#744](https://github.com/jimlee1972/Nexora/issues/744) | 01 | 無原始碼的 Runtime 成品；開發紀錄與發布 inventory 留在成品外 | ✅ PR #756 |
 | ED-WF-04 | [#745](https://github.com/jimlee1972/Nexora/issues/745) | 01 | Runtime／Zig 交易式遷移；替換失敗保留舊模組及 World | ✅ PR #758 |
 | ED-WF-05 | [#746](https://github.com/jimlee1972/Nexora/issues/746) | 02、04 | 背景編譯來源並保留狀態熱重載，不需 Stop／Play | 施工中；整合未驗收 |
-| ED-WF-06 | [#747](https://github.com/jimlee1972/Nexora/issues/747) | 01 | 相容的 C／Zig 來源 API 與 cooked Player 相依閉包 | 施工中；來源註冊表／API／catalog／Player 切片 |
+| ED-WF-06 | [#747](https://github.com/jimlee1972/Nexora/issues/747) | 01 | 相容的 C／Zig 來源 API 與 cooked Player 相依閉包 | ✅ PR #767、#769、#770、#772；[驗收](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md) |
 | ED-WF-07 | [#748](https://github.com/jimlee1972/Nexora/issues/748) | 06 | 真實 Editor 來源索引／Inspector／Undo／儲存重開／Play／Build／重匯入 | 施工中；不可變來源索引／Play 快照切片 |
 | ED-WF-08 | [#749](https://github.com/jimlee1972/Nexora/issues/749) | 04、06、07 | 替換後保留來源動畫錨點、存活 pool 實例與有效 handle | 待辦 |
 | ED-WF-09 | [#750](https://github.com/jimlee1972/Nexora/issues/750) | 02、03、05、07、08 | 整合原生驗收及實際解壓驗證的 Windows Editor ZIP | 待辦 |
@@ -45,15 +45,16 @@ SortingGroup、九宮格／Tiled、遮罩及進階動畫狀態機不在本批範
 descriptor、相容的 optional 表協商，以及標準 Player 註冊與擷取。真正由 SDK 編譯的 Zig
 模組在匯出、搬移並刪除來源後執行；原生像素驗證負縮放 pool 幾何及來源／Atlas 替換。
 詳見 [API／Player 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceAPI-Linux-2026-11-12.md)。
-Editor 來源流程及來源動畫重載仍待完成。這些 supporting 切片
-不驗收 ED-WF-06，**4/9（44.4%）** 與 **0/8** 維持不變。
+Editor 來源流程及來源動畫重載仍待完成。完整 [ED-WF-06 驗收](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md)
+合併下方 catalog 及原生重排 gate；完整 Editor 里程碑仍為 **0/8**。
 
 ✅ 獨立 catalog 切片（`nexora-whr.6.3`）新增 cooked Sprite source 目錄種類 4、Player
 預載／延後准入與標準來源匯出。既有 opaque 種類 3、C／Zig 表格版面、明確先載入 Atlas 的
 順序及不可變 ownership 保持一致。[Linux 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SpriteCatalog-Linux-2026-11-12.md)
 記錄實際搬移成品的准入與損壞／相依閉包拒絕。真正由 SDK 建置的 Zig 檔案目錄遊戲接上
 PR #769 已驗收的來源 API，驗證搬移、刪除作者端來源及替換後的場景／pool 原生像素。
-Editor 製作及完整 ED-WF-06 驗收仍待完成；進度維持 **4/9** 及 **0/8**。
+Editor 製作仍屬 ED-WF-07；下方完整 ED-WF-06 驗收將流程進度提高為 **5/9**，
+圖形化 Editor 仍為 **0/8**。
 
 各工單於 `Tools/Build/evidence/EditorWorkflow/ED-WF-XX.md` 記錄精確指令、結果及限制。
 現有 [ED-WF-01 基線](../../Tools/Build/evidence/EditorWorkflow/ED-WF-01.md) 區分規劃、
@@ -76,7 +77,7 @@ PR #762 首版 Linux CI 在 runner 改為 Ubuntu 26／GNU 15.2 後未通過：�
 [Cloud 收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04-Cloud.json)與
 [CI 清單](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04-CI.json)記錄 Cloud 495/495、Shipping、
 Windows／macOS 原生證據、42 項 CI 全數成功及合併 tree 相同。真實 Zig 保留 32 次成功切換及
-224 次預期拒絕。Editor 協調、Sprite 流程及最後交付仍屬 ED-WF-05～ED-WF-09。
+224 次預期拒絕。Editor 協調、來源製作／動畫及最後交付仍屬 ED-WF-05、ED-WF-07、ED-WF-08 與 ED-WF-09。
 完成度為具備驗收證據及 merged delivery PR 的子工單數除以九；已驗收列使用 `✅`，
 待辦及 blocked 項目維持未標記。
 
@@ -141,15 +142,17 @@ GitHub README 維持讀者導向，整體 milestone 未變時不加入逐工單�
 `.nx2sprite` 資料，保留穩定 sidecar／importer 身分，並擷取精確來源／Atlas 的 cooked／專案
 相依閉包。主 Editor Play 透過既有幾何實作解析場景與 pool 的來源參照。真實合成 Editor 像素
 驗證 Pivot 替換、負縮放與來源擁有者釋放後的舊快照；詳見[雲端證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md)。
-catalog／封裝工作仍由 `nexora-whr.6.3`／PR #770 獨立負責。Inspector 來源指定、製作場景
+獨立的 catalog／封裝切片（`nexora-whr.6.3`）已於 PR #770 合併。Inspector 來源指定、製作場景
 儲存重開、Build 與即時動畫／重載仍待完成。本 supporting 切片不驗收 ED-WF-07；
-流程 **4/9**、Editor **0/8**、2D **9/11** 維持不變。
+流程 **5/9**、Editor **0/8**、2D **9/11** 維持不變。
 
-## 來源原生驗收候選
+## ✅ ED-WF-06 來源 API 與 Player 驗收
 
-ED-WF-06 剩餘的驗證（`nexora-whr.6.4`）透過搬移後的 catalog 遊戲，以非對稱原生像素
+ED-WF-06 的原生驗證（`nexora-whr.6.4`）透過搬移後的 catalog 遊戲，以非對稱原生像素
 實測 SDK／C ABI 的來源 Flip 與 Atlas 重排。只替換 Atlas 後，場景及負縮放 pool 的 handle、
 作者端 transform 與來源身分維持不變。Development 及嚴格 Shipping 原生驗證已通過；
 [證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-NativeSource-Linux-2026-11-12.md)
-保留初次案例／設定失敗。完整回歸 486/486 通過，沒有失敗或跳過；指定版本 CI 及 PR
-合併仍是 ED-WF-06 驗收前提。**4/9**、Editor **0/8**、2D **9/11** 維持不變。
+保留初次案例／設定失敗。完整回歸 486/486 通過，沒有失敗或跳過；全部 41 項指定版本最新 hosted 檢查通過，PR #772 已合併。
+完整[驗收](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md)記錄相容消費端、不可變 cooked
+閉包、feature-OFF 建置及原生重排。流程為 **5/9（55.6%）**；Editor **0/8**、2D **9/11**
+及實機／乾淨主機 gate 維持不變。
