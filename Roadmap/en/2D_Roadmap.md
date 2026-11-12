@@ -970,3 +970,14 @@ HD2D-07 SDK promotion retains immutable source93a8dd51 and successful main Build
 ## Authored 2D scene catalog integration（2026-11-03）
 
 Engine implementation adds a shared ND2D document decoder, fresh-ID World instantiation, deferred Scene V1 sessions, Player startup/catalog export and the 2D Studio scene-file selector. Acceptance and remaining SDK/consumer delivery gates are recorded in [scene evidence](../../Engine/TwoD/evidence/AuthoredScenes-Linux-2026-11-03.md). This supporting integration does not change M6/M7 or main 3D Editor Sprite-persistence acceptance.
+
+## ✅ Gameplay Sprite source registry (2026-11-12)
+
+The ED-WF-06 supporting registry slice supplies a separate size-checked C table, Zig wire/wrapper
+and owning immutable source resolver; source/Atlas closure, rejection, snapshot retention and
+active/live budgets are covered by the [Linux evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceRegistry-Linux-2026-11-12.md).
+Original gameplay descriptors and the content table are unchanged. Content kind 3 identifies a
+Sprite source only in the content registry; asset catalog kind 3 remains opaque bytes. Canonical
+Host capability exposure, source descriptors, Player/catalog admission, Editor authoring and
+animation/pool integration remain open. ED-WF acceptance stays 4/9; 2D stays 9/11 (82%), with M6/M7
+physical/clean-host acceptance separate.

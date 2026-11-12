@@ -2,7 +2,8 @@
 
 `GameplayContent` supplies the optional `NexoraGameplayContentApiV1` C11 table in
 `nexora/gameplay_content.h`; `Bindings/Zig/content.zig` mirrors it as `nexora.content.Api`.
-A Zig module registers cooked `.nx2atlas` and `.nx2clip` bytes, including `@embedFile` data,
+The existing gameplay host exposes this original Atlas/Clip table. A Zig module registers cooked
+`.nx2atlas` and `.nx2clip` bytes, including `@embedFile` data,
 without game-specific C++ code, native paths, renderer pointers or a second content format.
 The existing `DecodeAtlas`/`DecodeClip` codecs perform all schema, UTF-8-independent ASCII event,
 geometry, count and pixel budget checks. This API consumes the cooked payload, not a bundle container;
@@ -68,3 +69,44 @@ list probes/retries/order, description and wrong-thread rejection. Snapshots rem
 owner destruction. `gameplay.zig_content_wire_layout` compares the real Zig table/metadata layouts
 with the C header. These are reusable loading and ownership checks; they do not generate formal
 artwork or establish graphical product or target-platform acceptance.
+
+## Optional Sprite source registry table
+
+`GameplayContent::GetSpriteApi` supplies the independent
+`NexoraGameplaySpriteContentApiV1` table; Zig mirrors it as `content.SpriteApi`.
+Initialize `struct_size` before acquisition and check returned size/version/callback before use.
+A short table returns `UNSUPPORTED` unchanged; an oversized caller receives only the V1 prefix.
+The original `NexoraGameplayContentApiV1`, gameplay Host/services and Sprite/Instance descriptors
+keep their layouts. The canonical gameplay host does not yet advertise this table: host capability
+negotiation, source-bearing C/Zig descriptors, catalog/Player admission, Editor authoring and
+animation/pool reload integration remain ED-WF-06 through ED-WF-09 work.
+
+`register_sprite_source` decodes the existing 96-byte `.nx2sprite` schema 1 and returns its UUID.
+The Atlas must already be registered. Missing/non-Atlas dependencies return `UNSUPPORTED`; malformed
+metadata, UUID type collisions, missing regions and trim/region dimension mismatches return
+`INVALID_ARGUMENT`. Rejection preserves outputs and published content. Atlas replacement validates
+all registered Clip and Sprite dependencies through the existing codecs/resolver; incompatible
+replacement preserves the previous generation. Removing a referenced Atlas returns `LIFECYCLE`;
+remove dependent Clips and sources first. Removing a source does not mutate World/pool instances.
+
+`ResolveSprite` returns an immutable owning source snapshot for the existing source-aware
+`ExtractSprites` resolver. Identical publication reuses that owner even at the live-byte ceiling;
+changed metadata receives a new owner. Retained source snapshots survive replacement, removal and
+registry destruction. Extracted frames retain their Atlas generation and copied geometry independently
+of the source metadata. Source snapshots alone do not retain an Atlas. All callbacks, acquisition,
+resolution and removal follow the same owner-thread, exception and borrowed-table lifetime rules
+as the original registry, with no IO, worker or module callback added.
+
+Sources share the existing identity/active/live limits and bounded retirement queue. Their decoded
+storage charge is `sizeof(SpriteAsset)`; retired sources remain charged until their owners expire
+and `CollectRetiredTextures` collects them, without producing a native texture ID. Counts and bytes
+include sources. `list_assets` sorts Atlas, Clip, then source, each by UUID; source descriptions use
+content kind `NEXORA_CONTENT_SPRITE_SOURCE` (3), count 1, untrimmed canvas width/height and the Atlas
+UUID. **Content kinds and asset catalog kinds are separate namespaces**: catalog kind 3 remains
+opaque game-owned bytes, and no `.nx2sprite` catalog admission is added here.
+
+`twod.gameplay_content` additionally checks real source decoding/extraction, both-direction type
+collisions, dependency-preserving rejection, short/extended-table canaries, source/frame retention,
+owner-thread rejection and active/live budget backpressure. `gameplay.zig_content_wire_layout`
+checks both C/Zig tables and optional-table admission/forwarding. See the
+[cloud evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceRegistry-Linux-2026-11-12.md).

@@ -864,3 +864,13 @@ HD2D-07 SDK 發布保留不可移動來源93a8dd51與 main Build／候選包通�
 ## 2D authored scene 目錄接入（2026-11-03）
 
 引擎實作新增共用 ND2D 文件解碼、World 新 ID 實例化、延後執行的 Scene V1 管理、Player 起始場景／目錄封裝與 2D Studio 場景檔選單。驗證與尚待交付的 SDK／消費端 gate 記於[場景證據](../../Engine/TwoD/evidence/AuthoredScenes-Linux-2026-11-03.md)。此配套接入不變更 M6／M7 或主 3D Editor Sprite 持久化的驗收判定。
+
+## ✅ Gameplay Sprite source 註冊表（2026-11-12）
+
+ED-WF-06 supporting 註冊表切片提供獨立且檢查 size 的 C 表、Zig wire／wrapper，以及持有
+不可變來源的 resolver；來源／Atlas 相依閉包、拒絕保護、快照保留與 active／live 預算的
+[Linux 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceRegistry-Linux-2026-11-12.md)
+獨立記錄。既有 Gameplay descriptor 與 Content 表不變。Content kind 3 僅在內容註冊表代表
+Sprite source；Asset catalog kind 3 維持 opaque bytes。標準 Host 能力曝光、來源 descriptor、
+Player／catalog admission、Editor 製作及動畫／pool 整合仍待完成。ED-WF 驗收維持 4/9，
+2D 維持 9/11（82%），M6／M7 實機及乾淨主機驗收另計。
