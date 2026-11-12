@@ -1706,8 +1706,10 @@ reporting a failure. See [capture/retention/platform limits](../../Roadmap/en/Cr
 ## Optional gameplay Sprite source access
 
 Editor Play's shared TwoD bridge offers the optional source Sprite/pool table while preserving
-legacy descriptor strides. The main Editor still captures frozen Atlas/Clip assets, with no source
-registry or source authoring/capture. Its source-content service returns `UNSUPPORTED`. Extraction
-uses an empty source resolver: unresolved source instances are unavailable while ordinary Sprites
-continue rendering. Setting a source UUID through gameplay does not establish Editor source
-Inspector, persistence, animation or Build acceptance; those remain ED-WF-07/08 work.
+legacy descriptor strides. Typed project indexing and synchronous/queued reimport admit existing
+`.nx2sprite` metadata. Project/cooked capture freezes and validates its Atlas closure with exact
+source/sidecar provenance; extraction resolves scene/pool source UUIDs from that snapshot. Retained
+snapshots survive later reimport and project/store destruction. The immutable embedding's source-
+content registration service still returns `UNSUPPORTED`. Inspector source assignment, authoring
+persistence, animation/reload and Build acceptance remain ED-WF-07/08 work. See the
+[executed snapshot/native evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md).

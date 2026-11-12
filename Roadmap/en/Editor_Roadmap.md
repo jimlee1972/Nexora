@@ -2307,3 +2307,12 @@ and evidence match reality; and no build output, local preset, credential, priva
 capture is committed. `Editor Preview` requires ED-M0–M2, `Creator Alpha` also requires M3–M4, and
 `Production Beta` requires the selected M5 tools plus M6–M7. Preview/read-only capability never raises
 the enclosing milestone percentage or waives a target-host gate.
+
+## ✅ Editor Sprite source snapshots (2026-11-12)
+
+Typed source indexing/reimport now owns existing Sprite metadata, and frozen project/cooked Play
+capture validates its exact Atlas closure. Main Editor gameplay scene/pool instances resolve those
+immutable snapshots; real composed native pixels verify trim/Pivot geometry, negative scale and
+old-owner retention across reimport. [Evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md).
+Inspector source assignment, authoring persistence, Build, source animation/reload and complete
+Editor acceptance remain open. ED-WF stays 4/9, Editor 0/8, 2D 9/11; M6/M7 physical gates unchanged.

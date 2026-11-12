@@ -5,11 +5,13 @@ canvas/trim/pixel-Pivot/PPU metadata, stable Atlas-region references, persistent
 source UUIDs and source-aware extraction. Source scenes use additive NX2S schema 3 with a schema-2
 backward reader; source-free scenes still emit schema 2. Atlas/Clip/C/Zig wires and straight-alpha
 behavior remain unchanged. The optional gameplay source table and canonical Player extraction are
-available; animation and Editor/Player file source catalogs are separate follow-up gates.
+available; animation, Editor source authoring controls and Player file source catalogs remain
+separate follow-up gates.
 
-The optional Editor's `TwoDPlayAssets` freezes validated cooked Atlas/Clip closures from one
-explicit Runtime asset generation without retaining the store. It resolves Clip Atlas dependencies,
-validates frame regions, bounds unique payload/count totals and preserves external residency/pins.
+The optional Editor's `TwoDPlayAssets` freezes validated cooked Atlas/Clip/Sprite-source closures from one
+explicit Runtime asset generation without retaining the store. It resolves Clip/source Atlas
+dependencies, validates frame regions and source geometry, bounds unique payload/count totals and
+preserves external residency/pins.
 See the [Editor ownership contract](../Editor/README.md#frozen-cooked-2d-play-assets).
 The Editor also offers project-scoped source/cooked admission through
 `ProjectTwoDPlayAssets`; see the [project capture contract](../Editor/README.md#project-scoped-cooked-2d-play-capture).
