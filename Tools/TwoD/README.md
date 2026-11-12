@@ -44,7 +44,8 @@ use existing Runtime import/Cook services. Publication uses Core VFS atomic writ
 The additive [Sprite source metadata workflow](../../Engine/TwoD/SpriteAssets.md) also supports
 `type: "sprite"` manifests and `.nx2sprite` validation/cooking. Atlas grid images accept an
 explicit `cells` list, optional `margin` and `spacing`; region IDs follow original cell indices,
-not selection order. The main Editor/Player do not yet bind Sprite source references automatically.
+not selection order. Studio documents and Player authored scenes support source bindings;
+the main Editor Inspector/project authoring workflow remains separate.
 
 ```bash
 build/linux-development/Tools/TwoD/NexoraTwoDStudio --workspace work --atlas atlas.nx2atlas --clip clip.nx2clip --document scene.nx2doc
@@ -59,6 +60,15 @@ or reloads their 16x16 chunk. Save/Open preserves all authored metadata and asse
 is bounded to 256 transactions and 64 MiB retained bytes. A new transaction resets older history at that budget boundary; a single transaction exceeding
 64 MiB rejects. Reopen clears history after validation.
 An empty document can be opened without an atlas, then imported through the configured paths.
+
+Use `--sprite source.nx2sprite` alongside its matching `--atlas` to configure source import.
+**Import Sprite source** emits an owner request, and **New Sprite source** / **Sprite source**
+select an existing metadata UUID for new/current Sprites. Size/Pivot come from the source; position,
+scale, tint, flips and sort settings remain instance edits. Selecting None restores the stored
+legacy fields. Preview, Undo/Redo, Save/Open and isolated Play use the same owning source catalog.
+Invalid dependencies or removing a referenced source reject the complete edit. Schema 2 embeds
+metadata without source paths, while source-free documents retain schema 1. Exported authored scenes
+run after relocation and source deletion; this does not accept main Editor Inspector/Build integration.
 
 Studio checks `CloseRequested()` again after `BeginFrame()` pumps native events. A normal close
 leaves the frame loop before validating acquisition status, then drains/destroys the surface;

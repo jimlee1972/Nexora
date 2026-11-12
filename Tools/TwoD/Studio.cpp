@@ -48,7 +48,7 @@ void Write(const std::filesystem::path &root, const std::string &file,
 int main(int argc, char **argv) {
   try {
     std::filesystem::path workspace;
-    std::string atlasFile, clipFile, documentFile = "scene.nx2doc";
+    std::string atlasFile, clipFile, spriteFile, documentFile = "scene.nx2doc";
     std::vector<std::string> sceneFiles;
     bool explicitDocument = false;
     std::uint32_t frames = 0;
@@ -61,6 +61,8 @@ int main(int argc, char **argv) {
         atlasFile = argv[++i];
       else if (a == "--clip" && i + 1 < argc)
         clipFile = argv[++i];
+      else if (a == "--sprite" && i + 1 < argc)
+        spriteFile = argv[++i];
       else if (a == "--document" && i + 1 < argc) {
         documentFile = argv[++i];
         explicitDocument = true;
@@ -76,8 +78,9 @@ int main(int argc, char **argv) {
       else if (a == "--read-only")
         readOnly = true;
       else
-        throw std::runtime_error("usage: NexoraTwoDStudio --workspace DIR [--atlas FILE --clip "
-                                 "FILE --document FILE --frames N --smoke --read-only]");
+        throw std::runtime_error(
+            "usage: NexoraTwoDStudio --workspace DIR [--atlas FILE --clip "
+            "FILE --sprite FILE --document FILE --frames N --smoke --read-only]");
     }
     Check(!(smoke && readOnly), "smoke requires a writable isolated workspace");
     Check(!workspace.empty() && std::filesystem::is_directory(workspace),
@@ -102,6 +105,11 @@ int main(int argc, char **argv) {
       auto c = twod::DecodeClip(Read(Safe(workspace, clipFile)));
       Check(c && document.ReplaceClip(std::move(*c)), "clip import");
     };
+    const auto importSprite = [&] {
+      Check(!spriteFile.empty(), "provide --sprite FILE");
+      auto source = twod::DecodeSpriteAsset(Read(Safe(workspace, spriteFile)));
+      Check(source && document.ReplaceSpriteSource(std::move(*source)), "Sprite source import");
+    };
     if (std::filesystem::exists(Safe(workspace, documentFile)))
       Check(document.Reopen(Read(Safe(workspace, documentFile))), "document open");
     else {
@@ -109,6 +117,8 @@ int main(int argc, char **argv) {
         importAtlas();
       if (!clipFile.empty())
         importClip();
+      if (!spriteFile.empty())
+        importSprite();
     }
     if (smoke) {
       if (atlasFile.empty()) {
@@ -126,6 +136,8 @@ int main(int argc, char **argv) {
       twod::Sprite s;
       s.atlas = document.Atlas().id;
       s.region = 1;
+      if (!document.SpriteSources().empty())
+        s.source = document.SpriteSources().front().id;
       auto id = document.AddSprite(s);
       Check(id && document.SetCollider(*id, {}), "smoke scene");
       twod::Tile tile{-2, -2, 0, 1, true};
@@ -207,6 +219,7 @@ int main(int argc, char **argv) {
           panel.activeScene = selected;
           panel.selected = 0;
           panel.region = 0;
+          panel.newSpriteSource.reset();
           panel.preview = {};
           panel.previewRevision = UINT64_MAX;
           panel.status = "Scene opened.";
@@ -217,7 +230,7 @@ int main(int argc, char **argv) {
         panel.requestedScene.reset();
       }
       if (panel.saveRequested || panel.openRequested || panel.importAtlasRequested ||
-          panel.importClipRequested) {
+          panel.importClipRequested || panel.importSpriteRequested) {
         try {
           Check(!readOnly, "read-only publication");
           if (panel.saveRequested) {
@@ -232,12 +245,14 @@ int main(int argc, char **argv) {
             importAtlas();
           if (panel.importClipRequested)
             importClip();
+          if (panel.importSpriteRequested)
+            importSprite();
           panel.status = "File operation completed.";
         } catch (const std::exception &e) {
           panel.status = e.what();
         }
         panel.saveRequested = panel.openRequested = panel.importAtlasRequested =
-            panel.importClipRequested = false;
+            panel.importClipRequested = panel.importSpriteRequested = false;
       }
     }
     Check(surface.surface->Diagnostics().nativeUiDrawCalls > 0, "native draws");

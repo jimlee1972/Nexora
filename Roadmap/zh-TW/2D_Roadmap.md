@@ -898,3 +898,13 @@ ED-WF-06 驗收仍待完成；里程碑數字不變。
 原生像素驗證裁切／Pivot 幾何、負縮放與重匯入後的舊擁有者保留。[證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md)。
 Inspector 來源指定、製作場景持久化、Build、來源動畫／重載與完整 Editor 驗收仍待完成。
 ED-WF 維持 4/9、Editor 0/8、2D 9/11；M6／M7 實機 gate 不變。
+
+## ✅ Sprite source 作者文件持久化（2026-11-13）
+
+ED-WF-07 配套子項 `nexora-whr.7.2` 在 ND2D schema 2、TwoDDocument 歷史／重開與獨立 Play
+加入自有 source 目錄，並提供 Studio 來源匯入／指派／預覽。無 source 的 schema-1 位元組與
+C/Zig 表格維持相容。Player 在 gameplay 前接納內嵌相依閉包；搬移套件刪除作者來源後仍可執行。
+原生像素驗證持久化 trim／Pivot 與負縮放幾何，錯誤匯出及衝突來源持續被拒絕。
+詳見[雲端證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-AuthoredSources-Linux-2026-11-13.md)。
+主 Editor Inspector／專案存檔重開／Build、來源動畫／熱重載與完整 ED-WF-07 仍未完成。
+工作流 **4/9**、圖形 Editor **0/8**、2D **9/11** 及 M6／M7 實機驗收維持不變。

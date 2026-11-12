@@ -377,3 +377,12 @@ module compilation, then verifies relocated source Sprite/pool geometry and nati
 the same API. Editor source capture and source-animation reload remain open. The
 [real Zig/relocated Player evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceAPI-Linux-2026-11-12.md)
 checks scene and pooled source instances, negative scale, source/Atlas replacement and native pixels.
+
+## Authored Sprite source documents
+
+ND2D schema-2 scene documents embed a bounded immutable Sprite source catalog. Startup admits their
+Atlas/Clip/source closure into the existing registry before module callbacks. Repeated UUIDs across
+documents or file assets require identical encoded metadata; conflicts reject startup. Schema-1
+source-free documents and all C/Zig tables remain compatible. The existing global capacity and
+retirement budgets apply. Source paths and authoring files are unnecessary after export/relocation.
+See [the shared wire contract](../../Engine/TwoD/README.md#packaged-authored-2d-scenes).

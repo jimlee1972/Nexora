@@ -2238,3 +2238,12 @@ output、local preset、credential、private project 或 sensitive capture。`Ed
 原生像素驗證裁切／Pivot 幾何、負縮放與重匯入後的舊擁有者保留。[證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md)。
 Inspector 來源指定、製作場景持久化、Build、來源動畫／重載與完整 Editor 驗收仍待完成。
 ED-WF 維持 4/9、Editor 0/8、2D 9/11；M6／M7 實機 gate 不變。
+
+## ✅ 獨立 source 作者文件（2026-11-13）
+
+TwoDDocument 現在持有有界不可變 source 目錄，支援來源指派、交易式中繼資料替換／移除、
+Undo／Redo、存檔重開與獨立 Play 快照。Studio 控制與預覽沿用同一解析器，Player 可在搬移後
+接納匯出的內嵌來源。舊文件維持精確 schema-1 位元組。
+詳見[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-AuthoredSources-Linux-2026-11-13.md)。
+此 `nexora-whr.7.2` 配套不代表主 Editor Inspector／專案持久化、Build、來源動畫／熱重載或
+完整 ED-WF-07 驗收；圖形里程碑維持 **0/8**。

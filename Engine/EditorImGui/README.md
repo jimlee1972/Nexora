@@ -170,6 +170,10 @@ Mutation buttons require both current caller authorization and a writable docume
 requests; the owning project application must revalidate path/access/revision before publication.
 No UI widget writes a project file or acquires a lease. TwoDPanelState borrows no World/asset pointer;
 replace/reset it when changing document scope to clear selection, playback and pending requests.
+Sprite source import follows the same owner-request boundary. New/current Sprite source combos
+select immutable catalog UUIDs; source geometry replaces Size/Pivot controls while tint, transforms,
+flips and sorting remain editable. Preview uses the document source resolver. Unknown stale source
+selections cannot add a Sprite, and source aliases/catalog views retain the document's lifetime rules.
 Camera preview fields are kept finite and within supported preview bounds; collider projection
 follows the same rotated orthographic camera as Sprite extraction. Graphical control tests exercise
 Undo/Redo, invalid preview-camera admission and permission rejection; Linux native Studio acceptance

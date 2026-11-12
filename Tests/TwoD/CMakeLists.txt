@@ -51,6 +51,33 @@ if(NEXORA_ENABLE_EDITOR)
   target_link_libraries(NexoraTwoDAuthoringTests PRIVATE Nexora::Editor)
   nexora_apply_defaults(NexoraTwoDAuthoringTests)
   add_test(NAME twod.authoring_contracts COMMAND NexoraTwoDAuthoringTests)
+  add_executable(NexoraAuthoredSourceTests AuthoredSourceTests.cpp)
+  target_link_libraries(NexoraAuthoredSourceTests PRIVATE Nexora::Editor)
+  nexora_apply_defaults(NexoraAuthoredSourceTests)
+  add_test(NAME twod.authored_sources COMMAND NexoraAuthoredSourceTests)
+  if(TARGET NexoraTwoDPlayer)
+    add_library(NexoraAuthoredSourceFixture SHARED AuthoredSourceModule.cpp)
+    target_include_directories(NexoraAuthoredSourceFixture PRIVATE "${PROJECT_SOURCE_DIR}/Engine/API/include")
+    nexora_apply_defaults(NexoraAuthoredSourceFixture)
+    set(authored_source_args --app "$<TARGET_FILE:NexoraTwoDPlayer>"
+      --fixture "$<TARGET_FILE:NexoraAuthoredSourceTests>"
+      --module "$<TARGET_FILE:NexoraAuthoredSourceFixture>"
+      --compiler "$<TARGET_FILE:NexoraTwoDAssetCompiler>")
+    if(TARGET NexoraTwoDStudio)
+      list(APPEND authored_source_args --studio "$<TARGET_FILE:NexoraTwoDStudio>")
+    endif()
+    add_test(NAME twod.authored_source_export COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/AuthoredSourceAcceptance.py" ${authored_source_args}
+      --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/authored-source-export")
+    set_tests_properties(twod.authored_source_export PROPERTIES TIMEOUT 180 LABELS "twod;source;scene;export")
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_SLANG AND
+       NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND)
+      add_test(NAME twod.authored_source_native COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/AuthoredSourceAcceptance.py" ${authored_source_args} --native
+        --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/authored-source-native")
+      set_tests_properties(twod.authored_source_native PROPERTIES TIMEOUT 180 LABELS "twod;source;scene;export;vulkan;virtual-display")
+    endif()
+  endif()
   add_executable(NexoraTwoDPlayContextTests PlayContextTests.cpp)
   target_link_libraries(NexoraTwoDPlayContextTests PRIVATE Nexora::Editor)
   nexora_apply_defaults(NexoraTwoDPlayContextTests)

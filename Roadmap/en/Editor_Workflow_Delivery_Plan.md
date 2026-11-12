@@ -160,3 +160,15 @@ see [cloud evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSn
 Catalog/package work remains independently owned by `nexora-whr.6.3` / PR #770. Inspector source
 assignment, authoring save/reopen, Build and live animation/reload remain open. This supporting
 slice does not accept ED-WF-07; workflow **4/9**, Editor **0/8**, 2D **9/11** remain unchanged.
+
+## ✅ Source-bearing Studio document persistence (2026-11-13)
+
+Supporting `nexora-whr.7.2` adds immutable source ownership, schema-2 ND2D persistence and source-aware
+Undo/reopen/isolated Play while retaining source-free schema 1. Studio imports/assigns/previews source
+UUIDs; Player validates embedded Atlas/source closure before module callbacks. Actual moved,
+source-deleted packages and native pixels cover persisted Pivot/trim and negative scale. Initial
+fixture/build-scheduling failures remain separate from accepted results in the
+[cloud evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-AuthoredSources-Linux-2026-11-13.md).
+The active Flip/repack task `nexora-whr.6.4` remains independently owned. Main Editor Inspector,
+project save/reopen/Build and live source animation/reload remain open. ED-WF-07 is not accepted;
+workflow **4/9**, graphical Editor **0/8** and 2D **9/11** remain unchanged.
