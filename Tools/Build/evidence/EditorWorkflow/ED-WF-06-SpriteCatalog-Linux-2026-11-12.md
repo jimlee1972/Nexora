@@ -89,6 +89,35 @@ failure and subsequent package rechecks. The CMake diagnostic revision names the
 because the candidate was validated before committing; implementation hashes identify the exact
 candidate, and the delivery PR records its immutable head and hosted CI separately.
 
+## Windows catalog initializer repair
+
+The first `d960b133` hosted runs are failed evidence, not accepted CI: PR Build
+`43189516120`, push Build `43189431588` and SDK producer `43189516100` report MSVC C2397 at
+`TwoDPlayer.cpp`'s catalog initializer. The runtime conditional expression has C enum type;
+MSVC's signed underlying enum cannot implicitly list-initialize the ABI's `uint32_t` field.
+The matching test catalog had the same pattern. Both now explicitly cast the selected enum to
+the field's fixed width; kind values, C/Zig layouts, loader semantics and assertions are unchanged.
+
+A Clang 19.1.7 freestanding `x86_64-pc-windows-msvc` syntax probe includes the real
+`nexora/gameplay_assets.h` and list-initializes a `uint32_t` catalog field from a runtime enum
+conditional. The original initializer fails with `-Wc++11-narrowing`; the explicit cast passes
+with `-std=c++20 -Werror -fsyntax-only`. This checks the Windows ABI/compiler rule in Linux;
+it does not claim a local MSVC/Windows SDK run. Full repaired-source Linux gates and real Windows
+CI must pass before acceptance. Probe inputs/results are retained externally as
+`catalog-enum-width.cpp` and `catalog-enum-width-result.json`.
+
+PR Build's independent Windows Vulkan package job (`131086197468`) also reported
+`Seven-step guided tour did not complete.` Push Build's same-head Vulkan job passed. Its root
+cause is unconfirmed from the retained job log; no tour assertion, duration or input is weakened.
+The complete native job will be checked again on the repaired head.
+
+Before integrating main `69de02df` (accepted source API PR #769), repaired-source Development
+and Shipping builds, strict Shipping package admission and focused asset/catalog/C-Zig checks
+all passed (3/3 focused cases, 2.60 s). Its full 477-case CTest was intentionally interrupted
+with exit 130 after 30 passing cases when that new main became available. The partial traversal
+is retained as `sprite-msvc-full-ctest.log`, not claimed as a full pass; owned test descendants
+were drained before merging. The integrated API/catalog source requires a fresh complete gate.
+
 ## Acceptance limits
 
 This slice verifies file/registry admission and packaging. It does not expose the independent

@@ -243,11 +243,12 @@ void SpriteCatalog() {
       twod::EncodeSpriteAsset(source),
       CookSource(source)};
   std::vector<twod::GameplayAssetFile> files;
-  for (unsigned i = 0; i < data.size(); ++i)
-    files.push_back({i == 1                 ? NEXORA_ASSET_CATALOG_ATLAS
-                     : i == data.size() - 1 ? NEXORA_ASSET_CATALOG_OPAQUE
-                                            : NEXORA_ASSET_CATALOG_SPRITE_SOURCE,
-                     data[i].size(), std::to_string(i)});
+  for (unsigned i = 0; i < data.size(); ++i) {
+    const auto kind = i == 1                 ? NEXORA_ASSET_CATALOG_ATLAS
+                      : i == data.size() - 1 ? NEXORA_ASSET_CATALOG_OPAQUE
+                                             : NEXORA_ASSET_CATALOG_SPRITE_SOURCE;
+    files.push_back({static_cast<uint32_t>(kind), data[i].size(), std::to_string(i)});
+  }
   twod::GameplayContent content;
   const auto thread = std::this_thread::get_id();
   twod::GameplayAssets assets(content, files, [&](const auto &file) {

@@ -471,11 +471,11 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
         if (asset.deferred) {
           const auto size = std::filesystem::file_size(project->File(asset.path));
           Check(size && size <= 64ULL * 1024 * 1024, "deferred asset file budget");
-          catalog.push_back({asset.kind == "atlas"    ? NEXORA_ASSET_CATALOG_ATLAS
-                             : asset.kind == "clip"   ? NEXORA_ASSET_CATALOG_CLIP
-                             : asset.kind == "sprite" ? NEXORA_ASSET_CATALOG_SPRITE_SOURCE
-                                                      : NEXORA_ASSET_CATALOG_OPAQUE,
-                             size, asset.path});
+          const auto kind = asset.kind == "atlas"    ? NEXORA_ASSET_CATALOG_ATLAS
+                            : asset.kind == "clip"   ? NEXORA_ASSET_CATALOG_CLIP
+                            : asset.kind == "sprite" ? NEXORA_ASSET_CATALOG_SPRITE_SOURCE
+                                                     : NEXORA_ASSET_CATALOG_OPAQUE;
+          catalog.push_back({static_cast<uint32_t>(kind), size, asset.path});
         }
     twod::GameplayAssets assets(
         content, std::move(catalog),
