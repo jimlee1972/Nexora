@@ -55,11 +55,22 @@ extern "C" __attribute__((visibility("default"))) int XNextEvent(Display *displa
   }
   const auto result = next(display, event);
   if (event && (event->type == KeyPress || event->type == KeyRelease)) {
+    // Observe the fallback's actual precondition without reading, waiting for or consuming
+    // another event. A queued legacy repeat must already have its matching successor here.
+    bool buffered_repeat = false;
+    if (event->type == KeyRelease && XEventsQueued(display, QueuedAlready) > 0) {
+      XEvent successor{};
+      XPeekEvent(display, &successor);
+      buffered_repeat = successor.type == KeyPress && !event->xkey.send_event &&
+                        !successor.xkey.send_event && event->xkey.window == successor.xkey.window &&
+                        event->xkey.keycode == successor.xkey.keycode &&
+                        event->xkey.time == successor.xkey.time;
+    }
     std::fprintf(stderr,
                  "{\"kind\":\"native_key_event\",\"type\":%d,\"window\":%lu,"
-                 "\"keycode\":%u,\"time\":%lu,\"send_event\":%d}\n",
+                 "\"keycode\":%u,\"time\":%lu,\"send_event\":%d,\"buffered_repeat\":%u}\n",
                  event->type, event->xkey.window, event->xkey.keycode, event->xkey.time,
-                 event->xkey.send_event);
+                 event->xkey.send_event, unsigned(buffered_repeat));
     std::fflush(stderr);
   }
   return result;
