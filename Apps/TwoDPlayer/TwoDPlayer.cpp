@@ -500,6 +500,8 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
     if (scenes)
       services.scene = scenes->Api();
     services.content = contentApi;
+    services.sprite_content.struct_size = sizeof(services.sprite_content);
+    Check(content.GetSpriteApi(&services.sprite_content) == 0, "Sprite source service negotiation");
     services.input = input.Api();
     services.lifecycle = lifecycle.Api();
     services.audio = audio.Api();
@@ -687,6 +689,9 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
       }
     }
     const twod::AtlasResolver resolver = [&content](auto id) { return content.ResolveAtlas(id); };
+    const twod::SpriteAssetResolver sourceResolver = [&content](auto id) {
+      return content.ResolveSprite(id);
+    };
     std::array<bool, static_cast<std::size_t>(Nexora::Window::Key::F12) + 1> keys{};
     unsigned rendered{}, movementFrames{}, uiFrames{}, assetReloads{};
     std::uint64_t submittedAudioFrames{};
@@ -1023,7 +1028,7 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
       } else if (hasTiles) {
         appendTiles(tiles);
       }
-      auto extracted = twod::ExtractSprites(instances, camera, resolver);
+      auto extracted = twod::ExtractSprites(instances, camera, resolver, sourceResolver);
       Check(bool(extracted), "2D extraction");
       Check(!project || extracted->statistics.unavailable == 0,
             "project sprite asset is unavailable");

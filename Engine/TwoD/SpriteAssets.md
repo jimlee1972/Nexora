@@ -124,11 +124,12 @@ these scenes and preserves the existing authoring-only Restore rule.
 
 This completes portable C++ scene/general extraction source binding. The optional
 [GameplayContent source table](GameplayContent.md#optional-sprite-source-registry-table) now registers
-and resolves immutable sources with dependency and retirement protection. It is not yet advertised through the canonical gameplay Host. Main Editor project indexing, Inspector/Play
-capture still need explicit source admission. Player file admission now supports preloaded
-`sprite` and deferred `deferred_sprite` cooked files with Atlas closure validation through
-[catalog kind 4](GameplayAssets.md). This does not bind a source to a runtime Sprite. C/Zig descriptors,
-automatic source-asset animation and pool publication remain separate work. Passing only a resolved
+and resolves immutable sources with dependency and retirement protection. The canonical Player
+advertises source-content registration and the optional [source Sprite/pool API](README.md), with
+source-aware extraction. Player file admission supports preloaded `sprite` and deferred
+`deferred_sprite` cooked files with Atlas closure validation through [catalog kind 4](GameplayAssets.md).
+Main Editor project indexing, Inspector/Play capture, automatic source animation and reload
+publication remain separate work. Passing only a resolved
 legacy `Sprite` to `SpriteScene::Set` still discards its transient quad; store `source` instead.
 
 ## Manifest and CLI

@@ -219,8 +219,8 @@ Preloads admit all explicit Atlas entries before Clips and Sprite sources regard
 order. A preloaded source therefore needs an explicit preloaded Atlas entry; a deferred Atlas
 cannot satisfy startup admission. Deferred sources appear as catalog kind 4 in descriptor order;
 load their Atlas first, then request the source. Kind 3 remains opaque bytes. These directives
-admit immutable source metadata; source-bound gameplay descriptors and main Editor integration
-are separate work. See [catalog validation evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SpriteCatalog-Linux-2026-11-12.md).
+admit immutable source metadata for the optional source-bearing gameplay descriptors described
+below; main Editor authoring remains separate work. See [catalog validation evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SpriteCatalog-Linux-2026-11-12.md).
 
 The [asset contract](../../Engine/TwoD/GameplayAssets.md) defines request transfer, cancellation,
 clip-before-atlas removal, logical RAM/texture budgets and mandatory reader shutdown before VFS
@@ -360,3 +360,20 @@ two lifecycle owners. Entity spawning accepts live catalog instances, including 
 All authored scene Sprites and loaded Tilemaps share one sorted render extraction with the host
 pool. [Ownership and limits](../../Engine/TwoD/README.md#packaged-authored-2d-scenes) apply.
 The main 3D Editor's text `.scene` files are a different format; use 2D Studio ND2D documents here.
+
+## Gameplay Sprite sources
+
+The Player supplies `nx.getSpriteContent(services)` and `nx.getTwoDSources(twod)` after acquiring
+the usual services/TwoD tables. Register an Atlas through Content first, then the canonical
+96-byte Sprite source through `register_sprite_source`. Set its UUID in `TwoDSourceSpriteV1`
+(or `TwoDSourceInstanceV1` for the pool); use the old pool table to destroy handles. Always check
+optional acquisition results. Source-aware Player extraction resolves the immutable registry each
+frame, including replacement geometry and Atlas generations; unresolved sources are unavailable.
+
+Games may embed cooked bytes in their module and register them at Start, or use the preloaded
+`sprite`/deferred `deferred_sprite` file directives above. Catalog kind 4 admits sources; kind 3
+still means opaque bytes. The file-catalog Zig fixture removes its initial raw source/Atlas before
+module compilation, then verifies relocated source Sprite/pool geometry and native pixels through
+the same API. Editor source capture and source-animation reload remain open. The
+[real Zig/relocated Player evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceAPI-Linux-2026-11-12.md)
+checks scene and pooled source instances, negative scale, source/Atlas replacement and native pixels.

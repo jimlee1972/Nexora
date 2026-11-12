@@ -107,8 +107,11 @@ region/trim rejection, duplicate protection and immutable source/Atlas retention
 `twod.sprite_catalog_export` runs an independent C ABI module from a relocated package after
 deleting its authored inputs: canonical source cooking, preloaded source metadata, real deferred
 IO, missing dependencies, opaque kind-3 copies, dependency-ordered removal and corrupted package
-rejection are checked. This accepts file/registry admission, not source-bound render descriptors
-or main Editor authoring. See the [catalog evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SpriteCatalog-Linux-2026-11-12.md).
+rejection are checked. `twod.sprite_source_catalog_player` uses the accepted optional C/Zig source
+API with actual preloaded files. Its raw initial source/Atlas are removed before Zig compilation;
+the relocated Player checks scene/pool metadata, source/Atlas replacement and Linux native pixels.
+The original module-embedded fixture remains intact. Main Editor authoring stays separate. See
+the [catalog evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SpriteCatalog-Linux-2026-11-12.md).
 `twod.asset_residency_stress` repeats five 2048² Atlases (>80 MiB decoded) through eight complete
 load/unload rounds with retained-generation checks and zero final resource counters. It samples
 actual process RSS/working set when available and rejects more than 32 MiB growth in the final

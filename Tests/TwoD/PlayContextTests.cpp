@@ -195,11 +195,17 @@ void Run() {
               context->Tiles().Encode() == document.Tiles().Encode(),
           "session snapshot lost metadata");
     NexoraTwoDApiV1 untouched{};
-    untouched.struct_size = sizeof(untouched) - 1;
+    untouched.struct_size = NEXORA_2D_API_V1_BASE_SIZE - 1;
     const auto original = untouched;
     Check(context->GetApi(&untouched) == NEXORA_GAMEPLAY_ERROR_UNSUPPORTED &&
               untouched.struct_size == original.struct_size && !untouched.context,
           "short API output changed");
+    NexoraTwoDApiV1 legacyApi{};
+    legacyApi.struct_size = NEXORA_2D_API_V1_BASE_SIZE;
+    Check(context->GetApi(&legacyApi) == NEXORA_GAMEPLAY_OK &&
+              legacyApi.struct_size == NEXORA_2D_API_V1_BASE_SIZE && legacyApi.set_sprite &&
+              !legacyApi.get_source_api,
+          "historical API prefix was not preserved");
     failStart = false;
     runtime::GameplayModuleHost module(Host(*context));
     Check(module.Load(Loader), "real module Create/Start");

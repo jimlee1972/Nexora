@@ -9,9 +9,9 @@
  * every function-pointer export. Append fields to versioned structures; do
  * not reorder, remove, or change the meaning of existing fields.
  */
+#include "gameplay_services.h"
 #include <stddef.h>
 #include <stdint.h>
-#include "gameplay_services.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -246,6 +246,30 @@ typedef struct NexoraTwoDInstance {
   NexoraTransformV2 transform;
   NexoraTwoDSprite sprite;
 } NexoraTwoDInstance;
+/* Independent fixed-stride wires. A zero source UUID means the legacy Atlas/region style.
+ * A nonzero source supplies geometry; tint, sorting, visibility, flips and transform stay copied.
+ */
+typedef struct NexoraTwoDSourceSpriteV1 {
+  NexoraTwoDSprite sprite;
+  uint64_t source_high, source_low;
+} NexoraTwoDSourceSpriteV1;
+typedef struct NexoraTwoDSourceInstanceV1 {
+  NexoraTransformV2 transform;
+  NexoraTwoDSourceSpriteV1 sprite;
+} NexoraTwoDSourceInstanceV1;
+typedef struct NexoraTwoDSourceApiV1 {
+  uint32_t struct_size, abi_version;
+  void *context;
+  int32_t (*set_sprite)(void *context, uint64_t entity,
+                        const NexoraTwoDSourceSpriteV1 *sprite); /* null removes */
+  int32_t (*get_sprite)(void *context, uint64_t entity, NexoraTwoDSourceSpriteV1 *sprite);
+  int32_t (*create_instances)(void *context, const NexoraTwoDSourceInstanceV1 *instances,
+                              uint32_t count, NexoraTwoDInstanceHandle *handles);
+  int32_t (*read_instances)(void *context, const NexoraTwoDInstanceHandle *handles, uint32_t count,
+                            NexoraTwoDSourceInstanceV1 *instances);
+  int32_t (*write_instances)(void *context, const NexoraTwoDInstanceHandle *handles, uint32_t count,
+                             const NexoraTwoDSourceInstanceV1 *instances);
+} NexoraTwoDSourceApiV1;
 typedef struct NexoraTwoDApiV1 {
   uint32_t struct_size, abi_version;
   void *context;
@@ -281,7 +305,20 @@ typedef struct NexoraTwoDApiV1 {
                             NexoraTwoDInstance *instances);
   int32_t (*write_instances)(void *context, const NexoraTwoDInstanceHandle *handles, uint32_t count,
                              const NexoraTwoDInstance *instances);
+  /* Optional suffix; the original table and descriptor strides remain supported. */
+  int32_t (*get_source_api)(void *context, NexoraTwoDSourceApiV1 *api);
 } NexoraTwoDApiV1;
+#define NEXORA_2D_API_V1_BASE_SIZE offsetof(NexoraTwoDApiV1, get_source_api)
+#define NEXORA_2D_API_V1_SOURCE_SIZE                                                               \
+  (offsetof(NexoraTwoDApiV1, get_source_api) + sizeof(((NexoraTwoDApiV1 *)0)->get_source_api))
+
+static inline int32_t NexoraGetTwoDSourcesV1(const NexoraTwoDApiV1 *api,
+                                             NexoraTwoDSourceApiV1 *sources) {
+  if (!api || api->struct_size < NEXORA_2D_API_V1_SOURCE_SIZE ||
+      api->abi_version != NEXORA_2D_API_VERSION || !api->get_source_api)
+    return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+  return api->get_source_api(api->context, sources);
+}
 
 typedef struct NexoraGameplayHostV3 {
   uint32_t struct_size;
@@ -325,8 +362,9 @@ typedef struct NexoraGameplayHostV3 {
   (offsetof(NexoraGameplayHostV3, capture_pointer_input) +                                         \
    sizeof(((NexoraGameplayHostV3 *)0)->capture_pointer_input))
 
-#define NEXORA_GAMEPLAY_HOST_V3_SERVICES_SIZE \
-  (offsetof(NexoraGameplayHostV3, get_services_api) + sizeof(((NexoraGameplayHostV3 *)0)->get_services_api))
+#define NEXORA_GAMEPLAY_HOST_V3_SERVICES_SIZE                                                      \
+  (offsetof(NexoraGameplayHostV3, get_services_api) +                                              \
+   sizeof(((NexoraGameplayHostV3 *)0)->get_services_api))
 
 static inline int32_t NexoraGetGameplayServicesV1(const NexoraGameplayHostV3 *host,
                                                   NexoraGameplayServicesApiV1 *api) {

@@ -828,8 +828,8 @@ NX2S schema 3 新增明確的來源存在標記及身分；不含來源的場景
 
 [契約](../../Engine/TwoD/SpriteAssets.md#source-references-in-scenes-and-extraction) ·
 [Linux 驗證](../../Engine/TwoD/evidence/SpriteSourceScenes-Linux-2026-10-28.md)。
-C++ 消費端須重建。主 Editor 的來源索引／Inspector／Play 擷取、Player catalog、C／Zig 來源描述、
-來源動畫／物件池發布及新的原生／平台驗收仍屬後續工作。本次可攜場景切片不關閉 Editor M3-08、
+C++ 消費端須重建。來源 descriptor 與模組內嵌 Player 擷取已於下方交付；主 Editor 的來源索引／
+Inspector／Play 擷取、檔案 catalog、來源動畫重載及完整原生／平台驗收仍屬後續工作。本次可攜場景切片不關閉 Editor M3-08、
 M6／M7，也不改變 9/11（82%）。
 
 ## HD-2D 擴充工單
@@ -871,11 +871,21 @@ ED-WF-06 supporting 註冊表切片提供獨立且檢查 size 的 C 表、Zig wi
 不可變來源的 resolver；來源／Atlas 相依閉包、拒絕保護、快照保留與 active／live 預算的
 [Linux 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceRegistry-Linux-2026-11-12.md)
 獨立記錄。既有 Gameplay descriptor 與 Content 表不變。Content kind 3 僅在內容註冊表代表
-Sprite source；Asset catalog kind 3 維持 opaque bytes。標準 Host 能力曝光、來源 descriptor、
-Editor 製作及動畫／pool 整合仍待完成。ED-WF 驗收維持 4/9，
+Sprite source；Asset catalog kind 3 維持 opaque bytes。標準 Player 能力曝光、來源 descriptor
+與模組內嵌 Player 擷取已於下方交付；Editor 製作及來源動畫重載仍待完成。ED-WF 驗收維持 4/9，
 2D 維持 9/11（82%），M6／M7 實機及乾淨主機驗收另計。
+
+## ✅ Gameplay Sprite 來源 API 與 Player 擷取（2026-11-12）
+
+獨立固定 80／160 bytes 的來源 wire 與 optional C／Zig 表保留舊 64／144 bytes descriptor，
+並相容所有既有 services／TwoD prefix。場景及 pool 操作保留來源身分，失敗批次以 staging
+保持原子性，沿用既有 handle 擁有權。Player 提供來源註冊並擷取不可變來源／Atlas 閉包。
+真正由 SDK 建置的 Zig 遊戲驗證搬移、刪除來源後的模組內嵌內容，以及幾何／Atlas 替換的
+原生像素；詳見[驗收證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceAPI-Linux-2026-11-12.md)。
+主 Editor 來源製作／capture 及來源動畫重載仍待完成。
+ED-WF 驗收維持 4/9、Editor 0/8、2D 9/11；M6／M7 實機驗收判定不變。
 
 ✅ 獨立 [Sprite catalog 切片](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SpriteCatalog-Linux-2026-11-12.md)
 新增目錄種類 4、Player 預載／延後檔案准入，以及檢查明確 Atlas 閉包的標準來源匯出。
-搬移成品的 C ABI 測試保留 opaque 種類 3 與無來源參照的消費端行為。來源綁定繪製及主 Editor
-製作仍待完成；里程碑數字不變。
+搬移成品的 C ABI 測試保留 opaque 種類 3 與無來源參照的消費端行為。主 Editor 製作及完整
+ED-WF-06 驗收仍待完成；里程碑數字不變。

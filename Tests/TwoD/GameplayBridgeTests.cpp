@@ -50,7 +50,7 @@ int main() {
   auto *p = api.context;
   assert(bridge.GetApi(nullptr) == -1);
   NexoraTwoDApiV1 shortApi{};
-  shortApi.struct_size = sizeof(shortApi) - 1;
+  shortApi.struct_size = NEXORA_2D_API_V1_BASE_SIZE - 1;
   const auto unchanged = shortApi;
   assert(bridge.GetApi(&shortApi) == -2 &&
          std::memcmp(&unchanged, &shortApi, sizeof(shortApi)) == 0);

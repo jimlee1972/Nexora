@@ -4,7 +4,8 @@ The additive [Sprite source asset contract](SpriteAssets.md) defines separately 
 canvas/trim/pixel-Pivot/PPU metadata, stable Atlas-region references, persistent C++ scene/pool
 source UUIDs and source-aware extraction. Source scenes use additive NX2S schema 3 with a schema-2
 backward reader; source-free scenes still emit schema 2. Atlas/Clip/C/Zig wires and straight-alpha
-behavior remain unchanged. Animation and Editor/Player source catalogs are separate follow-up gates.
+behavior remain unchanged. The optional gameplay source table and canonical Player extraction are
+available; animation and Editor/Player file source catalogs are separate follow-up gates.
 
 The optional Editor's `TwoDPlayAssets` freezes validated cooked Atlas/Clip closures from one
 explicit Runtime asset generation without retaining the store. It resolves Clip Atlas dependencies,
@@ -199,6 +200,22 @@ callback concurrently with extraction, pool ForEach, World mutation, asset publi
 The legacy Sprite/pool wire cannot represent C++ source bindings. Reading those values or
 playing/advancing legacy region animation on them returns `UNSUPPORTED`; outputs and source state
 remain unchanged. Explicit legacy setters replace the complete Sprite value, clearing a source.
+The optional `get_source_api` suffix supplies `NexoraTwoDSourceApiV1`; check the parent
+`NEXORA_2D_API_V1_SOURCE_SIZE`, version and callback before reading it (`NexoraGetTwoDSourcesV1`
+or Zig `getTwoDSources`). Check the returned table size/version/callbacks before use. Acquisition
+accepts the original TwoD table prefix and copies only a complete supported prefix, preserving
+caller tails. Historical hosts remain usable through Zig `getTwoD`.
+
+The independent, fixed-stride source Sprite/Instance wires are 80/160 bytes on the supported
+64-bit targets; legacy wires remain 64/144 bytes. Zero source UUID means absent; a nonzero UUID
+supplies geometry while retaining tint, sorting, visibility, flips and transform. Registration and
+resolution are host-owned; setting an unresolved reference is valid and extraction marks it
+unavailable. Setting a source clears legacy region animation. Pool create/read/write validate and
+stage the entire batch before publishing or copying outputs, reuse existing owner/index/generation
+handles and destroy through the legacy API. Duplicate writes, stale/foreign handles and invalid
+values reject atomically. Null buffers are allowed only for zero count; the maximum count is
+100,000. The source table shares all owner-thread, reentry and borrowed-lifetime rules above.
+
 Every descriptor/buffer is borrowed only during its call. Outputs are copied and may be retained.
 The caller must provide correctly aligned, valid, nonaliasing buffers for their advertised capacity.
 No native object, C++ pointer or exception crosses the API; its context is an opaque borrowed token.

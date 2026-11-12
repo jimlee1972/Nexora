@@ -315,7 +315,8 @@ public:
             return {};
           const auto texture = textures(*atlas);
           return texture ? std::optional{twod::AtlasBinding{atlas, texture}} : std::nullopt;
-        });
+        },
+        {});
   } catch (...) {
     return {};
   }

@@ -14,7 +14,7 @@ pub const Asset = extern struct {
     atlas_low: u64 = 0,
 };
 /// Optional host-provided table. The original Api/Host layouts are unchanged;
-/// this table is not yet advertised by the canonical gameplay host.
+/// the Player exposes it through the optional services suffix; hosts may omit it.
 pub const SpriteApi = extern struct {
     struct_size: u32 = @sizeOf(SpriteApi),
     abi_version: u32 = 1,

@@ -121,8 +121,8 @@ remains open. M7 NOT ACCEPTED, 9/11 (82%), P0 6/8 are unchanged.
 build after repairing the merged optional-Sprite-source integration. Existing Sprite source,
 runtime and legacy ABI consumers pass 3/3 against the actual Shipping libraries; fresh Zig/Host
 exports pass storage/corruption/dependency contracts with an inventoried app-local Vulkan loader.
-The same repair preserves source-free Editor admission; source-bound Editor/C/Zig access remains
-unsupported. No wire/schema or capability scope is expanded.
+The same repair preserves source-free Editor admission; source-bound access through legacy Editor/C/Zig wires remains
+unsupported. Optional source APIs are tracked in the later source API slice.
 
 ✅ The native panel probe now checks the Player's sRGB output; actual Shipping DX12 samples and
 negative-color regression pass. Source-repair head passes hosted Linux Development
@@ -935,8 +935,8 @@ Repacking updates the next frame's UVs while retained frames keep their prior At
 [Contract](../../Engine/TwoD/SpriteAssets.md#source-references-in-scenes-and-extraction) ·
 [Linux verification](../../Engine/TwoD/evidence/SpriteSourceScenes-Linux-2026-10-28.md).
 Public C++ consumers rebuild. Main Editor source indexing/Inspector/Play capture, Player catalogs,
-C/Zig source descriptors, source animation/pool publication and fresh native/platform acceptance
-remain separate. This portable scene slice does not close Editor M3-08, M6/M7 or change 9/11 (82%).
+Source descriptors and embedded-module Player extraction are delivered below; file catalogs,
+source-animation reload and complete native/platform acceptance remain separate. This portable scene slice does not close Editor M3-08, M6/M7 or change 9/11 (82%).
 
 ## HD-2D extension work items
 
@@ -978,11 +978,22 @@ and owning immutable source resolver; source/Atlas closure, rejection, snapshot 
 active/live budgets are covered by the [Linux evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceRegistry-Linux-2026-11-12.md).
 Original gameplay descriptors and the content table are unchanged. Content kind 3 identifies a
 Sprite source only in the content registry; asset catalog kind 3 remains opaque bytes. Canonical
-Host capability exposure, source descriptors, Editor authoring and
-animation/pool integration remain open. ED-WF acceptance stays 4/9; 2D stays 9/11 (82%), with M6/M7
+Player capability exposure, source descriptors and embedded-module Player extraction are delivered
+below; Editor authoring and source-animation reload remain open. ED-WF acceptance stays 4/9; 2D stays 9/11 (82%), with M6/M7
 physical/clean-host acceptance separate.
+
+## ✅ Gameplay Sprite source APIs and Player extraction (2026-11-12)
+
+Independent fixed 80/160-byte source wires and optional C/Zig tables preserve the old 64/144-byte
+descriptors and every historical services/TwoD prefix. Scene and pool operations retain source
+identity, stage failed batches atomically and share existing handle ownership. The Player exposes
+source registration and extracts immutable source/Atlas closure. A real SDK-built Zig game verifies
+relocated, source-free module-embedded content and native pixels across geometry/Atlas replacement;
+see [acceptance evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceAPI-Linux-2026-11-12.md).
+Main Editor source authoring/capture and source-animation reload remain open.
+ED-WF acceptance stays 4/9, Editor 0/8, 2D 9/11; physical M6/M7 acceptance is unchanged.
 
 ✅ The independent [Sprite catalog slice](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SpriteCatalog-Linux-2026-11-12.md)
 adds catalog kind 4, preloaded/deferred Player file admission and canonical source export with
 explicit Atlas closure checks. Relocated-package C ABI tests preserve opaque kind 3 and source-free
-consumers. Source-bound rendering and main Editor authoring remain open; milestone counts do not change.
+consumers. Main Editor authoring and complete ED-WF-06 acceptance remain open; milestone counts do not change.

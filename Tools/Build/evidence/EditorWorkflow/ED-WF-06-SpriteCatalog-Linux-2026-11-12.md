@@ -118,11 +118,29 @@ with exit 130 after 30 passing cases when that new main became available. The pa
 is retained as `sprite-msvc-full-ctest.log`, not claimed as a full pass; owned test descendants
 were drained before merging. The integrated API/catalog source requires a fresh complete gate.
 
+## Integrated file-catalog source API validation
+
+Main `69de02df` contains accepted PR #769's compatible source API, source-content service suffix
+and source-aware Player extraction. Six documentation conflicts are reconciled by preserving
+both slices' contracts and evidence; no production source API implementation is duplicated.
+
+The additional `twod.sprite_source_catalog_player` mode reuses the existing real SDK/Zig fixture
+and all its scene/pool, negative-scale, handle, replacement and native pixel checks. It cooks the
+initial red Atlas and Sprite source, deletes those two raw inputs **before compiling the module**,
+then exports `sprite` before `atlas` in the manifest. The Player must admit that explicit Atlas
+first and resolve the file-backed source. Replacement blue Atlas/shifted metadata remain embedded
+to test explicit live registry replacement. Both original embedded mode and new file-catalog mode
+must pass; the catalog case also rejects a corrupt cooked file before module Start, then restores
+the package and verifies immutable bytes after relocation, CPU execution and Linux native capture.
+This adds no new descriptor layout or rendering algorithm. Integrated full-gate results follow
+after execution completes.
+
 ## Acceptance limits
 
-This slice verifies file/registry admission and packaging. It does not expose the independent
-source table through the gameplay Host, add source-bearing Sprite/pool descriptors, demonstrate
-source-bound native pixels, or finish main Editor source indexing/Inspector/Undo/Play/Build.
-Source-free native and SDK behavior remains covered by the unfiltered regression suite. No
+This slice adds file/registry admission and packaging. Host source-table exposure and source-bearing
+Sprite/pool descriptors come from accepted PR #769. The joint file-catalog fixture exercises those
+existing APIs through source-bound Player pixels; main Editor source indexing/Inspector/Undo/Play/Build
+and source-animation reload remain open. Source-free native and SDK behavior remains covered by the
+unfiltered regression suite. No
 Windows, macOS, Android, iOS, physical-device or clean-host run is claimed from this Linux session.
 ED-WF-06 remains open, ED-WF acceptance stays **4/9**, and graphical Editor stays **0/8**.
