@@ -434,6 +434,8 @@ jobs:
       - name: Native Vulkan isolated-copy screenshots and full guided tour
         shell: pwsh
         run: |
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File Tools/Package/TestShowcaseStateExport.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $evidence = 'build/windows-showcase-vulkan-shipping/artifacts/showcase-windows-v1'
           & powershell.exe -NoProfile -ExecutionPolicy Bypass -File Tools/Package/AcceptShowcaseWindows.ps1 -PackageRoot build/windows-showcase-vulkan-shipping/package/NexoraShowcase-Shipping -EvidenceDirectory $evidence -ExpectedBuildId ($env:GITHUB_SHA.Substring(0, 12)) -Backend vulkan -CompleteGuidedTour -ExpectedVulkanDriverLibrary $env:NEXORA_CI_VULKAN_DRIVER_LIBRARY
           $code = $LASTEXITCODE
