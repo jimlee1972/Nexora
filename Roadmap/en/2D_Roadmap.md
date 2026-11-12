@@ -1009,3 +1009,14 @@ immutable snapshots; real composed native pixels verify trim/Pivot geometry, neg
 old-owner retention across reimport. [Evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md).
 Inspector source assignment, authoring persistence, Build, source animation/reload and complete
 Editor acceptance remain open. ED-WF stays 4/9, Editor 0/8, 2D 9/11; M6/M7 physical gates unchanged.
+
+## Sprite source native acceptance candidate (2026-11-12)
+
+The actual SDK-built Zig file-catalog fixture now verifies asymmetric X/Y/combined flips,
+Pivot-relative geometry and negative-scale pools, followed by an Atlas-only extent/region repack
+with stable source identity and handles. Development and strict Shipping native captures pass;
+the original embedded/catalog modes and C-only compatibility cases remain unchanged.
+[Evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-NativeSource-Linux-2026-11-12.md)
+retains initial fixture/setup failures. Full regression passes 486/486 without failures or skips;
+exact-head CI and merge remain required before ED-WF-06 acceptance. Counts stay 4/9, Editor 0/8
+and 2D 9/11.

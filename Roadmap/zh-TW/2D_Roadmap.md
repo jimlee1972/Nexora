@@ -898,3 +898,12 @@ ED-WF-06 驗收仍待完成；里程碑數字不變。
 原生像素驗證裁切／Pivot 幾何、負縮放與重匯入後的舊擁有者保留。[證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md)。
 Inspector 來源指定、製作場景持久化、Build、來源動畫／重載與完整 Editor 驗收仍待完成。
 ED-WF 維持 4/9、Editor 0/8、2D 9/11；M6／M7 實機 gate 不變。
+
+## Sprite 來源原生驗收候選（2026-11-12）
+
+真正由 SDK 建置的 Zig 檔案目錄案例現可驗證非對稱貼圖的 X／Y／雙軸 Flip、繞 Pivot 的
+幾何鏡射及負縮放 pool，接著只替換 Atlas 尺寸與打包區域，保留來源身分和 handle。
+Development 與嚴格 Shipping 原生擷取通過；原有內嵌／catalog 模式及 C-only 相容性案例
+保持不變。[證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-NativeSource-Linux-2026-11-12.md)
+保留初次案例／設定失敗。完整回歸 486/486 通過，沒有失敗或跳過；指定版本 CI 與合併
+仍是 ED-WF-06 驗收前提。進度維持 4/9、Editor 0/8、2D 9/11。

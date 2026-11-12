@@ -9,6 +9,14 @@ Hierarchy／Project 與 Scene／Game 選取。四個 DPI 縮放層級保持浮�
 參閱[限定 Linux 證據](../../Tools/Build/evidence/EditorLayoutBuild-Linux-2026-11-12.md)。
 實體停靠／輸入驗收、ED-WF 工單驗收與 0/8 里程碑完成度維持未完成。
 
+### X11 legacy 按住鍵驗收候選（2026-11-12）
+
+Sprite 驗收候選另揭露既有 X11 legacy 按住鍵案例的競態：即時手勢假設 fallback 所需的
+相符 press 已在緩衝區。案例現會確認消費者已停止，排入真正按住鍵手勢，並觀察每個已緩衝
+重複事件配對；實體／文字／焦點／生命週期斷言及正常 detectable-repeat 即時案例均保留。
+正式 Window 行為不變。[後續證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-X11Fixture-Linux-2026-11-12.md)
+保留失敗的 hosted gate；合併前仍須完成完整本機與修正版本 CI 驗證。
+
 本機 crash/game log 持久化與原生 gameplay callback 捕捉見 [Crash Logging Delivery](Crash_Logging_Delivery_Plan.md)。平台與實體主機 gate 仍分開驗收，此 supporting slice 不代表本 roadmap 的整體里程碑完成。
 
 
