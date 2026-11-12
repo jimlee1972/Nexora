@@ -35,6 +35,27 @@ function Write-Acceptance {
 function Require([bool]$condition, [string]$message) {
     if (-not $condition) { throw $message }
 }
+function Read-ShowcaseStateSnapshot([string]$jsonPath, [string]$markdownPath, [DateTime]$deadline) {
+    $lastError = 'Snapshot files are not published.'
+    while ([DateTime]::UtcNow -lt $deadline) {
+        try {
+            # File existence precedes stream close. ReadAllText denies concurrent writers on Windows;
+            # retain both strings so evidence never reopens files while the next export is starting.
+            $json = [IO.File]::ReadAllText($jsonPath)
+            $markdown = [IO.File]::ReadAllText($markdownPath)
+            $state = $json | ConvertFrom-Json -ErrorAction Stop
+            if ($json.TrimStart().StartsWith('{') -and $state -is [PSCustomObject] -and
+                -not [string]::IsNullOrWhiteSpace($markdown)) {
+                return [PSCustomObject]@{ Json = $json; Markdown = $markdown; State = $state }
+            }
+            $lastError = 'Snapshot JSON object or Markdown is empty.'
+        } catch {
+            $lastError = $_.Exception.Message
+        }
+        Start-Sleep -Milliseconds 50
+    }
+    throw "Fresh Runtime state export is missing or incomplete: $lastError"
+}
 try {
     Require ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) 'Windows is required.'
     Add-Type -AssemblyName System.Drawing
@@ -334,15 +355,11 @@ public static class NexoraAcceptanceWindow {
         $jsonPath = Join-Path $staged 'showcase-lab.json'
         $markdownPath = Join-Path $staged 'showcase-lab.md'
         $deadline = [DateTime]::UtcNow.AddSeconds(5)
-        while (-not ((Test-Path -LiteralPath $jsonPath) -and (Test-Path -LiteralPath $markdownPath))) {
-            Require ([DateTime]::UtcNow -lt $deadline) 'Fresh Runtime state export is missing.'
-            Start-Sleep -Milliseconds 50
-        }
-        $snapshot = Get-Content -LiteralPath $jsonPath -Raw | ConvertFrom-Json
-        Copy-Item -LiteralPath $jsonPath -Destination (Join-Path $evidence ($name + '.json'))
-        Copy-Item -LiteralPath $markdownPath -Destination (Join-Path $evidence ($name + '.md'))
+        $snapshot = Read-ShowcaseStateSnapshot $jsonPath $markdownPath $deadline
+        [IO.File]::WriteAllText((Join-Path $evidence ($name + '.json')), $snapshot.Json, [Text.UTF8Encoding]::new($false))
+        [IO.File]::WriteAllText((Join-Path $evidence ($name + '.md')), $snapshot.Markdown, [Text.UTF8Encoding]::new($false))
         Press-Key 114
-        return $snapshot
+        return $snapshot.State
     }
     function Require-Metric($probe, [string]$name, [string]$expected) {
         $metric = @($probe.metrics | Where-Object { $_.name -eq $name })

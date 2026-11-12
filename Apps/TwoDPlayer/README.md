@@ -206,10 +206,21 @@ toward the aggregate startup budget. Packages may therefore exceed 64 MiB withou
 all at once. Cooked identity/hash/dependency and contained-path checks remain in place.
 
 The exported schema-1 descriptor appends `capacity A B C D E` and uses `deferred_atlas`,
-`deferred_clip` and `deferred_blob` lines. A configured `tile_atlas` may be initially unavailable
+`deferred_clip`, `deferred_sprite` and `deferred_blob` lines. A configured `tile_atlas` may be initially unavailable
 when a deferred Atlas is present; Zig must load the matching UUID before painting/rendering its
 cells. No implicit map/dependency load occurs. Old Players reject these new optional directives
 explicitly; export and run with matching versions.
+
+Sprite source entries use `{"kind": "sprite", "path": "Content/Hero.nx2sprite"}`;
+add `"preload": false` for deferred loading. Export cooks canonical files with `--compiler`,
+or copies an existing `.nxcook`. The Player validates cooked hash/type, payload/container UUID
+and exactly one matching Atlas dependency, then the registry checks region/trim compatibility.
+Preloads admit all explicit Atlas entries before Clips and Sprite sources regardless of descriptor
+order. A preloaded source therefore needs an explicit preloaded Atlas entry; a deferred Atlas
+cannot satisfy startup admission. Deferred sources appear as catalog kind 4 in descriptor order;
+load their Atlas first, then request the source. Kind 3 remains opaque bytes. These directives
+admit immutable source metadata for the optional source-bearing gameplay descriptors described
+below; main Editor authoring remains separate work. See [catalog validation evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SpriteCatalog-Linux-2026-11-12.md).
 
 The [asset contract](../../Engine/TwoD/GameplayAssets.md) defines request transfer, cancellation,
 clip-before-atlas removal, logical RAM/texture budgets and mandatory reader shutdown before VFS
@@ -359,8 +370,10 @@ the usual services/TwoD tables. Register an Atlas through Content first, then th
 optional acquisition results. Source-aware Player extraction resolves the immutable registry each
 frame, including replacement geometry and Atlas generations; unresolved sources are unavailable.
 
-Games may embed cooked bytes in their module and register them at Start. This does not add
-`.nx2sprite` to the export/file catalog: catalog kind 3 still means opaque bytes. Editor source
-capture, source animation and full catalog dependency closure remain open. The
+Games may embed cooked bytes in their module and register them at Start, or use the preloaded
+`sprite`/deferred `deferred_sprite` file directives above. Catalog kind 4 admits sources; kind 3
+still means opaque bytes. The file-catalog Zig fixture removes its initial raw source/Atlas before
+module compilation, then verifies relocated source Sprite/pool geometry and native pixels through
+the same API. Editor source capture and source-animation reload remain open. The
 [real Zig/relocated Player evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceAPI-Linux-2026-11-12.md)
 checks scene and pooled source instances, negative scale, source/Atlas replacement and native pixels.

@@ -34,8 +34,8 @@ struct GameplayAssets::State final {
     if (!reader || catalog.size() > 4096 || !limit || limit > 128 * 1024 * 1024)
       throw std::invalid_argument("Asset catalog capacity");
     for (const auto &f : catalog)
-      if (f.kind < 1 || f.kind > 3 || !f.bytes || f.bytes > FileLimit || f.path.empty() ||
-          f.path.size() > 1024)
+      if (f.kind < 1 || f.kind > NEXORA_ASSET_CATALOG_SPRITE_SOURCE || !f.bytes ||
+          f.bytes > FileLimit || f.path.empty() || f.path.size() > 1024)
         throw std::invalid_argument("Asset catalog entry");
   }
   template <class Fn> static int Call(void *ctx, Fn &&fn) noexcept {
@@ -166,7 +166,9 @@ struct GameplayAssets::State final {
       return Ok;
     }
     const auto blob = runtime::AssetCooker::Deserialize(bytes);
-    if (!blob || blob->type != (f.kind == 1 ? "sprite_atlas" : "sprite_clip"))
+    if (!blob || blob->type != (f.kind == 1   ? "sprite_atlas"
+                                : f.kind == 2 ? "sprite_clip"
+                                              : "sprite_source"))
       return Invalid;
     // Catalog loads never replace somebody else's active UUID, including preload assets.
     NexoraGameplayContentApiV1 api{};
@@ -180,11 +182,22 @@ struct GameplayAssets::State final {
       const auto decoded = DecodeAtlas(blob->payload);
       if (!decoded || decoded->id != blob->id || !blob->dependencies.empty())
         return Invalid;
-    } else {
+    } else if (f.kind == 2) {
       const auto decoded = DecodeClip(blob->payload);
       if (!decoded || decoded->id != blob->id ||
           blob->dependencies != std::vector<AssetId>{decoded->atlas})
         return Invalid;
+    } else {
+      const auto decoded = DecodeSpriteAsset(blob->payload);
+      if (!decoded || decoded->id != blob->id ||
+          blob->dependencies != std::vector<AssetId>{decoded->atlas})
+        return Invalid;
+      NexoraGameplaySpriteContentApiV1 sources{};
+      sources.struct_size = sizeof(sources);
+      if (content.GetSpriteApi(&sources) != Ok)
+        return Lifecycle;
+      return sources.register_sprite_source(sources.context, blob->payload.data(),
+                                            blob->payload.size(), &r.state.high, &r.state.low);
     }
     const auto call = f.kind == 1 ? api.register_atlas : api.register_clip;
     const auto result =

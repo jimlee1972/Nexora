@@ -980,7 +980,7 @@ active/live budgets are covered by the [Linux evidence](../../Tools/Build/eviden
 Original gameplay descriptors and the content table are unchanged. Content kind 3 identifies a
 Sprite source only in the content registry; asset catalog kind 3 remains opaque bytes. Canonical
 Player capability exposure, source descriptors and embedded-module Player extraction are delivered
-below; file catalog admission, Editor authoring and source-animation reload remain open. ED-WF acceptance stays 4/9; 2D stays 9/11 (82%), with M6/M7
+below; Editor authoring and source-animation reload remain open. ED-WF acceptance stays 4/9; 2D stays 9/11 (82%), with M6/M7
 physical/clean-host acceptance separate.
 
 ## ✅ Gameplay Sprite source APIs and Player extraction (2026-11-12)
@@ -991,8 +991,15 @@ identity, stage failed batches atomically and share existing handle ownership. T
 source registration and extracts immutable source/Atlas closure. A real SDK-built Zig game verifies
 relocated, source-free module-embedded content and native pixels across geometry/Atlas replacement;
 see [acceptance evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceAPI-Linux-2026-11-12.md).
-File catalogs, main Editor source authoring/capture and source-animation reload remain open.
+Inspector source assignment, authoring persistence/Build capture and source-animation reload remain open.
 ED-WF acceptance stays 4/9, Editor 0/8, 2D 9/11; physical M6/M7 acceptance is unchanged.
+
+✅ The independent [Sprite catalog slice](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SpriteCatalog-Linux-2026-11-12.md)
+adds catalog kind 4, preloaded/deferred Player file admission and canonical source export with
+explicit Atlas closure checks. Relocated-package C ABI tests preserve opaque kind 3 and source-free
+consumers. A real Zig file-catalog game additionally checks relocated source Sprite/pool native
+pixels and replacement through the accepted source API. Main Editor authoring and complete
+ED-WF-06 acceptance remain open; milestone counts do not change.
 
 ## ✅ Editor Sprite source snapshots (2026-11-12)
 

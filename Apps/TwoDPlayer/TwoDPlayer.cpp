@@ -336,30 +336,46 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
     };
     if (project) {
       std::set<std::pair<uint64_t, uint64_t>> identities;
-      for (const auto kind : {std::string_view("atlas"), std::string_view("clip")})
+      for (const auto kind :
+           {std::string_view("atlas"), std::string_view("clip"), std::string_view("sprite")})
         for (const auto &asset : project->assets) {
           if (asset.deferred || asset.kind != kind)
             continue;
           const auto cooked = runtime::AssetCooker::Deserialize(readProjectAsset(asset));
-          Check(cooked && cooked->type == (kind == "atlas" ? "sprite_atlas" : "sprite_clip") &&
+          Check(cooked &&
+                    cooked->type == (kind == "atlas"  ? "sprite_atlas"
+                                     : kind == "clip" ? "sprite_clip"
+                                                      : "sprite_source") &&
                     identities.emplace(cooked->id.high, cooked->id.low).second,
                 "project cooked hash/type/identity");
           if (kind == "atlas") {
             const auto decoded = twod::DecodeAtlas(cooked->payload);
             Check(decoded && decoded->id == cooked->id && cooked->dependencies.empty(),
                   "project Atlas identity");
-          } else {
+          } else if (kind == "clip") {
             const auto decoded = twod::DecodeClip(cooked->payload);
             Check(decoded && decoded->id == cooked->id &&
                       cooked->dependencies == std::vector<twod::AssetId>{decoded->atlas},
                   "project Clip dependency");
+          } else {
+            const auto decoded = twod::DecodeSpriteAsset(cooked->payload);
+            Check(decoded && decoded->id == cooked->id &&
+                      cooked->dependencies == std::vector<twod::AssetId>{decoded->atlas},
+                  "project Sprite source dependency");
           }
+          NexoraGameplaySpriteContentApiV1 sources{};
+          sources.struct_size = sizeof(sources);
+          if (kind == "sprite")
+            Check(content.GetSpriteApi(&sources) == 0, "project Sprite source negotiation");
           const auto registered =
               kind == "atlas"
                   ? contentApi.register_atlas(contentApi.context, cooked->payload.data(),
                                               cooked->payload.size(), &assetHigh, &assetLow)
-                  : contentApi.register_clip(contentApi.context, cooked->payload.data(),
-                                             cooked->payload.size(), &assetHigh, &assetLow);
+              : kind == "clip"
+                  ? contentApi.register_clip(contentApi.context, cooked->payload.data(),
+                                             cooked->payload.size(), &assetHigh, &assetLow)
+                  : sources.register_sprite_source(sources.context, cooked->payload.data(),
+                                                   cooked->payload.size(), &assetHigh, &assetLow);
           Check(registered == 0, "project content registration");
         }
     } else {
@@ -455,10 +471,11 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
         if (asset.deferred) {
           const auto size = std::filesystem::file_size(project->File(asset.path));
           Check(size && size <= 64ULL * 1024 * 1024, "deferred asset file budget");
-          catalog.push_back({asset.kind == "atlas"  ? 1U
-                             : asset.kind == "clip" ? 2U
-                                                    : 3U,
-                             size, asset.path});
+          const auto kind = asset.kind == "atlas"    ? NEXORA_ASSET_CATALOG_ATLAS
+                            : asset.kind == "clip"   ? NEXORA_ASSET_CATALOG_CLIP
+                            : asset.kind == "sprite" ? NEXORA_ASSET_CATALOG_SPRITE_SOURCE
+                                                     : NEXORA_ASSET_CATALOG_OPAQUE;
+          catalog.push_back({static_cast<uint32_t>(kind), size, asset.path});
         }
     twod::GameplayAssets assets(
         content, std::move(catalog),

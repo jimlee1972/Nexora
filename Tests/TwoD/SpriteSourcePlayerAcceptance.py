@@ -126,7 +126,12 @@ def main():
     parser.add_argument('--cmake', required=True)
     parser.add_argument('--evidence-dir', required=True, type=Path)
     parser.add_argument('--native', action='store_true')
+    parser.add_argument('--catalog', action='store_true')
+    parser.add_argument('--compiler', type=Path)
+    parser.add_argument('--shipping', action='store_true')
     args = parser.parse_args()
+    if args.catalog and not args.compiler:
+        parser.error('--catalog requires --compiler')
     evidence = args.evidence_dir.resolve()
     evidence.mkdir(parents=True, exist_ok=True)
     output = Path(tempfile.mkdtemp(prefix='attempt-', dir=evidence))
@@ -136,6 +141,7 @@ def main():
         source = root/'source Unicode 遊戲'
         source.mkdir()
         shutil.copy2(ROOT/'Tests/TwoD/SpriteSourcePlayer.zig', source/'game.zig')
+        (source/'catalog_mode.zig').write_text('pub const enabled = ' + str(args.catalog).lower() + ';\n')
         for name, color in [('red', bytes([255, 0, 0, 255])), ('blue', bytes([0, 0, 255, 255]))]:
             atlas = struct.pack('<IIQQIIIII', 0x4132444e, 1, 8, 9, 4, 4, 1, 1, 1)
             atlas += struct.pack('<IIIII', 1, 1, 1, 2, 2) + struct.pack('<I', 64) + color * 16
@@ -145,6 +151,15 @@ def main():
                                   1, 6, 6, 1, 1, 2, 2, pivot, 1, 1, 0, 0, 0, 0)
             assert len(payload) == 96
             (source/(name+'.nx2sprite')).write_bytes(payload)
+        assets = []
+        if args.catalog:
+            for name, kind in [('red', 'atlas'), ('source', 'sprite')]:
+                run(args.compiler, 'cook', name+'.nx2'+kind, name+'.nxcook', cwd=source,
+                    log=output/(name+'-cook.log'))
+                # The catalog game cannot embed its initial source/Atlas; only replacements stay embedded.
+                (source/(name+'.nx2'+kind)).unlink()
+            # Player must admit the Atlas first, independent of descriptor order.
+            assets = [dict(kind='sprite', path='source.nxcook'), dict(kind='atlas', path='red.nxcook')]
         (source/'project.json').write_text(json.dumps(dict(schema=1, module_name='SourceFixture', script='game.zig')))
         (source/'CMakeLists.txt').write_text('cmake_minimum_required(VERSION 3.25)\nproject(SourceFixture NONE)\n'
             f'include("{ROOT.as_posix()}/CMake/Modules/NexoraGameProject.cmake")\n'
@@ -157,10 +172,11 @@ def main():
         assert len(modules) == 1, modules
         shutil.copy2(modules[0], source/('module'+suffix))
         (source/'game.json').write_text(json.dumps(dict(schema=1, id='com.nexora.source-fixture',
-            title='Sprite Source Fixture', scene='Main', module='module'+suffix, audio='off', assets=[],
+            title='Sprite Source Fixture', scene='Main', module='module'+suffix, audio='off', assets=assets,
             display=dict(width=320, height=240, mode='windowed', resizable=False))))
         run(sys.executable, ROOT/'Tools/TwoD/ExportGame.py', source/'game.json', '--runtime', args.app,
-            '--output', root/'export', '--allow-development', log=output/'export.log')
+            '--output', root/'export', *([] if args.shipping else ['--allow-development']),
+            log=output/'export.log')
         package = root/'relocated'/'runtime only 遊戲'
         package.parent.mkdir()
         shutil.move(root/'export', package)
@@ -169,18 +185,35 @@ def main():
                   for p in package.rglob('*') if p.is_file()}
         (output/'package.sha256.json').write_text(json.dumps(before, indent=2, sort_keys=True)+'\n')
         shutil.copy2(package/'inventory.json', output/'export-inventory.json')
+        assert json.loads((package/'inventory.json').read_text())['development_test_copy'] == (not args.shipping)
+        if args.catalog:
+            manifest = (package/'game.nx2game').read_text()
+            assert 'sprite "assets/0000.nxcook"' in manifest and 'atlas "assets/0001.nxcook"' in manifest
+            cooked = package/'assets/0000.nxcook'
+            original = cooked.read_bytes()
+            cooked.write_bytes(original[:-1]+bytes([original[-1] ^ 1]))
+            rejected = subprocess.run([str(package/args.app.name), '--run-2d-project',
+                str(package/'game.nx2game'), '--frames', '30'], cwd=output,
+                capture_output=True, text=True, encoding='utf-8', timeout=30)
+            (output/'corrupt-catalog.log').write_text(rejected.stdout+rejected.stderr)
+            assert rejected.returncode and 'project cooked hash/type/identity' in rejected.stderr
+            assert not rejected.stdout and 'SOURCE PLAYER START' not in rejected.stderr
+            cooked.write_bytes(original)
         result = run(package/args.app.name, '--run-2d-project', package/'game.nx2game', '--frames', '30',
                      '--report', output/'headless.json', cwd=output, log=output/'headless.log')
         (output/'headless.stderr.log').write_text(result.stderr)
         report = json.loads((output/'headless.json').read_text())
-        assert report['status'] == 'PASS' and report['allocations_balanced']
+        assert report['status'] == 'PASS' and report['allocations_balanced'] and report['visible'] == 2
         assert 'SOURCE PLAYER PASS' in result.stderr and 'SOURCE PLAYER FAIL' not in result.stderr
+        if args.catalog:
+            assert 'SOURCE PLAYER FILE CATALOG' in result.stderr
         if args.native:
             native(package, args.app, output)
         after = {str(p.relative_to(package)): hashlib.sha256(p.read_bytes()).hexdigest()
                  for p in package.rglob('*') if p.is_file()}
         assert before == after, 'Player changed the runtime-only package'
     print('PASS real Zig source Sprite/pool/registry, replacement and relocated Player; '
+          + ('file catalog; ' if args.catalog else 'module-embedded initial content; ')
           + ('native pixels passed' if args.native else 'native pixels not selected')
           + '; evidence=' + str(output))
 

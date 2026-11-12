@@ -872,7 +872,7 @@ ED-WF-06 supporting 註冊表切片提供獨立且檢查 size 的 C 表、Zig wi
 [Linux 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceRegistry-Linux-2026-11-12.md)
 獨立記錄。既有 Gameplay descriptor 與 Content 表不變。Content kind 3 僅在內容註冊表代表
 Sprite source；Asset catalog kind 3 維持 opaque bytes。標準 Player 能力曝光、來源 descriptor
-與模組內嵌 Player 擷取已於下方交付；檔案 catalog 接入、Editor 製作及來源動畫重載仍待完成。ED-WF 驗收維持 4/9，
+與模組內嵌 Player 擷取已於下方交付；Editor 製作及來源動畫重載仍待完成。ED-WF 驗收維持 4/9，
 2D 維持 9/11（82%），M6／M7 實機及乾淨主機驗收另計。
 
 ## ✅ Gameplay Sprite 來源 API 與 Player 擷取（2026-11-12）
@@ -882,8 +882,14 @@ Sprite source；Asset catalog kind 3 維持 opaque bytes。標準 Player 能力�
 保持原子性，沿用既有 handle 擁有權。Player 提供來源註冊並擷取不可變來源／Atlas 閉包。
 真正由 SDK 建置的 Zig 遊戲驗證搬移、刪除來源後的模組內嵌內容，以及幾何／Atlas 替換的
 原生像素；詳見[驗收證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceAPI-Linux-2026-11-12.md)。
-檔案 catalog、主 Editor 來源製作／capture 及來源動畫重載仍待完成。
+Inspector 來源指定、製作場景持久化／Build 擷取及來源動畫重載仍待完成。
 ED-WF 驗收維持 4/9、Editor 0/8、2D 9/11；M6／M7 實機驗收判定不變。
+
+✅ 獨立 [Sprite catalog 切片](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SpriteCatalog-Linux-2026-11-12.md)
+新增目錄種類 4、Player 預載／延後檔案准入，以及檢查明確 Atlas 閉包的標準來源匯出。
+搬移成品的 C ABI 測試保留 opaque 種類 3 與無來源參照的消費端行為。真正的 Zig 檔案目錄
+遊戲另透過已驗收的來源 API 檢查搬移後的來源 Sprite／pool 原生像素與替換。主 Editor 製作及完整
+ED-WF-06 驗收仍待完成；里程碑數字不變。
 
 ## ✅ Editor Sprite 來源快照（2026-11-12）
 

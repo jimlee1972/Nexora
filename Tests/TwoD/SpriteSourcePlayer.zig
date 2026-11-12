@@ -1,5 +1,6 @@
 const std = @import("std");
 const nx = @import("nexora");
+const file_catalog = @import("catalog_mode.zig").enabled;
 fn check(result: i32) !void {
     if (result != 0) return error.HostFailure;
 }
@@ -22,10 +23,20 @@ pub const Game = struct {
         try check(services.get_content_api.?(services.context, &self.content));
         var high: u64 = 55;
         var low: u64 = 66;
-        if (self.registration.registerSpriteSource(@embedFile("source.nx2sprite"), &high, &low) != -2 or high != 55 or low != 66)
-            return error.DependencyAdmission;
-        try check(self.content.registerAtlas(@embedFile("red.nx2atlas"), &high, &low));
-        try check(self.registration.registerSpriteSource(@embedFile("source.nx2sprite"), &high, &low));
+        if (file_catalog) {
+            var asset = nx.content.Asset{};
+            try check(self.content.describe_asset.?(self.content.context, 11, 12, &asset));
+            if (asset.kind != nx.content.sprite_source_kind or asset.atlas_high != 8 or asset.atlas_low != 9 or
+                asset.width != 6 or asset.height != 6) return error.CatalogSourceAdmission;
+            high = asset.high;
+            low = asset.low;
+            ctx.log("SOURCE PLAYER FILE CATALOG", .{});
+        } else {
+            if (self.registration.registerSpriteSource(@embedFile("source.nx2sprite"), &high, &low) != -2 or high != 55 or low != 66)
+                return error.DependencyAdmission;
+            try check(self.content.registerAtlas(@embedFile("red.nx2atlas"), &high, &low));
+            try check(self.registration.registerSpriteSource(@embedFile("source.nx2sprite"), &high, &low));
+        }
         if (high != 11 or low != 12) return error.SourceIdentity;
         const camera = nx.TwoDCamera{ .vertical_size = 10 };
         try check(self.twod.set_camera.?(self.twod.context, &camera));
