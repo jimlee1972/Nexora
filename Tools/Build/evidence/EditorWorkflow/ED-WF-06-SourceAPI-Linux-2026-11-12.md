@@ -49,8 +49,10 @@ The task reuses the previous slice's user-owned CMake 4.4.4, Ninja 1.13.2, GCC 1
 Clang 19.1.7, clang-format 23.1.5, extracted Debian X11/Vulkan/Xvfb/xdotool sysroot and lavapipe.
 PATH, CMAKE_PREFIX_PATH, library/cache/state paths and VK_DRIVER_FILES point at the task workspace;
 no system installation or tracked preset override is required. Build/test workers: Development 4,
-Shipping 2. The default Development configuration keeps Slang and graphical shell OFF, with
-`NEXORA_ZIG_EXECUTABLE` cached to the task-local Zig. Final configure refreshes embedded SDK bytes.
+Shipping 2. Slang and the graphical shell stay OFF locally, with `NEXORA_ZIG_EXECUTABLE` cached
+to the task-local Zig. The original gate has optional Zig gameplay OFF; after hosted CI exposed
+an omitted optional-layout expectation, both Development and Shipping also run with
+`NEXORA_ENABLE_ZIG_GAMEPLAY=ON`. Final configure refreshes embedded SDK bytes.
 
 ```sh
 cmake --preset linux-development
@@ -73,6 +75,31 @@ and both actual pixel phases with balanced allocations.
 
 Final gate results and immutable source/artifact hashes are retained in the
 [machine-readable receipt](ED-WF-06-SourceAPI-Cloud.json).
+
+✅ Final expanded Zig Development configure/build/CTest exits **0**: **303 passed, 7 existing
+conditional Vulkan recording skips, 0 failed / 310 registered**, 245.08 seconds. This includes
+the repaired original wire enumerator, the new historical-host-prefix assertion, real typed Zig
+consumers/reload and native HD-2D. Zig Shipping configure/build also exits **0**. The initial
+expanded gate passed 303/310 before the additional historical-host assertion; both results remain
+distinct in the receipt. The old consumer is rerun successfully against the final expanded build.
+
+The expanded Zig gate and Shipping Player native run are retained separately in the receipt.
+The monolithic Shipping Player repeats the relocated/source-deleted fixture and both pixel phases;
+its red/blue PNG hashes match the curated Development captures exactly. The final fixture also
+retains the export inventory and a SHA-256 map of every runtime-only package file. Export uses
+`--allow-development` for this internal fixture even with the Shipping host; this is not production
+package publication acceptance. CI now uploads every
+`artifacts/source-player/` attempt, including logs and captures from failed runs.
+
+```sh
+cmake --preset linux-development -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON
+cmake --build --preset linux-development
+ctest --preset linux-development
+cmake --preset linux-shipping -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON
+cmake --build --preset linux-shipping
+# Repeat the native command above with --app build/linux-shipping/Apps/TwoDPlayer/NexoraTwoDPlayer
+# and --evidence-dir build/linux-shipping/artifacts/source-player-final.
+```
 
 Additional checks include the API-M6 manifest validator and three mutation tests rejecting baseline
 removal, C/Zig field reorder and missing metadata for any of the eight new callback contracts.
@@ -100,3 +127,13 @@ libraries, and their runtime search paths. Supplying all exact-base public heade
 library list as CMake resolves those harness setup failures; the original test is unchanged.
 Beads claim synchronization initially saw a non-fast-forward push; pulling shared history and
 pushing again succeeded without forcing or replacing it. Neither issue changes engine behavior.
+
+The first immutable hosted head `06de103c` failed macOS push Build
+[43188204579](https://github.com/jimlee1972/Nexora/actions/runs/43188204579), job `131080850111`:
+417 passed, 1 optional font skip, 1 failed / 419 (1299.00 seconds). The existing
+`gameplay.zig_twod_wire_layout` C++ list omitted the new `get_source_api` offset even though Zig
+correctly enumerated it, so the final sentinel assertion ran one index early. The missing offset
+assertion is added; the sentinel remains. A second interoperability assertion verifies current Zig
+accepts a host returning only the original TwoD table prefix. The default local configuration did
+not enable that optional target; expanded Zig Development/Shipping gates now cover it before the
+corrected head is published. The initial failed CI and its repaired-head evidence remain distinct.

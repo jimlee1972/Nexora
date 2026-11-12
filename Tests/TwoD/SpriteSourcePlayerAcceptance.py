@@ -167,6 +167,8 @@ def main():
         shutil.rmtree(source)
         before = {str(p.relative_to(package)): hashlib.sha256(p.read_bytes()).hexdigest()
                   for p in package.rglob('*') if p.is_file()}
+        (output/'package.sha256.json').write_text(json.dumps(before, indent=2, sort_keys=True)+'\n')
+        shutil.copy2(package/'inventory.json', output/'export-inventory.json')
         result = run(package/args.app.name, '--run-2d-project', package/'game.nx2game', '--frames', '30',
                      '--report', output/'headless.json', cwd=output, log=output/'headless.log')
         (output/'headless.stderr.log').write_text(result.stderr)
