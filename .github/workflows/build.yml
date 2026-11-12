@@ -439,6 +439,17 @@ jobs:
           if ($code -ne 0) {
             Get-Content "$evidence/stderr.log" -ErrorAction SilentlyContinue
             Get-Content "$evidence/acceptance.json" -ErrorAction SilentlyContinue
+            foreach ($name in @('tour-replayed', 'tour-completion-progress', 'tour-state')) {
+              $tourPath = Join-Path $evidence ($name + '.json')
+              if (Test-Path -LiteralPath $tourPath) {
+                try {
+                  $tourSnapshot = Get-Content -LiteralPath $tourPath -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+                  [ordered]@{ evidence = $name; selected = $tourSnapshot.selected; ticks = $tourSnapshot.ticks; tour = $tourSnapshot.tour } | ConvertTo-Json -Depth 4 -Compress | Write-Host
+                } catch {
+                  Write-Host "Could not decode tour evidence ${name}: $($_.Exception.Message)"
+                }
+              }
+            }
             exit $code
           }
           $accepted = Get-Content "$evidence/acceptance.json" -Raw | ConvertFrom-Json

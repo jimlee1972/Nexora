@@ -182,6 +182,24 @@ independent C ABI module. Compiler commands and diagnostics are retained in
 `catalog-width-before.json` / `catalog-width-after.json`. CI warning policy is not changed.
 The test-width repair receives a fresh full local gate and exact-head hosted CI before merging.
 
+The same `79e5f67c` PR Vulkan tour passed while its push Vulkan tour again failed the final
+seven-step state check (`131166502762`). Artifact `13943915817` was materialized through the GitHub
+connector, but the workspace's enforced network allowlist does not permit the returned File Service
+storage host. No proxy/policy bypass is attempted. Failure-only CI logging now prints the selected
+room, ticks and tour fields from the replay, observed-completion and final snapshots. It preserves
+the original failure code, native execution, 300-second deadline and all assertions; future failed
+states can be inspected through the existing GitHub job-log tool without a network-policy change.
+
+Implementation `df4a32bf` then passed Development configure/build and a fresh complete traversal:
+**482/482, zero failures/skips, 1321.40 seconds, exit 0**, without retries. The command uses
+`sprite-index-width-full-junit.xml` in the external task directory. Production implementation
+hashes are unchanged from the integrated candidate; the prior Shipping build and both strict
+Shipping package verdicts therefore remain applicable. All five touched C++ translation units
+pass the width audit. Failure-only workflow logging was checked with YAML parsing and the 16/16
+documentation-routing unit tests; its original native exit code remains intact. Final Markdown,
+bilingual, formatting, byte-compilation and diff checks pass before publication. Repaired-head
+hosted Windows/Desktop/mimalloc/native jobs still have to succeed before merge.
+
 ## Acceptance limits
 
 This slice adds file/registry admission and packaging. Host source-table exposure and source-bearing

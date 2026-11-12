@@ -379,5 +379,157 @@
         "blue": "383ab2609dcda967d9403a5aca1d36d3bbcbbd9d852c79b53fbfe5e39cf80b88"
       }
     }
+  },
+  "test_width_repair_candidate": {
+    "head": "df4a32bf608f5ed8c7c3790cc4b5a8ef7fc3b883",
+    "main": "69de02df",
+    "implementation_files": {
+      "Apps/TwoDPlayer/Project.h": "e252a247e2a4a724bd766d2dd9cc452720ca798db3684f83f794f1c5e3c3ea2c",
+      "Apps/TwoDPlayer/TwoDPlayer.cpp": "7205abb301a53911f2f2b05860894214b8dfc55787e894f2c64e2e15045cfe49",
+      "Bindings/Zig/assets.zig": "4974f0bf41d28cec0e10f78489f453658c71c56eda14d94b6ad7653e77b898ff",
+      "Bindings/Zig/content.zig": "7d5e6c7e626f9ca717f1d90a58832382f0d6bda8192f377933d900c101a96d9b",
+      "Engine/API/include/nexora/gameplay_assets.h": "4987624c1f4cef27cb3d2f47aadc48d644b32302b9488181d13c27c3b8c33ce5",
+      "Engine/TwoD/src/GameplayAssets.cpp": "4f935468bd5c39c138bd68c458ab92c1c52c5bcb03dac122da2765e6f65286b7",
+      "Tests/TwoD/CMakeLists.txt": "5e831b83857f2116f5257fc8d35c08a0bc57abdf443504f6ef46d45c65b9dbd3",
+      "Tests/TwoD/GameplayAssetsLayout.zig": "d38ca1d5a11e2019a02dea9e938e82e34d9166de6390d4faf4d2eaa8131e6ec8",
+      "Tests/TwoD/GameplayAssetsTests.cpp": "f13ba484a87d152a033a9e36bb4de8d3b0216f603eb170a560c5cdcaddb85373",
+      "Tests/TwoD/ProjectManifestTests.cpp": "f40d5edd91465481f0836d60fea639451dc04d53c32e346e74558515eff13fd2",
+      "Tests/TwoD/SpriteCatalogAcceptance.py": "3ed7dce158129e08007f5cbbc2db6bfee935604be71c5ef254ae722f341a3481",
+      "Tests/TwoD/SpriteCatalogModule.cpp": "a22cb4473d0cddcc8a97cb302876c9f317a351ccdd660dbfa1fb7c2f2b2e3fdd",
+      "Tests/TwoD/SpriteSourcePlayer.zig": "d1d6147b039a136dea2c268737102cdde0f9a674631fd9d171f9be5b49a4c5b8",
+      "Tests/TwoD/SpriteSourcePlayerAcceptance.py": "c0c41a2e514997a05c1c020db5ff39dfdf076ffa6038ffa775c2ebc5b6c913c7",
+      "Tools/TwoD/ExportGame.py": "d0722f7fa5c28111f67e2300f811aa2ee6ecf7f0a46faa3ae03bac0a53224aa7"
+    },
+    "failure_diagnostics_sha256": "dce59a6a7b1f404260f7b5b171d4794cccd693ec69a8f08bf6588dbf0f288399",
+    "failed_head": "79e5f67c2fceb946d1334b832e6359bb16557242",
+    "diagnostic": "MSVC C4267/C2220 at GameplayAssetsTests.cpp302: size_t to unsigned/u32 catalog index under unchanged /W4 /WX",
+    "hosted_sdk": {
+      "run_id": 43213265709,
+      "success": 3,
+      "jobs": 3,
+      "production_C2397_repaired": true
+    },
+    "failed_build_runs": [
+      43213265717,
+      43213252699
+    ],
+    "width_audit": {
+      "before": [
+        {
+          "file": "Apps/TwoDPlayer/TwoDPlayer.cpp",
+          "exit_code": 0,
+          "diagnostic": ""
+        },
+        {
+          "file": "Engine/TwoD/src/GameplayAssets.cpp",
+          "exit_code": 0,
+          "diagnostic": ""
+        },
+        {
+          "file": "Tests/TwoD/GameplayAssetsTests.cpp",
+          "exit_code": 1,
+          "diagnostic": "/workspace/Nexora/Tests/TwoD/GameplayAssetsTests.cpp:302:20: error: implicit conversion loses integer precision: 'size_type' (aka 'unsigned long') to 'unsigned int' [-Werror,-Wshorten-64-to-32]\n  302 |   load(data.size() - 1, NEXORA_ASSET_READY, 0); // Kind 3 stays opaque even for a cooked source.\n      |   ~~~~ ~~~~~~~~~~~~^~~\n1 error generated.\n"
+        },
+        {
+          "file": "Tests/TwoD/SpriteCatalogModule.cpp",
+          "exit_code": 0,
+          "diagnostic": ""
+        }
+      ],
+      "after": [
+        {
+          "file": "Apps/TwoDPlayer/TwoDPlayer.cpp",
+          "exit_code": 0,
+          "diagnostic": ""
+        },
+        {
+          "file": "Engine/TwoD/src/GameplayAssets.cpp",
+          "exit_code": 0,
+          "diagnostic": ""
+        },
+        {
+          "file": "Tests/TwoD/GameplayAssetsTests.cpp",
+          "exit_code": 0,
+          "diagnostic": ""
+        },
+        {
+          "file": "Tests/TwoD/SpriteCatalogModule.cpp",
+          "exit_code": 0,
+          "diagnostic": ""
+        },
+        {
+          "file": "Tests/TwoD/ProjectManifestTests.cpp",
+          "exit_code": 0,
+          "diagnostic": ""
+        }
+      ],
+      "method": "Clang19 actual CMake translation-unit flags with -fsyntax-only -Werror=shorten-64-to-32; full commands retained externally"
+    },
+    "full_development": {
+      "tests": 482,
+      "failures": 0,
+      "skipped": 0,
+      "seconds": 1321.4,
+      "exit_code": 0,
+      "command": "CTEST_PARALLEL_LEVEL=2 ctest --preset linux-development --output-junit /workspace/work/editor-completion/sprite-index-width-full-junit.xml",
+      "selected_tests": [
+        {
+          "name": "api.sprite_source_baseline_guard",
+          "classname": "api.sprite_source_baseline_guard",
+          "time": "0.568026",
+          "status": "run"
+        },
+        {
+          "name": "api.m6_c_consumer",
+          "classname": "api.m6_c_consumer",
+          "time": "0.00129814",
+          "status": "run"
+        },
+        {
+          "name": "twod.sprite_catalog_export",
+          "classname": "twod.sprite_catalog_export",
+          "time": "0.877759",
+          "status": "run"
+        },
+        {
+          "name": "twod.gameplay_assets",
+          "classname": "twod.gameplay_assets",
+          "time": "0.050168",
+          "status": "run"
+        },
+        {
+          "name": "gameplay.zig_assets_wire_layout",
+          "classname": "gameplay.zig_assets_wire_layout",
+          "time": "2.35162",
+          "status": "run"
+        },
+        {
+          "name": "twod.sprite_source_player",
+          "classname": "twod.sprite_source_player",
+          "time": "42.1339",
+          "status": "run"
+        },
+        {
+          "name": "twod.sprite_source_catalog_player",
+          "classname": "twod.sprite_source_catalog_player",
+          "time": "36.9783",
+          "status": "run"
+        },
+        {
+          "name": "editor.layout_restart",
+          "classname": "editor.layout_restart",
+          "time": "30.201",
+          "status": "run"
+        },
+        {
+          "name": "editor.linux_xvfb_lifetime",
+          "classname": "editor.linux_xvfb_lifetime",
+          "time": "0.46695",
+          "status": "run"
+        }
+      ]
+    },
+    "shipping": "Previous integrated Shipping build and strict package results remain applicable: production source hashes unchanged; only the test index conversion and failure-only CI logging changed.",
+    "failure_diagnostics": "Selected tour JSON fields printed only on failed native acceptance; original exit code, deadline and assertions unchanged. Workflow YAML parsed; diagnostics not executed locally on Windows."
   }
 }
