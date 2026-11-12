@@ -130,7 +130,7 @@ jobs:
       - name: Require the graphical Editor contract
         shell: bash
         run: |
-          ctest --preset ${{ matrix.preset }} -N -R '^editor\.imgui_contract$' | grep -q 'Total Tests: 1'
+          ctest --preset ${{ matrix.preset }} -N -R '^editor\.(imgui_contract|layout_restart)$' | grep -q 'Total Tests: 2'
       - name: Require the Windows DPI and IME contract
         if: runner.os == 'Windows'
         shell: bash
@@ -139,6 +139,10 @@ jobs:
       - run: ctest --preset ${{ matrix.preset }} -V --output-log build/${{ matrix.preset }}/development-tests.log
       - name: Verify Development Showcase package
         run: cmake --build --preset ${{ matrix.preset }} --target NexoraShowcasePackageDevelopmentEvidence
+      - name: Configure graphical Editor without test access
+        run: cmake --preset ${{ matrix.preset }} -DBUILD_TESTING=OFF
+      - name: Build graphical Editor without test access
+        run: cmake --build --preset ${{ matrix.preset }} --target NexoraEditor
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -144,6 +144,13 @@ target_link_libraries(NexoraEditorContextLifetimeTests PRIVATE Nexora::EditorImG
 nexora_apply_defaults(NexoraEditorContextLifetimeTests)
 add_test(NAME editor.imgui_context_lifetime COMMAND NexoraEditorContextLifetimeTests)
 
+add_executable(NexoraEditorLayoutRestartTests LayoutRestartTests.cpp)
+target_include_directories(NexoraEditorLayoutRestartTests
+  PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraEditorLayoutRestartTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
+nexora_apply_defaults(NexoraEditorLayoutRestartTests)
+add_test(NAME editor.layout_restart COMMAND NexoraEditorLayoutRestartTests)
+
 add_executable(NexoraEditorSceneFrameTests SceneFrameTests.cpp)
 target_include_directories(NexoraEditorSceneFrameTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src" "${PROJECT_SOURCE_DIR}/Apps/Editor")
 target_link_libraries(NexoraEditorSceneFrameTests PRIVATE Nexora::EditorImGui)

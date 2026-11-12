@@ -475,6 +475,11 @@ def main() -> int:
         saved_scene = scene_file.read_text()
         if not re.search(r"^node [0-9]+ 0 Entity$", saved_scene, re.MULTILINE):
             raise RuntimeError("Hierarchy shortcut did not save the created root")
+        # Select Hierarchy through real input before shutdown. First-appearance focus used to
+        # replace this selection with Project in a fresh process, despite retaining the dock tree.
+        subprocess.run([args.xdotool, "key", "--delay", "100", "ctrl+4"],
+                       env=environment, check=True)
+        time.sleep(0.2)
         # A real close event must stop the unbounded loop and still drain/persist cleanly.
         subprocess.run([args.xdotool, "windowclose", window], env=environment, check=True)
         _, stderr = collect_output(editor, 30)
@@ -489,6 +494,30 @@ def main() -> int:
                 float(camera_lines[1].split()[-1]) >= 10.0):
             raise RuntimeError(f"Scene overview zoom was not persisted: {camera_lines!r}")
         saved_orthographic_size = float(camera_lines[1].split()[-1])
+        layout_path = root / ".nexora/editor-layout.ini"
+
+        def dock_selections():
+            selections = dict(re.findall(
+                r"^\s*DockNode\s+ID=(0x[0-9A-Fa-f]+).*?Selected=(0x[0-9A-Fa-f]+)",
+                layout_path.read_text(), re.MULTILINE))
+            if not selections:
+                raise RuntimeError("saved layout contains no selected dock tabs")
+            return selections
+
+        saved_selections = dock_selections()
+        # Pinned ImGui v1.91.9b: the ###nexora.hierarchy window's seeded #TAB identity.
+        if not any(int(value, 16) == 0xB334A44B for value in saved_selections.values()):
+            raise RuntimeError(f"native Hierarchy focus was not saved: {saved_selections}")
+        editor = launch(args.editor, root, recent_projects, environment, frames=8)
+        _, stderr = collect_output(editor, 30)
+        if editor.returncode != 0 or "graphical evidence:" not in stderr:
+            raise RuntimeError(f"saved dock layout reopen failed: {stderr}")
+        editor = None
+        restored_selections = dock_selections()
+        if restored_selections != saved_selections:
+            raise RuntimeError(
+                f"restart changed selected dock tabs: {saved_selections} -> {restored_selections}")
+        print(f"native dock selections survived process restart: {restored_selections}", flush=True)
         project_descriptor = (root / "project.nexora").read_text()
         if not re.fullmatch(
             r"schema=2\nuuid=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"

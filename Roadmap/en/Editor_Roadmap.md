@@ -1,5 +1,15 @@
 # Nexora Graphical Editor Roadmap
 
+### ✅ Saved dock selection and test-free graphical builds (2026-11-12)
+
+When restoring a layout, shell panels no longer take focus merely by appearing, preserving Hierarchy/
+Project selection across fresh contexts and native process restarts. Four DPI buckets retain
+floating Content geometry and byte-identical layouts; new-layout and explicit focus remain available.
+Test-only scene comparison/extension observations are guarded consistently, restoring graphical
+`BUILD_TESTING=OFF` compilation; desktop CI now rebuilds that configuration after its normal gates.
+See the [scoped Linux evidence](../../Tools/Build/evidence/EditorLayoutBuild-Linux-2026-11-12.md).
+Physical docking/input acceptance, ED-WF work-order acceptance and the 0/8 milestone count remain open.
+
 Local crash/game-log persistence is tracked in [Crash Logging Delivery](Crash_Logging_Delivery_Plan.md). It includes native gameplay callback capture and keeps platform/physical-host gates separate; it does not complete this roadmap’s broader milestones.
 
 
