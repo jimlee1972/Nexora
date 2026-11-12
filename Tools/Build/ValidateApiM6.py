@@ -74,6 +74,11 @@ structures["NexoraGameplayTwoDEffectsApiV1"] += diagnostics["effects_api_suffix"
 structures.update(diagnostics["structures"])
 services["zig_names"].update(diagnostics["zig_names"])
 services["zig_names"].update(effects["zig_names"])
+sprite_sources = json.loads((root / "Engine/API/abi_baseline_sprite_source_v1.json").read_text(encoding="utf-8"))
+structures.update(sprite_sources["structures"])
+structures["NexoraTwoDApiV1"] += sprite_sources["twod_api_suffix"]
+structures["NexoraGameplayServicesApiV1"] += sprite_sources["services_suffix"]
+services["zig_names"].update(sprite_sources["zig_names"])
 for structure, expected_fields in structures.items():
     match = re.search(rf"typedef struct {structure} \{{(.*?)\}} {structure};", header, re.DOTALL)
     if match is None:

@@ -32,7 +32,7 @@ SortingGroup, nine-slice/Tiled rendering, masks and advanced animation state mac
 | ED-WF-03 | [#744](https://github.com/jimlee1972/Nexora/issues/744) | 01 | Source-free runtime output; development receipts and publication inventory kept outside it | ✅ PR #756 |
 | ED-WF-04 | [#745](https://github.com/jimlee1972/Nexora/issues/745) | 01 | Transactional Runtime/Zig migration; failed replacement retains the old module and World | ✅ PR #758 |
 | ED-WF-05 | [#746](https://github.com/jimlee1972/Nexora/issues/746) | 02, 04 | Background source compilation and stateful Play reload without Stop/Play | In progress; integration unaccepted |
-| ED-WF-06 | [#747](https://github.com/jimlee1972/Nexora/issues/747) | 01 | Compatible C/Zig source APIs and cooked Player dependency closure | In progress; source registry slice only |
+| ED-WF-06 | [#747](https://github.com/jimlee1972/Nexora/issues/747) | 01 | Compatible C/Zig source APIs and cooked Player dependency closure | In progress; source registry/API/embedded Player slices |
 | ED-WF-07 | [#748](https://github.com/jimlee1972/Nexora/issues/748) | 06 | Source indexing/Inspector/Undo/save/reopen/Play/Build/reimport in the real Editor | Pending |
 | ED-WF-08 | [#749](https://github.com/jimlee1972/Nexora/issues/749) | 04, 06, 07 | Source animation anchors, live pool instances and valid handles survive replacement | Pending |
 | ED-WF-09 | [#750](https://github.com/jimlee1972/Nexora/issues/750) | 02, 03, 05, 07, 08 | Integrated native acceptance and a verified, extracted Windows Editor ZIP | Pending |
@@ -40,9 +40,14 @@ SortingGroup, nine-slice/Tiled rendering, masks and advanced animation state mac
 ✅ The independent ED-WF-06 registry slice (`nexora-whr.6.1`) adds a separately versioned C/Zig
 Sprite source registration table and immutable C++ resolver with Atlas dependency validation and
 bounded retirement. Its [Linux evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceRegistry-Linux-2026-11-12.md)
-records the executed gates and limits. The canonical gameplay Host does not advertise this table
-yet; source descriptors, capability negotiation, catalog/Player closure and native integration
-remain open. This supporting slice does not accept ED-WF-06 or change **4/9 (44.4%)** or **0/8**.
+records the executed registry gates and limits.
+
+✅ The source API slice (`nexora-whr.6.2`) adds size/version-checked C/Zig source Sprite/pool
+descriptors, compatible optional table negotiation and canonical Player registry/extraction. A real
+SDK-built Zig module runs after export, relocation and source deletion, with native pixels checking
+negative-scale pool geometry and source/Atlas replacement. See [API/Player evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceAPI-Linux-2026-11-12.md).
+File catalog dependency admission, Editor source workflow and source-animation reload remain open.
+These supporting slices do not accept ED-WF-06 or change **4/9 (44.4%)** or **0/8**.
 
 Each work order records exact commands/results and limitations in
 `Tools/Build/evidence/EditorWorkflow/ED-WF-XX.md`. The existing
