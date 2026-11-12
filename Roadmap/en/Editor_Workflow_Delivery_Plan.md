@@ -33,7 +33,7 @@ SortingGroup, nine-slice/Tiled rendering, masks and advanced animation state mac
 | ED-WF-04 | [#745](https://github.com/jimlee1972/Nexora/issues/745) | 01 | Transactional Runtime/Zig migration; failed replacement retains the old module and World | ✅ PR #758 |
 | ED-WF-05 | [#746](https://github.com/jimlee1972/Nexora/issues/746) | 02, 04 | Background source compilation and stateful Play reload without Stop/Play | In progress; integration unaccepted |
 | ED-WF-06 | [#747](https://github.com/jimlee1972/Nexora/issues/747) | 01 | Compatible C/Zig source APIs and cooked Player dependency closure | In progress; source registry/API/catalog/Player slices |
-| ED-WF-07 | [#748](https://github.com/jimlee1972/Nexora/issues/748) | 06 | Source indexing/Inspector/Undo/save/reopen/Play/Build/reimport in the real Editor | Pending |
+| ED-WF-07 | [#748](https://github.com/jimlee1972/Nexora/issues/748) | 06 | Source indexing/Inspector/Undo/save/reopen/Play/Build/reimport in the real Editor | In progress; immutable source index/Play snapshot slice |
 | ED-WF-08 | [#749](https://github.com/jimlee1972/Nexora/issues/749) | 04, 06, 07 | Source animation anchors, live pool instances and valid handles survive replacement | Pending |
 | ED-WF-09 | [#750](https://github.com/jimlee1972/Nexora/issues/750) | 02, 03, 05, 07, 08 | Integrated native acceptance and a verified, extracted Windows Editor ZIP | Pending |
 
@@ -148,3 +148,15 @@ Keep the repository README reader-facing and unchanged unless an overall milesto
 Follow the Beads skill with pinned CLI and external task paths. On synchronization failure preserve
 data and record the exact blocker, without initializing/replacing/forcing shared history. GitHub
 work orders remain visible; failed Beads synchronization is never reported as successful.
+
+## ✅ Editor Sprite source index and Play snapshots (2026-11-12)
+
+The independent ED-WF-07 foundation (`nexora-whr.7.1`) admits immutable `.nx2sprite` payloads in
+project indexing and synchronous/queued reimport, retains stable sidecars/importer identity, and
+captures exact source/Atlas cooked/project closure. Main Editor Play resolves captured sources for
+scene/pool instances through the existing geometry implementation. Real composed Editor pixels
+verify Pivot replacement, negative scale and retained old snapshots after source owners are gone;
+see [cloud evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md).
+Catalog/package work remains independently owned by `nexora-whr.6.3` / PR #770. Inspector source
+assignment, authoring save/reopen, Build and live animation/reload remain open. This supporting
+slice does not accept ED-WF-07; workflow **4/9**, Editor **0/8**, 2D **9/11** remain unchanged.

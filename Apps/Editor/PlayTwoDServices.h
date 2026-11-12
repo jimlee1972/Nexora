@@ -36,7 +36,8 @@ inline std::optional<PlayTwoDBinding> CapturePlayTwoD(const ProjectWorkspace &wo
   error.clear();
   std::vector<runtime::AssetUuid> roots;
   for (const auto &item : content.Browser().Items()) {
-    if (!item.twod && item.type != ".nx2atlas" && item.type != ".nx2clip")
+    if (!item.twod && item.type != ".nx2atlas" && item.type != ".nx2clip" &&
+        item.type != ".nx2sprite")
       continue;
     if (roots.size() == 4096) {
       error = "Play 2D asset selection exceeds 4096 sources.";
@@ -316,7 +317,7 @@ public:
           const auto texture = textures(*atlas);
           return texture ? std::optional{twod::AtlasBinding{atlas, texture}} : std::nullopt;
         },
-        {});
+        [assets = assets_](auto id) { return assets->SpriteSource(id); });
   } catch (...) {
     return {};
   }

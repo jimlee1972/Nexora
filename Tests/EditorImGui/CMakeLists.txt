@@ -898,6 +898,11 @@ if(NEXORA_ENABLE_2D)
   target_link_libraries(NexoraPlayTwoDServicesTests PRIVATE Nexora::EditorImGui Nexora::TwoD)
   nexora_apply_defaults(NexoraPlayTwoDServicesTests)
   add_test(NAME editor.play_twod_services COMMAND NexoraPlayTwoDServicesTests)
+  add_executable(NexoraEditorSpriteSourcePlayTests EditorSpriteSourcePlayTests.cpp)
+  target_include_directories(NexoraEditorSpriteSourcePlayTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+  target_link_libraries(NexoraEditorSpriteSourcePlayTests PRIVATE Nexora::EditorImGui Nexora::TwoD)
+  nexora_apply_defaults(NexoraEditorSpriteSourcePlayTests)
+  add_test(NAME editor.sprite_source_play COMMAND NexoraEditorSpriteSourcePlayTests)
 endif()
 
 if(TARGET NexoraPlayTwoDServicesTests AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND
@@ -914,6 +919,17 @@ if(TARGET NexoraPlayTwoDServicesTests AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND
     --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/editor-play-2d")
   set_tests_properties(editor.play_twod_native PROPERTIES TIMEOUT 45 SKIP_RETURN_CODE 77
     LABELS "twod;editor;vulkan;virtual-display")
+  add_executable(NexoraEditorSpriteSourceNativeTests EditorSpriteSourcePlayTests.cpp)
+  target_compile_definitions(NexoraEditorSpriteSourceNativeTests PRIVATE NEXORA_EDITOR_SOURCE_NATIVE=1)
+  target_include_directories(NexoraEditorSpriteSourceNativeTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+  target_link_libraries(NexoraEditorSpriteSourceNativeTests PRIVATE Nexora::EditorImGui Nexora::TwoD X11::X11)
+  nexora_apply_defaults(NexoraEditorSpriteSourceNativeTests)
+  add_test(NAME editor.sprite_source_native COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/Tests/Showcase/LinuxVulkanSceneAcceptance.py"
+    --native-test "$<TARGET_FILE:NexoraEditorSpriteSourceNativeTests>"
+    --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/editor-sprite-sources")
+  set_tests_properties(editor.sprite_source_native PROPERTIES TIMEOUT 45 SKIP_RETURN_CODE 77
+    LABELS "twod;editor;source;vulkan;virtual-display")
 endif()
 
 if(NEXORA_ENABLE_2D)

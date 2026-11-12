@@ -79,8 +79,9 @@ A short table returns `UNSUPPORTED` unchanged; an oversized caller receives only
 The original Content table and Sprite/Instance descriptors keep their layouts. The canonical Player
 now advertises this table through the optional services suffix `get_sprite_content_api`; Zig
 `getSpriteContent` checks the aggregate size/version and the returned table. Historical services
-prefixes remain supported. Main Editor Play has no registered source-content table and reports
-`UNSUPPORTED`. Editor authoring and source-animation reload remain open.
+prefixes remain supported. Main Editor Play resolves frozen project source snapshots, but runtime
+source registration through this services suffix remains `UNSUPPORTED`. Inspector authoring,
+Build capture and source-animation reload remain open.
 The [asset catalog](GameplayAssets.md) now admits cooked sources as catalog kind 4, and the Player
 accepts preloaded `sprite` and deferred `deferred_sprite` files. Kind 3 remains opaque game-owned
 bytes in the catalog; it identifies a Sprite source only in the separate content registry.

@@ -32,7 +32,7 @@ SortingGroup、九宮格／Tiled、遮罩及進階動畫狀態機不在本批範
 | ED-WF-04 | [#745](https://github.com/jimlee1972/Nexora/issues/745) | 01 | Runtime／Zig 交易式遷移；替換失敗保留舊模組及 World | ✅ PR #758 |
 | ED-WF-05 | [#746](https://github.com/jimlee1972/Nexora/issues/746) | 02、04 | 背景編譯來源並保留狀態熱重載，不需 Stop／Play | 施工中；整合未驗收 |
 | ED-WF-06 | [#747](https://github.com/jimlee1972/Nexora/issues/747) | 01 | 相容的 C／Zig 來源 API 與 cooked Player 相依閉包 | 施工中；來源註冊表／API／catalog／Player 切片 |
-| ED-WF-07 | [#748](https://github.com/jimlee1972/Nexora/issues/748) | 06 | 真實 Editor 來源索引／Inspector／Undo／儲存重開／Play／Build／重匯入 | 待辦 |
+| ED-WF-07 | [#748](https://github.com/jimlee1972/Nexora/issues/748) | 06 | 真實 Editor 來源索引／Inspector／Undo／儲存重開／Play／Build／重匯入 | 施工中；不可變來源索引／Play 快照切片 |
 | ED-WF-08 | [#749](https://github.com/jimlee1972/Nexora/issues/749) | 04、06、07 | 替換後保留來源動畫錨點、存活 pool 實例與有效 handle | 待辦 |
 | ED-WF-09 | [#750](https://github.com/jimlee1972/Nexora/issues/750) | 02、03、05、07、08 | 整合原生驗收及實際解壓驗證的 Windows Editor ZIP | 待辦 |
 
@@ -134,3 +134,13 @@ GitHub README 維持讀者導向，整體 milestone 未變時不加入逐工單�
 
 依 Beads skill 使用固定 CLI 與外部任務路徑。同步失敗則保留資料並記錄精確阻礙，不初始化、
 替換或 force 共享歷史；GitHub 工單維持可見，不能將失敗同步回報為成功。
+
+## ✅ Editor Sprite 來源索引與 Play 快照（2026-11-12）
+
+獨立的 ED-WF-07 基礎（`nexora-whr.7.1`）在專案索引與同步／背景重匯入中接納不可變
+`.nx2sprite` 資料，保留穩定 sidecar／importer 身分，並擷取精確來源／Atlas 的 cooked／專案
+相依閉包。主 Editor Play 透過既有幾何實作解析場景與 pool 的來源參照。真實合成 Editor 像素
+驗證 Pivot 替換、負縮放與來源擁有者釋放後的舊快照；詳見[雲端證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md)。
+catalog／封裝工作仍由 `nexora-whr.6.3`／PR #770 獨立負責。Inspector 來源指定、製作場景
+儲存重開、Build 與即時動畫／重載仍待完成。本 supporting 切片不驗收 ED-WF-07；
+流程 **4/9**、Editor **0/8**、2D **9/11** 維持不變。

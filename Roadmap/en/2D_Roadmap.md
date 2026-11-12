@@ -934,7 +934,8 @@ Repacking updates the next frame's UVs while retained frames keep their prior At
 
 [Contract](../../Engine/TwoD/SpriteAssets.md#source-references-in-scenes-and-extraction) ·
 [Linux verification](../../Engine/TwoD/evidence/SpriteSourceScenes-Linux-2026-10-28.md).
-Public C++ consumers rebuild. Main Editor source indexing/Inspector/Play capture, Player catalogs,
+Public C++ consumers rebuild. Editor source indexing/immutable Play capture are delivered below;
+Inspector source assignment and Player catalogs remain open.
 Source descriptors and embedded-module Player extraction are delivered below; file catalogs,
 source-animation reload and complete native/platform acceptance remain separate. This portable scene slice does not close Editor M3-08, M6/M7 or change 9/11 (82%).
 
@@ -990,7 +991,7 @@ identity, stage failed batches atomically and share existing handle ownership. T
 source registration and extracts immutable source/Atlas closure. A real SDK-built Zig game verifies
 relocated, source-free module-embedded content and native pixels across geometry/Atlas replacement;
 see [acceptance evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceAPI-Linux-2026-11-12.md).
-Main Editor source authoring/capture and source-animation reload remain open.
+Inspector source assignment, authoring persistence/Build capture and source-animation reload remain open.
 ED-WF acceptance stays 4/9, Editor 0/8, 2D 9/11; physical M6/M7 acceptance is unchanged.
 
 ✅ The independent [Sprite catalog slice](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SpriteCatalog-Linux-2026-11-12.md)
@@ -999,3 +1000,12 @@ explicit Atlas closure checks. Relocated-package C ABI tests preserve opaque kin
 consumers. A real Zig file-catalog game additionally checks relocated source Sprite/pool native
 pixels and replacement through the accepted source API. Main Editor authoring and complete
 ED-WF-06 acceptance remain open; milestone counts do not change.
+
+## ✅ Editor Sprite source snapshots (2026-11-12)
+
+Typed source indexing/reimport now owns existing Sprite metadata, and frozen project/cooked Play
+capture validates its exact Atlas closure. Main Editor gameplay scene/pool instances resolve those
+immutable snapshots; real composed native pixels verify trim/Pivot geometry, negative scale and
+old-owner retention across reimport. [Evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md).
+Inspector source assignment, authoring persistence, Build, source animation/reload and complete
+Editor acceptance remain open. ED-WF stays 4/9, Editor 0/8, 2D 9/11; M6/M7 physical gates unchanged.

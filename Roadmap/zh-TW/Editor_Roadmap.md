@@ -2230,3 +2230,11 @@ completion/recovery 有 stress coverage；error 可採取行動；文件與 evid
 output、local preset、credential、private project 或 sensitive capture。`Editor Preview` 要 ED-M0～M2；
 `Creator Alpha` 再要 M3～M4；`Production Beta` 要所選 M5 tool 與 M6～M7。Preview/read-only capability
 不提高 enclosing milestone 百分比，也不能免除 target-host gate。
+
+## ✅ Editor Sprite 來源快照（2026-11-12）
+
+型別化來源索引／重匯入現可保有既有 Sprite metadata，凍結的專案／cooked Play 擷取會驗證
+精確 Atlas 相依閉包。主 Editor gameplay 場景／pool 實例可解析這些不可變快照；真實合成
+原生像素驗證裁切／Pivot 幾何、負縮放與重匯入後的舊擁有者保留。[證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md)。
+Inspector 來源指定、製作場景持久化、Build、來源動畫／重載與完整 Editor 驗收仍待完成。
+ED-WF 維持 4/9、Editor 0/8、2D 9/11；M6／M7 實機 gate 不變。

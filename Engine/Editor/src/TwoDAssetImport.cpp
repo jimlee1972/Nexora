@@ -26,6 +26,12 @@ TwoDAssetImportResult ImportTwoDAsset(std::string_view type, std::span<const std
     for (const auto &frame : clip->frames)
       payload->retained_bytes_ += frame.event.capacity() + 1;
     payload->clip_ = std::make_shared<const twod::Clip>(std::move(*clip));
+  } else if (type == ".nx2sprite") {
+    auto source_asset = twod::DecodeSpriteAsset(source);
+    if (!source_asset)
+      return {{}, "Invalid 2D Sprite source.", false};
+    payload->retained_bytes_ += sizeof(twod::SpriteAsset);
+    payload->source_ = std::make_shared<const twod::SpriteAsset>(std::move(*source_asset));
   } else {
     return {{}, "Unsupported 2D source importer type.", false};
   }

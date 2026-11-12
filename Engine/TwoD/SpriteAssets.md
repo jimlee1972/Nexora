@@ -128,9 +128,10 @@ and resolves immutable sources with dependency and retirement protection. The ca
 advertises source-content registration and the optional [source Sprite/pool API](README.md), with
 source-aware extraction. Player file admission supports preloaded `sprite` and deferred
 `deferred_sprite` cooked files with Atlas closure validation through [catalog kind 4](GameplayAssets.md).
-Main Editor project indexing, Inspector/Play capture, automatic source animation and reload
-publication remain separate work. Passing only a resolved
-legacy `Sprite` to `SpriteScene::Set` still discards its transient quad; store `source` instead.
+Main Editor typed source indexing/reimport and immutable Play capture resolve the same geometry
+through frozen Atlas closure. Inspector assignment, authoring persistence, Build capture, automatic
+source animation and reload publication remain separate work. Passing only a resolved legacy
+`Sprite` to `SpriteScene::Set` still discards its transient quad; store `source` instead.
 
 ## Manifest and CLI
 

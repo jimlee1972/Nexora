@@ -109,10 +109,10 @@ Project-scoped cooked asset capture is supplied by the separate owner described 
 
 ### Frozen cooked 2D Play assets
 
-`TwoDPlayAssets::Capture` owns an immutable CPU Atlas/Clip dependency closure from an explicit,
-nonzero `AssetGenerationStore` generation. Clip roots automatically include their Atlas. Duplicate
+`TwoDPlayAssets::Capture` owns an immutable CPU Atlas/Clip/Sprite-source dependency closure from an explicit,
+nonzero `AssetGenerationStore` generation. Clip and Sprite-source roots automatically include their Atlas. Duplicate
 or zero roots, missing assets, unsupported types, mismatched payload UUIDs, noncanonical dependency
-lists and missing frame regions reject the complete candidate. Runtime's store supplies already
+lists, missing frame regions and incompatible source trim/region dimensions reject the complete candidate. Runtime's store supplies already
 hash-verified cooked envelopes; capture additionally checks the schema and 2D codecs. It neither
 falls back to the active generation nor reads source files.
 
@@ -121,7 +121,7 @@ the selected generation and balances each successful Load with Release, includin
 and C++ exception unwinding. Existing external pins/resident references survive. Successful results
 retain no store borrow or pin: decoded immutable payloads survive collection, rollback, store
 destruction and later same-UUID asset replacement. Returned shared owners can outlive the snapshot
-and serve the existing ClipResolver; surface texture allocation remains the rendering host's job.
+and serve the Clip/source resolvers; surface texture allocation remains the rendering host's job.
 
 At most 4096 unique assets and 64 MiB of combined cooked payload bytes are admitted, including
 dependencies. Callers may reduce either bound. Empty closures are valid for an existing generation;
@@ -141,10 +141,10 @@ generation replacement/collection and canonical gameplay consumption after store
 
 ✅ With `NEXORA_ENABLE_2D`, indexing and synchronous/queued reimport now carry an owning
 immutable `TwoDAssetPayload` through `AssetEntry`, `ContentItem` and `ReimportResult`.
-`ImportTwoDAsset` borrows normalized `.nx2atlas`/`.nx2clip` bytes only during the call and uses
+`ImportTwoDAsset` borrows normalized `.nx2atlas`/`.nx2clip`/`.nx2sprite` bytes only during the call and uses
 the existing TwoD codecs. It performs no IO, GPU work, publication or dependent-file reads.
 Payload construction is private and noncopyable; consumers retain shared const owners and can
-borrow immutable Atlas/Clip owners independently. An optional expected UUID must match exactly;
+borrow immutable Atlas/Clip/Sprite-source owners independently. An optional expected UUID must match exactly;
 zero permits initial embedded-identity discovery. Cancellation is checked before/after bounded
 decode, and the source reader also checks between binary chunks. Failed/cancelled reads expose
 no typed payload or partial hashes. Allocation/callback exceptions follow the existing C++ boundary.
@@ -162,7 +162,7 @@ silently rewritten or migrated. Source bytes and references are not rewritten.
 
 Each source is capped at 64 MiB before allocation when size is available and during chunk reads.
 An indexed typed set and each live/retained Undo Content snapshot admit at most 4096 payloads and
-64 MiB of capacity accounting: payload/Atlas/Clip objects, vector capacities and event string
+64 MiB of capacity accounting: payload/Atlas/Clip/Sprite-source objects, vector capacities and event string
 capacities plus terminators. Inline string space is conservatively counted again; shared control
 blocks/allocator overhead are excluded. This is not RSS/VRAM or a bound on separately retained
 external snapshots. Valid identities beyond the sorted import budget remain failed indexed rows.
@@ -170,7 +170,7 @@ Content Reset, Discover and PublishArtifact enforce matching typed UUID/importer
 limits. Publication also checks the retained Undo set before changing revision/hash/pointers;
 successful reimport updates its payload so path Undo retains the newest admitted version.
 
-Clip Atlas UUID dependencies enter the initial project graph and replace previous dependencies
+Clip and Sprite-source Atlas UUID dependencies enter the initial project graph and replace previous dependencies
 atomically on successful synchronous/queued reimport. Workers only stage; authoring publication
 retains current project/path/artifact/source-size/time/settings/dependency checks, and cancellation,
 staleness, invalid input, cycles or budget failure preserve the prior model/graph. Atlas existence,
@@ -197,10 +197,11 @@ Both Pending and Compare remain unresolved, including conflicts outside the sele
 The host still supplies current stopped-Play/modal/document policy; this API does not grant it.
 Workspace ownership retains its existing writer lease; capture acquires no new lease.
 
-Only the selected Atlas/Clip closure is cooked. Each source must have a persistent matching
+Only the selected Atlas/Clip/Sprite-source closure is cooked. Each source must have a persistent matching
 schema-1 UUID/importer sidecar, a ready typed immutable Content owner, a matching artifact and
-exact source bytes equal to that owner's canonical encoding. Clip dependencies must agree with
-the current graph; cooked capture additionally checks Atlas type and frame-region closure.
+exact source bytes equal to that owner's canonical encoding. Clip/source dependencies must agree
+with the current graph; cooked capture additionally checks Atlas type, frame regions and source
+geometry through the shared `ResolveSpriteAsset` implementation.
 Authoritative sidecar importer types survive filename-extension changes. Paths stay below Content;
 unsafe traversal, symlink components/leaves, nonregular files, hard links and oversized reads reject.
 Reads are bounded even if a file grows. No source, sidecar, cache file, Content/history, shared
@@ -2776,3 +2777,26 @@ record through the existing atomic writer; an occupied staging path preserves bo
 The graphical application stores `appearance` beside `RecentProjectStore::DefaultPath()` (or its
 configured recent-project path), separate from project layout, locks and read-only permissions.
 Calls run on the application owner thread; UI widgets emit values and perform no IO.
+
+### Immutable Sprite sources in Editor Play
+
+`TwoDAssetPayload::SpriteSource()` and `TwoDPlayAssets::SpriteSource(id)` return owning immutable
+metadata decoded from the existing 96-byte schema 1. Sources remain distinct from Clips, and their
+Atlas is admitted once per closure. Decode does not resolve dependencies; complete project/cooked
+capture validates the selected closure before publication. Missing/type/UUID/region/trim mismatches
+reject the candidate while retained snapshots keep their geometry and Atlas owners. Source metadata
+shares existing 4096-asset/64 MiB budgets, cancellation and authoring-thread publication rules.
+
+Main Editor Play captures indexed sources and resolves their geometry from the frozen snapshot for
+scene and pooled gameplay instances. Current source/sidecar/Content provenance must still pass
+`Matches` before production activation. The source-content registration service remains unsupported
+for this immutable embedding. Public C++ payload/snapshot layouts change, so consumers rebuild;
+legacy C/Zig descriptors, Atlas/Clip/source codecs and scene formats remain unchanged.
+
+`twod.editor_sprite_sources`, `editor.sprite_source_play` and `editor.sprite_source_native` cover
+index/sidecar discovery, synchronous/queued reimport, renamed importer identity, budgets, rejected
+closures, owners surviving store/project destruction, public gameplay API use, authoring isolation
+and actual composed Editor pixels across retained/reimported snapshots. See the
+[cloud evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md).
+Inspector source assignment, authoring save/reopen, Build export and live source animation/reload
+remain separate ED-WF-07/08 acceptance gates.
