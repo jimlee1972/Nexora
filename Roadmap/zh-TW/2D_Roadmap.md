@@ -4,8 +4,8 @@
 
 
 核准的 [Editor 工作流程交付計畫](Editor_Workflow_Delivery_Plan.md)以
-[Epic #741](https://github.com/jimlee1972/Nexora/issues/741) 追蹤尚待完成的 Sprite 來源
-C／Zig／catalog、Editor 編輯、動畫及 pool 整合。計畫驗收為 4/9（44.4%）：ED-WF-01 ✅ PR #751、ED-WF-02 ✅ PR #754、ED-WF-03 ✅ PR #756, ED-WF-04 ✅ PR #758，不因此提高完整
+[Epic #741](https://github.com/jimlee1972/Nexora/issues/741) 追蹤 Sprite 來源 C／Zig／catalog 交付，
+以及尚待完成的 Editor 編輯、動畫及 pool 整合。計畫驗收為 5/9（55.6%）：ED-WF-01 ✅ PR #751、ED-WF-02 ✅ PR #754、ED-WF-03 ✅ PR #756、ED-WF-04 ✅ PR #758；ED-WF-06 ✅ [驗收](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md)，不因此提高完整
 Editor、實體 M6／M7 或進階 Sprite 繪製的驗收完成度。
 
 > 版本：v1.7 | 狀態：雲端能力交付已驗收，PC 主機 gate 待完成 | 更新：2026-10-19
@@ -872,7 +872,7 @@ ED-WF-06 supporting 註冊表切片提供獨立且檢查 size 的 C 表、Zig wi
 [Linux 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceRegistry-Linux-2026-11-12.md)
 獨立記錄。既有 Gameplay descriptor 與 Content 表不變。Content kind 3 僅在內容註冊表代表
 Sprite source；Asset catalog kind 3 維持 opaque bytes。標準 Player 能力曝光、來源 descriptor
-與模組內嵌 Player 擷取已於下方交付；Editor 製作及來源動畫重載仍待完成。ED-WF 驗收維持 4/9，
+與模組內嵌 Player 擷取已於下方交付；Editor 製作及來源動畫重載仍待完成。ED-WF 驗收維持 5/9，
 2D 維持 9/11（82%），M6／M7 實機及乾淨主機驗收另計。
 
 ## ✅ Gameplay Sprite 來源 API 與 Player 擷取（2026-11-12）
@@ -883,13 +883,13 @@ Sprite source；Asset catalog kind 3 維持 opaque bytes。標準 Player 能力�
 真正由 SDK 建置的 Zig 遊戲驗證搬移、刪除來源後的模組內嵌內容，以及幾何／Atlas 替換的
 原生像素；詳見[驗收證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceAPI-Linux-2026-11-12.md)。
 Inspector 來源指定、製作場景持久化／Build 擷取及來源動畫重載仍待完成。
-ED-WF 驗收維持 4/9、Editor 0/8、2D 9/11；M6／M7 實機驗收判定不變。
+ED-WF 驗收維持 5/9、Editor 0/8、2D 9/11；M6／M7 實機驗收判定不變。
 
 ✅ 獨立 [Sprite catalog 切片](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SpriteCatalog-Linux-2026-11-12.md)
 新增目錄種類 4、Player 預載／延後檔案准入，以及檢查明確 Atlas 閉包的標準來源匯出。
 搬移成品的 C ABI 測試保留 opaque 種類 3 與無來源參照的消費端行為。真正的 Zig 檔案目錄
-遊戲另透過已驗收的來源 API 檢查搬移後的來源 Sprite／pool 原生像素與替換。主 Editor 製作及完整
-ED-WF-06 驗收仍待完成；里程碑數字不變。
+遊戲另透過已驗收的來源 API 檢查搬移後的來源 Sprite／pool 原生像素與替換。主 Editor 製作仍屬 ED-WF-07；
+下方完整 ED-WF-06 驗收將流程進度提高為 5/9，圖形化 Editor 及 2D 里程碑數字不變。
 
 ## ✅ Editor Sprite 來源快照（2026-11-12）
 
@@ -897,13 +897,15 @@ ED-WF-06 驗收仍待完成；里程碑數字不變。
 精確 Atlas 相依閉包。主 Editor gameplay 場景／pool 實例可解析這些不可變快照；真實合成
 原生像素驗證裁切／Pivot 幾何、負縮放與重匯入後的舊擁有者保留。[證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md)。
 Inspector 來源指定、製作場景持久化、Build、來源動畫／重載與完整 Editor 驗收仍待完成。
-ED-WF 維持 4/9、Editor 0/8、2D 9/11；M6／M7 實機 gate 不變。
+ED-WF 維持 5/9、Editor 0/8、2D 9/11；M6／M7 實機 gate 不變。
 
-## Sprite 來源原生驗收候選（2026-11-12）
+## ✅ ED-WF-06 來源 API 與 Player 驗收（2026-11-12）
 
 真正由 SDK 建置的 Zig 檔案目錄案例現可驗證非對稱貼圖的 X／Y／雙軸 Flip、繞 Pivot 的
 幾何鏡射及負縮放 pool，接著只替換 Atlas 尺寸與打包區域，保留來源身分和 handle。
 Development 與嚴格 Shipping 原生擷取通過；原有內嵌／catalog 模式及 C-only 相容性案例
 保持不變。[證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-NativeSource-Linux-2026-11-12.md)
-保留初次案例／設定失敗。完整回歸 486/486 通過，沒有失敗或跳過；指定版本 CI 與合併
-仍是 ED-WF-06 驗收前提。進度維持 4/9、Editor 0/8、2D 9/11。
+保留初次案例／設定失敗。完整回歸 486/486 通過，沒有失敗或跳過；全部 41 項指定版本最新 hosted 檢查通過，PR #772 已合併。
+完整[驗收紀錄](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md)整合舊消費端相容性、
+不可變 cooked 閉包及 feature-OFF 建置，完成 ED-WF-06。流程驗收為 5/9（55.6%）；
+Editor 0/8、2D 9/11 及實機／乾淨主機 gate 維持不變。
