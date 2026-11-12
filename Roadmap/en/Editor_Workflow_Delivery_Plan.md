@@ -53,8 +53,9 @@ These supporting slices do not accept ED-WF-06 or change **4/9 (44.4%)** or **0/
 preloaded/deferred Player admission and canonical source export. Existing opaque kind 3, C/Zig
 table layouts, explicit Atlas-first loading and immutable ownership remain unchanged. The
 [Linux evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SpriteCatalog-Linux-2026-11-12.md)
-records real relocated-package admission and corruption/closure rejection. It integrates with the
-source API slice accepted in PR #769. Editor authoring and complete ED-WF-06 acceptance remain
+records real relocated-package admission and corruption/closure rejection. A real SDK-built Zig
+file-catalog game integrates the source API accepted in PR #769 and verifies scene/pool native
+pixels after relocation, source deletion and replacement. Editor authoring and complete ED-WF-06 acceptance remain
 open. Counts stay **4/9** and **0/8**.
 
 Each work order records exact commands/results and limitations in

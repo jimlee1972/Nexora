@@ -132,8 +132,38 @@ first and resolve the file-backed source. Replacement blue Atlas/shifted metadat
 to test explicit live registry replacement. Both original embedded mode and new file-catalog mode
 must pass; the catalog case also rejects a corrupt cooked file before module Start, then restores
 the package and verifies immutable bytes after relocation, CPU execution and Linux native capture.
-This adds no new descriptor layout or rendering algorithm. Integrated full-gate results follow
-after execution completes.
+This adds no new descriptor layout or rendering algorithm.
+
+Integrated implementation head: `45b397eba9efe06326d2c15acd7aff6be7bd8ebb`, including main
+`69de02df` and the MSVC repair. Development and Shipping configure/build passed. The fresh
+unfiltered command below passed **482/482, zero failures/skips**, in **1341.74 seconds**, exit 0:
+
+```sh
+CTEST_PARALLEL_LEVEL=2 ctest --preset linux-development --output-junit /workspace/work/editor-completion/sprite-merged-full-junit.xml
+```
+
+The file-catalog Zig/native case passed in **40.878 s**, and original embedded mode in **35.6288 s**.
+The native report records 30 Vulkan frames, two visible instances and balanced module allocations;
+vendor 65541/device 0 identifies the software adapter. Exact pixel assertions retain the red/blue
+regions and the old empty positions, checking pivot shifts on positive and negative scale.
+Captures from this full traversal: [red](CatalogSource-red.png), [blue](CatalogSource-blue.png).
+Layout restart (27.7596 s) and Xvfb lifetime (0.509132 s) also passed; no failed-case retry was needed.
+
+The final Shipping Player additionally passed the same real Zig file-catalog/replacement case
+using `--catalog --shipping`, with two visible CPU-extracted instances. Export uses the normal
+Shipping dependency policy and asserts `development_test_copy=False`; no native Shipping pixel
+or clean-host verdict is claimed. Exact command:
+
+```sh
+python3 Tests/TwoD/SpriteSourcePlayerAcceptance.py --app /workspace/Nexora/build/linux-shipping/Apps/TwoDPlayer/NexoraTwoDPlayer --compiler /workspace/Nexora/build/linux-development/Tools/TwoD/NexoraTwoDAssetCompiler --zig /workspace/work/editor-completion/tools/lib/python3.12/site-packages/ziglang/zig --cmake /workspace/work/editor-completion/tools/bin/cmake --catalog --shipping --evidence-dir /workspace/work/editor-completion/source-catalog-shipping-final
+```
+
+The independent C-only catalog/opaque/deferred/corruption suite also passed again under strict
+Shipping policy. Final implementation hashes remain unchanged through the complete traversal.
+The machine receipt distinguishes the original candidate, interrupted repair attempt and integrated
+candidate, including selected tests, binaries, Windows-ABI probe and full-traversal pixel hashes.
+Documentation routing unit tests remain 16/16 passing; final Markdown/bilingual, C++ format,
+Python byte-compilation and diff checks are repeated after recording these results.
 
 ## Acceptance limits
 

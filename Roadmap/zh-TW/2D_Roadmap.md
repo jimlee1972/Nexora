@@ -887,5 +887,6 @@ ED-WF 驗收維持 4/9、Editor 0/8、2D 9/11；M6／M7 實機驗收判定不變
 
 ✅ 獨立 [Sprite catalog 切片](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SpriteCatalog-Linux-2026-11-12.md)
 新增目錄種類 4、Player 預載／延後檔案准入，以及檢查明確 Atlas 閉包的標準來源匯出。
-搬移成品的 C ABI 測試保留 opaque 種類 3 與無來源參照的消費端行為。主 Editor 製作及完整
+搬移成品的 C ABI 測試保留 opaque 種類 3 與無來源參照的消費端行為。真正的 Zig 檔案目錄
+遊戲另透過已驗收的來源 API 檢查搬移後的來源 Sprite／pool 原生像素與替換。主 Editor 製作及完整
 ED-WF-06 驗收仍待完成；里程碑數字不變。

@@ -51,7 +51,8 @@ Editor 來源流程及來源動畫重載仍待完成。這些 supporting 切片
 ✅ 獨立 catalog 切片（`nexora-whr.6.3`）新增 cooked Sprite source 目錄種類 4、Player
 預載／延後准入與標準來源匯出。既有 opaque 種類 3、C／Zig 表格版面、明確先載入 Atlas 的
 順序及不可變 ownership 保持一致。[Linux 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SpriteCatalog-Linux-2026-11-12.md)
-記錄實際搬移成品的准入與損壞／相依閉包拒絕，並接上 PR #769 已驗收的來源 API 切片。
+記錄實際搬移成品的准入與損壞／相依閉包拒絕。真正由 SDK 建置的 Zig 檔案目錄遊戲接上
+PR #769 已驗收的來源 API，驗證搬移、刪除作者端來源及替換後的場景／pool 原生像素。
 Editor 製作及完整 ED-WF-06 驗收仍待完成；進度維持 **4/9** 及 **0/8**。
 
 各工單於 `Tools/Build/evidence/EditorWorkflow/ED-WF-XX.md` 記錄精確指令、結果及限制。
