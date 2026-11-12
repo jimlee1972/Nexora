@@ -531,5 +531,105 @@
     },
     "shipping": "Previous integrated Shipping build and strict package results remain applicable: production source hashes unchanged; only the test index conversion and failure-only CI logging changed.",
     "failure_diagnostics": "Selected tour JSON fields printed only on failed native acceptance; original exit code, deadline and assertions unchanged. Workflow YAML parsed; diagnostics not executed locally on Windows."
+  },
+  "native_argument_repair_candidate": {
+    "head": "504cc58508d96bbb8e564a2e5a0bb504e2edabc6",
+    "main": "69de02df",
+    "implementation_files": {
+      "Apps/TwoDPlayer/Project.h": "e252a247e2a4a724bd766d2dd9cc452720ca798db3684f83f794f1c5e3c3ea2c",
+      "Apps/TwoDPlayer/TwoDPlayer.cpp": "7205abb301a53911f2f2b05860894214b8dfc55787e894f2c64e2e15045cfe49",
+      "Bindings/Zig/assets.zig": "4974f0bf41d28cec0e10f78489f453658c71c56eda14d94b6ad7653e77b898ff",
+      "Bindings/Zig/content.zig": "7d5e6c7e626f9ca717f1d90a58832382f0d6bda8192f377933d900c101a96d9b",
+      "Engine/API/include/nexora/gameplay_assets.h": "4987624c1f4cef27cb3d2f47aadc48d644b32302b9488181d13c27c3b8c33ce5",
+      "Engine/TwoD/src/GameplayAssets.cpp": "4f935468bd5c39c138bd68c458ab92c1c52c5bcb03dac122da2765e6f65286b7",
+      "Tests/TwoD/CMakeLists.txt": "bc7bf3d3dfd37dfe4688c37b03661ca7849adba8b07feeb56f36c4d0bd76a5ed",
+      "Tests/TwoD/GameplayAssetsLayout.zig": "d38ca1d5a11e2019a02dea9e938e82e34d9166de6390d4faf4d2eaa8131e6ec8",
+      "Tests/TwoD/GameplayAssetsTests.cpp": "0757ed94d315214f33acd4ee8bd2169733a945aa1df5478979e29bd2d31d79a8",
+      "Tests/TwoD/ProjectManifestTests.cpp": "f40d5edd91465481f0836d60fea639451dc04d53c32e346e74558515eff13fd2",
+      "Tests/TwoD/SpriteCatalogAcceptance.py": "3ed7dce158129e08007f5cbbc2db6bfee935604be71c5ef254ae722f341a3481",
+      "Tests/TwoD/SpriteCatalogModule.cpp": "a22cb4473d0cddcc8a97cb302876c9f317a351ccdd660dbfa1fb7c2f2b2e3fdd",
+      "Tests/TwoD/SpriteSourcePlayer.zig": "d1d6147b039a136dea2c268737102cdde0f9a674631fd9d171f9be5b49a4c5b8",
+      "Tests/TwoD/SpriteSourcePlayerAcceptance.py": "c0c41a2e514997a05c1c020db5ff39dfdf076ffa6038ffa775c2ebc5b6c913c7",
+      "Tools/TwoD/ExportGame.py": "d0722f7fa5c28111f67e2300f811aa2ee6ecf7f0a46faa3ae03bac0a53224aa7"
+    },
+    "failure_diagnostics_sha256": "dce59a6a7b1f404260f7b5b171d4794cccd693ec69a8f08bf6588dbf0f288399",
+    "failed_head": "13baa7634e3e02237f11324ec55d0048a0b282ce",
+    "failed_windows_jobs": [
+      131191206317,
+      131191228642
+    ],
+    "diagnostic": "Both Windows mimalloc jobs compiled and passed 258/259 tests; sprite catalog fixture aborted with 3221226505 receiving a Unicode path through narrow main.",
+    "repair": "Windows wmain and native filesystem::path arguments for both fixture modes; MinGW -municode; exception diagnostic and exit 1. Unicode input, payloads and assertions unchanged.",
+    "configure_build": {
+      "development": "passed"
+    },
+    "full_development": {
+      "command": "CTEST_PARALLEL_LEVEL=2 ctest --preset linux-development --output-junit /workspace/work/editor-completion/sprite-wide-full-junit.xml",
+      "tests": 482,
+      "failures": 0,
+      "skipped": 0,
+      "seconds": 1330.12,
+      "exit_code": 0,
+      "selected_tests": [
+        {
+          "name": "api.sprite_source_baseline_guard",
+          "classname": "api.sprite_source_baseline_guard",
+          "time": "0.825561",
+          "status": "run"
+        },
+        {
+          "name": "api.m6_c_consumer",
+          "classname": "api.m6_c_consumer",
+          "time": "0.00113507",
+          "status": "run"
+        },
+        {
+          "name": "twod.sprite_catalog_export",
+          "classname": "twod.sprite_catalog_export",
+          "time": "1.02699",
+          "status": "run"
+        },
+        {
+          "name": "twod.gameplay_assets",
+          "classname": "twod.gameplay_assets",
+          "time": "0.0459851",
+          "status": "run"
+        },
+        {
+          "name": "gameplay.zig_assets_wire_layout",
+          "classname": "gameplay.zig_assets_wire_layout",
+          "time": "2.23351",
+          "status": "run"
+        },
+        {
+          "name": "twod.sprite_source_player",
+          "classname": "twod.sprite_source_player",
+          "time": "43.1693",
+          "status": "run"
+        },
+        {
+          "name": "twod.sprite_source_catalog_player",
+          "classname": "twod.sprite_source_catalog_player",
+          "time": "38.2141",
+          "status": "run"
+        },
+        {
+          "name": "editor.layout_restart",
+          "classname": "editor.layout_restart",
+          "time": "31.0394",
+          "status": "run"
+        },
+        {
+          "name": "editor.linux_xvfb_lifetime",
+          "classname": "editor.linux_xvfb_lifetime",
+          "time": "0.497105",
+          "status": "run"
+        }
+      ],
+      "junit_sha256": "b4d0088e36d560942bdbb501ea643682ad4894f077987e37334b4d898ea27c52",
+      "log_sha256": "cfd33cae1e439c57e77d4913c0461729185ea880e08ddf38997f845de2413efd"
+    },
+    "shipping": "Prior integrated Shipping build and strict C-only/real-Zig package verdicts remain applicable: all production file hashes unchanged; only test entrypoint/link option changed.",
+    "hosted_validation": "Repaired-head CI required before merge; no local Windows execution claimed."
   }
 }

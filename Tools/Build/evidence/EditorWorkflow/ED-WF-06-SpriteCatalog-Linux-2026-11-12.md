@@ -216,6 +216,16 @@ real Zig transition checks pass **4/4** (7.88 s); the changed C++ unit retains a
 width audit. Fresh full-gate and repaired-head Windows results remain required. Both `13baa763`
 Windows Vulkan guided-tour jobs succeeded; earlier intermittent failures remain retained.
 
+Implementation `504cc58508d96bbb8e564a2e5a0bb504e2edabc6` then passed Development configure/build
+and the complete unfiltered Linux gate: **482/482, zero failures/skips, 1330.12 seconds, exit 0**,
+without retries. The native file-catalog Zig case passed in 38.2141 s, the original embedded case
+in 43.1693 s, Unicode catalog export in 1.02699 s and layout restart in 31.0394 s. Frozen hashes
+match every implementation file and the failure-only workflow diagnostic. Production files remain
+unchanged, so prior strict Shipping results still apply. The machine receipt preserves all earlier
+candidates and adds this native-argument repair, including complete-log/JUnit hashes. Markdown,
+bilingual, formatting and documentation-routing checks pass; repaired-head hosted CI is the
+remaining merge gate.
+
 ## Acceptance limits
 
 This slice adds file/registry admission and packaging. Host source-table exposure and source-bearing
