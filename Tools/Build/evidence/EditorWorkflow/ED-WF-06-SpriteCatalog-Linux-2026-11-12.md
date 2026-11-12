@@ -165,6 +165,23 @@ candidate, including selected tests, binaries, Windows-ABI probe and full-traver
 Documentation routing unit tests remain 16/16 passing; final Markdown/bilingual, C++ format,
 Python byte-compilation and diff checks are repeated after recording these results.
 
+## Test index width follow-up
+
+Head `79e5f67c`'s Windows SDK run `43213265709` passed all three jobs, confirming the production
+MSVC C2397 repair. Its Windows Desktop (`131166249638`) and mimalloc (`131166249789`) jobs then
+failed a separate test-only warning: `GameplayAssetsTests.cpp(302)`, C4267 (`size_t` to `unsigned`
+argument), promoted to C2220 by the unchanged `/W4 /WX` policy. The final opaque-request index
+now explicitly uses the ABI's `uint32_t`; the constructor already bounds this catalog to 4096.
+All fixture data, request ordering and assertions remain unchanged. Production sources and ABI
+are unchanged from the integrated candidate above.
+
+A Clang 19 actual-translation-unit audit using each CMake compile command and
+`-fsyntax-only -Werror=shorten-64-to-32` reproduced exactly that test line before repair. All five
+touched C++ units pass after repair: Player, asset loader, asset tests, manifest tests and the
+independent C ABI module. Compiler commands and diagnostics are retained in
+`catalog-width-before.json` / `catalog-width-after.json`. CI warning policy is not changed.
+The test-width repair receives a fresh full local gate and exact-head hosted CI before merging.
+
 ## Acceptance limits
 
 This slice adds file/registry admission and packaging. Host source-table exposure and source-bearing

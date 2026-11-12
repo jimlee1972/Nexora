@@ -256,7 +256,7 @@ void SpriteCatalog() {
     return data[std::stoul(file.path)];
   });
   auto api = Api(assets);
-  const auto load = [&](unsigned index, unsigned phase, int result) {
+  const auto load = [&](std::uint32_t index, unsigned phase, int result) {
     NexoraAssetCatalogEntryV1 entry{};
     entry.struct_size = sizeof(entry);
     assert(api.describe_catalog(api.context, index, &entry) == 0 &&
@@ -299,7 +299,9 @@ void SpriteCatalog() {
   assert(failed.phase == NEXORA_ASSET_FAILED && failed.result == -2 && !failed.high &&
          !failed.low && content.ResolveSprite(source.id) == retained);
   assert(api.release_request(api.context, duplicate) == 0);
-  load(data.size() - 1, NEXORA_ASSET_READY, 0); // Kind 3 stays opaque even for a cooked source.
+  // The catalog is bounded to 4096 entries; its ABI indices are uint32_t.
+  load(static_cast<std::uint32_t>(data.size() - 1), NEXORA_ASSET_READY, 0);
+  // Kind 3 stays opaque even for a cooked source.
   assert(api.remove_asset(api.context, source.atlas.high, source.atlas.low) == -3 &&
          content.ResolveSprite(source.id) == retained);
   assert(api.remove_asset(api.context, source.id.high, source.id.low) == 0);
