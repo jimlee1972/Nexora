@@ -206,10 +206,21 @@ toward the aggregate startup budget. Packages may therefore exceed 64 MiB withou
 all at once. Cooked identity/hash/dependency and contained-path checks remain in place.
 
 The exported schema-1 descriptor appends `capacity A B C D E` and uses `deferred_atlas`,
-`deferred_clip` and `deferred_blob` lines. A configured `tile_atlas` may be initially unavailable
+`deferred_clip`, `deferred_sprite` and `deferred_blob` lines. A configured `tile_atlas` may be initially unavailable
 when a deferred Atlas is present; Zig must load the matching UUID before painting/rendering its
 cells. No implicit map/dependency load occurs. Old Players reject these new optional directives
 explicitly; export and run with matching versions.
+
+Sprite source entries use `{"kind": "sprite", "path": "Content/Hero.nx2sprite"}`;
+add `"preload": false` for deferred loading. Export cooks canonical files with `--compiler`,
+or copies an existing `.nxcook`. The Player validates cooked hash/type, payload/container UUID
+and exactly one matching Atlas dependency, then the registry checks region/trim compatibility.
+Preloads admit all explicit Atlas entries before Clips and Sprite sources regardless of descriptor
+order. A preloaded source therefore needs an explicit preloaded Atlas entry; a deferred Atlas
+cannot satisfy startup admission. Deferred sources appear as catalog kind 4 in descriptor order;
+load their Atlas first, then request the source. Kind 3 remains opaque bytes. These directives
+admit immutable source metadata; source-bound gameplay descriptors and main Editor integration
+are separate work. See [catalog validation evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SpriteCatalog-Linux-2026-11-12.md).
 
 The [asset contract](../../Engine/TwoD/GameplayAssets.md) defines request transfer, cancellation,
 clip-before-atlas removal, logical RAM/texture budgets and mandatory reader shutdown before VFS

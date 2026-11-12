@@ -1,0 +1,138 @@
+{
+  "base": "ee1cc3f1e08560118438a6fcc262dbebb3f9bb79",
+  "branch": "codex/editor-sprite-catalog",
+  "implementation_files": {
+    "Apps/TwoDPlayer/Project.h": "e252a247e2a4a724bd766d2dd9cc452720ca798db3684f83f794f1c5e3c3ea2c",
+    "Apps/TwoDPlayer/TwoDPlayer.cpp": "4296b638e3b5c5942f0cfd80163f4eec56b2deb7d70a8d9cd6053f01b7a42802",
+    "Bindings/Zig/assets.zig": "4974f0bf41d28cec0e10f78489f453658c71c56eda14d94b6ad7653e77b898ff",
+    "Engine/API/include/nexora/gameplay_assets.h": "4987624c1f4cef27cb3d2f47aadc48d644b32302b9488181d13c27c3b8c33ce5",
+    "Engine/TwoD/src/GameplayAssets.cpp": "4f935468bd5c39c138bd68c458ab92c1c52c5bcb03dac122da2765e6f65286b7",
+    "Tests/TwoD/CMakeLists.txt": "fed9fd4416fef9bdd7c0567d18bb625fdc718d9f26003a70108f915a2bd4e335",
+    "Tests/TwoD/GameplayAssetsLayout.zig": "d38ca1d5a11e2019a02dea9e938e82e34d9166de6390d4faf4d2eaa8131e6ec8",
+    "Tests/TwoD/GameplayAssetsTests.cpp": "4f27d808b8f99d8c9c5023aa2e95e581371fbdd67e0dc4a90a6fc9587235cbd6",
+    "Tests/TwoD/ProjectManifestTests.cpp": "f40d5edd91465481f0836d60fea639451dc04d53c32e346e74558515eff13fd2",
+    "Tools/TwoD/ExportGame.py": "d0722f7fa5c28111f67e2300f811aa2ee6ecf7f0a46faa3ae03bac0a53224aa7",
+    "Tests/TwoD/SpriteCatalogAcceptance.py": "3ed7dce158129e08007f5cbbc2db6bfee935604be71c5ef254ae722f341a3481",
+    "Tests/TwoD/SpriteCatalogModule.cpp": "a22cb4473d0cddcc8a97cb302876c9f317a351ccdd660dbfa1fb7c2f2b2e3fdd"
+  },
+  "full_development": {
+    "command": "CTEST_PARALLEL_LEVEL=2 ctest --preset linux-development --output-junit /workspace/work/editor-completion/sprite-full-junit.xml",
+    "tests": 477,
+    "failures": 0,
+    "skipped": 0,
+    "seconds": 1296.89,
+    "exit_code": 0,
+    "selected_tests": [
+      {
+        "name": "api.m6_c_consumer",
+        "classname": "api.m6_c_consumer",
+        "time": "0.00123506",
+        "status": "run"
+      },
+      {
+        "name": "api.m6_manifest_compatibility",
+        "classname": "api.m6_manifest_compatibility",
+        "time": "0.0432357",
+        "status": "run"
+      },
+      {
+        "name": "twod.project_export",
+        "classname": "twod.project_export",
+        "time": "0.291159",
+        "status": "run"
+      },
+      {
+        "name": "twod.sprite_catalog_export",
+        "classname": "twod.sprite_catalog_export",
+        "time": "1.0058",
+        "status": "run"
+      },
+      {
+        "name": "twod.project_manifest",
+        "classname": "twod.project_manifest",
+        "time": "0.00456661",
+        "status": "run"
+      },
+      {
+        "name": "twod.gameplay_assets",
+        "classname": "twod.gameplay_assets",
+        "time": "0.0470644",
+        "status": "run"
+      },
+      {
+        "name": "gameplay.zig_assets_wire_layout",
+        "classname": "gameplay.zig_assets_wire_layout",
+        "time": "2.3136",
+        "status": "run"
+      },
+      {
+        "name": "editor.hierarchy_scale_lifecycle",
+        "classname": "editor.hierarchy_scale_lifecycle",
+        "time": "158.091",
+        "status": "run"
+      },
+      {
+        "name": "editor.layout_restart",
+        "classname": "editor.layout_restart",
+        "time": "29.3858",
+        "status": "run"
+      },
+      {
+        "name": "editor.linux_native_play_soak",
+        "classname": "editor.linux_native_play_soak",
+        "time": "77.4839",
+        "status": "run"
+      },
+      {
+        "name": "editor.linux_xvfb_lifetime",
+        "classname": "editor.linux_xvfb_lifetime",
+        "time": "0.475422",
+        "status": "run"
+      },
+      {
+        "name": "editor.linux_native_game_twod",
+        "classname": "editor.linux_native_game_twod",
+        "time": "62.6188",
+        "status": "run"
+      },
+      {
+        "name": "editor.authoring_mixed_replay_1000_1x",
+        "classname": "editor.authoring_mixed_replay_1000_1x",
+        "time": "7.66673",
+        "status": "run"
+      },
+      {
+        "name": "editor.authoring_mixed_replay_1000_2x",
+        "classname": "editor.authoring_mixed_replay_1000_2x",
+        "time": "8.02094",
+        "status": "run"
+      },
+      {
+        "name": "editor.linux_packaged_play",
+        "classname": "editor.linux_packaged_play",
+        "time": "46.4557",
+        "status": "run"
+      }
+    ]
+  },
+  "configure_build": {
+    "development": "passed; graphical Editor, Zig, Slang, Vulkan, 2D",
+    "shipping": "passed; Monolithic Minimal, 2D ON, BUILD_TESTING OFF; zero registered tests"
+  },
+  "shipping_package": {
+    "player": "build/linux-shipping/Apps/TwoDPlayer/NexoraTwoDPlayer",
+    "driver": "SpriteCatalogAcceptance.main with all exporter calls forced allow_development=False and every published inventory development_test_copy asserted false",
+    "exit_code": 0,
+    "scope": "CPU file/registry admission; Development-built independent C ABI module and compiler; no clean-host/native acceptance"
+  },
+  "prior_failure": {
+    "focused": "4/5 initial focused cases passed; new fixture omitted getter abi_version=1; corrected fixture package checks passed; no production change or assertion reduction",
+    "full_suite_retry": false
+  },
+  "binaries": {
+    "build/linux-development/Apps/TwoDPlayer/NexoraTwoDPlayer": "50e43c3324f85f18a90e63612111a80b3547ccb3e040bdc7800b028277e30fad",
+    "build/linux-shipping/Apps/TwoDPlayer/NexoraTwoDPlayer": "2de2c2d46d7a69a60f8e5834feb8f90a1bbf253b63a86557e301c8277a8c2871",
+    "build/linux-development/Tests/TwoD/libNexoraSpriteCatalogFixture.so": "98fcca57e35a4ad3d8a40e72c45fae5beed014d44bfcc1c3a59a9db1c1df9feb",
+    "build/linux-development/Tests/TwoD/NexoraGameplayAssetsTests": "190289d5921ef875ba5c0fdd2dfda8a46fd0c3a9dc48838aebd54e9cf71806fc"
+  }
+}

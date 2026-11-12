@@ -40,6 +40,12 @@ void Run(const std::filesystem::path &root) {
   Check(configured.pool_instances == 4096 && configured.assets.size() == 1 &&
             configured.assets[0].deferred && configured.assets[0].kind == "atlas",
         "deferred asset catalog");
+  for (const auto kind : {"sprite", "deferred_sprite"}) {
+    const auto source = load(base + kind + " \"gameplay.dll\"\n");
+    Check(source.assets.size() == 1 && source.assets[0].kind == "sprite" &&
+              source.assets[0].deferred == std::string_view(kind).starts_with("deferred_"),
+          "Sprite source descriptor");
+  }
   const auto display = load(base + "display 1920 1080 windowed 1\n");
   Check(display.width == 1920 && display.height == 1080 && !display.borderless && display.resizable,
         "configured display");
@@ -72,20 +78,28 @@ void Run(const std::filesystem::path &root) {
     }
     Check(rejected, "invalid authored scene catalog admitted");
   }
-  for (const auto &bad :
-       {base + "capacity 0 67108864 134217728 67108864 1024\n",
-        base + "capacity 256 67108864 1 67108864 1024\n",
-        base + "capacity 256 67108864 134217728 67108864 100001\n",
-        base + "capacity 256 67108864 134217728 67108864 1024 trailing\n",
-        base + "deferred_wave 1 \"gameplay.dll\"\n", base + "unknown \"value\"\n",
-        base + "id \"duplicate\"\n", base + "tile_atlas 0 0\n",
-        base + "display 0 1080 windowed 1\n", base + "display 16385 1080 windowed 1\n",
-        base + "display -1 1080 windowed 1\n", base + "display 1920 1080 exclusive 1\n",
-        base + "display 1920.5 1080 windowed 1\n", base + "display 1920 1080 windowed 2\n",
-        base + "display 1920 1080 windowed 1\ndisplay 640 480 windowed 1\n",
-        base + "font 33 \"gameplay.dll\"\n", base + "wave 1 \"../gameplay.dll\"\n",
-        base + "wave 1 \"gameplay.dll:stream\"\n",
-        base + "wave 1 \"gameplay.dll\"\nwave 1 \"gameplay.dll\"\n"}) {
+  for (const auto &bad : {base + "capacity 0 67108864 134217728 67108864 1024\n",
+                          base + "capacity 256 67108864 1 67108864 1024\n",
+                          base + "capacity 256 67108864 134217728 67108864 100001\n",
+                          base + "capacity 256 67108864 134217728 67108864 1024 trailing\n",
+                          base + "deferred_wave 1 \"gameplay.dll\"\n",
+                          base + "unknown \"value\"\n",
+                          base + "sprite \"../gameplay.dll\"\n",
+                          base + "deferred_sprite \"missing.nxcook\"\n",
+                          base + "sprite \"gameplay.dll\"\ndeferred_sprite \"gameplay.dll\"\n",
+                          base + "id \"duplicate\"\n",
+                          base + "tile_atlas 0 0\n",
+                          base + "display 0 1080 windowed 1\n",
+                          base + "display 16385 1080 windowed 1\n",
+                          base + "display -1 1080 windowed 1\n",
+                          base + "display 1920 1080 exclusive 1\n",
+                          base + "display 1920.5 1080 windowed 1\n",
+                          base + "display 1920 1080 windowed 2\n",
+                          base + "display 1920 1080 windowed 1\ndisplay 640 480 windowed 1\n",
+                          base + "font 33 \"gameplay.dll\"\n",
+                          base + "wave 1 \"../gameplay.dll\"\n",
+                          base + "wave 1 \"gameplay.dll:stream\"\n",
+                          base + "wave 1 \"gameplay.dll\"\nwave 1 \"gameplay.dll\"\n"}) {
     bool rejected{};
     try {
       (void)load(bad);

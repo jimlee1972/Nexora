@@ -165,6 +165,15 @@ if(TARGET NexoraTwoDPlayer AND (WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux"))
     "${CMAKE_CURRENT_SOURCE_DIR}/ProjectAcceptance.py" --app "$<TARGET_FILE:NexoraTwoDPlayer>"
     --module "$<TARGET_FILE:NexoraTwoDProjectFixture>")
   set_tests_properties(twod.project_export PROPERTIES TIMEOUT 90 LABELS "twod;project;export")
+  add_library(NexoraSpriteCatalogFixture SHARED SpriteCatalogModule.cpp)
+  target_include_directories(NexoraSpriteCatalogFixture PRIVATE "${PROJECT_SOURCE_DIR}/Engine/API/include")
+  nexora_apply_defaults(NexoraSpriteCatalogFixture)
+  add_test(NAME twod.sprite_catalog_export COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/SpriteCatalogAcceptance.py" --app "$<TARGET_FILE:NexoraTwoDPlayer>"
+    --module "$<TARGET_FILE:NexoraSpriteCatalogFixture>"
+    --fixture "$<TARGET_FILE:NexoraGameplayAssetsTests>"
+    --compiler "$<TARGET_FILE:NexoraTwoDAssetCompiler>")
+  set_tests_properties(twod.sprite_catalog_export PROPERTIES TIMEOUT 180 LABELS "twod;assets;project;export")
 endif()
 if(WIN32)
   add_test(NAME twod.windows_font_bake COMMAND "${Python3_EXECUTABLE}"

@@ -343,7 +343,12 @@ of identical GDI output or accepted Windows typography.
 
 ### SP-03 deferred export
 
-`ExportGame.py` preserves optional capacity settings and deferred Atlas/Clip/opaque-byte entries.
+`ExportGame.py` preserves optional capacity settings and deferred Atlas/Clip/Sprite/opaque-byte entries.
+Sprite entries use `kind: "sprite"`, a canonical `.nx2sprite` (requires `--compiler`) or an
+existing `.nxcook`, and optional `preload: false`. They become `sprite`/`deferred_sprite` manifest
+directives. Export cooking validates source metadata; copied cooked envelopes and Atlas dependency
+closure are validated by the Player when loading. Include an explicit Atlas entry and load it
+before its source. No implicit dependency discovery or source-bound render descriptor is added.
 It checks each source/cooked file against 64 MiB, but applies the aggregate 64 MiB limit only to
 preloaded files. It stages/copies/hashes every packaged file without holding all payloads resident.
 See [the Player descriptor](../../Apps/TwoDPlayer/README.md#deferred-chapter-assets-sp-03) and

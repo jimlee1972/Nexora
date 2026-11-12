@@ -1,5 +1,9 @@
-//! Bounded catalog IO. Ready Atlas/Clip requests transfer content to the registry;
+//! Bounded catalog IO. Ready Atlas/Clip/Sprite source requests transfer content to the registry;
 //! releaseRequest forgets the ticket, while remove explicitly unloads its UUID.
+pub const catalog_atlas: u32 = 1;
+pub const catalog_clip: u32 = 2;
+pub const catalog_opaque: u32 = 3;
+pub const catalog_sprite_source: u32 = 4;
 pub const CatalogEntry = extern struct {
     struct_size: u32 = @sizeOf(CatalogEntry),
     kind: u32 = 0,

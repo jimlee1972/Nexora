@@ -78,8 +78,10 @@ Initialize `struct_size` before acquisition and check returned size/version/call
 A short table returns `UNSUPPORTED` unchanged; an oversized caller receives only the V1 prefix.
 The original `NexoraGameplayContentApiV1`, gameplay Host/services and Sprite/Instance descriptors
 keep their layouts. The canonical gameplay host does not yet advertise this table: host capability
-negotiation, source-bearing C/Zig descriptors, catalog/Player admission, Editor authoring and
+negotiation, source-bearing C/Zig descriptors, Editor authoring and
 animation/pool reload integration remain ED-WF-06 through ED-WF-09 work.
+The [asset catalog](GameplayAssets.md) now admits cooked sources as catalog kind 4, and the Player
+accepts preloaded `sprite` and deferred `deferred_sprite` files independently of Host exposure.
 
 `register_sprite_source` decodes the existing 96-byte `.nx2sprite` schema 1 and returns its UUID.
 The Atlas must already be registered. Missing/non-Atlas dependencies return `UNSUPPORTED`; malformed
@@ -103,7 +105,7 @@ and `CollectRetiredTextures` collects them, without producing a native texture I
 include sources. `list_assets` sorts Atlas, Clip, then source, each by UUID; source descriptions use
 content kind `NEXORA_CONTENT_SPRITE_SOURCE` (3), count 1, untrimmed canvas width/height and the Atlas
 UUID. **Content kinds and asset catalog kinds are separate namespaces**: catalog kind 3 remains
-opaque game-owned bytes, and no `.nx2sprite` catalog admission is added here.
+opaque game-owned bytes; source files use catalog kind 4 through the separate asset service.
 
 `twod.gameplay_content` additionally checks real source decoding/extraction, both-direction type
 collisions, dependency-preserving rejection, short/extended-table canaries, source/frame retention,

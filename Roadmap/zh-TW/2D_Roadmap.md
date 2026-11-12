@@ -872,5 +872,10 @@ ED-WF-06 supporting 註冊表切片提供獨立且檢查 size 的 C 表、Zig wi
 [Linux 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceRegistry-Linux-2026-11-12.md)
 獨立記錄。既有 Gameplay descriptor 與 Content 表不變。Content kind 3 僅在內容註冊表代表
 Sprite source；Asset catalog kind 3 維持 opaque bytes。標準 Host 能力曝光、來源 descriptor、
-Player／catalog admission、Editor 製作及動畫／pool 整合仍待完成。ED-WF 驗收維持 4/9，
+Editor 製作及動畫／pool 整合仍待完成。ED-WF 驗收維持 4/9，
 2D 維持 9/11（82%），M6／M7 實機及乾淨主機驗收另計。
+
+✅ 獨立 [Sprite catalog 切片](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SpriteCatalog-Linux-2026-11-12.md)
+新增目錄種類 4、Player 預載／延後檔案准入，以及檢查明確 Atlas 閉包的標準來源匯出。
+搬移成品的 C ABI 測試保留 opaque 種類 3 與無來源參照的消費端行為。來源綁定繪製及主 Editor
+製作仍待完成；里程碑數字不變。

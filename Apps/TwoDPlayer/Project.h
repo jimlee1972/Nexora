@@ -148,8 +148,9 @@ struct GameProject final {
                            bool(row >> result.tile_atlas.high >> result.tile_atlas.low) &&
                            (result.tile_atlas.high || result.tile_atlas.low) && !(row >> trailing),
                        "invalid tile atlas identity");
-      } else if (key == "atlas" || key == "clip" || key == "wave" || key == "font" ||
-                 key == "deferred_atlas" || key == "deferred_clip" || key == "deferred_blob") {
+      } else if (key == "atlas" || key == "clip" || key == "sprite" || key == "wave" ||
+                 key == "font" || key == "deferred_atlas" || key == "deferred_clip" ||
+                 key == "deferred_sprite" || key == "deferred_blob") {
         ProjectAsset asset;
         asset.deferred = key.starts_with("deferred_");
         asset.kind = asset.deferred ? key.substr(9) : key;

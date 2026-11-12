@@ -196,6 +196,117 @@ void EmissionResidency() {
     assert(!usage.active_bytes && !usage.retired_bytes && !usage.staging_bytes && !usage.requests);
   }
 }
+twod::SpriteAsset Source(twod::AssetId id = {201, 1}, twod::AssetId atlas = {200, 1}) {
+  twod::SpriteAsset source;
+  source.id = id;
+  source.atlas = atlas;
+  source.region = 1;
+  source.sourceWidth = source.sourceHeight = 4;
+  source.trimX = source.trimY = 1;
+  source.trimWidth = source.trimHeight = 2;
+  source.pivotX = 2;
+  source.pixelsPerUnit = 2;
+  return source;
+}
+twod::Bytes CookSource(const twod::SpriteAsset &source, twod::AssetId id,
+                       std::vector<twod::AssetId> dependencies,
+                       std::string type = "sprite_source") {
+  runtime::DerivedDataCache cache;
+  const auto blob = runtime::AssetCooker{}.Cook(
+      {id, std::move(type), std::move(dependencies), twod::EncodeSpriteAsset(source)}, "test", "",
+      cache);
+  assert(blob);
+  return runtime::AssetCooker::Serialize(*blob);
+}
+twod::Bytes CookSource(const twod::SpriteAsset &source) {
+  return CookSource(source, source.id, {source.atlas});
+}
+void SpriteCatalog() {
+  const auto source = Source();
+  auto badRegion = source;
+  badRegion.region = 2;
+  auto badTrim = source;
+  badTrim.trimWidth = 1;
+  auto corrupt = CookSource(source);
+  corrupt.back() ^= std::byte{1};
+  std::vector<twod::Bytes> data{
+      CookSource(source),
+      Cook(source.atlas),
+      corrupt,
+      CookSource(source, {201, 2}, {source.atlas}), // Container/payload identity mismatch.
+      CookSource(source, source.id, {}),
+      CookSource(source, source.id, {{200, 2}}),
+      CookSource(source, source.id, {source.atlas, source.atlas}),
+      CookSource(source, source.id, {source.atlas}, "sprite_clip"),
+      CookSource(badRegion),
+      CookSource(badTrim),
+      twod::EncodeSpriteAsset(source),
+      CookSource(source)};
+  std::vector<twod::GameplayAssetFile> files;
+  for (unsigned i = 0; i < data.size(); ++i)
+    files.push_back({i == 1                 ? NEXORA_ASSET_CATALOG_ATLAS
+                     : i == data.size() - 1 ? NEXORA_ASSET_CATALOG_OPAQUE
+                                            : NEXORA_ASSET_CATALOG_SPRITE_SOURCE,
+                     data[i].size(), std::to_string(i)});
+  twod::GameplayContent content;
+  const auto thread = std::this_thread::get_id();
+  twod::GameplayAssets assets(content, files, [&](const auto &file) {
+    assert(std::this_thread::get_id() != thread);
+    return data[std::stoul(file.path)];
+  });
+  auto api = Api(assets);
+  const auto load = [&](unsigned index, unsigned phase, int result) {
+    NexoraAssetCatalogEntryV1 entry{};
+    entry.struct_size = sizeof(entry);
+    assert(api.describe_catalog(api.context, index, &entry) == 0 &&
+           entry.kind == files[index].kind && entry.file_bytes == data[index].size());
+    std::uint64_t ticket{};
+    assert(api.request(api.context, index, &ticket) == 0);
+    const auto state = Wait(assets, api, ticket);
+    assert(state.phase == phase && state.result == result);
+    if (phase == NEXORA_ASSET_FAILED)
+      assert(state.high == 0 && state.low == 0 && !content.ResolveSprite(source.id));
+    else if (index == 0)
+      assert(state.high == source.id.high && state.low == source.id.low);
+    if (index == data.size() - 1) {
+      twod::Bytes bytes(data[index].size());
+      std::uint64_t length{};
+      assert(api.copy_bytes(api.context, ticket, bytes.data(), bytes.size(), &length) == 0 &&
+             bytes == data[index] && length == bytes.size());
+    } else {
+      std::uint64_t length = 999;
+      assert(api.copy_bytes(api.context, ticket, nullptr, 0, &length) == -3 && length == 999);
+    }
+    assert(api.release_request(api.context, ticket) == 0 && Usage(api).staging_bytes == 0);
+  };
+  load(0, NEXORA_ASSET_FAILED, -2); // No implicit Atlas load or partial source publication.
+  assert(!content.Statistics().active_assets);
+  load(1, NEXORA_ASSET_READY, 0);
+  const auto atlas = content.ResolveAtlas(source.atlas);
+  for (unsigned i = 2; i + 1 < data.size(); ++i) {
+    load(i, NEXORA_ASSET_FAILED, -1);
+    assert(content.ResolveAtlas(source.atlas)->atlas == atlas->atlas &&
+           content.Statistics().active_assets == 1);
+  }
+  load(0, NEXORA_ASSET_READY, 0);
+  const auto retained = content.ResolveSprite(source.id);
+  assert(retained && *retained == source && content.Statistics().active_assets == 2);
+  // A catalog cannot replace a preloaded/manual/previously loaded active UUID.
+  std::uint64_t duplicate{};
+  assert(api.request(api.context, 0, &duplicate) == 0);
+  const auto failed = Wait(assets, api, duplicate);
+  assert(failed.phase == NEXORA_ASSET_FAILED && failed.result == -2 && !failed.high &&
+         !failed.low && content.ResolveSprite(source.id) == retained);
+  assert(api.release_request(api.context, duplicate) == 0);
+  load(data.size() - 1, NEXORA_ASSET_READY, 0); // Kind 3 stays opaque even for a cooked source.
+  assert(api.remove_asset(api.context, source.atlas.high, source.atlas.low) == -3 &&
+         content.ResolveSprite(source.id) == retained);
+  assert(api.remove_asset(api.context, source.id.high, source.id.low) == 0);
+  assert(api.remove_asset(api.context, source.atlas.high, source.atlas.low) == 0);
+  assert(!content.ResolveSprite(source.id) && !content.ResolveAtlas(source.atlas) &&
+         *retained == source && atlas->atlas->rgba[0] == std::byte{255} &&
+         content.CollectRetiredTextures().empty());
+}
 void LiveBudget() {
   twod::GameplayContent content({2, 1000, 1000});
   NexoraGameplayContentApiV1 api{};
@@ -276,7 +387,26 @@ void Stress() {
 }
 } // namespace
 int main(int argc, char **argv) {
-  if (argc == 3 && std::string_view(argv[1]) == "--fixture") {
+  if (argc == 3 && std::string_view(argv[1]) == "--sprite-fixture") {
+    const auto root = std::filesystem::path(argv[2]);
+    std::filesystem::create_directories(root);
+    const auto write = [&](const std::string &name, const twod::Bytes &bytes) {
+      std::ofstream file(root / name, std::ios::binary);
+      file.write(reinterpret_cast<const char *>(bytes.data()), bytes.size());
+      assert(file);
+    };
+    write("atlas.nxcook", Cook({200, 1}));
+    write("deferred-atlas.nxcook", Cook({200, 2}));
+    write("source.nx2sprite", twod::EncodeSpriteAsset(Source()));
+    write("deferred-source.nx2sprite", twod::EncodeSpriteAsset(Source({201, 2}, {200, 2})));
+    write("source.nxcook", CookSource(Source()));
+    write("bad-id.nxcook", CookSource(Source(), {201, 9}, {{200, 1}}));
+    write("bad-dependency.nxcook", CookSource(Source(), {201, 1}, {{200, 9}}));
+    auto mismatch = Source();
+    mismatch.trimWidth = 1;
+    write("bad-region.nxcook", CookSource(mismatch));
+    write("raw.bin", {std::byte{'S'}, std::byte{'P'}, std::byte{'3'}});
+  } else if (argc == 3 && std::string_view(argv[1]) == "--fixture") {
     const auto root = std::filesystem::path(argv[2]);
     std::filesystem::create_directories(root);
     const auto write = [&](const std::string &name, const twod::Bytes &bytes) {
@@ -299,6 +429,7 @@ int main(int argc, char **argv) {
   else {
     Portable();
     EmissionResidency();
+    SpriteCatalog();
     LiveBudget();
   }
 }

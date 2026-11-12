@@ -4,6 +4,10 @@ const c = @cImport({
     @cInclude("nexora/gameplay_services.h");
 });
 test "asset IO and every services prefix C/Zig layout" {
+    try std.testing.expectEqual(c.NEXORA_ASSET_CATALOG_ATLAS, nx.assets.catalog_atlas);
+    try std.testing.expectEqual(c.NEXORA_ASSET_CATALOG_CLIP, nx.assets.catalog_clip);
+    try std.testing.expectEqual(c.NEXORA_ASSET_CATALOG_OPAQUE, nx.assets.catalog_opaque);
+    try std.testing.expectEqual(c.NEXORA_ASSET_CATALOG_SPRITE_SOURCE, nx.assets.catalog_sprite_source);
     inline for (.{
         .{ c.NexoraAssetCatalogEntryV1, nx.assets.CatalogEntry },
         .{ c.NexoraAssetLoadStateV1, nx.assets.LoadState },

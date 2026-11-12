@@ -978,6 +978,11 @@ and owning immutable source resolver; source/Atlas closure, rejection, snapshot 
 active/live budgets are covered by the [Linux evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceRegistry-Linux-2026-11-12.md).
 Original gameplay descriptors and the content table are unchanged. Content kind 3 identifies a
 Sprite source only in the content registry; asset catalog kind 3 remains opaque bytes. Canonical
-Host capability exposure, source descriptors, Player/catalog admission, Editor authoring and
+Host capability exposure, source descriptors, Editor authoring and
 animation/pool integration remain open. ED-WF acceptance stays 4/9; 2D stays 9/11 (82%), with M6/M7
 physical/clean-host acceptance separate.
+
+✅ The independent [Sprite catalog slice](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SpriteCatalog-Linux-2026-11-12.md)
+adds catalog kind 4, preloaded/deferred Player file admission and canonical source export with
+explicit Atlas closure checks. Relocated-package C ABI tests preserve opaque kind 3 and source-free
+consumers. Source-bound rendering and main Editor authoring remain open; milestone counts do not change.

@@ -32,7 +32,7 @@ SortingGroup, nine-slice/Tiled rendering, masks and advanced animation state mac
 | ED-WF-03 | [#744](https://github.com/jimlee1972/Nexora/issues/744) | 01 | Source-free runtime output; development receipts and publication inventory kept outside it | ✅ PR #756 |
 | ED-WF-04 | [#745](https://github.com/jimlee1972/Nexora/issues/745) | 01 | Transactional Runtime/Zig migration; failed replacement retains the old module and World | ✅ PR #758 |
 | ED-WF-05 | [#746](https://github.com/jimlee1972/Nexora/issues/746) | 02, 04 | Background source compilation and stateful Play reload without Stop/Play | In progress; integration unaccepted |
-| ED-WF-06 | [#747](https://github.com/jimlee1972/Nexora/issues/747) | 01 | Compatible C/Zig source APIs and cooked Player dependency closure | In progress; source registry slice only |
+| ED-WF-06 | [#747](https://github.com/jimlee1972/Nexora/issues/747) | 01 | Compatible C/Zig source APIs and cooked Player dependency closure | In progress; registry and catalog slices |
 | ED-WF-07 | [#748](https://github.com/jimlee1972/Nexora/issues/748) | 06 | Source indexing/Inspector/Undo/save/reopen/Play/Build/reimport in the real Editor | Pending |
 | ED-WF-08 | [#749](https://github.com/jimlee1972/Nexora/issues/749) | 04, 06, 07 | Source animation anchors, live pool instances and valid handles survive replacement | Pending |
 | ED-WF-09 | [#750](https://github.com/jimlee1972/Nexora/issues/750) | 02, 03, 05, 07, 08 | Integrated native acceptance and a verified, extracted Windows Editor ZIP | Pending |
@@ -41,8 +41,16 @@ SortingGroup, nine-slice/Tiled rendering, masks and advanced animation state mac
 Sprite source registration table and immutable C++ resolver with Atlas dependency validation and
 bounded retirement. Its [Linux evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceRegistry-Linux-2026-11-12.md)
 records the executed gates and limits. The canonical gameplay Host does not advertise this table
-yet; source descriptors, capability negotiation, catalog/Player closure and native integration
+yet; source descriptors, capability negotiation and native integration
 remain open. This supporting slice does not accept ED-WF-06 or change **4/9 (44.4%)** or **0/8**.
+
+✅ The independent catalog slice (`nexora-whr.6.3`) adds cooked Sprite sources as catalog kind 4,
+preloaded/deferred Player admission and canonical source export. Existing opaque kind 3, C/Zig
+table layouts, explicit Atlas-first loading and immutable ownership remain unchanged. The
+[Linux evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SpriteCatalog-Linux-2026-11-12.md)
+records real relocated-package admission and corruption/closure rejection. Host/source descriptor
+negotiation is tracked independently in `nexora-whr.6.2`; Editor authoring, source-bound native
+integration and complete ED-WF-06 acceptance remain open. Counts stay **4/9** and **0/8**.
 
 Each work order records exact commands/results and limitations in
 `Tools/Build/evidence/EditorWorkflow/ED-WF-XX.md`. The existing
