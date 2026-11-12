@@ -200,6 +200,22 @@ documentation-routing unit tests; its original native exit code remains intact. 
 bilingual, formatting, byte-compilation and diff checks pass before publication. Repaired-head
 hosted Windows/Desktop/mimalloc/native jobs still have to succeed before merge.
 
+## Native test argument paths
+
+Head `13baa763` compiled the Windows SDK, Desktop and mimalloc targets successfully, but push
+mimalloc CTest failed `twod.sprite_catalog_export`: its fixture generator aborted with status
+3221226505 while receiving the Unicode `source Unicode 精靈` output directory. The generator
+still used narrow `main` arguments, unlike the Player/AssetCompiler's native Windows entrypoints.
+It now uses `wmain` on Windows and carries native `filesystem::path` values directly into both
+fixture modes; Linux retains `main`. MinGW receives its normal `-municode` test link option.
+Exceptions now report their diagnostic and exit 1 instead of terminating without useful text.
+Unicode test paths, cooked data and all assertions remain unchanged.
+
+Development configure/build and focused asset, relocated Unicode package, residency stress and
+real Zig transition checks pass **4/4** (7.88 s); the changed C++ unit retains a clean strict
+width audit. Fresh full-gate and repaired-head Windows results remain required. Both `13baa763`
+Windows Vulkan guided-tour jobs succeeded; earlier intermittent failures remain retained.
+
 ## Acceptance limits
 
 This slice adds file/registry admission and packaging. Host source-table exposure and source-bearing

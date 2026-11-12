@@ -8,6 +8,7 @@
 #include <cassert>
 #include <chrono>
 #include <cstring>
+#include <exception>
 #include <filesystem>
 #include <fstream>
 #include <future>
@@ -388,10 +389,8 @@ void Stress() {
     assert(tail <= warm + 32 * MiB && "resident-set growth after warm-up exceeds 32 MiB");
   }
 }
-} // namespace
-int main(int argc, char **argv) {
-  if (argc == 3 && std::string_view(argv[1]) == "--sprite-fixture") {
-    const auto root = std::filesystem::path(argv[2]);
+int RunTests(int argc, const std::filesystem::path &option, const std::filesystem::path &root) {
+  if (argc == 3 && option == "--sprite-fixture") {
     std::filesystem::create_directories(root);
     const auto write = [&](const std::string &name, const twod::Bytes &bytes) {
       std::ofstream file(root / name, std::ios::binary);
@@ -409,8 +408,7 @@ int main(int argc, char **argv) {
     mismatch.trimWidth = 1;
     write("bad-region.nxcook", CookSource(mismatch));
     write("raw.bin", {std::byte{'S'}, std::byte{'P'}, std::byte{'3'}});
-  } else if (argc == 3 && std::string_view(argv[1]) == "--fixture") {
-    const auto root = std::filesystem::path(argv[2]);
+  } else if (argc == 3 && option == "--fixture") {
     std::filesystem::create_directories(root);
     const auto write = [&](const std::string &name, const twod::Bytes &bytes) {
       std::ofstream file(root / name, std::ios::binary);
@@ -434,5 +432,20 @@ int main(int argc, char **argv) {
     EmissionResidency();
     SpriteCatalog();
     LiveBudget();
+  }
+  return 0;
+}
+} // namespace
+#if defined(_WIN32)
+int wmain(int argc, wchar_t **argv) {
+#else
+int main(int argc, char **argv) {
+#endif
+  try {
+    return RunTests(argc, argc > 1 ? std::filesystem::path(argv[1]) : std::filesystem::path{},
+                    argc > 2 ? std::filesystem::path(argv[2]) : std::filesystem::path{});
+  } catch (const std::exception &error) {
+    std::cerr << error.what() << '\n';
+    return 1;
   }
 }
