@@ -76,10 +76,11 @@ artwork or establish graphical product or target-platform acceptance.
 `NexoraGameplaySpriteContentApiV1` table; Zig mirrors it as `content.SpriteApi`.
 Initialize `struct_size` before acquisition and check returned size/version/callback before use.
 A short table returns `UNSUPPORTED` unchanged; an oversized caller receives only the V1 prefix.
-The original `NexoraGameplayContentApiV1`, gameplay Host/services and Sprite/Instance descriptors
-keep their layouts. The canonical gameplay host does not yet advertise this table: host capability
-negotiation, source-bearing C/Zig descriptors, catalog/Player admission, Editor authoring and
-animation/pool reload integration remain ED-WF-06 through ED-WF-09 work.
+The original Content table and Sprite/Instance descriptors keep their layouts. The canonical Player
+now advertises this table through the optional services suffix `get_sprite_content_api`; Zig
+`getSpriteContent` checks the aggregate size/version and the returned table. Historical services
+prefixes remain supported. Main Editor Play has no registered source-content table and reports
+`UNSUPPORTED`. File catalog admission, Editor authoring and source-animation reload remain open.
 
 `register_sprite_source` decodes the existing 96-byte `.nx2sprite` schema 1 and returns its UUID.
 The Atlas must already be registered. Missing/non-Atlas dependencies return `UNSUPPORTED`; malformed

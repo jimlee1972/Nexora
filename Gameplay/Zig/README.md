@@ -57,12 +57,19 @@ const camera = nx.TwoDCamera{ .vertical_size = 12 };
 if (api.set_camera.?(api.context, &camera) != 0) return -1;
 ```
 
-All 2D table callbacks are present when `getTwoD` succeeds; optional Tilemap/pool/clip services
+All historical 2D table callbacks are present when `getTwoD` succeeds; optional Tilemap/pool/clip services
 return `unsupported` when unattached. Handle every result. After writing transforms, rebuild the
 chosen query source once and reuse its snapshot. Animation events and query hits support a
 count-only probe, then a sufficiently large output buffer. Never consume animation time in both
 fixed and variable updates. Pool handles carry owner/index/generation and are distinct from
 World IDs. Batch writes/destroys reject stale, foreign or duplicate handles atomically.
+
+The appended source getter is optional: `nx.getTwoDSources(api)` negotiates independent source
+Sprite/pool wires, and `nx.getSpriteContent(services)` negotiates source registration. Their
+absence does not invalidate the historical table. The canonical Player resolves module-registered
+sources; file catalog admission and main Editor source capture remain separate work. See the
+[source API contract](../../Engine/TwoD/README.md) and
+[real SDK/Player evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceAPI-Linux-2026-11-12.md).
 
 The sample serializes versioned scalar state and handles, not function/context pointers. Reload
 reacquires the table and validates migrated IDs/handles before reusing them. Host-owned content

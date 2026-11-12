@@ -1,4 +1,6 @@
 include(NexoraTarget)
+add_test(NAME api.sprite_source_baseline_guard
+  COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/Tools/Build/tests/test_api_sprite_source_contract.py")
 add_test(NAME api.scene_baseline_guard
   COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/Tools/Build/tests/test_api_scene_contract.py")
 add_executable(NexoraApiFoundationTests ApiFoundationTests.cpp)

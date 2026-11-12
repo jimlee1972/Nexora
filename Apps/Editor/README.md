@@ -1702,3 +1702,12 @@ module teardown and caught-error reporting. Each launch creates a unique run dir
 `~/.local/state/Nexora/Logs`; Apple uses `~/Library/Logs/Nexora`. Set `NEXORA_LOG_DIR` to select a
 writable root; the selected run path is printed to stderr. Keep the whole run directory when
 reporting a failure. See [capture/retention/platform limits](../../Roadmap/en/Crash_Logging_Delivery_Plan.md).
+
+## Optional gameplay Sprite source access
+
+Editor Play's shared TwoD bridge offers the optional source Sprite/pool table while preserving
+legacy descriptor strides. The main Editor still captures frozen Atlas/Clip assets, with no source
+registry or source authoring/capture. Its source-content service returns `UNSUPPORTED`. Extraction
+uses an empty source resolver: unresolved source instances are unavailable while ordinary Sprites
+continue rendering. Setting a source UUID through gameplay does not establish Editor source
+Inspector, persistence, animation or Build acceptance; those remain ED-WF-07/08 work.

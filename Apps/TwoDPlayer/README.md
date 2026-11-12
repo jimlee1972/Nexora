@@ -349,3 +349,18 @@ two lifecycle owners. Entity spawning accepts live catalog instances, including 
 All authored scene Sprites and loaded Tilemaps share one sorted render extraction with the host
 pool. [Ownership and limits](../../Engine/TwoD/README.md#packaged-authored-2d-scenes) apply.
 The main 3D Editor's text `.scene` files are a different format; use 2D Studio ND2D documents here.
+
+## Gameplay Sprite sources
+
+The Player supplies `nx.getSpriteContent(services)` and `nx.getTwoDSources(twod)` after acquiring
+the usual services/TwoD tables. Register an Atlas through Content first, then the canonical
+96-byte Sprite source through `register_sprite_source`. Set its UUID in `TwoDSourceSpriteV1`
+(or `TwoDSourceInstanceV1` for the pool); use the old pool table to destroy handles. Always check
+optional acquisition results. Source-aware Player extraction resolves the immutable registry each
+frame, including replacement geometry and Atlas generations; unresolved sources are unavailable.
+
+Games may embed cooked bytes in their module and register them at Start. This does not add
+`.nx2sprite` to the export/file catalog: catalog kind 3 still means opaque bytes. Editor source
+capture, source animation and full catalog dependency closure remain open. The
+[real Zig/relocated Player evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceAPI-Linux-2026-11-12.md)
+checks scene and pooled source instances, negative scale, source/Atlas replacement and native pixels.

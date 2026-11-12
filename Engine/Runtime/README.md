@@ -1267,3 +1267,11 @@ resources or copy another module's metadata. `CollectUnloadedScenes` is an expli
 collection point after deferred unload and host/native reader retirement. It removes only already
 Unloaded records, does not recycle IDs, and expires all scene-vector borrows. The optional TwoD
 module uses these generic operations without adding a Runtime dependency on TwoD or Editor.
+
+## Optional Sprite source-content service
+
+GameplayServices appends `get_sprite_content_api` and preserves every complete historical prefix.
+A missing registration returns `UNSUPPORTED` without changing the caller's output. The TwoD
+embedding owns the registered table/context until module teardown; Runtime only copies and
+negotiates it, with no TwoD implementation dependency or asset IO. Owner-thread checks apply to
+acquisition. See [the registry contract](../TwoD/GameplayContent.md#optional-sprite-source-registry-table).
