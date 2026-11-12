@@ -748,6 +748,15 @@ privacy, not an extension signature verifier or a telemetry transport implementa
   in-memory round trip. `ProjectWorkspace` stores that payload with an explicit schema under the
   project `.nexora` directory. The legacy schema 0 payload is read and rewritten as schema 1 on the
   next save; malformed or unsupported payloads are rejected and replaced only by a normal save.
+  After a layout is loaded, persistent shell panels use `NoFocusOnAppearing`: their first submission
+  does not replace its dock selection, and pending default Scene/Content selection is cleared.
+  New layouts retain normal appearing-panel focus. Explicit pointer, keyboard, menu and Play focus
+  requests still work.
+  `editor.layout_restart` destroys and recreates the context, verifies Hierarchy/Project and
+  Scene/Game selections, exact floating Content geometry and byte-identical saves over three restarts
+  at 100/125/150/200% DPI, then checks explicit tab focus. This is portable UI evidence; physical
+  docking/input acceptance remains separate. Test-only observation definitions are consistently
+  guarded, and the desktop CI matrix rebuilds the real graphical Editor with `BUILD_TESTING=OFF`.
 - Recovery is prompted once per discovered journal. Failed recover/discard operations keep the
   modal open and expose the data-layer error instead of silently dismissing it.
   The host owns a copied project UUID/root identity for this UI. Drawing or directly applying a

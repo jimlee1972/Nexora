@@ -14,6 +14,13 @@
 > and a bounded 512-frame docking/layout soak. Physical-display Linux and Windows DPI/IME target-host evidence
 > remain open, so these foundations must not be interpreted as ED-M0 acceptance.
 
+✅ Scoped restart/build repair (2026-11-12): portable fresh-context coverage at all four DPI buckets
+preserves saved dock selection and exact floating Content/layout bytes; the real X11 process
+reopen gate also compares selected dock tabs. Explicit focus remains available. Test-only observer
+definitions now compile out consistently, and the desktop matrix rebuilds graphical Editor with
+`BUILD_TESTING=OFF`. [Evidence](../../Tools/Build/evidence/EditorLayoutBuild-Linux-2026-11-12.md).
+This does not complete WP4's physical docking/input gate or ED-M0 acceptance.
+
 ## 1. Goal, acceptance boundary, and current truth
 
 ADR-0001 selected Dear ImGui with docking. This plan is the execution specification an AI agent

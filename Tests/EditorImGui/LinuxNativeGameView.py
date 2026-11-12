@@ -175,6 +175,16 @@ def main():
             driver.play_key('F5', deadline=deadline)
             return wait_view(b'native game viewport', deadline)
 
+        def show_restored_scene():
+            # A saved Game tab now survives restart. Explicitly select Scene through real input
+            # before its viewport assertions; keep the original twelve-second operation bound.
+            deadline = time.monotonic() + 12
+            driver.raw('windowfocus', window, deadline=deadline)
+            driver.wait(lambda value: value['focused'] == '1' and value['text_input'] == '0',
+                        'Restored Editor is not ready for Scene focus', deadline)
+            driver.raw('key', '--clearmodifiers', '--delay', '80', 'ctrl+1', deadline=deadline)
+            return wait_view(b'native scene viewport', deadline)
+
         window = None
         attach_process([args.editor, f'--project={root}', '--graphical',
             '--native-scene-preview', '--frames=10000', f'--recent-projects={state / "recent"}', *library_argument])
@@ -471,8 +481,7 @@ def main():
             attach_process([args.editor, f'--project={root}', '--graphical',
                 '--read-only', '--native-scene-preview', '--frames=10000',
                 f'--recent-projects={state / "recent"}'])
-            wait_view(b'native scene viewport')
-            send('windowfocus', window)
+            show_restored_scene()
             viewport = start_play()
             deadline = time.monotonic() + 5
             while time.monotonic() < deadline:
@@ -497,8 +506,7 @@ def main():
             attach_process([args.editor, f'--project={root}', '--graphical',
                 '--read-only', '--native-scene-preview', '--frames=10000',
                 f'--recent-projects={state / "recent"}'])
-            wait_view(b'native scene viewport')
-            send('windowfocus', window)
+            show_restored_scene()
             viewport = start_play()
             time.sleep(0.25)
             first = capture_pixels(display, window, viewport)

@@ -328,6 +328,7 @@ struct EditorImGuiHost::State final {
   bool initial_dock_layout_built = false;
   bool focus_initial_content = false;
   bool focus_initial_scene = false;
+  bool loaded_layout = false;
   ImGuiTextFilter console_filter;
   int console_min_severity = 0;
   runtime::RuntimeConsole *console_scope = nullptr;
@@ -816,6 +817,10 @@ std::string PanelWindowName(std::string_view id) {
   if (panel == panels.end())
     return std::string(id);
   return std::string(panel->title) + "###" + std::string(panel->id);
+}
+
+template <typename StateT> ImGuiWindowFlags PanelWindowFlags(const StateT &state) {
+  return state.loaded_layout ? ImGuiWindowFlags_NoFocusOnAppearing : ImGuiWindowFlags_None;
 }
 
 std::string PathLabel(const std::filesystem::path &path) {
@@ -4313,7 +4318,7 @@ void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
   const auto window = PanelWindowName("nexora.project");
   state.project_file_positions.clear();
   state.project_file_ids.clear();
-  if (!ImGui::Begin(window.c_str())) {
+  if (!ImGui::Begin(window.c_str(), nullptr, PanelWindowFlags(state))) {
     ImGui::End();
     return;
   }
@@ -4446,7 +4451,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   state.content_focused_asset.reset();
   for (auto &positions : state.content_path_positions)
     positions.clear();
-  if (!ImGui::Begin(window.c_str())) {
+  if (!ImGui::Begin(window.c_str(), nullptr, PanelWindowFlags(state))) {
     state.content_reveal.reset();
     state.content_rename_target.reset();
     if (ImGui::BeginPopupModal("Rename asset###editor.content.rename", nullptr,
@@ -6299,14 +6304,17 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     state_->focus_initial_scene = true;
   }
   const auto hierarchy_window = PanelWindowName("nexora.hierarchy");
-  const bool hierarchy_visible = ImGui::Begin(hierarchy_window.c_str());
+  // A restored layout owns initial selection; a new layout retains normal appearing-panel focus.
+  // Explicit keyboard/menu/Play focus requests still select their intended panel.
+  const bool hierarchy_visible =
+      ImGui::Begin(hierarchy_window.c_str(), nullptr, PanelWindowFlags(*state_));
   ApplyPendingHierarchyRequests(*state_, scene, scene_editable, rename_open && rename_editable,
                                 !hierarchy_visible);
   if (hierarchy_visible)
     DrawHierarchy(*state_, scene, shell, interaction_blocked, scene_editable, rename_editable);
   ImGui::End();
   const auto inspector_window = PanelWindowName("nexora.inspector");
-  if (ImGui::Begin(inspector_window.c_str())) {
+  if (ImGui::Begin(inspector_window.c_str(), nullptr, PanelWindowFlags(*state_))) {
     if (game_running) {
       if (ImGui::RadioButton("Editor", !state_->inspect_play_selection))
         state_->inspect_play_selection = false;
@@ -6337,7 +6345,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   }
   ImGui::End();
   const auto scene_window = PanelWindowName("nexora.scene");
-  if (ImGui::Begin(scene_window.c_str())) {
+  if (ImGui::Begin(scene_window.c_str(), nullptr, PanelWindowFlags(*state_))) {
     if (state_->scene_tabs.empty() && scene && workspace) {
       ImGui::AlignTextToFramePadding();
       ImGui::TextUnformatted(state_->scene_file_path
@@ -6634,7 +6642,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   if (game_running && !state_->game_was_running && !state_->play_memory_open)
     ImGui::SetNextWindowFocus();
   state_->game_was_running = game_running;
-  if (ImGui::Begin(game_window.c_str())) {
+  if (ImGui::Begin(game_window.c_str(), nullptr, PanelWindowFlags(*state_))) {
     if (play == nullptr) {
       ImGui::TextDisabled("Play session unavailable.");
     } else {
@@ -6958,7 +6966,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     ImGui::End();
   }
   const auto console_window = PanelWindowName("nexora.console");
-  if (ImGui::Begin(console_window.c_str())) {
+  if (ImGui::Begin(console_window.c_str(), nullptr, PanelWindowFlags(*state_))) {
     if (console == nullptr) {
       ImGui::Text("Last command: %.*s", static_cast<int>(shell.LastCommand().size()),
                   shell.LastCommand().data());
@@ -7055,7 +7063,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   }
   ImGui::End();
   const auto profiler_window = PanelWindowName("nexora.profiler");
-  if (ImGui::Begin(profiler_window.c_str())) {
+  if (ImGui::Begin(profiler_window.c_str(), nullptr, PanelWindowFlags(*state_))) {
     if (profile == nullptr) {
       ImGui::TextDisabled("Frame capture unavailable.");
     } else {
@@ -8428,6 +8436,7 @@ void EditorImGuiHost::SetSceneMergeCandidateStatus(SceneMergeCandidateSnapshot s
   }
   state_->scene_merge_status = std::move(snapshot);
 }
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::SceneComparisonPosition(const EditorImGuiHost &host, std::size_t index) {
   return index < host.state_->scene_comparison_positions.size()
@@ -8448,7 +8457,6 @@ SceneComparisonSnapshot EditorImGuiTestAccess::SceneComparisonStatus(const Edito
 std::uint32_t EditorImGuiTestAccess::SceneComparisonRenderedRows(const EditorImGuiHost &host) {
   return host.state_->scene_comparison_rendered_rows;
 }
-#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::SceneMergePosition(const EditorImGuiHost &host, std::size_t control) {
   return control < host.state_->scene_merge_positions.size()
@@ -9189,6 +9197,9 @@ bool EditorImGuiHost::LoadLayout(std::string_view layout) {
   Activate(state_->context);
   ImGui::LoadIniSettingsFromMemory(layout.data(), layout.size());
   state_->initial_dock_layout_built = true;
+  state_->loaded_layout = true;
+  state_->focus_initial_content = false;
+  state_->focus_initial_scene = false;
   return true;
 }
 
