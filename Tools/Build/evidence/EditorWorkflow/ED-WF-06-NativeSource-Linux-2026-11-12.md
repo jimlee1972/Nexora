@@ -5,6 +5,14 @@ This candidate adds acceptance coverage through the existing SDK/C ABI and commo
 no engine implementation, descriptor layout, schema, legacy consumer or existing assertion changes.
 Full ED-WF-06 acceptance remains pending the complete gate, exact-head CI and corresponding merge.
 
+The first hosted head passes all PR/SDK jobs and the new native fixture, but push Linux desktop
+fails the existing legacy held-key case. The [fixture follow-up](ED-WF-06-X11Fixture-Linux-2026-11-12.md)
+and [receipt](ED-WF-06-X11Fixture-Cloud.json) preserve that 509-pass/one-skip/one-failure gate,
+establish the fallback's existing buffered-pair precondition without changing production Window
+behavior, and record a fresh 486/486 full gate (1392.69 s) plus rebuilt strict Shipping native.
+All five captures remain byte-identical. The original complete gate below is retained separately;
+repaired-head hosted CI and merge are still required.
+
 ## Actual consumer and pixels
 
 `twod.sprite_source_repack_player` builds `SpriteSourceRepackPlayer.zig` through the canonical

@@ -2111,5 +2111,15 @@
     "build/linux-development/Apps/TwoDPlayer/NexoraTwoDPlayer": "84518423691935fb365bc450360cd7c697180799f69bc30df776cabd4af97825",
     "build/linux-shipping/Apps/TwoDPlayer/NexoraTwoDPlayer": "93bfb293e4dc397934c21447523e93c24213a41ccf64c9fec6a7b5eb51688aac"
   },
-  "hosted_ci": "Pending at source publication; no local Windows/macOS or physical-device/clean-host execution claimed."
+  "hosted_ci": "Pending at source publication; no local Windows/macOS or physical-device/clean-host execution claimed.",
+  "x11_fixture_followup": {
+    "evidence": "ED-WF-06-X11Fixture-Linux-2026-11-12.md",
+    "receipt": "ED-WF-06-X11Fixture-Cloud.json",
+    "implementation_commit": "f1bdb18b04a719b5c8b4d3e9efca9c2f9ba523f8",
+    "source_fixture_hashes_unchanged": true,
+    "full_passed": 486,
+    "full_seconds": 1392.69,
+    "strict_rebuilt_shipping_native": "PASS; five PNGs match curated and full Development; development_test_copy=False",
+    "hosted_repaired_head": "Pending publication and exact-head CI; original failed head retained in follow-up."
+  }
 }

@@ -10,6 +10,15 @@ Test-only scene comparison/extension observations are guarded consistently, rest
 See the [scoped Linux evidence](../../Tools/Build/evidence/EditorLayoutBuild-Linux-2026-11-12.md).
 Physical docking/input acceptance, ED-WF work-order acceptance and the 0/8 milestone count remain open.
 
+### X11 legacy held-key acceptance candidate (2026-11-12)
+
+The Sprite acceptance candidate also exposed an existing X11 legacy held-key fixture race:
+its live gesture assumed the fallback's matching press was already buffered. The fixture now
+queues the genuine held gesture under a confirmed stopped consumer and observes every buffered
+repeat pair, retaining all physical/text/focus/lifecycle assertions and the live detectable-repeat
+case. Production Window behavior is unchanged. [Follow-up evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-X11Fixture-Linux-2026-11-12.md)
+retains the failed hosted gate; complete local and repaired-head CI remain required before merge.
+
 Local crash/game-log persistence is tracked in [Crash Logging Delivery](Crash_Logging_Delivery_Plan.md). It includes native gameplay callback capture and keeps platform/physical-host gates separate; it does not complete this roadmap’s broader milestones.
 
 
