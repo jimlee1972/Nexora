@@ -125,6 +125,7 @@ public:
 
 private:
   friend class SceneSession;
+  friend class GameplayGeneration;
   runtime::World *world_;
   runtime::Id scene_;
   std::map<runtime::Id, Sprite> sprites_;

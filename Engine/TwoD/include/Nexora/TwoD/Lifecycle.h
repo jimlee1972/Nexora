@@ -27,6 +27,9 @@ public:
   [[nodiscard]] std::size_t Size() const noexcept { return count_; }
 
 private:
+  friend class GameplayGeneration;
+  struct StagedCopy {};
+  InstancePool(const InstancePool &, StagedCopy);
   struct Slot {
     Instance value;
     std::uint32_t generation{1};

@@ -28,6 +28,9 @@ public:
   void ForgetEntity(runtime::Id);
 
 private:
+  friend class GameplayGeneration;
+  [[nodiscard]] bool CanStage() const noexcept;
+  void CopyStagedState(GameplayBridge &) const;
   struct State;
   std::unique_ptr<State> state_;
 };

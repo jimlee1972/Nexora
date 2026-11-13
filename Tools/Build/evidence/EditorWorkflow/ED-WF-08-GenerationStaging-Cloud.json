@@ -1,0 +1,5021 @@
+{
+  "retained_concurrent_prefab_failure": {
+    "status": "failed_and_intentionally_interrupted_partial",
+    "actual_exit": 130,
+    "registered": 525,
+    "completed_passes": 0,
+    "completed_failures": [
+      "1/525 Test #425: editor.linux_prefab_isolation ............................***Timeout 180.30 sec"
+    ],
+    "test_log_sha256": "dcda2c7b82d494f02eb72108b2045dd70569ba973797bbbf59502cad23dda038",
+    "cause": "Unconfirmed;bothconcurrentfullgates prefab native helper timed out at180s afterX11type event. No runtime/source/prefab code changed; root mustbe diagnosed before revalidation.",
+    "fixture_files": [
+      {
+        "path": "nexora-native-prefab-t07erbvn/editor-1.stderr.log",
+        "bytes": 277373,
+        "sha256": "da534b823864dbb3971998fbb65a708c8b52ff228912c653ec170a1776038779"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/editor-1.stdout.log",
+        "bytes": 152,
+        "sha256": "b1606f438b3043c220e52e9e809749e4c11afbeac6da03577cc28b5ceb778ced"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/input.jsonl",
+        "bytes": 27547,
+        "sha256": "2d100e6a605a04b84db47d480579dd7b67ff29e587fd49f9fd9b3d97bd06e134"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/editor-layout.ini",
+        "bytes": 1560,
+        "sha256": "0adbec10f02acd123ec2ef089dd5e6b5daf8a946121d779a5b64ffa51ad17453"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/editor.lock",
+        "bytes": 42,
+        "sha256": "70c3c5a5bd802cfcd99eb61e2a3d985492769e3def9574fd1bbc88ebc399465d"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/gameplay-library.ini",
+        "bytes": 18,
+        "sha256": "266fa54c491d32e6f88ca2a94fc8d9dfa050d64399753db4a1f0df5486e5389b"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/inspector.reflection",
+        "bytes": 116,
+        "sha256": "8894b4af925f87c44a21b4f79e84c36d7fe53d144b0b39fceeea24fb849d631b"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/prefabs/00000000-0000-02bd-0000-000000000001.nxprefab",
+        "bytes": 634,
+        "sha256": "4008997695914c19ba262ee58bdb2e803118573a2f0ebed4fe6a4e439f28fe70"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/prefabs/00000000-0000-02bd-0000-000000000002.nxprefab",
+        "bytes": 623,
+        "sha256": "2a7d04c04d4cb0d32483323bf662ea3d44fedde1f5042eaea6ad9d7640f13475"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/prefabs/revisions/00000000-0000-02bd-0000-000000000001/1.nxprefab",
+        "bytes": 628,
+        "sha256": "adcaf21d880e626f9174d1304327cbe7022bcbb9241d030540e7398123707161"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/prefabs/revisions/00000000-0000-02bd-0000-000000000001/2.nxprefab",
+        "bytes": 629,
+        "sha256": "264fc8ec8074d4172ba8bb60fa858e2be7523e6c86c3d37e2009dd755282a619"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/prefabs/revisions/00000000-0000-02bd-0000-000000000001/3.nxprefab",
+        "bytes": 627,
+        "sha256": "95353380d7e91e01499763a961f372c7419b0f061901ccaa6907ce4dd0152b21"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/prefabs/revisions/00000000-0000-02bd-0000-000000000001/4.nxprefab",
+        "bytes": 629,
+        "sha256": "0cae544c2079725b99b1965f4af46b2705e6928cefaeb229e615c76cebceaf85"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/prefabs/revisions/00000000-0000-02bd-0000-000000000001/5.nxprefab",
+        "bytes": 628,
+        "sha256": "16509624a1f325cd7aefd298259bbfe25aef9d7cf8033d8be285b0c122ba9b42"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/prefabs/revisions/00000000-0000-02bd-0000-000000000001/6.nxprefab",
+        "bytes": 623,
+        "sha256": "50abbf513baf8419e339485c0d59dc22722e6e032ab597ed5cbb12db171e1335"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/prefabs/revisions/00000000-0000-02bd-0000-000000000002/1.nxprefab",
+        "bytes": 629,
+        "sha256": "bb4a1653a5e9739205130ec46ae516275d22036c97b76252e3b89e3e76482ee3"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/prefabs/revisions/00000000-0000-02bd-0000-000000000002/10.nxprefab",
+        "bytes": 627,
+        "sha256": "e46b5369300d14702db2534c15ef8c498e5492eaf4b43a4dec77c22dbad8108c"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/prefabs/revisions/00000000-0000-02bd-0000-000000000002/11.nxprefab",
+        "bytes": 623,
+        "sha256": "c482a5c069f1b5fbd14184aef060bd997a62a849df2048f949bf51e1c7b0d1a8"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/prefabs/revisions/00000000-0000-02bd-0000-000000000002/12.nxprefab",
+        "bytes": 627,
+        "sha256": "fddc66b799a34506156aa4ffcb25393c231e4831a0f1cfd1e97954ca37a46d0c"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/prefabs/revisions/00000000-0000-02bd-0000-000000000002/2.nxprefab",
+        "bytes": 628,
+        "sha256": "3839a078ce1838f2ed75188eb59565176fc70023402ecdfe0a5acbf566c3d61c"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/prefabs/revisions/00000000-0000-02bd-0000-000000000002/3.nxprefab",
+        "bytes": 629,
+        "sha256": "da37d89c761f4a80f849493f959bddc2b32151bfcbe940027e4c7755c0dcd559"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/prefabs/revisions/00000000-0000-02bd-0000-000000000002/4.nxprefab",
+        "bytes": 631,
+        "sha256": "d02f6d748cacf8294a848694ef241907e6264f8acf3e908badeac8999f598840"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/prefabs/revisions/00000000-0000-02bd-0000-000000000002/5.nxprefab",
+        "bytes": 629,
+        "sha256": "6af154297a0d0cdec7369b2b18f7757e22ea35c42b2d64892d72d02858af51ca"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/prefabs/revisions/00000000-0000-02bd-0000-000000000002/6.nxprefab",
+        "bytes": 631,
+        "sha256": "5792f609fefbaa2d82abad88803fa5c92eabb8790e71c6b47f999ef39ba313fc"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/prefabs/revisions/00000000-0000-02bd-0000-000000000002/7.nxprefab",
+        "bytes": 629,
+        "sha256": "69a7a456d6f31c86778d717731b195e9ed9b35bf03c77625c3ac081f300e35e7"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/prefabs/revisions/00000000-0000-02bd-0000-000000000002/8.nxprefab",
+        "bytes": 627,
+        "sha256": "6c256eaaabcfe59cd3963b993dc0e9ab4d2e4bc681a3b9a9042e318cb3538a5f"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/prefabs/revisions/00000000-0000-02bd-0000-000000000002/9.nxprefab",
+        "bytes": 628,
+        "sha256": "6c8af159a8e3c042742a414b1e5ef1bb275cfe38931e923f54529ce4997d8d84"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/scene-session.ini",
+        "bytes": 86,
+        "sha256": "6026b849f9ea28777972fe990d8e47ac74525d8e2a062f26e9000bb811968117"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/scenes/Main.overview.camera",
+        "bytes": 39,
+        "sha256": "d909b42fad7a72cc9840762a034ee1a8ada5bf7fe41ea43645a5c31be795ffe3"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/scenes/Main.preview.camera",
+        "bytes": 92,
+        "sha256": "d94d72bb140664bb4cbb656cee24f957136766b06601a491461181c596f1c423"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/scenes/Main.scene",
+        "bytes": 588,
+        "sha256": "964b7c32795acbe7c952af25a249ef01e0cc6b7cd15e2c55da1dda910b02a24e"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/.nexora/workspace",
+        "bytes": 9,
+        "sha256": "103b92e45253890820db806383c5f4c25ae009d8cbada5f175afac93ddd445d1"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/project/project.nexora",
+        "bytes": 74,
+        "sha256": "65f4fcb749d5c2a47eed9ed633ca7208e0055cd3924053a687c472a4247e3cd6"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/recent",
+        "bytes": 117,
+        "sha256": "6aabda57cd9e9652072e5ff882ae128526dbf3963ed1035c1f30db2d9fcf60df"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/index",
+        "bytes": 1310728,
+        "sha256": "6d0552c4e71fe85e6cdc7e7745882ea91b382fbc56448f2e9e1c2d77dcf67d81"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part0/mesa_cache.db",
+        "bytes": 18690,
+        "sha256": "9edd78efc94b07dcaae14b5630f87c86e6269a675d73bcb3d8a8883d74260c76"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part0/mesa_cache.idx",
+        "bytes": 636,
+        "sha256": "bea2c2463ea5660cd7a83b00fc2fe4b173b7f44b6499bc066a2a740685a9c304"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part1/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "1e50b93cb921df891ae1833a04975c8712fc11cb0e65283b2cbc6166e680db3a"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part1/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "1e50b93cb921df891ae1833a04975c8712fc11cb0e65283b2cbc6166e680db3a"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part10/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "f5f3b5dc4523474d7f3723795cce05ef75d111a21ad4a109fbf25a839f48436c"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part10/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "f5f3b5dc4523474d7f3723795cce05ef75d111a21ad4a109fbf25a839f48436c"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part11/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "14c281e4631732ed01c51ccefad961ba10020a0f9c8a0530cb2682e0ec4e96a9"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part11/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "14c281e4631732ed01c51ccefad961ba10020a0f9c8a0530cb2682e0ec4e96a9"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part12/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "f2dcdcffecef09d20b161e3b2c92c8b4282d3adf07826e487f2150f5248e8382"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part12/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "f2dcdcffecef09d20b161e3b2c92c8b4282d3adf07826e487f2150f5248e8382"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part13/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "72212a575815f91e769562769ad3333e9a2f1d79b85221dc81b2b465996a6a88"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part13/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "72212a575815f91e769562769ad3333e9a2f1d79b85221dc81b2b465996a6a88"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part14/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "202bb9ef75a023654d0623a520bbad231a8b04539ce3c48f184c0d94773c889f"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part14/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "202bb9ef75a023654d0623a520bbad231a8b04539ce3c48f184c0d94773c889f"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part15/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "7ee5f2b5fcb67c0d3911310a56ce191b187508b0adf34f3f7720b51ff0fffa33"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part15/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "7ee5f2b5fcb67c0d3911310a56ce191b187508b0adf34f3f7720b51ff0fffa33"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part16/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "fdc010361b7e3fd27ebeee8ba382dc41999daa0d95ade27504fd64718804be8e"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part16/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "fdc010361b7e3fd27ebeee8ba382dc41999daa0d95ade27504fd64718804be8e"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part17/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "73045d9c668b1c7af27d0b5dfd4225c10a3dfd4907d55954aef74aecb89ddb84"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part17/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "73045d9c668b1c7af27d0b5dfd4225c10a3dfd4907d55954aef74aecb89ddb84"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part18/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "c0b8fa5080debbf803527151216aab501efb5351b9927150dc27072416497cfc"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part18/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "c0b8fa5080debbf803527151216aab501efb5351b9927150dc27072416497cfc"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part19/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "8ef1b2c7beed2a4ddb9612398cfd1184e86c43ae2047563a816061134dea59cc"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part19/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "8ef1b2c7beed2a4ddb9612398cfd1184e86c43ae2047563a816061134dea59cc"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part2/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "1dcabd0fc42f095182f289518af3b8b6006672bfeb2af2c240cc108d598dd3c5"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part2/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "1dcabd0fc42f095182f289518af3b8b6006672bfeb2af2c240cc108d598dd3c5"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part20/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "d353cddf65074e20951a27c404c2345f91aafb70097b95858fe96023c0ef246b"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part20/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "d353cddf65074e20951a27c404c2345f91aafb70097b95858fe96023c0ef246b"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part21/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "3928f9ea7d7e08e3c2e4a3d9a200af8c1a2eb33823d4bde481a7e7f5862b6805"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part21/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "3928f9ea7d7e08e3c2e4a3d9a200af8c1a2eb33823d4bde481a7e7f5862b6805"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part22/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "a196fce86a60dea9db1b9ca6b2196d9bf2dc26fc1e3c38b31f5a6c7d3c5d4e55"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part22/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "a196fce86a60dea9db1b9ca6b2196d9bf2dc26fc1e3c38b31f5a6c7d3c5d4e55"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part23/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "16018765b47fe0336f8899e201a2b8dafc2957cc4f2aa5e15c95d9d4bd5f4615"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part23/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "16018765b47fe0336f8899e201a2b8dafc2957cc4f2aa5e15c95d9d4bd5f4615"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part24/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "dfd2120c2087e136910a71f5e41db93bab174c82e7c5ea7ec3b450ff35d3f013"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part24/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "dfd2120c2087e136910a71f5e41db93bab174c82e7c5ea7ec3b450ff35d3f013"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part25/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "ba72cf6297b888d790f7dca352d9eb55b88e8f223a2e41aa3b59cf1585c01e8a"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part25/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "ba72cf6297b888d790f7dca352d9eb55b88e8f223a2e41aa3b59cf1585c01e8a"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part26/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "aafff95b535c488e19699aba68d0b507fd6c6ac0dd8714d2c76f954567720904"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part26/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "aafff95b535c488e19699aba68d0b507fd6c6ac0dd8714d2c76f954567720904"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part27/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "3b18ce2bed47d9a8f2d7e3e9161a9cb1d444cc44e518cca17f230ae03334e6ae"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part27/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "3b18ce2bed47d9a8f2d7e3e9161a9cb1d444cc44e518cca17f230ae03334e6ae"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part28/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "7d72e7d2d43ab60a364ed64b828970994f57c815381f03ca37c73d589057d17e"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part28/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "7d72e7d2d43ab60a364ed64b828970994f57c815381f03ca37c73d589057d17e"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part29/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "55ad008dd98a07ecb6b82376df6f18a6cfa8f4ca40090a3ef49530155a2c1257"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part29/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "55ad008dd98a07ecb6b82376df6f18a6cfa8f4ca40090a3ef49530155a2c1257"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part3/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "fbf0d8ab743dd2b710cb5697cb1ead7f089f8e87ce611e96f0444a564b3dfac2"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part3/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "fbf0d8ab743dd2b710cb5697cb1ead7f089f8e87ce611e96f0444a564b3dfac2"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part30/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "5c2137f12b2c6ca2b2fbeab2a5e1fd7943fe83b57db7666255adac4b250f422c"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part30/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "5c2137f12b2c6ca2b2fbeab2a5e1fd7943fe83b57db7666255adac4b250f422c"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part31/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "4a1dad8b15ae2010d4e4394cb5ff7c510bad53334dfbefefb9554c4b00893aad"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part31/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "4a1dad8b15ae2010d4e4394cb5ff7c510bad53334dfbefefb9554c4b00893aad"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part32/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "0d4c093d3766e58d99727adedd50338e6f175561e99b458d46406dfd19e10c61"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part32/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "0d4c093d3766e58d99727adedd50338e6f175561e99b458d46406dfd19e10c61"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part33/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "03564906c927f9427f67c42773505bbf2ad9966ac353200be45e4b9819354a60"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part33/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "03564906c927f9427f67c42773505bbf2ad9966ac353200be45e4b9819354a60"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part34/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "1402ae78561312ef887294b39c54164738993da91831d6cbb8869c85cb180d05"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part34/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "1402ae78561312ef887294b39c54164738993da91831d6cbb8869c85cb180d05"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part35/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "14c81f395a26c1938022bcf58ebdbcc3873ff27b6815ec145ef7db15e3f648f5"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part35/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "14c81f395a26c1938022bcf58ebdbcc3873ff27b6815ec145ef7db15e3f648f5"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part36/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "699f548fd128671d6c26750f29c6ebd2404a440b7687e0930048d6489eb66e55"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part36/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "699f548fd128671d6c26750f29c6ebd2404a440b7687e0930048d6489eb66e55"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part37/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "5b5b4076e88a31ce160c69073cd533b9b72c224e056d3d900f86f12a1d8035f4"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part37/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "5b5b4076e88a31ce160c69073cd533b9b72c224e056d3d900f86f12a1d8035f4"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part38/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "62d36f6931b25c5eeded00dbb2a927c72538a51fbdd8aea8236f19682543d019"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part38/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "62d36f6931b25c5eeded00dbb2a927c72538a51fbdd8aea8236f19682543d019"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part39/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "527e88ac4a938b169bbb03b0b994f4e15621338ec9151518aca18da5fccf39c0"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part39/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "527e88ac4a938b169bbb03b0b994f4e15621338ec9151518aca18da5fccf39c0"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part4/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "d2bf45f4149eb0ba72d7af066241c8a5f9cc547160bd2dfc25aec3cb3a3fca8e"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part4/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "d2bf45f4149eb0ba72d7af066241c8a5f9cc547160bd2dfc25aec3cb3a3fca8e"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part40/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "5595c0f0a742d131f9742f6b593c94078dc3f2297533389571ac3896538fa19a"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part40/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "5595c0f0a742d131f9742f6b593c94078dc3f2297533389571ac3896538fa19a"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part41/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "0bbc843ccd40da5d2ca37b9d62a7a0f51232fde4ce0d1cdba455333516dd501f"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part41/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "0bbc843ccd40da5d2ca37b9d62a7a0f51232fde4ce0d1cdba455333516dd501f"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part42/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "893c66404e4bf4631ab96cabb042468dfe2702df4f761379bcf9fb56dfd647b5"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part42/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "893c66404e4bf4631ab96cabb042468dfe2702df4f761379bcf9fb56dfd647b5"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part43/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "328afff1feb281d41a0d207d4336107a91ee11b3e9f32e086cc27daf3c2a04b6"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part43/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "328afff1feb281d41a0d207d4336107a91ee11b3e9f32e086cc27daf3c2a04b6"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part44/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "97f76a518d204fb38997c895c241734c2e3994e36e502eac12b6475341a6b339"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part44/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "97f76a518d204fb38997c895c241734c2e3994e36e502eac12b6475341a6b339"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part45/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "197708e2c10ef1a194766a2709233815b11e917b2528b679fc1065e6dbee69c9"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part45/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "197708e2c10ef1a194766a2709233815b11e917b2528b679fc1065e6dbee69c9"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part46/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "88f9e97b5fe725578a9bbf86a879737ef0c40844bad960910794a254b8d7056c"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part46/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "88f9e97b5fe725578a9bbf86a879737ef0c40844bad960910794a254b8d7056c"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part47/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "d9c5dcd4915c186f6d1146fe5f29416ebfda99cf51b33de7fb7dfad12b11159a"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part47/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "d9c5dcd4915c186f6d1146fe5f29416ebfda99cf51b33de7fb7dfad12b11159a"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part48/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "505dbb120bd863c7fa7639e710d23e8cfa49bc2519ad91479dd8e8495fdda644"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part48/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "505dbb120bd863c7fa7639e710d23e8cfa49bc2519ad91479dd8e8495fdda644"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part49/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "9b2bff583a6ef89bbf034033171506086bd14f4677adb39fb61497de9023472f"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part49/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "9b2bff583a6ef89bbf034033171506086bd14f4677adb39fb61497de9023472f"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part5/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "905e6390eb518a733e6992a634471420552659e341f06cee25b0e6a46d4c5d18"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part5/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "905e6390eb518a733e6992a634471420552659e341f06cee25b0e6a46d4c5d18"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part6/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "78fc0c9efc260e73572de557d9d51eb509f63f189e8f0e52387f0b1645a1aa36"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part6/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "78fc0c9efc260e73572de557d9d51eb509f63f189e8f0e52387f0b1645a1aa36"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part7/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "b7875d8b8bf87d4ff876be786a87602d0e443b84a3d5d2c276ae464a4ff95dbc"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part7/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "b7875d8b8bf87d4ff876be786a87602d0e443b84a3d5d2c276ae464a4ff95dbc"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part8/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "93d1f72c0546be72293b7701bc70da767dcbf7379070830cd90efc2018c3a047"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part8/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "93d1f72c0546be72293b7701bc70da767dcbf7379070830cd90efc2018c3a047"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part9/mesa_cache.db",
+        "bytes": 20,
+        "sha256": "0203732f01b4c1831056d6149f853135ee6685b97ec41eb96b6f4dde947525b8"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/shader-cache/mesa_shader_cache_db/part9/mesa_cache.idx",
+        "bytes": 20,
+        "sha256": "0203732f01b4c1831056d6149f853135ee6685b97ec41eb96b6f4dde947525b8"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/state/Nexora/Logs/run-1794601399411884012-350960-0/crash.log",
+        "bytes": 130,
+        "sha256": "1330696c8de49cce9e52037a96a80e56a87d5861c3e5edd3a88134ed087cc55b"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/state/Nexora/Logs/run-1794601399411884012-350960-0/game.log",
+        "bytes": 522,
+        "sha256": "b53772f01b353feecdb479c7403c5c64c5726e1c6f9e4d170770dc08490c68ad"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/state/Nexora/Logs/run-1794601399411884012-350960-0/modules.txt",
+        "bytes": 20226,
+        "sha256": "e64a4dd90e628230b7989fef6bb8f02a99b2192f56ef57b8455623eb59a15f1f"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/state/Nexora/Logs/run-1794601564495742291-353281-0/crash.log",
+        "bytes": 130,
+        "sha256": "17b69731294b5278883d927635b491251de22a513211a37a2712e7d26c28662c"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/state/Nexora/Logs/run-1794601564495742291-353281-0/game.log",
+        "bytes": 295,
+        "sha256": "34be74e4f78df6dcdfd567add049325fc0faa8362ee3b396d3bf384ce0c0cb2f"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/state/Nexora/Logs/run-1794601564495742291-353281-0/modules.txt",
+        "bytes": 20226,
+        "sha256": "490b5de661b901ba8ba3722293be0566f0ea2dc22ad5ec107f3b5fac8fbb41d0"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/variant-after-undo.nxprefab",
+        "bytes": 628,
+        "sha256": "3839a078ce1838f2ed75188eb59565176fc70023402ecdfe0a5acbf566c3d61c"
+      },
+      {
+        "path": "nexora-native-prefab-t07erbvn/variant-before-revert.nxprefab",
+        "bytes": 629,
+        "sha256": "bb4a1653a5e9739205130ec46ae516275d22036c97b76252e3b89e3e76482ee3"
+      }
+    ]
+  },
+  "task": "nexora-whr.8.2.1",
+  "parent_task": "nexora-whr.8.2",
+  "status": "local_validation_passed",
+  "date": "2026-11-13T22:18:25.910993+00:00",
+  "timezone": "Etc/UTC",
+  "validated_source_parent": "69fe457657b86c849fc010f8ce32f3deb71e9cde",
+  "source_pr": 780,
+  "scope": "Optional owning TwoD GameplayGeneration and private staging hooks; single/catalog World and metadata, animation owners/clocks, queries/camera, scene requests/revision and exact pool handles. Strict real SDK transaction test exposes only allocator, legacy scene and TwoD APIs.",
+  "exclusions": "No production Player/Editor reload integration or native reload pixel acceptance. External asset/audio/UI/storage/window services need separate isolation or rejection. Workflow5/9,Editor0/8,TwoD9/11 and EDWF07/08 remainopen; nexora-ko9 unconfirmed residency remainsopen.",
+  "development": {
+    "registered": 525,
+    "passed": 525,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 1992.24,
+    "tests": [
+      {
+        "number": 425,
+        "name": "editor.linux_prefab_isolation",
+        "result": "Passed",
+        "seconds": 151.69
+      },
+      {
+        "number": 276,
+        "name": "editor.game_build",
+        "result": "Passed",
+        "seconds": 201.19
+      },
+      {
+        "number": 277,
+        "name": "editor.game_script_build",
+        "result": "Passed",
+        "seconds": 133.47
+      },
+      {
+        "number": 55,
+        "name": "showcase.linux_vulkan_interaction",
+        "result": "Passed",
+        "seconds": 104.19
+      },
+      {
+        "number": 432,
+        "name": "editor.linux_scene_files",
+        "result": "Passed",
+        "seconds": 65.4
+      },
+      {
+        "number": 254,
+        "name": "gameplay.zig_script_project",
+        "result": "Passed",
+        "seconds": 69.71
+      },
+      {
+        "number": 385,
+        "name": "editor.deep_hierarchy",
+        "result": "Passed",
+        "seconds": 58.47
+      },
+      {
+        "number": 387,
+        "name": "editor.overview_pose_snapshot",
+        "result": "Passed",
+        "seconds": 54.87
+      },
+      {
+        "number": 263,
+        "name": "twod.sprite_source_catalog_player",
+        "result": "Passed",
+        "seconds": 49.94
+      },
+      {
+        "number": 262,
+        "name": "twod.sprite_source_player",
+        "result": "Passed",
+        "seconds": 50.18
+      },
+      {
+        "number": 266,
+        "name": "twod.scene_project_zig",
+        "result": "Passed",
+        "seconds": 42.92
+      },
+      {
+        "number": 267,
+        "name": "twod.scene_project_native",
+        "result": "Passed",
+        "seconds": 45.77
+      },
+      {
+        "number": 437,
+        "name": "editor.linux_display_acceptance",
+        "result": "Passed",
+        "seconds": 38.16
+      },
+      {
+        "number": 442,
+        "name": "editor.linux_native_scene_center",
+        "result": "Passed",
+        "seconds": 35.66
+      },
+      {
+        "number": 39,
+        "name": "showcase.courtyard_hero_generation",
+        "result": "Passed",
+        "seconds": 49.88
+      },
+      {
+        "number": 428,
+        "name": "editor.linux_plugin_manager",
+        "result": "Passed",
+        "seconds": 34.48
+      },
+      {
+        "number": 443,
+        "name": "editor.linux_native_scene_meshes",
+        "result": "Passed",
+        "seconds": 38.14
+      },
+      {
+        "number": 441,
+        "name": "editor.linux_native_scene_preview",
+        "result": "Passed",
+        "seconds": 32.72
+      },
+      {
+        "number": 394,
+        "name": "editor.layout_restart",
+        "result": "Passed",
+        "seconds": 35.93
+      },
+      {
+        "number": 284,
+        "name": "editor.content_path_sort",
+        "result": "Passed",
+        "seconds": 28.27
+      },
+      {
+        "number": 281,
+        "name": "editor.content_directory_index",
+        "result": "Passed",
+        "seconds": 29.8
+      },
+      {
+        "number": 435,
+        "name": "editor.linux_scene_merge_publication",
+        "result": "Passed",
+        "seconds": 29.35
+      },
+      {
+        "number": 423,
+        "name": "editor.linux_project_asset_workflow",
+        "result": "Passed",
+        "seconds": 28.53
+      },
+      {
+        "number": 495,
+        "name": "editor.linux_prefab_placement_selected_revert",
+        "result": "Passed",
+        "seconds": 26.79
+      },
+      {
+        "number": 345,
+        "name": "editor.static_project_export_cli",
+        "result": "Passed",
+        "seconds": 24.48
+      },
+      {
+        "number": 346,
+        "name": "editor.static_project_export_cli_optimized",
+        "result": "Passed",
+        "seconds": 19.99
+      },
+      {
+        "number": 481,
+        "name": "editor.hierarchy_keyboard_navigation",
+        "result": "Passed",
+        "seconds": 17.26
+      },
+      {
+        "number": 430,
+        "name": "editor.linux_project_upgrade",
+        "result": "Passed",
+        "seconds": 18.95
+      },
+      {
+        "number": 434,
+        "name": "editor.linux_scene_merge_candidate",
+        "result": "Passed",
+        "seconds": 18.87
+      },
+      {
+        "number": 401,
+        "name": "editor.builtin_creation_input",
+        "result": "Passed",
+        "seconds": 19.95
+      },
+      {
+        "number": 500,
+        "name": "editor.linux_sprite_source_inspector",
+        "result": "Passed",
+        "seconds": 35.16
+      },
+      {
+        "number": 319,
+        "name": "editor.scene_save_batch",
+        "result": "Passed",
+        "seconds": 19.58
+      },
+      {
+        "number": 492,
+        "name": "editor.linux_prefab_placement_source_rebase",
+        "result": "Passed",
+        "seconds": 16.88
+      },
+      {
+        "number": 317,
+        "name": "editor.semantic_scene_comparison",
+        "result": "Passed",
+        "seconds": 17.25
+      },
+      {
+        "number": 494,
+        "name": "editor.linux_prefab_placement_overrides",
+        "result": "Passed",
+        "seconds": 15.96
+      },
+      {
+        "number": 433,
+        "name": "editor.linux_scene_comparison",
+        "result": "Passed",
+        "seconds": 16.02
+      },
+      {
+        "number": 382,
+        "name": "editor.imgui_contract",
+        "result": "Passed",
+        "seconds": 15.53
+      },
+      {
+        "number": 439,
+        "name": "editor.linux_build_process_console",
+        "result": "Passed",
+        "seconds": 12.88
+      },
+      {
+        "number": 477,
+        "name": "editor.scene_file_input",
+        "result": "Passed",
+        "seconds": 15.21
+      },
+      {
+        "number": 175,
+        "name": "runtime.zig_reload_transaction",
+        "result": "Passed",
+        "seconds": 15.02
+      },
+      {
+        "number": 103,
+        "name": "window_presentation.twod_linear_native",
+        "result": "Passed",
+        "seconds": 16.27
+      },
+      {
+        "number": 448,
+        "name": "editor.linux_native_concurrent_game_views",
+        "result": "Passed",
+        "seconds": 13.19
+      },
+      {
+        "number": 427,
+        "name": "editor.linux_reflected_arrays",
+        "result": "Passed",
+        "seconds": 9.65
+      },
+      {
+        "number": 479,
+        "name": "editor.content_keyboard_shortcuts",
+        "result": "Passed",
+        "seconds": 11.21
+      },
+      {
+        "number": 400,
+        "name": "editor.inspector_component_values",
+        "result": "Passed",
+        "seconds": 10.8
+      },
+      {
+        "number": 450,
+        "name": "editor.linux_native_play_debug_lines",
+        "result": "Passed",
+        "seconds": 10.91
+      },
+      {
+        "number": 478,
+        "name": "editor.native_surface_lifetime",
+        "result": "Passed",
+        "seconds": 10.14
+      },
+      {
+        "number": 341,
+        "name": "editor.static_project_export",
+        "result": "Passed",
+        "seconds": 10.58
+      },
+      {
+        "number": 451,
+        "name": "editor.linux_native_play_scene_services",
+        "result": "Passed",
+        "seconds": 10.96
+      },
+      {
+        "number": 465,
+        "name": "editor.component_draft_lifecycle",
+        "result": "Passed",
+        "seconds": 11.8
+      },
+      {
+        "number": 300,
+        "name": "editor.prefab_nested_materialization",
+        "result": "Passed",
+        "seconds": 10.02
+      },
+      {
+        "number": 102,
+        "name": "window_presentation.twod_linear_shader_artifacts",
+        "result": "Passed",
+        "seconds": 10.28
+      },
+      {
+        "number": 452,
+        "name": "editor.linux_native_play_physics_services",
+        "result": "Passed",
+        "seconds": 11.17
+      },
+      {
+        "number": 449,
+        "name": "editor.linux_native_play_mesh_assets",
+        "result": "Passed",
+        "seconds": 10.71
+      },
+      {
+        "number": 446,
+        "name": "editor.linux_native_gameplay_module",
+        "result": "Passed",
+        "seconds": 10.75
+      },
+      {
+        "number": 312,
+        "name": "editor.additive_scene_composition",
+        "result": "Passed",
+        "seconds": 10.36
+      },
+      {
+        "number": 496,
+        "name": "editor.linux_prefab_instance_source_apply",
+        "result": "Passed",
+        "seconds": 10.21
+      },
+      {
+        "number": 456,
+        "name": "editor.linux_native_project_input",
+        "result": "Passed",
+        "seconds": 10.9
+      },
+      {
+        "number": 426,
+        "name": "editor.linux_reflected_inspector",
+        "result": "Passed",
+        "seconds": 9.73
+      },
+      {
+        "number": 227,
+        "name": "twod.cloud_native",
+        "result": "Passed",
+        "seconds": 9.61
+      },
+      {
+        "number": 193,
+        "name": "runtime.linux_native_game_player",
+        "result": "Passed",
+        "seconds": 9.14
+      },
+      {
+        "number": 235,
+        "name": "twod.cooked_product_native",
+        "result": "Passed",
+        "seconds": 8.9
+      },
+      {
+        "number": 525,
+        "name": "editor.linux_appearance",
+        "result": "Passed",
+        "seconds": 9.1
+      },
+      {
+        "number": 470,
+        "name": "editor.mesh_scene_drop",
+        "result": "Passed",
+        "seconds": 11.03
+      },
+      {
+        "number": 397,
+        "name": "editor.scene_select_all",
+        "result": "Passed",
+        "seconds": 9.27
+      },
+      {
+        "number": 250,
+        "name": "twod.asset_residency_stress",
+        "result": "Passed",
+        "seconds": 13.64
+      },
+      {
+        "number": 440,
+        "name": "editor.linux_single_scene",
+        "result": "Passed",
+        "seconds": 9.97
+      },
+      {
+        "number": 226,
+        "name": "twod.integrated_stress",
+        "result": "Passed",
+        "seconds": 11.02
+      },
+      {
+        "number": 493,
+        "name": "editor.linux_prefab_placement_source",
+        "result": "Passed",
+        "seconds": 10.04
+      },
+      {
+        "number": 455,
+        "name": "editor.linux_native_play_pointer_motion",
+        "result": "Passed",
+        "seconds": 9.47
+      },
+      {
+        "number": 40,
+        "name": "showcase.courtyard_environment_generation",
+        "result": "Passed",
+        "seconds": 8.36
+      },
+      {
+        "number": 91,
+        "name": "window_presentation.vulkan_pbr",
+        "result": "Passed",
+        "seconds": 5.84
+      },
+      {
+        "number": 218,
+        "name": "twod.authored_source_native",
+        "result": "Passed",
+        "seconds": 11.78
+      },
+      {
+        "number": 454,
+        "name": "editor.linux_native_play_pointer_buttons",
+        "result": "Passed",
+        "seconds": 8.23
+      },
+      {
+        "number": 474,
+        "name": "editor.inspector_mesh_drop",
+        "result": "Passed",
+        "seconds": 11.98
+      },
+      {
+        "number": 429,
+        "name": "editor.linux_diagnostic_privacy",
+        "result": "Passed",
+        "seconds": 7.16
+      },
+      {
+        "number": 461,
+        "name": "editor.pointer_dpi",
+        "result": "Passed",
+        "seconds": 8.04
+      },
+      {
+        "number": 340,
+        "name": "editor.scene_runtime_capture",
+        "result": "Passed",
+        "seconds": 8.59
+      },
+      {
+        "number": 501,
+        "name": "editor.prefab_isolation_ui",
+        "result": "Passed",
+        "seconds": 8.13
+      },
+      {
+        "number": 395,
+        "name": "editor.scene_mesh_frame_selection",
+        "result": "Passed",
+        "seconds": 7.82
+      },
+      {
+        "number": 399,
+        "name": "editor.inspector_component_reset",
+        "result": "Passed",
+        "seconds": 6.93
+      },
+      {
+        "number": 61,
+        "name": "showcase.linux_vulkan_camera_input",
+        "result": "Passed",
+        "seconds": 4.84
+      },
+      {
+        "number": 95,
+        "name": "window_presentation.pbr_shader_generation",
+        "result": "Passed",
+        "seconds": 7.93
+      },
+      {
+        "number": 436,
+        "name": "editor.linux_static_project_export",
+        "result": "Passed",
+        "seconds": 6.33
+      },
+      {
+        "number": 511,
+        "name": "editor.content_dependency_reveal",
+        "result": "Passed",
+        "seconds": 5.65
+      },
+      {
+        "number": 27,
+        "name": "gameplay.zig_asset_transitions",
+        "result": "Passed",
+        "seconds": 5.71
+      },
+      {
+        "number": 41,
+        "name": "showcase.courtyard_environment_contracts",
+        "result": "Passed",
+        "seconds": 5.22
+      },
+      {
+        "number": 469,
+        "name": "editor.mesh_scene_instantiation",
+        "result": "Passed",
+        "seconds": 6.15
+      },
+      {
+        "number": 445,
+        "name": "editor.linux_native_game_materials",
+        "result": "Passed",
+        "seconds": 6.11
+      },
+      {
+        "number": 383,
+        "name": "editor.recovery_scope",
+        "result": "Passed",
+        "seconds": 7.62
+      },
+      {
+        "number": 453,
+        "name": "editor.linux_native_game_input",
+        "result": "Passed",
+        "seconds": 6.49
+      },
+      {
+        "number": 30,
+        "name": "gameplay.zig_voice_player",
+        "result": "Passed",
+        "seconds": 7.23
+      },
+      {
+        "number": 268,
+        "name": "twod.source_reload_transaction",
+        "result": "Passed",
+        "seconds": 4.74
+      },
+      {
+        "number": 476,
+        "name": "editor.keyboard_rename_lifecycle",
+        "result": "Passed",
+        "seconds": 6.07
+      },
+      {
+        "number": 70,
+        "name": "build.pose_search_profiles",
+        "result": "Passed",
+        "seconds": 4.74
+      },
+      {
+        "number": 473,
+        "name": "editor.cut_clipboard_lifecycle",
+        "result": "Passed",
+        "seconds": 5.17
+      },
+      {
+        "number": 72,
+        "name": "build.animation_profiles",
+        "result": "Passed",
+        "seconds": 4.32
+      },
+      {
+        "number": 384,
+        "name": "editor.semantic_scene_comparison_ui",
+        "result": "Passed",
+        "seconds": 4.96
+      },
+      {
+        "number": 96,
+        "name": "window_presentation.tone_shader_generation",
+        "result": "Passed",
+        "seconds": 4.83
+      },
+      {
+        "number": 332,
+        "name": "editor.parser_robustness",
+        "result": "Passed",
+        "seconds": 4.84
+      },
+      {
+        "number": 59,
+        "name": "showcase.linux_vulkan_virtual_display",
+        "result": "Passed",
+        "seconds": 4.1
+      },
+      {
+        "number": 92,
+        "name": "window_presentation.vulkan_scene_upload_reuse",
+        "result": "Passed",
+        "seconds": 5.23
+      },
+      {
+        "number": 247,
+        "name": "gameplay.zig_ui_draw_wire_layout",
+        "result": "Passed",
+        "seconds": 4.53
+      },
+      {
+        "number": 251,
+        "name": "gameplay.zig_assets_wire_layout",
+        "result": "Passed",
+        "seconds": 4.45
+      },
+      {
+        "number": 18,
+        "name": "gameplay.zig_storage_wrapper",
+        "result": "Passed",
+        "seconds": 3.19
+      },
+      {
+        "number": 114,
+        "name": "api.gameplay_input_zig_abi",
+        "result": "Passed",
+        "seconds": 3.28
+      },
+      {
+        "number": 113,
+        "name": "api.gameplay_scene_zig_abi",
+        "result": "Passed",
+        "seconds": 3.3
+      },
+      {
+        "number": 222,
+        "name": "gameplay.zig_twod_native",
+        "result": "Passed",
+        "seconds": 3.36
+      },
+      {
+        "number": 468,
+        "name": "editor.camera_scene_view_alignment",
+        "result": "Passed",
+        "seconds": 3.97
+      },
+      {
+        "number": 444,
+        "name": "editor.linux_native_game_view",
+        "result": "Passed",
+        "seconds": 3.53
+      },
+      {
+        "number": 257,
+        "name": "gameplay.zig_effects_wire_layout",
+        "result": "Passed",
+        "seconds": 4.03
+      },
+      {
+        "number": 230,
+        "name": "gameplay.zig_ui_wire_layout",
+        "result": "Passed",
+        "seconds": 3.39
+      },
+      {
+        "number": 116,
+        "name": "api.gameplay_lifecycle_zig_abi",
+        "result": "Passed",
+        "seconds": 4.01
+      },
+      {
+        "number": 232,
+        "name": "gameplay.zig_content_wire_layout",
+        "result": "Passed",
+        "seconds": 4.03
+      },
+      {
+        "number": 17,
+        "name": "gameplay.zig_audio_wrapper",
+        "result": "Passed",
+        "seconds": 3.89
+      },
+      {
+        "number": 253,
+        "name": "gameplay.zig_game_script_adapter",
+        "result": "Passed",
+        "seconds": 4.06
+      },
+      {
+        "number": 19,
+        "name": "gameplay.zig_content_wrapper",
+        "result": "Passed",
+        "seconds": 3.05
+      },
+      {
+        "number": 245,
+        "name": "gameplay.zig_display_wire_layout",
+        "result": "Passed",
+        "seconds": 3.41
+      },
+      {
+        "number": 483,
+        "name": "editor.material_inspector",
+        "result": "Passed",
+        "seconds": 3.46
+      },
+      {
+        "number": 15,
+        "name": "gameplay.zig_input_wrapper",
+        "result": "Passed",
+        "seconds": 2.94
+      },
+      {
+        "number": 466,
+        "name": "editor.scene_authoring_access",
+        "result": "Passed",
+        "seconds": 3.17
+      },
+      {
+        "number": 34,
+        "name": "gameplay.zig_hd2d_fallback",
+        "result": "Passed",
+        "seconds": 3.34
+      },
+      {
+        "number": 210,
+        "name": "gameplay.zig_sprite_source_wire_layout",
+        "result": "Passed",
+        "seconds": 4.51
+      },
+      {
+        "number": 38,
+        "name": "showcase.courtyard_asset_generation",
+        "result": "Passed",
+        "seconds": 4.41
+      },
+      {
+        "number": 20,
+        "name": "gameplay.zig_display_wrapper",
+        "result": "Passed",
+        "seconds": 4.47
+      },
+      {
+        "number": 21,
+        "name": "gameplay.zig_ui_draw_wrapper",
+        "result": "Passed",
+        "seconds": 3.8
+      },
+      {
+        "number": 22,
+        "name": "gameplay.zig_assets_wrapper",
+        "result": "Passed",
+        "seconds": 2.94
+      },
+      {
+        "number": 497,
+        "name": "editor.reflected_array_ui",
+        "result": "Passed",
+        "seconds": 3.5
+      },
+      {
+        "number": 23,
+        "name": "gameplay.zig_color_wrapper",
+        "result": "Passed",
+        "seconds": 3.0
+      },
+      {
+        "number": 47,
+        "name": "showcase.runtime_rooms",
+        "result": "Passed",
+        "seconds": 3.23
+      },
+      {
+        "number": 42,
+        "name": "showcase.courtyard_asset_conversion",
+        "result": "Passed",
+        "seconds": 4.21
+      },
+      {
+        "number": 388,
+        "name": "editor.scene_tabs",
+        "result": "Passed",
+        "seconds": 4.14
+      },
+      {
+        "number": 191,
+        "name": "runtime.native_static_view",
+        "result": "Passed",
+        "seconds": 4.25
+      },
+      {
+        "number": 93,
+        "name": "window_presentation.vulkan_swapchain",
+        "result": "Passed",
+        "seconds": 4.79
+      },
+      {
+        "number": 419,
+        "name": "editor.play_input_state",
+        "result": "Passed",
+        "seconds": 3.42
+      },
+      {
+        "number": 16,
+        "name": "gameplay.zig_ui_wrapper",
+        "result": "Passed",
+        "seconds": 4.17
+      },
+      {
+        "number": 422,
+        "name": "editor.linux_project_cli",
+        "result": "Passed",
+        "seconds": 4.79
+      },
+      {
+        "number": 475,
+        "name": "editor.hierarchy_select_all",
+        "result": "Passed",
+        "seconds": 5.3
+      },
+      {
+        "number": 381,
+        "name": "editor.build_process_console",
+        "result": "Passed",
+        "seconds": 3.83
+      },
+      {
+        "number": 217,
+        "name": "twod.authored_source_export",
+        "result": "Passed",
+        "seconds": 2.86
+      },
+      {
+        "number": 351,
+        "name": "editor.play_authored_sprites",
+        "result": "Passed",
+        "seconds": 3.83
+      },
+      {
+        "number": 480,
+        "name": "editor.game_input_bindings",
+        "result": "Passed",
+        "seconds": 2.87
+      },
+      {
+        "number": 200,
+        "name": "runtime.gameplay_audio_residency",
+        "result": "Passed",
+        "seconds": 2.36
+      },
+      {
+        "number": 269,
+        "name": "editor.brand_assets",
+        "result": "Passed",
+        "seconds": 2.25
+      },
+      {
+        "number": 225,
+        "name": "twod.benchmark_trace",
+        "result": "Passed",
+        "seconds": 2.22
+      },
+      {
+        "number": 512,
+        "name": "editor.authoring_reopen_ui_1x",
+        "result": "Passed",
+        "seconds": 2.43
+      },
+      {
+        "number": 462,
+        "name": "editor.unknown_component_inspector",
+        "result": "Passed",
+        "seconds": 2.7
+      },
+      {
+        "number": 514,
+        "name": "editor.authoring_reopen_ui_2x",
+        "result": "Passed",
+        "seconds": 2.88
+      },
+      {
+        "number": 498,
+        "name": "editor.reflected_inspector_ui",
+        "result": "Passed",
+        "seconds": 2.2
+      },
+      {
+        "number": 508,
+        "name": "editor.game_twod_preview",
+        "result": "Passed",
+        "seconds": 1.91
+      },
+      {
+        "number": 393,
+        "name": "editor.imgui_context_lifetime",
+        "result": "Passed",
+        "seconds": 2.67
+      },
+      {
+        "number": 155,
+        "name": "runtime.scene_world_pose_snapshot",
+        "result": "Passed",
+        "seconds": 2.98
+      },
+      {
+        "number": 489,
+        "name": "editor.prefab_placement_override_ui",
+        "result": "Passed",
+        "seconds": 2.31
+      },
+      {
+        "number": 459,
+        "name": "editor.profiler_json_schema_optimized",
+        "result": "Passed",
+        "seconds": 2.44
+      },
+      {
+        "number": 488,
+        "name": "editor.prefab_placement_rebase_ui",
+        "result": "Passed",
+        "seconds": 1.6
+      },
+      {
+        "number": 220,
+        "name": "twod.play_context_native",
+        "result": "Passed",
+        "seconds": 2.6
+      },
+      {
+        "number": 375,
+        "name": "editor.git_diff_ui_1x",
+        "result": "Passed",
+        "seconds": 1.67
+      },
+      {
+        "number": 506,
+        "name": "editor.play_twod_native",
+        "result": "Passed",
+        "seconds": 2.01
+      },
+      {
+        "number": 315,
+        "name": "editor.semantic_scene_merge_candidate",
+        "result": "Passed",
+        "seconds": 2.09
+      },
+      {
+        "number": 438,
+        "name": "editor.linux_process_memory",
+        "result": "Passed",
+        "seconds": 2.23
+      },
+      {
+        "number": 413,
+        "name": "editor.concurrent_game_view",
+        "result": "Passed",
+        "seconds": 2.33
+      },
+      {
+        "number": 390,
+        "name": "editor.console_display",
+        "result": "Passed",
+        "seconds": 2.07
+      },
+      {
+        "number": 487,
+        "name": "editor.prefab_placement_source_ui",
+        "result": "Passed",
+        "seconds": 1.71
+      },
+      {
+        "number": 458,
+        "name": "editor.profiler_json_schema",
+        "result": "Passed",
+        "seconds": 1.62
+      },
+      {
+        "number": 377,
+        "name": "editor.git_diff_ui_2x",
+        "result": "Passed",
+        "seconds": 2.06
+      },
+      {
+        "number": 411,
+        "name": "editor.play_host_memory_ui",
+        "result": "Passed",
+        "seconds": 1.96
+      },
+      {
+        "number": 378,
+        "name": "editor.diagnostic_privacy",
+        "result": "Passed",
+        "seconds": 1.49
+      },
+      {
+        "number": 516,
+        "name": "editor.project_build_settings_ui",
+        "result": "Passed",
+        "seconds": 1.62
+      },
+      {
+        "number": 389,
+        "name": "editor.content_diagnostic_display",
+        "result": "Passed",
+        "seconds": 1.68
+      },
+      {
+        "number": 392,
+        "name": "editor.mesh_memory_display",
+        "result": "Passed",
+        "seconds": 1.69
+      },
+      {
+        "number": 482,
+        "name": "editor.hierarchy_hidden_requests",
+        "result": "Passed",
+        "seconds": 1.57
+      },
+      {
+        "number": 484,
+        "name": "editor.gpu_profile_display",
+        "result": "Passed",
+        "seconds": 1.58
+      },
+      {
+        "number": 485,
+        "name": "editor.gpu_capture_display",
+        "result": "Passed",
+        "seconds": 1.66
+      },
+      {
+        "number": 379,
+        "name": "editor.project_picker_ui",
+        "result": "Passed",
+        "seconds": 1.51
+      },
+      {
+        "number": 486,
+        "name": "editor.static_project_export_ui",
+        "result": "Passed",
+        "seconds": 1.51
+      },
+      {
+        "number": 457,
+        "name": "editor.profiler_export",
+        "result": "Passed",
+        "seconds": 1.76
+      },
+      {
+        "number": 460,
+        "name": "editor.play_apply_changes",
+        "result": "Passed",
+        "seconds": 1.81
+      },
+      {
+        "number": 48,
+        "name": "showcase.visual_tour_cli",
+        "result": "Passed",
+        "seconds": 1.82
+      },
+      {
+        "number": 502,
+        "name": "editor.chrome_trace_display",
+        "result": "Passed",
+        "seconds": 1.68
+      },
+      {
+        "number": 503,
+        "name": "editor.mesh_memory_capture_display",
+        "result": "Passed",
+        "seconds": 1.66
+      },
+      {
+        "number": 524,
+        "name": "editor.appearance_2x",
+        "result": "Passed",
+        "seconds": 1.59
+      },
+      {
+        "number": 523,
+        "name": "editor.appearance_1x",
+        "result": "Passed",
+        "seconds": 1.53
+      },
+      {
+        "number": 396,
+        "name": "editor.native_scene_tools",
+        "result": "Passed",
+        "seconds": 1.65
+      },
+      {
+        "number": 213,
+        "name": "twod.content_import",
+        "result": "Passed",
+        "seconds": 1.62
+      },
+      {
+        "number": 373,
+        "name": "editor.plugin_manager_ui",
+        "result": "Passed",
+        "seconds": 1.61
+      },
+      {
+        "number": 325,
+        "name": "editor.workspace_budget",
+        "result": "Passed",
+        "seconds": 1.34
+      },
+      {
+        "number": 391,
+        "name": "editor.process_memory_display",
+        "result": "Passed",
+        "seconds": 1.63
+      },
+      {
+        "number": 219,
+        "name": "twod.play_context",
+        "result": "Passed",
+        "seconds": 1.59
+      },
+      {
+        "number": 507,
+        "name": "editor.sprite_source_native",
+        "result": "Passed",
+        "seconds": 1.5
+      },
+      {
+        "number": 490,
+        "name": "editor.prefab_instance_source_apply_ui_1x",
+        "result": "Passed",
+        "seconds": 1.75
+      },
+      {
+        "number": 304,
+        "name": "editor.prefab_asset_graph",
+        "result": "Passed",
+        "seconds": 1.49
+      },
+      {
+        "number": 376,
+        "name": "editor.git_status_ui_2x",
+        "result": "Passed",
+        "seconds": 1.68
+      },
+      {
+        "number": 374,
+        "name": "editor.git_status_ui_1x",
+        "result": "Passed",
+        "seconds": 1.63
+      },
+      {
+        "number": 380,
+        "name": "editor.project_upgrade_ui",
+        "result": "Passed",
+        "seconds": 1.92
+      },
+      {
+        "number": 464,
+        "name": "editor.transform_input",
+        "result": "Passed",
+        "seconds": 1.13
+      },
+      {
+        "number": 192,
+        "name": "runtime.linux_native_static_player",
+        "result": "Passed",
+        "seconds": 1.39
+      },
+      {
+        "number": 520,
+        "name": "editor.transform_layout_1x",
+        "result": "Passed",
+        "seconds": 1.15
+      },
+      {
+        "number": 522,
+        "name": "editor.transform_layout_2x",
+        "result": "Passed",
+        "seconds": 1.08
+      },
+      {
+        "number": 491,
+        "name": "editor.prefab_instance_source_apply_ui_2x",
+        "result": "Passed",
+        "seconds": 1.41
+      },
+      {
+        "number": 238,
+        "name": "twod.sprite_catalog_export",
+        "result": "Passed",
+        "seconds": 1.19
+      },
+      {
+        "number": 60,
+        "name": "showcase.linux_vulkan_rendering_room",
+        "result": "Passed",
+        "seconds": 1.19
+      },
+      {
+        "number": 499,
+        "name": "editor.sprite_source_inspector",
+        "result": "Passed",
+        "seconds": 3.16
+      },
+      {
+        "number": 372,
+        "name": "editor.content_search_keys",
+        "result": "Passed",
+        "seconds": 1.09
+      },
+      {
+        "number": 224,
+        "name": "twod.cpu_stress",
+        "result": "Passed",
+        "seconds": 1.29
+      },
+      {
+        "number": 467,
+        "name": "editor.game_camera_selection",
+        "result": "Passed",
+        "seconds": 1.1
+      },
+      {
+        "number": 90,
+        "name": "window_presentation.vulkan_scene",
+        "result": "Passed",
+        "seconds": 1.27
+      },
+      {
+        "number": 463,
+        "name": "editor.component_multi_edit",
+        "result": "Passed",
+        "seconds": 1.41
+      },
+      {
+        "number": 402,
+        "name": "editor.mesh_inspector",
+        "result": "Passed",
+        "seconds": 1.25
+      },
+      {
+        "number": 472,
+        "name": "editor.clipboard_initialized_forest",
+        "result": "Passed",
+        "seconds": 1.36
+      },
+      {
+        "number": 471,
+        "name": "editor.selection_delete_transaction",
+        "result": "Passed",
+        "seconds": 1.2
+      },
+      {
+        "number": 117,
+        "name": "api.twod_effects_baseline_guard",
+        "result": "Passed",
+        "seconds": 1.15
+      },
+      {
+        "number": 405,
+        "name": "editor.game_view_preview",
+        "result": "Passed",
+        "seconds": 1.18
+      },
+      {
+        "number": 105,
+        "name": "api.scene_baseline_guard",
+        "result": "Passed",
+        "seconds": 0.92
+      },
+      {
+        "number": 239,
+        "name": "twod.backend_options",
+        "result": "Passed",
+        "seconds": 0.92
+      },
+      {
+        "number": 104,
+        "name": "api.sprite_source_baseline_guard",
+        "result": "Passed",
+        "seconds": 0.93
+      },
+      {
+        "number": 221,
+        "name": "twod.native_pixels",
+        "result": "Passed",
+        "seconds": 0.94
+      },
+      {
+        "number": 156,
+        "name": "runtime.render_sync",
+        "result": "Passed",
+        "seconds": 0.74
+      },
+      {
+        "number": 189,
+        "name": "runtime.static_project_package",
+        "result": "Passed",
+        "seconds": 0.78
+      },
+      {
+        "number": 6,
+        "name": "build.showcase_package_launch_safety",
+        "result": "Passed",
+        "seconds": 0.78
+      },
+      {
+        "number": 154,
+        "name": "runtime.entity_parenting",
+        "result": "Passed",
+        "seconds": 0.69
+      },
+      {
+        "number": 115,
+        "name": "api.lifecycle_baseline_guard",
+        "result": "Passed",
+        "seconds": 0.75
+      },
+      {
+        "number": 2,
+        "name": "build.editor_target_evidence",
+        "result": "Passed",
+        "seconds": 0.72
+      },
+      {
+        "number": 243,
+        "name": "twod.project_export_native",
+        "result": "Passed",
+        "seconds": 0.7
+      },
+      {
+        "number": 37,
+        "name": "showcase.embedded_vulkan_shaders",
+        "result": "Passed",
+        "seconds": 0.71
+      },
+      {
+        "number": 110,
+        "name": "api.audio_state_baseline_guard",
+        "result": "Passed",
+        "seconds": 0.74
+      },
+      {
+        "number": 370,
+        "name": "editor.git_diff_provider",
+        "result": "Passed",
+        "seconds": 0.62
+      },
+      {
+        "number": 57,
+        "name": "showcase.linux_animation_handshake_optimized",
+        "result": "Passed",
+        "seconds": 0.54
+      },
+      {
+        "number": 324,
+        "name": "editor.autosave_journal",
+        "result": "Passed",
+        "seconds": 0.52
+      },
+      {
+        "number": 202,
+        "name": "runtime.crash_diagnostics",
+        "result": "Passed",
+        "seconds": 0.76
+      },
+      {
+        "number": 161,
+        "name": "runtime.bounded_scene_save",
+        "result": "Passed",
+        "seconds": 0.68
+      },
+      {
+        "number": 431,
+        "name": "editor.linux_xvfb_lifetime",
+        "result": "Passed",
+        "seconds": 0.73
+      },
+      {
+        "number": 133,
+        "name": "renderer.vulkan_graphics_resource_reuse",
+        "result": "Passed",
+        "seconds": 0.71
+      },
+      {
+        "number": 45,
+        "name": "showcase.benchmark_evidence_policy_optimized",
+        "result": "Passed",
+        "seconds": 0.67
+      },
+      {
+        "number": 8,
+        "name": "build.v2_production_toolchain",
+        "result": "Passed",
+        "seconds": 0.58
+      },
+      {
+        "number": 64,
+        "name": "cryptography.ed25519_sha256",
+        "result": "Passed",
+        "seconds": 0.55
+      },
+      {
+        "number": 310,
+        "name": "editor.bounded_build_process",
+        "result": "Passed",
+        "seconds": 0.52
+      },
+      {
+        "number": 234,
+        "name": "twod.cooked_product_services",
+        "result": "Passed",
+        "seconds": 0.53
+      },
+      {
+        "number": 205,
+        "name": "twod.windows_vm_transport",
+        "result": "Passed",
+        "seconds": 0.58
+      },
+      {
+        "number": 282,
+        "name": "editor.scene_golden_migrations",
+        "result": "Passed",
+        "seconds": 0.51
+      },
+      {
+        "number": 188,
+        "name": "runtime.cooked_scene_assets",
+        "result": "Passed",
+        "seconds": 0.49
+      },
+      {
+        "number": 348,
+        "name": "editor.material_scene_native",
+        "result": "Passed",
+        "seconds": 0.46
+      },
+      {
+        "number": 174,
+        "name": "runtime.dynamic_gameplay_module",
+        "result": "Passed",
+        "seconds": 0.44
+      },
+      {
+        "number": 344,
+        "name": "editor.static_project_export_cli_diagnostics_optimized",
+        "result": "Passed",
+        "seconds": 0.4
+      },
+      {
+        "number": 369,
+        "name": "editor.git_status_provider",
+        "result": "Passed",
+        "seconds": 0.43
+      },
+      {
+        "number": 421,
+        "name": "editor.linux_validation_output",
+        "result": "Passed",
+        "seconds": 0.4
+      },
+      {
+        "number": 328,
+        "name": "editor.asset_source",
+        "result": "Passed",
+        "seconds": 0.47
+      },
+      {
+        "number": 309,
+        "name": "editor.project_cli",
+        "result": "Passed",
+        "seconds": 0.4
+      },
+      {
+        "number": 237,
+        "name": "twod.project_export",
+        "result": "Passed",
+        "seconds": 0.42
+      },
+      {
+        "number": 357,
+        "name": "editor.mesh_memory_json_schema_optimized",
+        "result": "Passed",
+        "seconds": 0.43
+      },
+      {
+        "number": 285,
+        "name": "editor.chrome_cpu_trace",
+        "result": "Passed",
+        "seconds": 0.45
+      },
+      {
+        "number": 347,
+        "name": "editor.material_import",
+        "result": "Passed",
+        "seconds": 0.46
+      },
+      {
+        "number": 50,
+        "name": "showcase.probe_export",
+        "result": "Passed",
+        "seconds": 0.34
+      },
+      {
+        "number": 51,
+        "name": "showcase.zig_headless",
+        "result": "Passed",
+        "seconds": 0.35
+      },
+      {
+        "number": 52,
+        "name": "showcase.feature_gallery",
+        "result": "Passed",
+        "seconds": 0.3
+      },
+      {
+        "number": 53,
+        "name": "showcase.zig_dynamic",
+        "result": "Passed",
+        "seconds": 0.32
+      },
+      {
+        "number": 354,
+        "name": "editor.process_memory_json_schema_optimized",
+        "result": "Passed",
+        "seconds": 0.35
+      },
+      {
+        "number": 28,
+        "name": "gameplay.zig_color_slice",
+        "result": "Passed",
+        "seconds": 0.34
+      },
+      {
+        "number": 361,
+        "name": "editor.gpu_timing_json_optimized",
+        "result": "Passed",
+        "seconds": 0.37
+      },
+      {
+        "number": 49,
+        "name": "showcase.guided_tour_cli",
+        "result": "Passed",
+        "seconds": 0.36
+      },
+      {
+        "number": 54,
+        "name": "showcase.capability_fallbacks",
+        "result": "Passed",
+        "seconds": 0.3
+      },
+      {
+        "number": 26,
+        "name": "gameplay.zig_image_ui_player",
+        "result": "Passed",
+        "seconds": 0.35
+      },
+      {
+        "number": 196,
+        "name": "runtime.gameplay_alsa_lifetime",
+        "result": "Passed",
+        "seconds": 0.31
+      },
+      {
+        "number": 24,
+        "name": "gameplay.zig_display_player",
+        "result": "Passed",
+        "seconds": 0.29
+      },
+      {
+        "number": 137,
+        "name": "renderer.vulkan_recording_benchmark",
+        "result": "Passed",
+        "seconds": 0.28
+      },
+      {
+        "number": 5,
+        "name": "build.showcase_package",
+        "result": "Passed",
+        "seconds": 0.29
+      },
+      {
+        "number": 260,
+        "name": "twod.emission_asset_tool",
+        "result": "Passed",
+        "seconds": 0.27
+      },
+      {
+        "number": 517,
+        "name": "editor.font_glyphs",
+        "result": "Passed",
+        "seconds": 0.27
+      },
+      {
+        "number": 71,
+        "name": "animation.v2_m8_pose_search",
+        "result": "Passed",
+        "seconds": 0.25
+      },
+      {
+        "number": 138,
+        "name": "renderer.vulkan_recording_benchmark_reuse",
+        "result": "Passed",
+        "seconds": 0.29
+      },
+      {
+        "number": 190,
+        "name": "runtime.static_project_player_cli",
+        "result": "Passed",
+        "seconds": 0.21
+      },
+      {
+        "number": 255,
+        "name": "twod.sdk_portable_pe",
+        "result": "Passed",
+        "seconds": 0.31
+      },
+      {
+        "number": 236,
+        "name": "twod.host_fixture",
+        "result": "Passed",
+        "seconds": 0.24
+      },
+      {
+        "number": 58,
+        "name": "showcase.linux_vulkan_evidence_policy",
+        "result": "Passed",
+        "seconds": 0.2
+      },
+      {
+        "number": 283,
+        "name": "editor.prefab_instance_source_apply",
+        "result": "Passed",
+        "seconds": 0.28
+      },
+      {
+        "number": 135,
+        "name": "renderer.vulkan_recording_gpu_timing",
+        "result": "Passed",
+        "seconds": 0.31
+      },
+      {
+        "number": 356,
+        "name": "editor.mesh_memory_json_schema",
+        "result": "Passed",
+        "seconds": 0.24
+      },
+      {
+        "number": 136,
+        "name": "renderer.vulkan_recording_resource_reuse",
+        "result": "Passed",
+        "seconds": 0.22
+      },
+      {
+        "number": 259,
+        "name": "twod.macos_development_export",
+        "result": "Passed",
+        "seconds": 0.19
+      },
+      {
+        "number": 248,
+        "name": "twod.portable_font_bake",
+        "result": "Passed",
+        "seconds": 0.19
+      },
+      {
+        "number": 223,
+        "name": "twod.asset_tool",
+        "result": "Passed",
+        "seconds": 0.23
+      },
+      {
+        "number": 203,
+        "name": "twod.runtime_contracts",
+        "result": "Passed",
+        "seconds": 0.2
+      },
+      {
+        "number": 66,
+        "name": "core.async_log_stream",
+        "result": "Passed",
+        "seconds": 0.12
+      },
+      {
+        "number": 32,
+        "name": "gameplay.zig_lifecycle_player",
+        "result": "Passed",
+        "seconds": 0.2
+      },
+      {
+        "number": 241,
+        "name": "twod.game_entry_acceptance",
+        "result": "Passed",
+        "seconds": 0.18
+      },
+      {
+        "number": 44,
+        "name": "showcase.benchmark_evidence_policy",
+        "result": "Passed",
+        "seconds": 0.22
+      },
+      {
+        "number": 343,
+        "name": "editor.static_project_export_cli_diagnostics",
+        "result": "Passed",
+        "seconds": 0.17
+      },
+      {
+        "number": 56,
+        "name": "showcase.linux_animation_handshake",
+        "result": "Passed",
+        "seconds": 0.17
+      },
+      {
+        "number": 134,
+        "name": "renderer.vulkan_descriptor_isolation",
+        "result": "Passed",
+        "seconds": 0.15
+      },
+      {
+        "number": 214,
+        "name": "twod.play_assets",
+        "result": "Passed",
+        "seconds": 0.16
+      },
+      {
+        "number": 131,
+        "name": "renderer.v2_gpu_driven",
+        "result": "Passed",
+        "seconds": 0.17
+      },
+      {
+        "number": 353,
+        "name": "editor.process_memory_json_schema",
+        "result": "Passed",
+        "seconds": 0.16
+      },
+      {
+        "number": 290,
+        "name": "editor.build_artifact_verification",
+        "result": "Passed",
+        "seconds": 0.23
+      },
+      {
+        "number": 146,
+        "name": "renderer.ray_tracing",
+        "result": "Passed",
+        "seconds": 0.18
+      },
+      {
+        "number": 132,
+        "name": "renderer.vulkan_texture_recording",
+        "result": "Passed",
+        "seconds": 0.17
+      },
+      {
+        "number": 360,
+        "name": "editor.gpu_timing_json",
+        "result": "Passed",
+        "seconds": 0.17
+      },
+      {
+        "number": 287,
+        "name": "editor.signed_extension_admission",
+        "result": "Passed",
+        "seconds": 0.16
+      },
+      {
+        "number": 144,
+        "name": "renderer.mesh_shader",
+        "result": "Passed",
+        "seconds": 0.11
+      },
+      {
+        "number": 29,
+        "name": "gameplay.zig_voice_dialogue",
+        "result": "Passed",
+        "seconds": 0.14
+      },
+      {
+        "number": 362,
+        "name": "editor.reflected_dynamic_arrays",
+        "result": "Passed",
+        "seconds": 0.14
+      },
+      {
+        "number": 504,
+        "name": "editor.play_twod_services",
+        "result": "Passed",
+        "seconds": 0.14
+      },
+      {
+        "number": 181,
+        "name": "runtime.console_record_admission",
+        "result": "Passed",
+        "seconds": 0.12
+      },
+      {
+        "number": 94,
+        "name": "window_presentation.hlsl_embedding",
+        "result": "Passed",
+        "seconds": 0.12
+      },
+      {
+        "number": 292,
+        "name": "editor.prefab_placement_revision_snapshot",
+        "result": "Passed",
+        "seconds": 0.1
+      },
+      {
+        "number": 271,
+        "name": "editor.windows_package_admission",
+        "result": "Passed",
+        "seconds": 0.16
+      },
+      {
+        "number": 355,
+        "name": "editor.mesh_memory_capture",
+        "result": "Passed",
+        "seconds": 0.11
+      },
+      {
+        "number": 119,
+        "name": "renderer.submission_gpu_timing",
+        "result": "Passed",
+        "seconds": 0.15
+      },
+      {
+        "number": 36,
+        "name": "gameplay.hd2d_diagnostic_assets",
+        "result": "Passed",
+        "seconds": 0.12
+      },
+      {
+        "number": 82,
+        "name": "network.server_runtime_contract",
+        "result": "Passed",
+        "seconds": 0.09
+      },
+      {
+        "number": 142,
+        "name": "renderer.tessellation",
+        "result": "Passed",
+        "seconds": 0.1
+      },
+      {
+        "number": 143,
+        "name": "renderer.shading_rate",
+        "result": "Passed",
+        "seconds": 0.08
+      },
+      {
+        "number": 148,
+        "name": "renderer.shading_rate_image",
+        "result": "Passed",
+        "seconds": 0.1
+      },
+      {
+        "number": 80,
+        "name": "network.v2_m6_dormancy",
+        "result": "Passed",
+        "seconds": 0.09
+      },
+      {
+        "number": 77,
+        "name": "network.v2_m5_transport",
+        "result": "Passed",
+        "seconds": 0.13
+      },
+      {
+        "number": 79,
+        "name": "network.v2_m6_replication_interest",
+        "result": "Passed",
+        "seconds": 0.12
+      },
+      {
+        "number": 159,
+        "name": "runtime.v1_m12_shipping",
+        "result": "Passed",
+        "seconds": 0.09
+      },
+      {
+        "number": 417,
+        "name": "editor.play_physics_services",
+        "result": "Passed",
+        "seconds": 0.08
+      },
+      {
+        "number": 350,
+        "name": "editor.sprite_source_catalog",
+        "result": "Passed",
+        "seconds": 0.09
+      },
+      {
+        "number": 187,
+        "name": "runtime.game_project_player_cli",
+        "result": "Passed",
+        "seconds": 0.09
+      },
+      {
+        "number": 293,
+        "name": "editor.prefab_placement_source_rebase",
+        "result": "Passed",
+        "seconds": 0.07
+      },
+      {
+        "number": 145,
+        "name": "renderer.work_graph",
+        "result": "Passed",
+        "seconds": 0.08
+      },
+      {
+        "number": 81,
+        "name": "network.v2_m6_prediction_replay",
+        "result": "Passed",
+        "seconds": 0.09
+      },
+      {
+        "number": 78,
+        "name": "network.v2_m6_entity_mapping",
+        "result": "Passed",
+        "seconds": 0.08
+      },
+      {
+        "number": 233,
+        "name": "twod.audio_device_lifecycle",
+        "result": "Passed",
+        "seconds": 0.06
+      },
+      {
+        "number": 365,
+        "name": "editor.material_tool_source_session",
+        "result": "Passed",
+        "seconds": 0.07
+      },
+      {
+        "number": 74,
+        "name": "animation.v2_m8_synchronized_trs_graph",
+        "result": "Passed",
+        "seconds": 0.08
+      },
+      {
+        "number": 327,
+        "name": "editor.mesh_import",
+        "result": "Passed",
+        "seconds": 0.08
+      },
+      {
+        "number": 330,
+        "name": "editor.mesh_thumbnails",
+        "result": "Passed",
+        "seconds": 0.07
+      },
+      {
+        "number": 179,
+        "name": "runtime.v1_m5_asset_pipeline",
+        "result": "Passed",
+        "seconds": 0.09
+      },
+      {
+        "number": 352,
+        "name": "editor.process_memory_capture",
+        "result": "Passed",
+        "seconds": 0.07
+      },
+      {
+        "number": 140,
+        "name": "renderer.vulkan_golden_triangle",
+        "result": "Passed",
+        "seconds": 0.08
+      },
+      {
+        "number": 359,
+        "name": "editor.gpu_timing_capture",
+        "result": "Passed",
+        "seconds": 0.1
+      },
+      {
+        "number": 109,
+        "name": "api.m6_manifest_compatibility",
+        "result": "Passed",
+        "seconds": 0.1
+      },
+      {
+        "number": 123,
+        "name": "renderer.contracts",
+        "result": "Passed",
+        "seconds": 0.07
+      },
+      {
+        "number": 149,
+        "name": "renderer.modern_compute_fallback",
+        "result": "Passed",
+        "seconds": 0.07
+      },
+      {
+        "number": 107,
+        "name": "api.core_services_handle_and_vfs_contract",
+        "result": "Passed",
+        "seconds": 0.09
+      },
+      {
+        "number": 338,
+        "name": "editor.external_scene_save_contract",
+        "result": "Passed",
+        "seconds": 0.1
+      },
+      {
+        "number": 171,
+        "name": "runtime.v1_m4_vertical_slice",
+        "result": "Passed",
+        "seconds": 0.06
+      },
+      {
+        "number": 147,
+        "name": "renderer.sampler_feedback",
+        "result": "Passed",
+        "seconds": 0.06
+      },
+      {
+        "number": 366,
+        "name": "editor.managed_tool_invocation",
+        "result": "Passed",
+        "seconds": 0.05
+      },
+      {
+        "number": 106,
+        "name": "api.foundation_math_types",
+        "result": "Passed",
+        "seconds": 0.06
+      },
+      {
+        "number": 296,
+        "name": "editor.property_snapshot_hint_preservation",
+        "result": "Passed",
+        "seconds": 0.04
+      },
+      {
+        "number": 318,
+        "name": "editor.semantic_scene_comparison_job",
+        "result": "Passed",
+        "seconds": 0.05
+      },
+      {
+        "number": 216,
+        "name": "twod.authored_sources",
+        "result": "Passed",
+        "seconds": 0.06
+      },
+      {
+        "number": 12,
+        "name": "gameplay.zig_twod_dynamic",
+        "result": "Passed",
+        "seconds": 0.05
+      },
+      {
+        "number": 342,
+        "name": "editor.static_project_export_job",
+        "result": "Passed",
+        "seconds": 0.06
+      },
+      {
+        "number": 160,
+        "name": "runtime.v2_m12_hardening_reference_projects",
+        "result": "Passed",
+        "seconds": 0.05
+      },
+      {
+        "number": 252,
+        "name": "twod.voice_inventory",
+        "result": "Passed",
+        "seconds": 0.05
+      },
+      {
+        "number": 305,
+        "name": "editor.atomic_forest_import",
+        "result": "Passed",
+        "seconds": 0.06
+      },
+      {
+        "number": 83,
+        "name": "network.v2_m5_headless_dependency",
+        "result": "Passed",
+        "seconds": 0.04
+      },
+      {
+        "number": 249,
+        "name": "twod.gameplay_assets",
+        "result": "Passed",
+        "seconds": 0.05
+      },
+      {
+        "number": 323,
+        "name": "editor.inspector_atomic_batch",
+        "result": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "number": 7,
+        "name": "build.v2_migration_scanner",
+        "result": "Passed",
+        "seconds": 0.06
+      },
+      {
+        "number": 412,
+        "name": "editor.play_debug_lines",
+        "result": "Passed",
+        "seconds": 0.05
+      },
+      {
+        "number": 308,
+        "name": "editor.preview_contract",
+        "result": "Passed",
+        "seconds": 0.04
+      },
+      {
+        "number": 76,
+        "name": "animation.v2_m8_pose_storage_retarget",
+        "result": "Passed",
+        "seconds": 0.04
+      },
+      {
+        "number": 371,
+        "name": "editor.semantic_scene_merge_publication",
+        "result": "Passed",
+        "seconds": 0.04
+      },
+      {
+        "number": 311,
+        "name": "editor.tool_capability_metadata",
+        "result": "Passed",
+        "seconds": 0.04
+      },
+      {
+        "number": 301,
+        "name": "editor.project_prefab_placement",
+        "result": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "number": 120,
+        "name": "renderer.metal_source_contract",
+        "result": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "number": 316,
+        "name": "editor.semantic_scene_merge_candidate_job",
+        "result": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "number": 121,
+        "name": "renderer.indirect_range_source_contract",
+        "result": "Passed",
+        "seconds": 0.04
+      },
+      {
+        "number": 302,
+        "name": "editor.prefab_revision_history",
+        "result": "Passed",
+        "seconds": 0.04
+      },
+      {
+        "number": 43,
+        "name": "showcase.performance_statistics",
+        "result": "Passed",
+        "seconds": 0.04
+      },
+      {
+        "number": 416,
+        "name": "editor.play_scene_services",
+        "result": "Passed",
+        "seconds": 0.04
+      },
+      {
+        "number": 291,
+        "name": "editor.plugin_manager",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 364,
+        "name": "editor.material_tool_document",
+        "result": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "number": 408,
+        "name": "editor.packaged_play_services",
+        "result": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "number": 299,
+        "name": "editor.prefab_stable_comparison",
+        "result": "Passed",
+        "seconds": 0.04
+      },
+      {
+        "number": 349,
+        "name": "editor.material_catalog",
+        "result": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "number": 334,
+        "name": "editor.component_reset_contract",
+        "result": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "number": 336,
+        "name": "editor.builtin_creation_contract",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 313,
+        "name": "editor.additive_scene_session",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 11,
+        "name": "gameplay.zig_twod_static",
+        "result": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "number": 331,
+        "name": "editor.mesh_reimport",
+        "result": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "number": 303,
+        "name": "editor.prefab_property_revert_plan",
+        "result": "Passed",
+        "seconds": 0.04
+      },
+      {
+        "number": 215,
+        "name": "twod.authoring_contracts",
+        "result": "Passed",
+        "seconds": 0.04
+      },
+      {
+        "number": 183,
+        "name": "runtime.plugin_lifecycle",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 3,
+        "name": "build.shader_contract",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 1,
+        "name": "build.module_graph",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 306,
+        "name": "editor.shader_authoring_contracts",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 274,
+        "name": "editor.game_sprite_build",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 403,
+        "name": "editor.scene_mesh_preview_geometry",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 337,
+        "name": "editor.scene_file_contract",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 298,
+        "name": "editor.prefab_document_isolation",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 273,
+        "name": "editor.game_build_capture",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 204,
+        "name": "twod.sprite_source",
+        "result": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "number": 335,
+        "name": "editor.transform_value_contract",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 25,
+        "name": "gameplay.zig_ui_showcase",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 228,
+        "name": "twod.graphical_controls",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 368,
+        "name": "editor.git_porcelain_parser",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 212,
+        "name": "twod.editor_sprite_sources",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 211,
+        "name": "twod.project_play_assets",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 163,
+        "name": "runtime.v1_m7_input_ui_localization",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 386,
+        "name": "editor.hierarchy_scale_lifecycle",
+        "result": "Passed",
+        "seconds": 181.49
+      },
+      {
+        "number": 424,
+        "name": "editor.linux_native_play_soak",
+        "result": "Passed",
+        "seconds": 82.97
+      },
+      {
+        "number": 509,
+        "name": "editor.linux_native_game_twod",
+        "result": "Passed",
+        "seconds": 71.01
+      },
+      {
+        "number": 518,
+        "name": "editor.linux_packaged_play",
+        "result": "Passed",
+        "seconds": 64.51
+      },
+      {
+        "number": 510,
+        "name": "editor.linux_authored_preview",
+        "result": "Passed",
+        "seconds": 62.52
+      },
+      {
+        "number": 264,
+        "name": "twod.sprite_source_repack_player",
+        "result": "Passed",
+        "seconds": 57.55
+      },
+      {
+        "number": 35,
+        "name": "gameplay.zig_hd2d_native",
+        "result": "Passed",
+        "seconds": 48.97
+      },
+      {
+        "number": 275,
+        "name": "editor.linux_game_sprite_build",
+        "result": "Passed",
+        "seconds": 51.74
+      },
+      {
+        "number": 515,
+        "name": "editor.authoring_mixed_replay_1000_2x",
+        "result": "Passed",
+        "seconds": 9.15
+      },
+      {
+        "number": 513,
+        "name": "editor.authoring_mixed_replay_1000_1x",
+        "result": "Passed",
+        "seconds": 8.88
+      },
+      {
+        "number": 447,
+        "name": "editor.linux_play_host_memory",
+        "result": "Passed",
+        "seconds": 2.24
+      },
+      {
+        "number": 99,
+        "name": "window.x11_held_key_native",
+        "result": "Passed",
+        "seconds": 2.0
+      },
+      {
+        "number": 100,
+        "name": "window.x11_display_metrics_native",
+        "result": "Passed",
+        "seconds": 0.13
+      },
+      {
+        "number": 406,
+        "name": "editor.game_material_preview",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 297,
+        "name": "editor.atomic_property_snapshot",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 166,
+        "name": "runtime.v1_m10_large_world",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 69,
+        "name": "ai.v2_m7_navigation_crowd_policy",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 279,
+        "name": "editor.project_build_settings",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 363,
+        "name": "editor.reflected_inspector",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 414,
+        "name": "editor.build_console_ingress",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 125,
+        "name": "renderer.parallel_graph_recording",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 112,
+        "name": "samples.editor_reflected_arrays",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 65,
+        "name": "core.runtime",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 367,
+        "name": "editor.hierarchy_snapshot_index",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 314,
+        "name": "editor.prepared_scene_save",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 294,
+        "name": "editor.signed_tool_invocation",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 505,
+        "name": "editor.sprite_source_play",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 67,
+        "name": "core.process_memory",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 418,
+        "name": "editor.play_mesh_assets",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 326,
+        "name": "editor.viewport_math",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 231,
+        "name": "twod.gameplay_content",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 278,
+        "name": "editor.game_project_export",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 272,
+        "name": "editor.game_build_sdk_bytes",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 209,
+        "name": "twod.gameplay_generation",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 289,
+        "name": "editor.native_tool_callbacks",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 333,
+        "name": "editor.affine_gizmo_contract",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 270,
+        "name": "editor.game_build_progress",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 139,
+        "name": "build.shader_crosscompile",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 295,
+        "name": "editor.scalar_material_native_tool",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 178,
+        "name": "runtime.game_scene_zig_module",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 261,
+        "name": "twod.scene_session",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 286,
+        "name": "editor.extension_signature_trust",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 415,
+        "name": "editor.core_console_ingress",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 73,
+        "name": "animation.v2_m8_inertial_pose_blend",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 307,
+        "name": "editor.project_upgrade_evidence",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 420,
+        "name": "editor.play_pointer_input",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 322,
+        "name": "editor.mesh_memory_profile",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 521,
+        "name": "editor.icon_buttons_2x",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 409,
+        "name": "editor.play_diagnostics",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 198,
+        "name": "runtime.gameplay_gamepad_routing",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 398,
+        "name": "editor.scene_move_planes",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 88,
+        "name": "window_presentation.scene_instance_contract",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 4,
+        "name": "build.plugin_manifests",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 339,
+        "name": "editor.play_input_settings",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 407,
+        "name": "editor.play_gameplay_module",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 177,
+        "name": "runtime.game_scene_session",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 410,
+        "name": "editor.play_host_allocations",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 206,
+        "name": "twod.gameplay_bridge",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 519,
+        "name": "editor.icon_buttons_1x",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 13,
+        "name": "gameplay.zig_twod_wire_layout",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 321,
+        "name": "editor.process_memory_profile",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 164,
+        "name": "runtime.v1_m8_gameplay_simulation",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 256,
+        "name": "twod.gameplay_effects",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 329,
+        "name": "editor.mesh_asset_catalog",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 242,
+        "name": "twod.project_manifest",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 186,
+        "name": "runtime.game_project_package",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 320,
+        "name": "editor.additive_scene_contract",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 358,
+        "name": "editor.gpu_profile",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 244,
+        "name": "twod.gameplay_display",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 33,
+        "name": "gameplay.zig_minimized_modules",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 14,
+        "name": "gameplay.zig_services_consumer",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 280,
+        "name": "editor.content_diagnostics",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 75,
+        "name": "animation.v2_m8_marker_sync",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 169,
+        "name": "runtime.v1_m9_presentation",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 185,
+        "name": "runtime.plugin_service_ownership",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 130,
+        "name": "renderer.v2_gpu_scene",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 246,
+        "name": "twod.gameplay_ui_draw",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 31,
+        "name": "gameplay.zig_lifecycle_slice",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 162,
+        "name": "runtime.world_identity_exhaustion",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 46,
+        "name": "showcase.v1_probe",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 182,
+        "name": "runtime.v1_m6_editor_sdk",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 258,
+        "name": "twod.lighting_rendering",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 173,
+        "name": "runtime.gameplay_reload_transaction",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 124,
+        "name": "renderer.graph_buffer_dependencies",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 207,
+        "name": "twod.sprite_source_gameplay",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 157,
+        "name": "api.gameplay_host_bridge",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 195,
+        "name": "runtime.gameplay_audio",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 197,
+        "name": "runtime.gameplay_persistent_storage",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 9,
+        "name": "gameplay.zig_abi_smoke",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 229,
+        "name": "twod.gameplay_ui",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 201,
+        "name": "runtime.gameplay_lifecycle",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 158,
+        "name": "runtime.external_play_session",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 87,
+        "name": "window_presentation.scene_geometry_residency",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 126,
+        "name": "renderer.graphics_capabilities",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 153,
+        "name": "runtime.transform_rotation_scale",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 111,
+        "name": "samples.api_foundation",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 150,
+        "name": "runtime.shader_artifact_contracts",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 168,
+        "name": "animation.v2_m8_sync_group_graph",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 122,
+        "name": "renderer.dxil_artifact_readiness",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 151,
+        "name": "runtime.v1_m4_m11_contracts",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 89,
+        "name": "window_presentation.scene_view_admission",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 101,
+        "name": "window_presentation.twod_linear_packet",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 97,
+        "name": "window_presentation.gpu_timing",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 84,
+        "name": "window_presentation.contracts",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 152,
+        "name": "api.game_world_facade",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 180,
+        "name": "api.bundle_mount",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 167,
+        "name": "runtime.v1_m11_platform",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 194,
+        "name": "runtime.gameplay_action_input",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 170,
+        "name": "runtime.v2_m9_timeline_ui_audio_media",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 176,
+        "name": "runtime.game_launch_descriptor",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 127,
+        "name": "renderer.scene_frame_contracts",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 165,
+        "name": "runtime.v2_m7_ai_character_intent_bridge",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 240,
+        "name": "twod.game_entry",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 10,
+        "name": "gameplay.zig_pointer_wire_layout",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 118,
+        "name": "renderer.d3d12_adapter_policy",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 172,
+        "name": "runtime.gameplay_module_host",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 128,
+        "name": "renderer.material_contracts",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 68,
+        "name": "core.v2_m11_remote_diagnostics",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 85,
+        "name": "window_presentation.staged_upload_allocation",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 141,
+        "name": "renderer.enhanced_barrier_projection",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 404,
+        "name": "editor.scene_mesh_allocation_failure",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 199,
+        "name": "runtime.gameplay_audio_queue",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 62,
+        "name": "foundation.build_info",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 86,
+        "name": "window_presentation.scene_geometry_upload_key",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 129,
+        "name": "renderer.golden_image_acceptance",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 98,
+        "name": "window.x11_key_repeat_matcher",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 63,
+        "name": "foundation.gameplay_abi",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 108,
+        "name": "api.m6_c_consumer",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 288,
+        "name": "editor.native_tool_c_abi",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 184,
+        "name": "runtime.plugin_lifecycle_c_abi",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 208,
+        "name": "twod.source_animation",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 265,
+        "name": "twod.source_animation_player",
+        "result": "Passed",
+        "seconds": 57.84
+      }
+    ]
+  },
+  "strict_reload": {
+    "successful_replacements": 32,
+    "rejected_candidates": 128,
+    "unique_normal_libraries": 33,
+    "failure_modes": [
+      "prepare",
+      "restore",
+      "reloaded",
+      "payload_schema"
+    ],
+    "all_failures_preserve_live": true,
+    "old_code_work_lease_drained_before_capture": true,
+    "job_counter_migrates": 100,
+    "serialized_state_bytes": 80,
+    "source_uuid_reimport": "11:12 -> Atlas18:19/region73/Pivot3; existing anchors and pool handles retained",
+    "source_clock": "Two-frame .25/.5 seconds,advance.125,pause every9th update; exact continuing independent tick/source/style model",
+    "live_allocations": 1,
+    "balanced_after_unload": true,
+    "cpu_geometry_only": true
+  },
+  "source_sha256": {
+    "Engine/TwoD/CMakeLists.txt": "d373a8ab48eebbe51f985ad74c43f4e5f4eb9d80d6b26caf513fbb6180d2176b",
+    "Engine/TwoD/include/Nexora/TwoD/GameplayBridge.h": "6578ef46784f7fb5272d649e95b00e7c0e450f0b4cb11352dc4e50faf09b8111",
+    "Engine/TwoD/include/Nexora/TwoD/GameplayGeneration.h": "608ce1ac9975cb116877c3d6aa5814ed441cc5be6c860c8bfbb4f8878a915307",
+    "Engine/TwoD/include/Nexora/TwoD/Lifecycle.h": "d297c60e63d6f55a5b6027bf70650d7dcc41361c57fac2f65da9bc41be9af5b6",
+    "Engine/TwoD/include/Nexora/TwoD/Scene.h": "d6a15d2f07ff2102416cd0c86f468ff467eafe2a33876b47c7bc661442a2cc21",
+    "Engine/TwoD/include/Nexora/TwoD/SceneSession.h": "19187dc67e0d9da7f46970838e7cd43d511b05ce7e6e5f967b18b76c5cf79ece",
+    "Engine/TwoD/src/GameplayBridge.cpp": "d44e61308687a67d1b41988bc1980df5854d490164c8b5ec7bbc13b539eee323",
+    "Engine/TwoD/src/GameplayGeneration.cpp": "98d48b243bb869347ae4b821e7220e62354a6bdaa04ece5c04ac9a3860336f35",
+    "Engine/TwoD/src/Lifecycle.cpp": "9eb7871e06d0934a5632ddfc254a2c33e666a37bc87010164ba254fe29071af0",
+    "Engine/TwoD/src/SceneSession.cpp": "014e5b00d2bc6f1e93cc9742e87dbb2584f9cf5441d1df09c69e212c5247e220",
+    "Tests/TwoD/CMakeLists.txt": "e140989472b07ea94ec7bfa11a48e486ca4765cffd6621d22043ab17abe0594c",
+    "Tests/TwoD/GameplayGenerationTests.cpp": "dcbdad2b89a3447af42eb6e9469ed680407675d6bb45cb8ec4b307b8b28bd9f4",
+    "Tests/TwoD/SourceReloadScript/common.zig": "27f5594e45e904d5d5a2795bf6892536804197725052fa49dbd9d07c7d411fd4",
+    "Tests/TwoD/SourceReloadScript/normal.zig": "4654945f6ad4df12b7cefd3de911a8b818b83ac464578a953fc4190a64affe6f",
+    "Tests/TwoD/SourceReloadScript/prepare_fail.zig": "7916c64a1034d989b49e3965e952cbff3ef8bca9ec6b988a5402aad87e2d35a3",
+    "Tests/TwoD/SourceReloadScript/project-normal.json": "0cd1772626992688eba727780d0858a94564171884cd36a4fef49a67e0fad09b",
+    "Tests/TwoD/SourceReloadScript/project-prepare_fail.json": "b9d8d9d683ae8bf45af88175485d5f8508be06304620c399b6768de14d38fc41",
+    "Tests/TwoD/SourceReloadScript/project-reloaded_fail.json": "d7c6df28b7124f7f223f6483af009d5a71e8da6617957b2aa68363367fd0b5ef",
+    "Tests/TwoD/SourceReloadScript/project-restore_fail.json": "dfc608d493a7085ff44abc046f2f8a1b6862bb93c257bd538fa147946901afe8",
+    "Tests/TwoD/SourceReloadScript/project-schema_change.json": "aad547c83732c4b26d6d270364e66ea95ab6a7315e81146f57e5ab7341186951",
+    "Tests/TwoD/SourceReloadScript/reloaded_fail.zig": "a539b6eabb08f10b3e81c752b97bcfbb0e6c4c573b5511b2d579e8895d08c86f",
+    "Tests/TwoD/SourceReloadScript/restore_fail.zig": "a5b7815cecafa885f5a2f093af992489fa7fb3e60d90e33570e485d79215b0ad",
+    "Tests/TwoD/SourceReloadScript/schema_change.zig": "03f0b3a026e06469f51beee8188fda8afce6bc39fe522a665a48225600ef3b9c",
+    "Tests/TwoD/SourceReloadTests.cpp": "62c477cd3b4d74b78e893e324e6e97da028c12bf73d4a207816490973c749221",
+    "Tests/TwoD/PlayContextTests.cpp": "bc6ccac74ea9355db8fd1fd23553f113a8bc7e380f49d66fd9f51a027d8e9978"
+  },
+  "gcc15": {
+    "compiler": "x86_64-linux-gnu-g++-15 (Ubuntu 15.2.0-4ubuntu4) 15.2.0",
+    "results": [
+      {
+        "file": "Engine/TwoD/src/GameplayBridge.cpp",
+        "sha256": "d44e61308687a67d1b41988bc1980df5854d490164c8b5ec7bbc13b539eee323",
+        "exit": 0,
+        "command": [
+          "/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/bin/x86_64-linux-gnu-g++-15",
+          "-B/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/lib/gcc/x86_64-linux-gnu/15/",
+          "-DNEXORA_2D_EXPORTS",
+          "-DNEXORA_ASSET_PIPELINE_ENABLED=1",
+          "-DNEXORA_BUILD_DEVELOPMENT=1",
+          "-DNEXORA_CAPTURE_ENCODER_ENABLED=0",
+          "-DNEXORA_EDITOR_SDK_ENABLED=1",
+          "-DNEXORA_GAMEPLAY_SIMULATION_ENABLED=1",
+          "-DNEXORA_LARGE_WORLD_ENABLED=1",
+          "-DNEXORA_MEDIA_DRM_ENABLED=0",
+          "-DNEXORA_PLATFORM_ENABLED=1",
+          "-DNEXORA_PRESENTATION_ENABLED=1",
+          "-DNEXORA_SCENE_RENDERING_ENABLED=1",
+          "-DNEXORA_SHIPPING_ENABLED=1",
+          "-DNexoraTwoD_EXPORTS",
+          "-I/workspace/Nexora-delivery-773/Engine/TwoD/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Runtime/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Renderer/include",
+          "-I/workspace/Nexora-delivery-773/Engine/RHI/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Core/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Foundation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/API/include",
+          "-I/workspace/Nexora-delivery-773/build/linux-development/Engine/Foundation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Presentation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Window/include",
+          "-std=c++20",
+          "-fPIC",
+          "-fvisibility=hidden",
+          "-fvisibility-inlines-hidden",
+          "-Wall",
+          "-Wextra",
+          "-Wpedantic",
+          "-Werror",
+          "-o",
+          "/workspace/work/engine-goal-20261112/authoring/source-reload-generation-gcc15/GameplayBridge.o",
+          "-c",
+          "/workspace/Nexora-delivery-773/Engine/TwoD/src/GameplayBridge.cpp"
+        ],
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "file": "Engine/TwoD/src/GameplayGeneration.cpp",
+        "sha256": "98d48b243bb869347ae4b821e7220e62354a6bdaa04ece5c04ac9a3860336f35",
+        "exit": 0,
+        "command": [
+          "/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/bin/x86_64-linux-gnu-g++-15",
+          "-B/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/lib/gcc/x86_64-linux-gnu/15/",
+          "-DNEXORA_2D_EXPORTS",
+          "-DNEXORA_ASSET_PIPELINE_ENABLED=1",
+          "-DNEXORA_BUILD_DEVELOPMENT=1",
+          "-DNEXORA_CAPTURE_ENCODER_ENABLED=0",
+          "-DNEXORA_EDITOR_SDK_ENABLED=1",
+          "-DNEXORA_GAMEPLAY_SIMULATION_ENABLED=1",
+          "-DNEXORA_LARGE_WORLD_ENABLED=1",
+          "-DNEXORA_MEDIA_DRM_ENABLED=0",
+          "-DNEXORA_PLATFORM_ENABLED=1",
+          "-DNEXORA_PRESENTATION_ENABLED=1",
+          "-DNEXORA_SCENE_RENDERING_ENABLED=1",
+          "-DNEXORA_SHIPPING_ENABLED=1",
+          "-DNexoraTwoD_EXPORTS",
+          "-I/workspace/Nexora-delivery-773/Engine/TwoD/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Runtime/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Renderer/include",
+          "-I/workspace/Nexora-delivery-773/Engine/RHI/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Core/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Foundation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/API/include",
+          "-I/workspace/Nexora-delivery-773/build/linux-development/Engine/Foundation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Presentation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Window/include",
+          "-std=c++20",
+          "-fPIC",
+          "-fvisibility=hidden",
+          "-fvisibility-inlines-hidden",
+          "-Wall",
+          "-Wextra",
+          "-Wpedantic",
+          "-Werror",
+          "-o",
+          "/workspace/work/engine-goal-20261112/authoring/source-reload-generation-gcc15/GameplayGeneration.o",
+          "-c",
+          "/workspace/Nexora-delivery-773/Engine/TwoD/src/GameplayGeneration.cpp"
+        ],
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "file": "Engine/TwoD/src/Lifecycle.cpp",
+        "sha256": "9eb7871e06d0934a5632ddfc254a2c33e666a37bc87010164ba254fe29071af0",
+        "exit": 0,
+        "command": [
+          "/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/bin/x86_64-linux-gnu-g++-15",
+          "-B/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/lib/gcc/x86_64-linux-gnu/15/",
+          "-DNEXORA_2D_EXPORTS",
+          "-DNEXORA_ASSET_PIPELINE_ENABLED=1",
+          "-DNEXORA_BUILD_DEVELOPMENT=1",
+          "-DNEXORA_CAPTURE_ENCODER_ENABLED=0",
+          "-DNEXORA_EDITOR_SDK_ENABLED=1",
+          "-DNEXORA_GAMEPLAY_SIMULATION_ENABLED=1",
+          "-DNEXORA_LARGE_WORLD_ENABLED=1",
+          "-DNEXORA_MEDIA_DRM_ENABLED=0",
+          "-DNEXORA_PLATFORM_ENABLED=1",
+          "-DNEXORA_PRESENTATION_ENABLED=1",
+          "-DNEXORA_SCENE_RENDERING_ENABLED=1",
+          "-DNEXORA_SHIPPING_ENABLED=1",
+          "-DNexoraTwoD_EXPORTS",
+          "-I/workspace/Nexora-delivery-773/Engine/TwoD/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Runtime/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Renderer/include",
+          "-I/workspace/Nexora-delivery-773/Engine/RHI/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Core/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Foundation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/API/include",
+          "-I/workspace/Nexora-delivery-773/build/linux-development/Engine/Foundation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Presentation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Window/include",
+          "-std=c++20",
+          "-fPIC",
+          "-fvisibility=hidden",
+          "-fvisibility-inlines-hidden",
+          "-Wall",
+          "-Wextra",
+          "-Wpedantic",
+          "-Werror",
+          "-o",
+          "/workspace/work/engine-goal-20261112/authoring/source-reload-generation-gcc15/Lifecycle.o",
+          "-c",
+          "/workspace/Nexora-delivery-773/Engine/TwoD/src/Lifecycle.cpp"
+        ],
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "file": "Engine/TwoD/src/SceneSession.cpp",
+        "sha256": "014e5b00d2bc6f1e93cc9742e87dbb2584f9cf5441d1df09c69e212c5247e220",
+        "exit": 0,
+        "command": [
+          "/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/bin/x86_64-linux-gnu-g++-15",
+          "-B/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/lib/gcc/x86_64-linux-gnu/15/",
+          "-DNEXORA_2D_EXPORTS",
+          "-DNEXORA_ASSET_PIPELINE_ENABLED=1",
+          "-DNEXORA_BUILD_DEVELOPMENT=1",
+          "-DNEXORA_CAPTURE_ENCODER_ENABLED=0",
+          "-DNEXORA_EDITOR_SDK_ENABLED=1",
+          "-DNEXORA_GAMEPLAY_SIMULATION_ENABLED=1",
+          "-DNEXORA_LARGE_WORLD_ENABLED=1",
+          "-DNEXORA_MEDIA_DRM_ENABLED=0",
+          "-DNEXORA_PLATFORM_ENABLED=1",
+          "-DNEXORA_PRESENTATION_ENABLED=1",
+          "-DNEXORA_SCENE_RENDERING_ENABLED=1",
+          "-DNEXORA_SHIPPING_ENABLED=1",
+          "-DNexoraTwoD_EXPORTS",
+          "-I/workspace/Nexora-delivery-773/Engine/TwoD/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Runtime/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Renderer/include",
+          "-I/workspace/Nexora-delivery-773/Engine/RHI/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Core/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Foundation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/API/include",
+          "-I/workspace/Nexora-delivery-773/build/linux-development/Engine/Foundation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Presentation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Window/include",
+          "-std=c++20",
+          "-fPIC",
+          "-fvisibility=hidden",
+          "-fvisibility-inlines-hidden",
+          "-Wall",
+          "-Wextra",
+          "-Wpedantic",
+          "-Werror",
+          "-o",
+          "/workspace/work/engine-goal-20261112/authoring/source-reload-generation-gcc15/SceneSession.o",
+          "-c",
+          "/workspace/Nexora-delivery-773/Engine/TwoD/src/SceneSession.cpp"
+        ],
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "file": "Tests/TwoD/GameplayGenerationTests.cpp",
+        "sha256": "dcbdad2b89a3447af42eb6e9469ed680407675d6bb45cb8ec4b307b8b28bd9f4",
+        "exit": 0,
+        "command": [
+          "/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/bin/x86_64-linux-gnu-g++-15",
+          "-B/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/lib/gcc/x86_64-linux-gnu/15/",
+          "-DNEXORA_ASSET_PIPELINE_ENABLED=1",
+          "-DNEXORA_BUILD_DEVELOPMENT=1",
+          "-DNEXORA_CAPTURE_ENCODER_ENABLED=0",
+          "-DNEXORA_EDITOR_SDK_ENABLED=1",
+          "-DNEXORA_GAMEPLAY_SIMULATION_ENABLED=1",
+          "-DNEXORA_LARGE_WORLD_ENABLED=1",
+          "-DNEXORA_MEDIA_DRM_ENABLED=0",
+          "-DNEXORA_PLATFORM_ENABLED=1",
+          "-DNEXORA_PRESENTATION_ENABLED=1",
+          "-DNEXORA_SCENE_RENDERING_ENABLED=1",
+          "-DNEXORA_SHIPPING_ENABLED=1",
+          "-I/workspace/Nexora-delivery-773/Engine/TwoD/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Runtime/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Renderer/include",
+          "-I/workspace/Nexora-delivery-773/Engine/RHI/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Core/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Foundation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/API/include",
+          "-I/workspace/Nexora-delivery-773/build/linux-development/Engine/Foundation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Presentation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Window/include",
+          "-std=c++20",
+          "-fvisibility=hidden",
+          "-fvisibility-inlines-hidden",
+          "-Wall",
+          "-Wextra",
+          "-Wpedantic",
+          "-Werror",
+          "-o",
+          "/workspace/work/engine-goal-20261112/authoring/source-reload-generation-gcc15/GameplayGenerationTests.o",
+          "-c",
+          "/workspace/Nexora-delivery-773/Tests/TwoD/GameplayGenerationTests.cpp"
+        ],
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "file": "Tests/TwoD/SourceReloadTests.cpp",
+        "sha256": "62c477cd3b4d74b78e893e324e6e97da028c12bf73d4a207816490973c749221",
+        "exit": 0,
+        "command": [
+          "/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/bin/x86_64-linux-gnu-g++-15",
+          "-B/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/lib/gcc/x86_64-linux-gnu/15/",
+          "-DNEXORA_ASSET_PIPELINE_ENABLED=1",
+          "-DNEXORA_BUILD_DEVELOPMENT=1",
+          "-DNEXORA_CAPTURE_ENCODER_ENABLED=0",
+          "-DNEXORA_EDITOR_SDK_ENABLED=1",
+          "-DNEXORA_GAMEPLAY_SIMULATION_ENABLED=1",
+          "-DNEXORA_LARGE_WORLD_ENABLED=1",
+          "-DNEXORA_MEDIA_DRM_ENABLED=0",
+          "-DNEXORA_PLATFORM_ENABLED=1",
+          "-DNEXORA_PRESENTATION_ENABLED=1",
+          "-DNEXORA_SCENE_RENDERING_ENABLED=1",
+          "-DNEXORA_SHIPPING_ENABLED=1",
+          "-I/workspace/Nexora-delivery-773/Engine/TwoD/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Runtime/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Renderer/include",
+          "-I/workspace/Nexora-delivery-773/Engine/RHI/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Core/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Foundation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/API/include",
+          "-I/workspace/Nexora-delivery-773/build/linux-development/Engine/Foundation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Presentation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Window/include",
+          "-std=c++20",
+          "-fvisibility=hidden",
+          "-fvisibility-inlines-hidden",
+          "-Wall",
+          "-Wextra",
+          "-Wpedantic",
+          "-Werror",
+          "-o",
+          "/workspace/work/engine-goal-20261112/authoring/source-reload-generation-gcc15/SourceReloadTests.o",
+          "-c",
+          "/workspace/Nexora-delivery-773/Tests/TwoD/SourceReloadTests.cpp"
+        ],
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  },
+  "gate_exit_codes": {
+    "final-development-configure": 0,
+    "final-development-build": 0,
+    "final-development-test": 0,
+    "shipping-configure": 0,
+    "shipping-build": 0,
+    "shipping-native": 0,
+    "monolithic-configure": 0,
+    "monolithic-build": 0,
+    "monolithic-test": 0,
+    "feature-off-configure": 0,
+    "feature-off-build": 0
+  },
+  "gate_logs": {
+    "final-development-configure": {
+      "bytes": 183,
+      "sha256": "986163e9ef4434f08159e872ef30224c4d461ffb431d83dfa0622d5b68947d3c"
+    },
+    "final-development-build": {
+      "bytes": 63457,
+      "sha256": "613dd03f32e6c116403db3b832829fce403334fcc632ae2532599ad67ed5b08f"
+    },
+    "final-development-test": {
+      "bytes": 79298,
+      "sha256": "bff1b1eb0341c40b814a6342671b89477673b1115ffe7c1fc90b26c794473756"
+    },
+    "shipping-configure": {
+      "bytes": 142,
+      "sha256": "626848122ef8695eed35739154a3b0275d19f86f7b1e2c51630b461a300ac725"
+    },
+    "shipping-build": {
+      "bytes": 3665,
+      "sha256": "98df1831dc420dfc3112f51c9218d9b78de0ffc01f00ba6b0fd0814107210ec6"
+    },
+    "shipping-native": {
+      "bytes": 225,
+      "sha256": "7fef3983a5056364e6632bf9478f33647bc99cd9fd9b54ebe2153a12151f2733"
+    },
+    "monolithic-configure": {
+      "bytes": 1774,
+      "sha256": "076caba6838a8256e353ee5505fc4018010bd50b7937b23224ef5aa853933902"
+    },
+    "monolithic-build": {
+      "bytes": 17088,
+      "sha256": "16db42c0ff3869abdb41afb625fd7f3b660d1498db800965ad5f42dffa3a1519"
+    },
+    "monolithic-test": {
+      "bytes": 683,
+      "sha256": "9135a0f63cb0a305751dcb2a1ffd5ebf891ae6e258bdf563724748e97072ca65"
+    },
+    "feature-off-configure": {
+      "bytes": 1382,
+      "sha256": "930fb3526a37bc045d54988b515db66baed005dfdb9c64193b52be12cadaec85"
+    },
+    "feature-off-build": {
+      "bytes": 14293,
+      "sha256": "8a4a2b9be28a470585abc567aacb48a4f410041a67698d2210df48df6cb14846"
+    }
+  },
+  "runner": {
+    "sha256": "9b2c70981542c62d31e4e6ae29c3e8cfdc99b2fd74852fc169b036a38add61de",
+    "content": "#!/usr/bin/env bash\nset -e\nsource /workspace/work/engine-goal-20261112/build.env\ncd /workspace/Nexora-delivery-773\nout=/workspace/work/engine-goal-20261112/authoring\ntrap 'printf \"%s\\n\" \"$?\" > \"$out/source-reload-generation-native-context-all-gates.exit\"' EXIT\nprintf \"%s\\n\" running > \"$out/source-reload-generation-native-context-all-gates.exit\"\nrun_gate() {\n  local label=\"$1\"\n  shift\n  printf '%s\\n' \"$label\" > \"$out/source-reload-generation-native-context-current-gate\"\n  local result=0\n  \"$@\" > \"$out/$label.log\" 2>&1 || result=$?\n  printf '%s\\n' \"$result\" > \"$out/$label.exit\"\n  return \"$result\"\n}\nrun_gate source-reload-generation-native-context-final-development-configure cmake --preset linux-development\nrun_gate source-reload-generation-native-context-final-development-build cmake --build --preset linux-development\nrun_gate source-reload-generation-native-context-final-development-test ctest --preset linux-development --output-on-failure\nrun_gate source-reload-generation-native-context-shipping-configure cmake --preset linux-shipping -DNEXORA_SHIPPING_PROFILE=Full -DNEXORA_ENABLE_2D=ON -DNEXORA_ENABLE_EDITOR_SDK=ON -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ZIG_EXECUTABLE=/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/ziglang/zig -DNEXORA_BUILD_PROJECT_PLAYER=ON -DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON\nrun_gate source-reload-generation-native-context-shipping-build cmake --build --preset linux-shipping\nrun_gate source-reload-generation-native-context-shipping-native python3 Tests/TwoD/SpriteSourcePlayerAcceptance.py --app /workspace/Nexora-delivery-773/build/linux-shipping/Apps/TwoDPlayer/NexoraTwoDPlayer --zig /workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/ziglang/zig --cmake /workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/cmake/data/bin/cmake --compiler /workspace/Nexora-delivery-773/build/linux-development/Tools/TwoD/NexoraTwoDAssetCompiler --catalog --animation --native --shipping --evidence-dir /workspace/Nexora-delivery-773/build/linux-shipping/artifacts/source-animation-player\nrun_gate source-reload-generation-native-context-monolithic-configure cmake --preset linux-development -B build/source-reload-monolithic -DNEXORA_LINK_MODE=Monolithic -DNEXORA_ENABLE_2D=ON -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON -DNEXORA_ENABLE_SLANG=OFF -DNEXORA_ENABLE_ZIG_GAMEPLAY=OFF\nrun_gate source-reload-generation-native-context-monolithic-build cmake --build build/source-reload-monolithic --target NexoraGameplayGenerationTests NexoraSourceAnimationTests NexoraTwoDPlayAssetTests NexoraTwoDAuthoringTests NexoraTwoDPanelTests\nrun_gate source-reload-generation-native-context-monolithic-test ctest --test-dir build/source-reload-monolithic -R '^twod\\.(gameplay_generation|source_animation|play_assets|authoring_contracts|graphical_controls)$' --output-on-failure\nrun_gate source-reload-generation-native-context-feature-off-configure cmake --preset linux-development -B build/source-reload-feature-off -DNEXORA_ENABLE_2D=OFF -DBUILD_TESTING=OFF -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON -DNEXORA_ENABLE_SLANG=OFF -DNEXORA_ENABLE_ZIG_GAMEPLAY=OFF -DNEXORA_BUILD_PROJECT_PLAYER=ON -DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON\nrun_gate source-reload-generation-native-context-feature-off-build cmake --build build/source-reload-feature-off --target NexoraEditor NexoraProjectPlayer\nprintf '%s\\n' complete > \"$out/source-reload-generation-native-context-current-gate\"\n"
+  },
+  "initial_oracle_failure": {
+    "reason": "Test expected Runtime RestartRequired for SDK payload schema mismatch, but existing SDK load_state and Runtime contract correctly return RestoreState. No Runtime/SDK behavior changed. All four candidates stage, therefore rollback total is128.",
+    "source_sha256": "c137537ced6dc9efc97dad738088301e2fc9f7f161ccebccefc278d7dfc83148",
+    "retained_logs": {
+      "source-reload-sdk-test-first.log": "1c077c46d52c9f967c0d9a0ef4189a345860549d13a8d8c568ca2d938bfabe36",
+      "source-reload-sdk-test-diagnostic.log": "e3401f182f0b3e013e90532bf925bb46c5a6995c0965b283acaeae8b531281ad"
+    }
+  },
+  "retained_initial_failures": {
+    "source-reload-sdk-test-first.log": {
+      "sha256": "1c077c46d52c9f967c0d9a0ef4189a345860549d13a8d8c568ca2d938bfabe36",
+      "content": "Test project /workspace/Nexora-delivery-773/build/linux-development\n    Start 209: twod.gameplay_generation\n    Start 268: twod.source_reload_transaction\n1/2 Test #209: twod.gameplay_generation .........   Passed    0.02 sec\n2/2 Test #268: twod.source_reload_transaction ...Subprocess aborted***Exception:   0.20 sec\nRetained on failure: \"/workspace/Nexora-delivery-773/build/linux-development/Tests/TwoD/source-reload-66446362059640\"\nNexoraSourceReloadTests: /workspace/Nexora-delivery-773/Tests/TwoD/SourceReloadTests.cpp:406: int main(int, char**): Assertion `!host.Reload(failures[i]) && host.GetReloadFailure() == reasons[i]' failed.\n\n\n50% tests passed, 1 tests failed out of 2\n\nLabel Time Summary:\nreload    =   0.20 sec*proc (1 test)\nsource    =   0.20 sec*proc (1 test)\ntwod      =   0.20 sec*proc (1 test)\nzig       =   0.20 sec*proc (1 test)\n\nTotal Test time (real) =   0.26 sec\n\nThe following tests FAILED:\n\t268 - twod.source_reload_transaction (Subprocess aborted) reload source twod zig\nErrors while running CTest\n"
+    },
+    "source-reload-sdk-test-diagnostic.log": {
+      "sha256": "e3401f182f0b3e013e90532bf925bb46c5a6995c0965b283acaeae8b531281ad",
+      "content": "Test project /workspace/Nexora-delivery-773/build/linux-development\n    Start 268: twod.source_reload_transaction\n1/1 Test #268: twod.source_reload_transaction ...Subprocess aborted***Exception:   0.34 sec\nRetained on failure: \"/workspace/Nexora-delivery-773/build/linux-development/Tests/TwoD/source-reload-66484141648088\"\nRejected candidate mismatch: round=0 case=3 replaced=0 reason=5 expected=3\nNexoraSourceReloadTests: /workspace/Nexora-delivery-773/Tests/TwoD/SourceReloadTests.cpp:412: int main(int, char**): Assertion `!replaced && reason == reasons[i]' failed.\n\n\n0% tests passed, 1 tests failed out of 1\n\nLabel Time Summary:\nreload    =   0.34 sec*proc (1 test)\nsource    =   0.34 sec*proc (1 test)\ntwod      =   0.34 sec*proc (1 test)\nzig       =   0.34 sec*proc (1 test)\n\nTotal Test time (real) =   0.35 sec\n\nThe following tests FAILED:\n\t268 - twod.source_reload_transaction (Subprocess aborted) reload source twod zig\nErrors while running CTest\n"
+    },
+    "source-reload-sdk-test.log": {
+      "sha256": "33e33712ac1bd7f24dfbf9d5c9635bfc0fddb0e66cc0f0e6664cd5568eb30233",
+      "content": "Test project /workspace/Nexora-delivery-773/build/linux-development\n    Start 268: twod.source_reload_transaction\n    Start 209: twod.gameplay_generation\n1/2 Test #209: twod.gameplay_generation .........   Passed    0.01 sec\n2/2 Test #268: twod.source_reload_transaction ...Subprocess aborted***Exception:   0.16 sec\nRetained on failure: \"/workspace/Nexora-delivery-773/build/linux-development/Tests/TwoD/source-reload-66504305666115\"\nRejected candidate mismatch: round=0 case=3 replaced=0 reason=5 expected=3\nNexoraSourceReloadTests: /workspace/Nexora-delivery-773/Tests/TwoD/SourceReloadTests.cpp:412: int main(int, char**): Assertion `!replaced && reason == reasons[i]' failed.\n\n\n50% tests passed, 1 tests failed out of 2\n\nLabel Time Summary:\nreload    =   0.16 sec*proc (1 test)\nsource    =   0.16 sec*proc (1 test)\ntwod      =   0.16 sec*proc (1 test)\nzig       =   0.16 sec*proc (1 test)\n\nTotal Test time (real) =   0.19 sec\n\nThe following tests FAILED:\n\t268 - twod.source_reload_transaction (Subprocess aborted) reload source twod zig\nErrors while running CTest\n"
+    },
+    "source-reload-generation-unit-build-first.log": {
+      "sha256": "4f637aa32f1cd16a6b1a7f2cca5243dfefbdd3cd47d5c5c650f2e17960d31ebd",
+      "content": "[0/2] Re-checking globbed directories...\n[1/2] Re-running CMake...\n-- Nexora Cryptography: OpenSSL 3.5.7\n-- Configuring done (3.2s)\n-- Generating done (0.9s)\n-- Build files have been written to: /workspace/Nexora-delivery-773/build/linux-development\n[0/4] Re-checking globbed directories...\n[1/5] Building CXX object Tests/TwoD/CMakeFiles/NexoraGameplayGenerationTests.dir/GameplayGenerationTests.cpp.o\nFAILED: [code=1] Tests/TwoD/CMakeFiles/NexoraGameplayGenerationTests.dir/GameplayGenerationTests.cpp.o \n/usr/bin/c++ -DNEXORA_ASSET_PIPELINE_ENABLED=1 -DNEXORA_BUILD_DEVELOPMENT=1 -DNEXORA_CAPTURE_ENCODER_ENABLED=0 -DNEXORA_EDITOR_SDK_ENABLED=1 -DNEXORA_GAMEPLAY_SIMULATION_ENABLED=1 -DNEXORA_LARGE_WORLD_ENABLED=1 -DNEXORA_MEDIA_DRM_ENABLED=0 -DNEXORA_PLATFORM_ENABLED=1 -DNEXORA_PRESENTATION_ENABLED=1 -DNEXORA_SCENE_RENDERING_ENABLED=1 -DNEXORA_SHIPPING_ENABLED=1 -I/workspace/Nexora-delivery-773/Engine/TwoD/include -I/workspace/Nexora-delivery-773/Engine/Runtime/include -I/workspace/Nexora-delivery-773/Engine/Renderer/include -I/workspace/Nexora-delivery-773/Engine/RHI/include -I/workspace/Nexora-delivery-773/Engine/Core/include -I/workspace/Nexora-delivery-773/Engine/Foundation/include -I/workspace/Nexora-delivery-773/Engine/API/include -I/workspace/Nexora-delivery-773/build/linux-development/Engine/Foundation/include -I/workspace/Nexora-delivery-773/Engine/Presentation/include -I/workspace/Nexora-delivery-773/Engine/Window/include -std=c++20 -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -Wpedantic -Werror -MD -MT Tests/TwoD/CMakeFiles/NexoraGameplayGenerationTests.dir/GameplayGenerationTests.cpp.o -MF Tests/TwoD/CMakeFiles/NexoraGameplayGenerationTests.dir/GameplayGenerationTests.cpp.o.d -o Tests/TwoD/CMakeFiles/NexoraGameplayGenerationTests.dir/GameplayGenerationTests.cpp.o -c /workspace/Nexora-delivery-773/Tests/TwoD/GameplayGenerationTests.cpp\n/workspace/Nexora-delivery-773/Tests/TwoD/GameplayGenerationTests.cpp: In function ‘void {anonymous}::SingleScene()’:\n/workspace/Nexora-delivery-773/Tests/TwoD/GameplayGenerationTests.cpp:55:57: error: passing ‘const nexora::runtime::Transform’ as ‘this’ argument discards qualifiers [-fpermissive]\n   55 |   live->World().FindEntity(entity)->transform = {2, 3, 0};\n      |                                                         ^\nIn file included from /workspace/Nexora-delivery-773/Engine/TwoD/include/Nexora/TwoD/Scene.h:4,\n                 from /workspace/Nexora-delivery-773/Engine/TwoD/include/Nexora/TwoD/Lifecycle.h:2,\n                 from /workspace/Nexora-delivery-773/Engine/TwoD/include/Nexora/TwoD/GameplayBridge.h:2,\n                 from /workspace/Nexora-delivery-773/Engine/TwoD/include/Nexora/TwoD/GameplayGeneration.h:2,\n                 from /workspace/Nexora-delivery-773/Tests/TwoD/GameplayGenerationTests.cpp:1:\n/workspace/Nexora-delivery-773/Engine/Runtime/include/Nexora/Runtime/Runtime.h:31:8: note:   in call to ‘constexpr nexora::runtime::Transform& nexora::runtime::Transform::operator=(nexora::runtime::Transform&&)’\n   31 | struct Transform final {\n      |        ^~~~~~~~~\n/workspace/Nexora-delivery-773/Tests/TwoD/GameplayGenerationTests.cpp:84:9: error: inconsistent deduction for ‘auto’: ‘const std::optional<std::__cxx11::basic_string<char> >’ and then ‘const std::optional<std::vector<std::byte> >’\n   84 |   const auto world = live->World().SaveScene(scene), metadata = live->Sprites()->Snapshot();\n      |         ^~~~\n/workspace/Nexora-delivery-773/Tests/TwoD/GameplayGenerationTests.cpp:113:54: error: assignment of member ‘nexora::runtime::Transform::x’ in read-only object\n  113 |   candidate->World().FindEntity(entity)->transform.x = 42;\n      |   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~\n/workspace/Nexora-delivery-773/Tests/TwoD/GameplayGenerationTests.cpp: In function ‘void {anonymous}::Catalog()’:\n/workspace/Nexora-delivery-773/Tests/TwoD/GameplayGenerationTests.cpp:197:54: error: assignment of member ‘nexora::runtime::Transform::x’ in read-only object\n  197 |   candidate->World().FindEntity(entity)->transform.x = 123;\n      |   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~\nninja: build stopped: subcommand failed.\n"
+    }
+  },
+  "initial_test_preimage": {
+    "sha256": "c137537ced6dc9efc97dad738088301e2fc9f7f161ccebccefc278d7dfc83148",
+    "note": "Diagnostic source before correcting test schema reason/rollback count; initial fixture compile errors were const-write and mixed auto declaration in CPU tests, fixed without Runtime changes."
+  },
+  "retained_interrupted_gate": {
+    "actual_exit": 130,
+    "completed_passes": 0,
+    "completed_failures": [],
+    "status": "intentionally_interrupted_partial_not_full_acceptance",
+    "reason": "Source780 exacta97 CI found another existing GCC15 native PlayContext Clip temporary diagnostic; interrupt current own CTest before integrating new parent test repair. Quiescent Stage24code unchanged.",
+    "frozen_sources": {
+      "Engine/TwoD/CMakeLists.txt": "d373a8ab48eebbe51f985ad74c43f4e5f4eb9d80d6b26caf513fbb6180d2176b",
+      "Engine/TwoD/include/Nexora/TwoD/GameplayBridge.h": "6578ef46784f7fb5272d649e95b00e7c0e450f0b4cb11352dc4e50faf09b8111",
+      "Engine/TwoD/include/Nexora/TwoD/GameplayGeneration.h": "608ce1ac9975cb116877c3d6aa5814ed441cc5be6c860c8bfbb4f8878a915307",
+      "Engine/TwoD/include/Nexora/TwoD/Lifecycle.h": "d297c60e63d6f55a5b6027bf70650d7dcc41361c57fac2f65da9bc41be9af5b6",
+      "Engine/TwoD/include/Nexora/TwoD/Scene.h": "d6a15d2f07ff2102416cd0c86f468ff467eafe2a33876b47c7bc661442a2cc21",
+      "Engine/TwoD/include/Nexora/TwoD/SceneSession.h": "19187dc67e0d9da7f46970838e7cd43d511b05ce7e6e5f967b18b76c5cf79ece",
+      "Engine/TwoD/src/GameplayBridge.cpp": "d44e61308687a67d1b41988bc1980df5854d490164c8b5ec7bbc13b539eee323",
+      "Engine/TwoD/src/GameplayGeneration.cpp": "98d48b243bb869347ae4b821e7220e62354a6bdaa04ece5c04ac9a3860336f35",
+      "Engine/TwoD/src/Lifecycle.cpp": "9eb7871e06d0934a5632ddfc254a2c33e666a37bc87010164ba254fe29071af0",
+      "Engine/TwoD/src/SceneSession.cpp": "014e5b00d2bc6f1e93cc9742e87dbb2584f9cf5441d1df09c69e212c5247e220",
+      "Tests/TwoD/CMakeLists.txt": "e140989472b07ea94ec7bfa11a48e486ca4765cffd6621d22043ab17abe0594c",
+      "Tests/TwoD/GameplayGenerationTests.cpp": "dcbdad2b89a3447af42eb6e9469ed680407675d6bb45cb8ec4b307b8b28bd9f4",
+      "Tests/TwoD/SourceReloadScript/common.zig": "27f5594e45e904d5d5a2795bf6892536804197725052fa49dbd9d07c7d411fd4",
+      "Tests/TwoD/SourceReloadScript/normal.zig": "4654945f6ad4df12b7cefd3de911a8b818b83ac464578a953fc4190a64affe6f",
+      "Tests/TwoD/SourceReloadScript/prepare_fail.zig": "7916c64a1034d989b49e3965e952cbff3ef8bca9ec6b988a5402aad87e2d35a3",
+      "Tests/TwoD/SourceReloadScript/project-normal.json": "0cd1772626992688eba727780d0858a94564171884cd36a4fef49a67e0fad09b",
+      "Tests/TwoD/SourceReloadScript/project-prepare_fail.json": "b9d8d9d683ae8bf45af88175485d5f8508be06304620c399b6768de14d38fc41",
+      "Tests/TwoD/SourceReloadScript/project-reloaded_fail.json": "d7c6df28b7124f7f223f6483af009d5a71e8da6617957b2aa68363367fd0b5ef",
+      "Tests/TwoD/SourceReloadScript/project-restore_fail.json": "dfc608d493a7085ff44abc046f2f8a1b6862bb93c257bd538fa147946901afe8",
+      "Tests/TwoD/SourceReloadScript/project-schema_change.json": "aad547c83732c4b26d6d270364e66ea95ab6a7315e81146f57e5ab7341186951",
+      "Tests/TwoD/SourceReloadScript/reloaded_fail.zig": "a539b6eabb08f10b3e81c752b97bcfbb0e6c4c573b5511b2d579e8895d08c86f",
+      "Tests/TwoD/SourceReloadScript/restore_fail.zig": "a5b7815cecafa885f5a2f093af992489fa7fb3e60d90e33570e485d79215b0ad",
+      "Tests/TwoD/SourceReloadScript/schema_change.zig": "03f0b3a026e06469f51beee8188fda8afce6bc39fe522a665a48225600ef3b9c",
+      "Tests/TwoD/SourceReloadTests.cpp": "62c477cd3b4d74b78e893e324e6e97da028c12bf73d4a207816490973c749221"
+    },
+    "log_sha256": "bfc80dc4ecd490b5c07bde8a9e6e6f4db9304af82c5a86ec1d7d534b4fe30cad"
+  },
+  "focused": {
+    "sha256": "d53a0b887037434a841de5f2e7080f08faf713e00bf6859455330854276e8ea8",
+    "content": "Test project /workspace/Nexora-delivery-773/build/linux-development\n    Start 268: twod.source_reload_transaction\n    Start 209: twod.gameplay_generation\n1/2 Test #209: twod.gameplay_generation .........   Passed    0.02 sec\n2/2 Test #268: twod.source_reload_transaction ...   Passed    4.73 sec\n\n100% tests passed out of 2\n\nLabel Time Summary:\nreload    =   4.73 sec*proc (1 test)\nsource    =   4.73 sec*proc (1 test)\ntwod      =   4.73 sec*proc (1 test)\nzig       =   4.73 sec*proc (1 test)\n\nTotal Test time (real) =   4.74 sec\n"
+  },
+  "native_regressions": [
+    {
+      "preset": "linux-development",
+      "path": "build/linux-development/artifacts/source-animation-player/attempt-cu0n87l9",
+      "reports": {
+        "headless": {
+          "status": "PASS",
+          "module_abi": 3,
+          "project_mode": true,
+          "api": 1,
+          "native_frames": 0,
+          "movement_frames": 0,
+          "entity_x": -1.979167,
+          "final_width": 320,
+          "final_height": 240,
+          "viewport_x": 0.0,
+          "viewport_y": 0.0,
+          "viewport_width": 320.0,
+          "viewport_height": 240.0,
+          "native_ui_draws": 0,
+          "effects_completed_frame": 0,
+          "effects_revision": 0,
+          "effects_timing_mask": 0,
+          "effects_timing_source": 0,
+          "effects_timing_status": 0,
+          "effects_shadow_ms": null,
+          "effects_world_ms": null,
+          "effects_bloom_ms": null,
+          "effects_composite_ms": null,
+          "effects_scene_bytes": 0,
+          "effects_shadow_bytes": 0,
+          "effects_bloom_bytes": 0,
+          "effects_upload_capacity_bytes": 0,
+          "effects_peak_bytes": 0,
+          "effects_peak_textures": 0,
+          "native_ui_texture_uploads": 0,
+          "resize_generations": 0,
+          "surface_backend_requested": "none",
+          "render_device_ids_available": false,
+          "render_vendor_id": 0,
+          "render_device_id": 0,
+          "initial_dpi_scale": 0.0,
+          "minimum_dpi_scale": 0.0,
+          "maximum_dpi_scale": 0.0,
+          "focus_lost_events": 0,
+          "focus_gained_events": 0,
+          "key_press_events": 0,
+          "mouse_press_events": 0,
+          "wheel_events": 0,
+          "unfocused_movement_frames": 0,
+          "sprite_instanced_draws": 0,
+          "sprite_gpu_instances": 0,
+          "sprite_instance_upload_bytes": 0,
+          "asset_active_bytes": 0,
+          "asset_retired_bytes": 687,
+          "asset_staging_bytes": 0,
+          "asset_peak_content_bytes": 687,
+          "audio_active_bytes": 0,
+          "audio_retired_bytes": 0,
+          "audio_peak_live_bytes": 0,
+          "pool_capacity": 1024,
+          "visible": 2,
+          "reloaded": false,
+          "validation_package": false,
+          "resumed": false,
+          "initial_x": 0.0,
+          "ui_frames": 0,
+          "ui_saves": 0,
+          "ui_opens": 0,
+          "cooked_reloads": 0,
+          "audio_submitted_frames": 0,
+          "audio_open_attempts": 0,
+          "audio_open_successes": 0,
+          "audio_pump_failures": 0,
+          "save_reopened": false,
+          "audible_acceptance": "NOT VERIFIED",
+          "allocations_balanced": true,
+          "physical_windows": "NOT RUN"
+        },
+        "native": {
+          "status": "PASS",
+          "module_abi": 3,
+          "project_mode": true,
+          "api": 1,
+          "native_frames": 30,
+          "movement_frames": 0,
+          "entity_x": -1.979167,
+          "final_width": 320,
+          "final_height": 240,
+          "viewport_x": 0.0,
+          "viewport_y": 0.0,
+          "viewport_width": 320.0,
+          "viewport_height": 240.0,
+          "native_ui_draws": 60,
+          "effects_completed_frame": 0,
+          "effects_revision": 0,
+          "effects_timing_mask": 0,
+          "effects_timing_source": 0,
+          "effects_timing_status": 0,
+          "effects_shadow_ms": null,
+          "effects_world_ms": null,
+          "effects_bloom_ms": null,
+          "effects_composite_ms": null,
+          "effects_scene_bytes": 0,
+          "effects_shadow_bytes": 0,
+          "effects_bloom_bytes": 0,
+          "effects_upload_capacity_bytes": 0,
+          "effects_peak_bytes": 0,
+          "effects_peak_textures": 3,
+          "native_ui_texture_uploads": 3,
+          "resize_generations": 0,
+          "surface_backend_requested": "vulkan",
+          "render_device_ids_available": true,
+          "render_vendor_id": 65541,
+          "render_device_id": 0,
+          "initial_dpi_scale": 1.0,
+          "minimum_dpi_scale": 1.0,
+          "maximum_dpi_scale": 1.0,
+          "focus_lost_events": 0,
+          "focus_gained_events": 0,
+          "key_press_events": 0,
+          "mouse_press_events": 0,
+          "wheel_events": 0,
+          "unfocused_movement_frames": 0,
+          "sprite_instanced_draws": 30,
+          "sprite_gpu_instances": 60,
+          "sprite_instance_upload_bytes": 2640,
+          "asset_active_bytes": 0,
+          "asset_retired_bytes": 687,
+          "asset_staging_bytes": 0,
+          "asset_peak_content_bytes": 687,
+          "audio_active_bytes": 0,
+          "audio_retired_bytes": 0,
+          "audio_peak_live_bytes": 0,
+          "pool_capacity": 1024,
+          "visible": 2,
+          "reloaded": false,
+          "validation_package": false,
+          "resumed": false,
+          "initial_x": 0.0,
+          "ui_frames": 0,
+          "ui_saves": 0,
+          "ui_opens": 0,
+          "cooked_reloads": 0,
+          "audio_submitted_frames": 0,
+          "audio_open_attempts": 0,
+          "audio_open_successes": 0,
+          "audio_pump_failures": 0,
+          "save_reopened": false,
+          "audible_acceptance": "NOT VERIFIED",
+          "allocations_balanced": true,
+          "physical_windows": "NOT RUN"
+        },
+        "captures": {
+          "base": {
+            "width": 320,
+            "height": 240,
+            "sha256": "8898a33524fe8949e1db3c06cde06554e361ae28caa793dfd42bf2cf21c81387",
+            "grayscale_fraction": 0.0,
+            "warm_pixels": 0,
+            "blue_pixels": 51200,
+            "dynamic_range": 0
+          },
+          "flip-x": {
+            "width": 320,
+            "height": 240,
+            "sha256": "f605dd6113297b52c89d26ff9a5b151ed0d2ee1d71a2c756593bbed835949e65",
+            "grayscale_fraction": 0.0,
+            "warm_pixels": 0,
+            "blue_pixels": 51200,
+            "dynamic_range": 0
+          },
+          "flip-y": {
+            "width": 320,
+            "height": 240,
+            "sha256": "52ed3fbdb137720a1da763869f9b43a6cd87c471247fd974531e0600f9d94381",
+            "grayscale_fraction": 0.0,
+            "warm_pixels": 1058,
+            "blue_pixels": 47886,
+            "dynamic_range": 255
+          },
+          "flip-xy": {
+            "width": 320,
+            "height": 240,
+            "sha256": "48ade63680fcd7f33de7d0e2107f25e5c131ddbefee19cec38e51e2a0896eb40",
+            "grayscale_fraction": 0.0,
+            "warm_pixels": 1058,
+            "blue_pixels": 47886,
+            "dynamic_range": 255
+          },
+          "repacked": {
+            "width": 320,
+            "height": 240,
+            "sha256": "be5f6fd74459275a6f5687f895290a2c0a5f5b35a1fcee9b8aee90bb43fcf86b",
+            "grayscale_fraction": 0.04453125,
+            "warm_pixels": 0,
+            "blue_pixels": 46735,
+            "dynamic_range": 255
+          }
+        }
+      },
+      "files": {
+        "animation-cook.log": {
+          "bytes": 119,
+          "sha256": "39039426f9165284e7b04cdf7616e8d58737126b434868a37ecd5d6a87c30a4d"
+        },
+        "base.png": {
+          "bytes": 1023,
+          "sha256": "8898a33524fe8949e1db3c06cde06554e361ae28caa793dfd42bf2cf21c81387"
+        },
+        "blue-cook.log": {
+          "bytes": 119,
+          "sha256": "97d838593b99ae9a2e83c1e25b7f78b3b136cf60d7b6a2159180204ed4d076ec"
+        },
+        "captures.json": {
+          "bytes": 1223,
+          "sha256": "38963df1e1d3c69c7c9c53c905f5a5dd39733fa5f5fbe268a342d821f7304d0c"
+        },
+        "corrupt-catalog.log": {
+          "bytes": 135,
+          "sha256": "c5fbc87cc060271c159e35a94a4b6ed6d470281d6cf8dd14dede9786fae73656"
+        },
+        "export-inventory.json": {
+          "bytes": 1645,
+          "sha256": "c6a3909c737eba4801c941fa455eda0bc69bd617157c91555a1fca8171f18d8b"
+        },
+        "export.log": {
+          "bytes": 42,
+          "sha256": "2f9bee2048e71758767d8e6e454f6f8129c274c58d4fb1152cae5180e690e426"
+        },
+        "flip-x.png": {
+          "bytes": 987,
+          "sha256": "f605dd6113297b52c89d26ff9a5b151ed0d2ee1d71a2c756593bbed835949e65"
+        },
+        "flip-xy.png": {
+          "bytes": 994,
+          "sha256": "48ade63680fcd7f33de7d0e2107f25e5c131ddbefee19cec38e51e2a0896eb40"
+        },
+        "flip-y.png": {
+          "bytes": 1030,
+          "sha256": "52ed3fbdb137720a1da763869f9b43a6cd87c471247fd974531e0600f9d94381"
+        },
+        "headless.json": {
+          "bytes": 1700,
+          "sha256": "7b078ee01944526dce0967565081c0a71f78d5aff89d243823f3e011a25f42b4"
+        },
+        "headless.log": {
+          "bytes": 2037,
+          "sha256": "794477ebb28debdd31cc56b1173b97588ce68b35ef4bd2f9db2c3705c5250cce"
+        },
+        "headless.stderr.log": {
+          "bytes": 337,
+          "sha256": "0b6383fc123d1f36e5e9d25ed17a23977bf4f2d2f287650eddab7d99a9898632"
+        },
+        "native.json": {
+          "bytes": 1712,
+          "sha256": "adc4d97744f3751b819d59906b5f844da15450cf9fe0ce9403c4c3c64ec3383e"
+        },
+        "native.stderr.log": {
+          "bytes": 337,
+          "sha256": "9f93f91882ae38bcab8a28352a483ead09178c98ddfd681dfb43a4e005af23cf"
+        },
+        "native.stdout.log": {
+          "bytes": 1712,
+          "sha256": "adc4d97744f3751b819d59906b5f844da15450cf9fe0ce9403c4c3c64ec3383e"
+        },
+        "package.sha256.json": {
+          "bytes": 1634,
+          "sha256": "593e40d99d9d105cb013425972323ba0cc1363cb520bb473d8ecb5668954ee81"
+        },
+        "red-cook.log": {
+          "bytes": 119,
+          "sha256": "d410f4e57067e0b4e05ef59541e28124410b5b1433e2d7a9e6433cc511c5e568"
+        },
+        "repacked.png": {
+          "bytes": 1117,
+          "sha256": "be5f6fd74459275a6f5687f895290a2c0a5f5b35a1fcee9b8aee90bb43fcf86b"
+        },
+        "sdk-build.log": {
+          "bytes": 286,
+          "sha256": "ba062903e66a08c0cc00e81eaec4ed036b7b68ff8e6d2e00c8ef7d4b39deec38"
+        },
+        "sdk-configure.log": {
+          "bytes": 131,
+          "sha256": "d3f4ae543b7a31e384ef010dced29e1c4d66fd746cb8179d5641ccc34e914eb5"
+        },
+        "shifted-cook.log": {
+          "bytes": 119,
+          "sha256": "d55fcd946713b5ca1aac704ccc8732b98635b626cbc93e33c4ed843101b82b87"
+        },
+        "source-cook.log": {
+          "bytes": 119,
+          "sha256": "bb234187d4484643a92ca308f637700b926f9d52af53c9b3f1cbefb0c0b343da"
+        }
+      },
+      "note": "Existing source-animation/native linkage regression; new generation staging is covered by strict CPU/real-library tests,not native reload pixels. repacked label is a second preloaded frame."
+    },
+    {
+      "preset": "linux-shipping",
+      "path": "build/linux-shipping/artifacts/source-animation-player/attempt-9yd9l2i2",
+      "reports": {
+        "headless": {
+          "status": "PASS",
+          "module_abi": 3,
+          "project_mode": true,
+          "api": 1,
+          "native_frames": 0,
+          "movement_frames": 0,
+          "entity_x": -1.979167,
+          "final_width": 320,
+          "final_height": 240,
+          "viewport_x": 0.0,
+          "viewport_y": 0.0,
+          "viewport_width": 320.0,
+          "viewport_height": 240.0,
+          "native_ui_draws": 0,
+          "effects_completed_frame": 0,
+          "effects_revision": 0,
+          "effects_timing_mask": 0,
+          "effects_timing_source": 0,
+          "effects_timing_status": 0,
+          "effects_shadow_ms": null,
+          "effects_world_ms": null,
+          "effects_bloom_ms": null,
+          "effects_composite_ms": null,
+          "effects_scene_bytes": 0,
+          "effects_shadow_bytes": 0,
+          "effects_bloom_bytes": 0,
+          "effects_upload_capacity_bytes": 0,
+          "effects_peak_bytes": 0,
+          "effects_peak_textures": 0,
+          "native_ui_texture_uploads": 0,
+          "resize_generations": 0,
+          "surface_backend_requested": "none",
+          "render_device_ids_available": false,
+          "render_vendor_id": 0,
+          "render_device_id": 0,
+          "initial_dpi_scale": 0.0,
+          "minimum_dpi_scale": 0.0,
+          "maximum_dpi_scale": 0.0,
+          "focus_lost_events": 0,
+          "focus_gained_events": 0,
+          "key_press_events": 0,
+          "mouse_press_events": 0,
+          "wheel_events": 0,
+          "unfocused_movement_frames": 0,
+          "sprite_instanced_draws": 0,
+          "sprite_gpu_instances": 0,
+          "sprite_instance_upload_bytes": 0,
+          "asset_active_bytes": 0,
+          "asset_retired_bytes": 687,
+          "asset_staging_bytes": 0,
+          "asset_peak_content_bytes": 687,
+          "audio_active_bytes": 0,
+          "audio_retired_bytes": 0,
+          "audio_peak_live_bytes": 0,
+          "pool_capacity": 1024,
+          "visible": 2,
+          "reloaded": false,
+          "validation_package": false,
+          "resumed": false,
+          "initial_x": 0.0,
+          "ui_frames": 0,
+          "ui_saves": 0,
+          "ui_opens": 0,
+          "cooked_reloads": 0,
+          "audio_submitted_frames": 0,
+          "audio_open_attempts": 0,
+          "audio_open_successes": 0,
+          "audio_pump_failures": 0,
+          "save_reopened": false,
+          "audible_acceptance": "NOT VERIFIED",
+          "allocations_balanced": true,
+          "physical_windows": "NOT RUN"
+        },
+        "native": {
+          "status": "PASS",
+          "module_abi": 3,
+          "project_mode": true,
+          "api": 1,
+          "native_frames": 30,
+          "movement_frames": 0,
+          "entity_x": -1.979167,
+          "final_width": 320,
+          "final_height": 240,
+          "viewport_x": 0.0,
+          "viewport_y": 0.0,
+          "viewport_width": 320.0,
+          "viewport_height": 240.0,
+          "native_ui_draws": 60,
+          "effects_completed_frame": 0,
+          "effects_revision": 0,
+          "effects_timing_mask": 0,
+          "effects_timing_source": 0,
+          "effects_timing_status": 0,
+          "effects_shadow_ms": null,
+          "effects_world_ms": null,
+          "effects_bloom_ms": null,
+          "effects_composite_ms": null,
+          "effects_scene_bytes": 0,
+          "effects_shadow_bytes": 0,
+          "effects_bloom_bytes": 0,
+          "effects_upload_capacity_bytes": 0,
+          "effects_peak_bytes": 0,
+          "effects_peak_textures": 3,
+          "native_ui_texture_uploads": 3,
+          "resize_generations": 0,
+          "surface_backend_requested": "vulkan",
+          "render_device_ids_available": true,
+          "render_vendor_id": 65541,
+          "render_device_id": 0,
+          "initial_dpi_scale": 1.0,
+          "minimum_dpi_scale": 1.0,
+          "maximum_dpi_scale": 1.0,
+          "focus_lost_events": 0,
+          "focus_gained_events": 0,
+          "key_press_events": 0,
+          "mouse_press_events": 0,
+          "wheel_events": 0,
+          "unfocused_movement_frames": 0,
+          "sprite_instanced_draws": 30,
+          "sprite_gpu_instances": 60,
+          "sprite_instance_upload_bytes": 2640,
+          "asset_active_bytes": 0,
+          "asset_retired_bytes": 687,
+          "asset_staging_bytes": 0,
+          "asset_peak_content_bytes": 687,
+          "audio_active_bytes": 0,
+          "audio_retired_bytes": 0,
+          "audio_peak_live_bytes": 0,
+          "pool_capacity": 1024,
+          "visible": 2,
+          "reloaded": false,
+          "validation_package": false,
+          "resumed": false,
+          "initial_x": 0.0,
+          "ui_frames": 0,
+          "ui_saves": 0,
+          "ui_opens": 0,
+          "cooked_reloads": 0,
+          "audio_submitted_frames": 0,
+          "audio_open_attempts": 0,
+          "audio_open_successes": 0,
+          "audio_pump_failures": 0,
+          "save_reopened": false,
+          "audible_acceptance": "NOT VERIFIED",
+          "allocations_balanced": true,
+          "physical_windows": "NOT RUN"
+        },
+        "captures": {
+          "base": {
+            "width": 320,
+            "height": 240,
+            "sha256": "8898a33524fe8949e1db3c06cde06554e361ae28caa793dfd42bf2cf21c81387",
+            "grayscale_fraction": 0.0,
+            "warm_pixels": 0,
+            "blue_pixels": 51200,
+            "dynamic_range": 0
+          },
+          "flip-x": {
+            "width": 320,
+            "height": 240,
+            "sha256": "f605dd6113297b52c89d26ff9a5b151ed0d2ee1d71a2c756593bbed835949e65",
+            "grayscale_fraction": 0.0,
+            "warm_pixels": 0,
+            "blue_pixels": 51200,
+            "dynamic_range": 0
+          },
+          "flip-y": {
+            "width": 320,
+            "height": 240,
+            "sha256": "52ed3fbdb137720a1da763869f9b43a6cd87c471247fd974531e0600f9d94381",
+            "grayscale_fraction": 0.0,
+            "warm_pixels": 1058,
+            "blue_pixels": 47886,
+            "dynamic_range": 255
+          },
+          "flip-xy": {
+            "width": 320,
+            "height": 240,
+            "sha256": "48ade63680fcd7f33de7d0e2107f25e5c131ddbefee19cec38e51e2a0896eb40",
+            "grayscale_fraction": 0.0,
+            "warm_pixels": 1058,
+            "blue_pixels": 47886,
+            "dynamic_range": 255
+          },
+          "repacked": {
+            "width": 320,
+            "height": 240,
+            "sha256": "be5f6fd74459275a6f5687f895290a2c0a5f5b35a1fcee9b8aee90bb43fcf86b",
+            "grayscale_fraction": 0.04453125,
+            "warm_pixels": 0,
+            "blue_pixels": 46735,
+            "dynamic_range": 255
+          }
+        }
+      },
+      "files": {
+        "animation-cook.log": {
+          "bytes": 119,
+          "sha256": "dbe91bfe7be9e0a0fbe756cbac878de9351aacd29886853ea33b8629eadfcb94"
+        },
+        "base.png": {
+          "bytes": 1023,
+          "sha256": "8898a33524fe8949e1db3c06cde06554e361ae28caa793dfd42bf2cf21c81387"
+        },
+        "blue-cook.log": {
+          "bytes": 119,
+          "sha256": "02e148592fb6dbaf2f859e5a7effbec587ef985b1cc033b07db4bc25e26025c1"
+        },
+        "captures.json": {
+          "bytes": 1223,
+          "sha256": "38963df1e1d3c69c7c9c53c905f5a5dd39733fa5f5fbe268a342d821f7304d0c"
+        },
+        "corrupt-catalog.log": {
+          "bytes": 135,
+          "sha256": "a5f24da819b515619bf5ad8b3c41b111f55853232747af6cd9477caceafff3ff"
+        },
+        "export-inventory.json": {
+          "bytes": 888,
+          "sha256": "ce8cba83a4608752490896975b4e1143c19aee4182b5ee3c9cbd06e89bb73961"
+        },
+        "export.log": {
+          "bytes": 42,
+          "sha256": "a9c656f3b961a27a558f019435a630ff38ae5257409c0bc3d29f8fd0b7983f4e"
+        },
+        "flip-x.png": {
+          "bytes": 987,
+          "sha256": "f605dd6113297b52c89d26ff9a5b151ed0d2ee1d71a2c756593bbed835949e65"
+        },
+        "flip-xy.png": {
+          "bytes": 994,
+          "sha256": "48ade63680fcd7f33de7d0e2107f25e5c131ddbefee19cec38e51e2a0896eb40"
+        },
+        "flip-y.png": {
+          "bytes": 1030,
+          "sha256": "52ed3fbdb137720a1da763869f9b43a6cd87c471247fd974531e0600f9d94381"
+        },
+        "headless.json": {
+          "bytes": 1700,
+          "sha256": "7b078ee01944526dce0967565081c0a71f78d5aff89d243823f3e011a25f42b4"
+        },
+        "headless.log": {
+          "bytes": 2037,
+          "sha256": "7d9cce845f7845301458290f35ed812c51c2ed789f3c35b2bd0e6657d6c724d0"
+        },
+        "headless.stderr.log": {
+          "bytes": 337,
+          "sha256": "703b7a4da3a1f15a6e58534915d4a9e623f3d3af7ee2d39f16264d423b4e4bbf"
+        },
+        "native.json": {
+          "bytes": 1712,
+          "sha256": "adc4d97744f3751b819d59906b5f844da15450cf9fe0ce9403c4c3c64ec3383e"
+        },
+        "native.stderr.log": {
+          "bytes": 337,
+          "sha256": "4467e879ea0c54364d2af834f4db2ccfe2c3133bff3eb0edabbde98e2e52bc78"
+        },
+        "native.stdout.log": {
+          "bytes": 1712,
+          "sha256": "adc4d97744f3751b819d59906b5f844da15450cf9fe0ce9403c4c3c64ec3383e"
+        },
+        "package.sha256.json": {
+          "bytes": 892,
+          "sha256": "c11c7cb7221f4c16f8b13d4da498f6df93dbad0438be9156883bff79fcebab7f"
+        },
+        "red-cook.log": {
+          "bytes": 119,
+          "sha256": "e242a0ef6ae6189cd0bd8fa488a49930f09ccd9b59bc0b8a8f30f6a779ad9a23"
+        },
+        "repacked.png": {
+          "bytes": 1117,
+          "sha256": "be5f6fd74459275a6f5687f895290a2c0a5f5b35a1fcee9b8aee90bb43fcf86b"
+        },
+        "sdk-build.log": {
+          "bytes": 286,
+          "sha256": "dd58e6f74f9ab867b101b2f0d0cc10b13915d8e7aef42b9acab3c0c10ea75520"
+        },
+        "sdk-configure.log": {
+          "bytes": 131,
+          "sha256": "28d35a8664bf9589f802471ca50790dc656611ad8ef507c0502a87aa1d8d4139"
+        },
+        "shifted-cook.log": {
+          "bytes": 119,
+          "sha256": "1ea7dc3696c956daacfc9610101f0081c49bf6943f410c66c3aad47cf1e53528"
+        },
+        "source-cook.log": {
+          "bytes": 119,
+          "sha256": "1cbea6feee2829185d32e3ee0608dd97a6fcce2407c048e1e776156eabd24581"
+        }
+      },
+      "note": "Existing source-animation/native linkage regression; new generation staging is covered by strict CPU/real-library tests,not native reload pixels. repacked label is a second preloaded frame."
+    }
+  ],
+  "sdk_modules": [
+    {
+      "variant": "normal",
+      "path": "build/linux-development/Tests/TwoD/source-reload-normal/lib/libsource_reload_normal.so",
+      "bytes": 2678472,
+      "sha256": "5ef741af16f1d6614acaf213c869b8316cbff58363529f6f97cfabbc45b9887d",
+      "script_sha256": "4654945f6ad4df12b7cefd3de911a8b818b83ac464578a953fc4190a64affe6f"
+    },
+    {
+      "variant": "prepare_fail",
+      "path": "build/linux-development/Tests/TwoD/source-reload-prepare_fail/lib/libsource_reload_prepare_fail.so",
+      "bytes": 2679888,
+      "sha256": "e728a46cb4cf934faa50551176062f84614b6d506fe091c2bb6e75cbd9dff970",
+      "script_sha256": "7916c64a1034d989b49e3965e952cbff3ef8bca9ec6b988a5402aad87e2d35a3"
+    },
+    {
+      "variant": "restore_fail",
+      "path": "build/linux-development/Tests/TwoD/source-reload-restore_fail/lib/libsource_reload_restore_fail.so",
+      "bytes": 2680008,
+      "sha256": "e180f0608cc8a8266e21a6efd6bdb5543ab792d2d093b9d8d8151fa092b4ef6c",
+      "script_sha256": "a5b7815cecafa885f5a2f093af992489fa7fb3e60d90e33570e485d79215b0ad"
+    },
+    {
+      "variant": "reloaded_fail",
+      "path": "build/linux-development/Tests/TwoD/source-reload-reloaded_fail/lib/libsource_reload_reloaded_fail.so",
+      "bytes": 2679112,
+      "sha256": "1b4c81b4b2c31db20550461348ad50ab1d951cefbbab6a668efcca0b645bdba9",
+      "script_sha256": "a539b6eabb08f10b3e81c752b97bcfbb0e6c4c573b5511b2d579e8895d08c86f"
+    },
+    {
+      "variant": "schema_change",
+      "path": "build/linux-development/Tests/TwoD/source-reload-schema_change/lib/libsource_reload_schema_change.so",
+      "bytes": 2678760,
+      "sha256": "b964381cff5ce70374fb5658a54e4201d1d7c7ae008a0864da8135bd9d501bbc",
+      "script_sha256": "03f0b3a026e06469f51beee8188fda8afce6bc39fe522a665a48225600ef3b9c"
+    }
+  ],
+  "markdown": {
+    "Engine/TwoD/GameplayGeneration.md": {
+      "bytes": 4629,
+      "sha256": "011fda151d77f92980bf2d14dfb77c6113117afa29c40d9c6e95185997568dfc"
+    },
+    "Engine/TwoD/README.md": {
+      "bytes": 35249,
+      "sha256": "d2b5701e71f4f102a658c3911cfd511ddcfb7a865e9181e1315b8f5245946287"
+    },
+    "Roadmap/en/2D_Roadmap.md": {
+      "bytes": 91723,
+      "sha256": "c6deeb4f9cee9b5429f0b0e5b62ab060d71539feb36d37bbd77f129ef0f3c370"
+    },
+    "Roadmap/en/Editor_Roadmap.md": {
+      "bytes": 210364,
+      "sha256": "a2bd8128fd4f18140d3155783617b723a5adbaebb7897de14b08323a287227fa"
+    },
+    "Roadmap/en/Editor_Workflow_Delivery_Plan.md": {
+      "bytes": 25610,
+      "sha256": "b05fe39ffe727bb2e3a0b03856b590e4abab4bb71df8abb138e205701a0d7229"
+    },
+    "Roadmap/zh-TW/2D_Roadmap.md": {
+      "bytes": 85262,
+      "sha256": "fe2d1504f78a4e193550ffbe51d60632ded818440a0c268c653de16ba162671a"
+    },
+    "Roadmap/zh-TW/Editor_Roadmap.md": {
+      "bytes": 203344,
+      "sha256": "d3cdc47d7623bc70ca688975ba9011fbc43d50cedef87aa7ec2c18a1353f1bbb"
+    },
+    "Roadmap/zh-TW/Editor_Workflow_Delivery_Plan.md": {
+      "bytes": 23898,
+      "sha256": "5a50a3f95e3fefbe2ac7e1ce60cce4436eb4044e4d3430ef97be81f0c8d483a2"
+    },
+    "Tools/Build/evidence/EditorWorkflow/ED-WF-08-GenerationStaging-Linux-2026-11-13.md": {
+      "bytes": 5553,
+      "sha256": "c36ec992825789ba9c83f6822273451582dc1213eef17ff7ee937f6438e9addf"
+    }
+  },
+  "metadata_logs": {
+    "api": "b889e69740e2b720cf28e366793a954c391a42b5171c62dbedabb68e581a6543",
+    "doc-ci": "3c4d4487bb7bef3a362a97d526b4b0832ead59684612f5988bd74fb8d5912eb2",
+    "format": "ffc6c0db2ff463934e65bd063a62ba83ddec689390b4a2b017f5dc138ec5d7eb",
+    "markdown": "b5ae06968b06d29dc15f8552a92594a230546b1b13a2deaa86b442b6ed14865b",
+    "diff-check": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}
