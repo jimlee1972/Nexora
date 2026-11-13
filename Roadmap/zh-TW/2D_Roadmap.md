@@ -899,6 +899,11 @@ ED-WF 驗收維持 5/9、Editor 0/8、2D 9/11；M6／M7 實機驗收判定不變
 Inspector 來源指定、製作場景持久化、Build、來源動畫／重載與完整 Editor 驗收仍待完成。
 ED-WF 維持 5/9、Editor 0/8、2D 9/11；M6／M7 實機 gate 不變。
 
+✅ 2026-11-13 的主 Editor 參照模型基礎（`nexora-whr.7.3`）新增擁有來源／Atlas 的查詢，
+以及完整選取 UUID 指定／清除的一次 Undo／Redo 與場景儲存／重開。精確 Content 世代／修訂
+拒絕重匯入前的過期操作。本次未新增 Inspector 控件、製作繪製、主 Play 轉換、Build 匯出或
+ND2D 目錄；進度數字不變。[契約與證據](Editor_Workflow_Delivery_Plan.md#-主-editor-sprite-來源參照模型2026-11-13)。
+
 ## ✅ ED-WF-06 來源 API 與 Player 驗收（2026-11-12）
 
 真正由 SDK 建置的 Zig 檔案目錄案例現可驗證非對稱貼圖的 X／Y／雙軸 Flip、繞 Pivot 的

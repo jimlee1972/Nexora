@@ -2328,3 +2328,9 @@ immutable snapshots; real composed native pixels verify trim/Pivot geometry, neg
 old-owner retention across reimport. [Evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md).
 Inspector source assignment, authoring persistence, Build, source animation/reload and complete
 Editor acceptance remain open. ED-WF stays 5/9, Editor 0/8, 2D 9/11; M6/M7 physical gates unchanged.
+
+✅ The 2026-11-13 main Editor reference-model prerequisite (`nexora-whr.7.3`) adds owning source/Atlas
+lookup, exact Content generation/revision checks and complete-selection UUID assignment/clear with
+one Undo/Redo and wrapped scene Save/Reload. Unknown payloads remain protected. This does not add
+Inspector widgets, authoring rendering, main Play conversion or Build export; the counts above stay
+unchanged. [Contract and evidence](Editor_Workflow_Delivery_Plan.md#-main-editor-sprite-source-reference-model-2026-11-13).

@@ -527,6 +527,13 @@ nexora_apply_defaults(NexoraMaterialCatalogTests)
 add_test(NAME editor.material_catalog COMMAND NexoraMaterialCatalogTests)
 endif()
 
+if(NEXORA_ENABLE_2D)
+  add_executable(NexoraSpriteSourceCatalogTests SpriteSourceCatalogTests.cpp)
+  target_link_libraries(NexoraSpriteSourceCatalogTests PRIVATE Nexora::Editor)
+  nexora_apply_defaults(NexoraSpriteSourceCatalogTests)
+  add_test(NAME editor.sprite_source_catalog COMMAND NexoraSpriteSourceCatalogTests)
+endif()
+
 add_executable(NexoraProcessMemoryCaptureTests ProcessMemoryCaptureTests.cpp)
 target_link_libraries(NexoraProcessMemoryCaptureTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraProcessMemoryCaptureTests)
