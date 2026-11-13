@@ -144,7 +144,7 @@ Inspector CPU 3.03 seconds, real Inspector native 30.17 seconds, legacy Game pre
 and module-free native 54.51 seconds. The complete integrated configure/build then passes
 **494/494**, zero failures/skips, **1448.26 seconds**, including the 32-session module-free native
 case in 54.20 seconds. Source pixels, authoring preservation and all existing native assertions
-remain unchanged. The final images and named outcomes come from this integrated run.
+remain unchanged. That generation's images and named outcomes are retained separately below.
 
 ✅ Shipping and the actual 2D-OFF/testing-OFF graphical Editor configure/build again on the
 integrated source. The rebuilt Monolithic actual consumer passes **1/1** in 2.48 seconds.
@@ -152,3 +152,26 @@ The final receipt separates initial focused, pre-integration complete and integr
 records the merged upstream source hashes, and retains all earlier fixture failures. No runtime
 source changed after this complete gate. All applicable hosted checks must run against the final
 delivery head before merging; pre-integration CI remains historical evidence only.
+
+## MSVC fixture shadowing correction
+
+Head `9ee9f55a` fails Windows Push desktop job
+[131925712136](https://github.com/jimlee1972/Nexora/actions/runs/43437253215/job/131925712136)
+at compilation: the new fixture constructor's two `index` loops shadow its existing AssetWorkspace
+member `Fixture::index`. MSVC C4458 is correctly fatal under unchanged `/W4 /WX`. Both loop
+variables become `source_index`; no product code, assertion, warning policy or deadline changes.
+The failing job/log and preceding complete 494-case Linux generation are retained separately;
+there is no same-head retry.
+
+✅ The corrected source configures/builds and passes a fresh complete **494/494** Linux tests,
+zero failures/skips, **1424.90 seconds**. The actual native module-free case passes in 53.61
+seconds with 32 sessions, 1296 strict red/1296 blue pixels, exact restart geometry, unchanged
+authoring pixels/source bytes and zero Vulkan validation errors. The machine receipt and curated
+full-window images now come from this corrected generation; the preceding integrated generation
+is linked immutably at `9ee9f55a`. Documentation utilities pass **16/16**; nine changed Markdown
+documents pass link/language-pair validation. All applicable corrected-head hosted CI checks
+remain required before merge.
+
+Prior Shipping, 2D-OFF and Monolithic checks retain exact matching production/consumer sources;
+the renamed fixture belongs only to the graphical test target. The machine receipt asserts those
+source hashes before reusing the optional results and records this reuse explicitly.
