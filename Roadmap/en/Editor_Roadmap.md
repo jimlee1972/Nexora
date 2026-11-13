@@ -2339,7 +2339,7 @@ The popup owns its bounded immutable catalog, paths and keys; stale imports or c
 cancel it. No filesystem work or Runtime Sprite mutation occurs in the widgets.
 Actual 1×/2× controls and Linux X11 interaction verify batch assignment, Clear, exact Undo/Redo,
 save/reopen and unchanged read-only project bytes. See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceInspector-Linux-2026-11-13.md).
-Module-backed main Play was independently delivered by `nexora-whr.7.4` / PR #776; Scene View, no-module Play, Build,
+Module-backed main Play was independently delivered by `nexora-whr.7.4` / PR #776; Scene View, configured package Play, Build,
 source animation/reload and full ED-WF-07 remain open. Workflow **5/9**, Editor **0/8**, TwoD **9/11**
 and physical acceptance are unchanged.
 
@@ -2352,12 +2352,23 @@ Legacy documents retain exact schema-1 bytes. See [execution evidence](../../Too
 This supporting `nexora-whr.7.2` slice does not accept end-to-end main Editor Inspector/project persistence,
 Build, source animation/reload or complete ED-WF-07; graphical milestones remain **0/8**.
 
+### Main scene Sprite Play without a module
+
+✅ `nexora-whr.7.6` adds reference-only source capture and a callback-free owner in the actual
+main scene Play clone. The existing 2D Game selector displays frozen source geometry; 32 actual
+native sessions verify Pause/Step/Resume, exact restart masks, Stop retirement and unchanged
+authoring pixels/bytes. Source-free 3D Play ignores unrelated unavailable assets. Configured
+package Play/Build, Scene View and animation/reload remain open; the merged Inspector assignment and
+milestone counts are preserved. [Contract](../../Apps/Editor/README.md#module-free-main-scene-sprite-play)
+and [evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-ModuleFreePlay-Linux-2026-11-13.md).
+
 ### Main scene references in module Play
 
 ✅ Main module Play now freezes and binds authored source UUID references before module Create
 (`nexora-whr.7.4`), with exact authored-capture rechecks and matching isolated Runtime validation.
 Missing/unsupported/stale references reject before callbacks; retained legacy/authored/legacy
-native frames verify source reimport and old-owner retention. Scene View, no-module Play, Build and animation/reload remain open; milestone counts do not change.
+native frames verify source reimport and old-owner retention. Scene View,
+configured package Play/Build and animation/reload remain open; milestone counts do not change.
 [Contract and evidence](Editor_Workflow_Delivery_Plan.md#-authored-sprite-references-in-main-module-play-2026-11-13).
 
 ✅ The 2026-11-13 main Editor reference-model prerequisite (`nexora-whr.7.3`) adds owning source/Atlas

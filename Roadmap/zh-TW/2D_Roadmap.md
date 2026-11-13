@@ -896,13 +896,21 @@ ED-WF 驗收維持 5/9、Editor 0/8、2D 9/11；M6／M7 實機驗收判定不變
 型別化來源索引／重匯入現可保有既有 Sprite metadata，凍結的專案／cooked Play 擷取會驗證
 精確 Atlas 相依閉包。主 Editor gameplay 場景／pool 實例可解析這些不可變快照；真實合成
 原生像素驗證裁切／Pivot 幾何、負縮放與重匯入後的舊擁有者保留。[證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md)。
-Inspector 來源指定、製作場景持久化、Build、來源動畫／重載與完整 Editor 驗收仍待完成。
+主 Scene View、已設定套件 Play／Build、來源動畫／重載與完整 Editor 驗收仍待完成。
 ED-WF 維持 5/9、Editor 0/8、2D 9/11；M6／M7 實機 gate 不變。
+
+✅ 無模組主場景消費端（`nexora-whr.7.6`）只擷取實際參照的來源／Atlas 閉包，在真正 Play
+clone 擁有自有預覽。32 次真實 Editor 原生場次驗證來源像素、Pause／Step／Resume、精確
+重啟遮罩及 Stop 清理，製作畫面／位元組不變；無來源 3D Play 忽略無關的不可用資產。
+已設定套件 Play／Build、Scene View 及動畫／重載仍屬後續；已合併的 Inspector 指定能力已保留。
+流程 **5/9**、Editor **0/8**、2D **9/11** 與實機 gate 不變。
+[契約](../../Apps/Editor/README.md#module-free-main-scene-sprite-play)與
+[證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-ModuleFreePlay-Linux-2026-11-13.md)。
 
 ✅ 主 module Play 現可在 module Create 前凍結並綁定製作來源 UUID 參照（`nexora-whr.7.4`），
 精確重查製作變動並拒絕過期／缺失／不支援綁定。legacy／製作參照／legacy 原生快照在
-重匯入與來源／專案釋放後，仍保留來源／Pivot 幾何與負縮放 pool。Inspector 控件、Scene View、
-無 module Play、Build 及動畫／重載仍待完成；進度不變。
+重匯入與來源／專案釋放後，仍保留來源／Pivot 幾何與負縮放 pool。Scene View、
+已設定套件 Play／Build 及動畫／重載仍待完成；進度不變。
 [契約與證據](Editor_Workflow_Delivery_Plan.md#-主-editor-module-play-的製作來源參照2026-11-13)。
 
 ✅ 2026-11-13 的主 Editor 參照模型基礎（`nexora-whr.7.3`）新增擁有來源／Atlas 的查詢，
@@ -930,7 +938,7 @@ Editor 0/8、2D 9/11 及實機／乾淨主機 gate 維持不變。
 或上下文變更會取消操作；控件不執行檔案 IO，也不修改 Runtime Sprite。
 實際 1×／2× 控件與 Linux X11 操作驗證批次指派、清除、精確 Undo／Redo、存檔重開及
 唯讀專案位元組不變。詳見[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceInspector-Linux-2026-11-13.md)。
-模組主 Play 已由獨立的 `nexora-whr.7.4`／PR #776 交付；Scene View、無模組 Play、Build、來源動畫／熱重載及
+模組主 Play 已由獨立的 `nexora-whr.7.4`／PR #776 交付；Scene View、已設定套件 Play、Build、來源動畫／熱重載及
 完整 ED-WF-07 仍開放。工作流 **5/9**、圖形 Editor **0/8**、TwoD **9/11** 與實機驗收維持不變。
 
 ## ✅ Sprite source 作者文件持久化（2026-11-13）
@@ -942,5 +950,5 @@ C/Zig 表格維持相容。Player 在 gameplay 前接納內嵌相依閉包；搬
 參照驗證每份文件只完整檢查 Atlas 一次，再共用逐筆 source 的解析器檢查；
 回歸案例同時涵蓋 4096 sources 與 1024 Atlas regions。
 詳見[雲端證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-AuthoredSources-Linux-2026-11-13.md)。
-主 Editor 製作畫面／無模組 Play／Build 轉換、來源動畫／熱重載與完整 ED-WF-07 仍未完成。
+主 Editor 製作畫面／已設定套件 Play／Build 轉換、來源動畫／熱重載與完整 ED-WF-07 仍未完成。
 工作流 **5/9**、圖形 Editor **0/8**、2D **9/11** 及 M6／M7 實機驗收維持不變。

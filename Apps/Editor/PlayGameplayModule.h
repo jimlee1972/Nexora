@@ -125,6 +125,30 @@ public:
     Unload();
     return false;
   }
+  // Own the authored Sprite preview in the actual clone without loading a library or opening
+  // native audio. The same Unload-before-Stop order drains textures and the borrowed World.
+  bool BindAuthoredPreview(runtime::World &world, const PlayTwoDBinding &binding) try {
+    Unload();
+#if defined(NEXORA_HAS_2D)
+    if (!binding.authoring)
+      return false;
+    std::string error;
+    const auto references = CapturePlaySourceReferences(*binding.authoring, error);
+    if (!references || references->empty() || !BindTwoD(world, binding)) {
+      Unload();
+      return false;
+    }
+    world_ = &world;
+    return true;
+#else
+    static_cast<void>(world);
+    static_cast<void>(binding);
+    return false;
+#endif
+  } catch (...) {
+    Unload();
+    return false;
+  }
   // One keyboard/mouse source has exactly one logical owner. Switching revokes held state;
   // the next focused batch is discarded by the existing acquisition handshake.
   bool SetInputUser(std::uint32_t user) noexcept {

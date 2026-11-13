@@ -176,11 +176,44 @@ void Run(const std::filesystem::path &root) {
   module.Unload();
   Check(stops == 1 && destroys == 1 && play.Stop() && document.CaptureRuntimeScene() == before,
         "teardown lost services or changed authoring");
+  const auto legacy_retired = module.TakeRetiredTwoDTextures();
+  Check(legacy_retired.size() == 1 &&
+            legacy_retired.front() == frame->data.uploads.front().textureId,
+        "module frame textures were not queued for retirement");
+  const auto preview = editor::preview::CapturePlayTwoD(
+      workspace, content, document, true, error, editor::preview::PlayTwoDCapture::AuthoredSources);
+  Check(preview && preview->authoring && preview->assets &&
+            !module.BindAuthoredPreview(world, *preview),
+        "reference-only capture failed or preview accepted an Editor World");
+  std::uint64_t previous_texture{};
+  for (unsigned cycle = 0; cycle < 32; ++cycle) {
+    start();
+    const auto bytes = play.PlayWorld()->SaveScene(id);
+    Check(module.BindAuthoredPreview(*play.PlayWorld(), *preview) && !module.IsLoaded() &&
+              module.IsBoundTo(play.PlayWorld()) && module.TwoDAssets() && module.FixedUpdate(.1) &&
+              module.Update(.1) && play.Pause() && play.Step(),
+          "module-free preview ownership or paused Step failed");
+    const auto image = module.TwoDFrame({17, 23, 320, 240});
+    Check(image && image->sprites.statistics.visible == 2 && image->data.uploads.size() == 1 &&
+              image->data.uploads.front().textureId != previous_texture &&
+              play.PlayWorld()->SaveScene(id) == bytes && play.Resume(),
+          "module-free frame lost sources, reused textures or changed Runtime bytes");
+    previous_texture = image->data.uploads.front().textureId;
+    module.Unload();
+    const auto retired = module.TakeRetiredTwoDTextures();
+    Check(retired.size() == 1 && retired.front() == previous_texture &&
+              !module.IsBoundTo(play.PlayWorld()) && !module.TwoDAssets() && play.Stop() &&
+              image->sprites.retainedAtlases.size() == 1 &&
+              document.CaptureRuntimeScene() == before && creates == 1 && stops == 1 &&
+              destroys == 1,
+          "module-free teardown invoked callbacks, lost frame owners or changed authoring");
+  }
   const auto reject = [&](editor::preview::PlayTwoDBinding bad) {
     start();
     const auto bytes = play.PlayWorld()->SaveScene(id);
     const auto callbacks = creates;
-    Check(!module.Load(*play.PlayWorld(), Loader, {}, bad) && creates == callbacks &&
+    Check(!module.BindAuthoredPreview(*play.PlayWorld(), bad) &&
+              !module.Load(*play.PlayWorld(), Loader, {}, bad) && creates == callbacks &&
               play.PlayWorld()->SaveScene(id) == bytes && play.Stop(),
           "invalid binding reached Create or changed its Play World");
   };
@@ -247,6 +280,14 @@ void Run(const std::filesystem::path &root) {
   captured = editor::preview::CapturePlayTwoD(workspace, content, document, true, error);
   Check(captured && editor::preview::MatchesPlayTwoD(*captured, document, error),
         "reopened source reference capture");
+  auto items = std::vector<editor::ContentItem>(content.Browser().Items().begin(),
+                                                content.Browser().Items().end());
+  items.push_back({{701, 709}, "Content/Unavailable.nx2sprite", ".nx2sprite", {}});
+  Check(content.Browser().Reset(items, 7) &&
+            !editor::preview::CapturePlayTwoD(workspace, content, document, true, error) &&
+            editor::preview::CapturePlayTwoD(workspace, content, document, true, error,
+                                             editor::preview::PlayTwoDCapture::AuthoredSources),
+        "unrelated unavailable sources broke reference-only preview closure");
   // An empty 3D project keeps its historical asset-free path, but cannot hide a source reference.
   Check(content.Browser().Reset({}, 7) &&
             !editor::preview::CapturePlayTwoD(workspace, content, document, true, error),
@@ -264,6 +305,13 @@ void Run(const std::filesystem::path &root) {
             !editor::preview::MatchesPlayTwoD(*empty, document, error) && document.Undo() &&
             editor::preview::MatchesPlayTwoD(*empty, document, error),
         "new reference silently crossed an empty-capture activation boundary");
+  Check(content.Browser().Reset(std::span(items).last(1), 7), "unavailable Content fixture");
+  const auto source_free =
+      editor::preview::CapturePlayTwoD(workspace, content, document, false, error,
+                                       editor::preview::PlayTwoDCapture::AuthoredSources);
+  Check(source_free && !source_free->scene && !source_free->assets && !source_free->authoring &&
+            !module.BindAuthoredPreview(world, *source_free),
+        "source-free preview required unrelated assets or created a preview owner");
   // Release the project writer lease before deletion. Windows correctly refuses unlinking the
   // live lease file; retained Play snapshots must survive the owners themselves, not just unlink.
   catalog.Clear();
@@ -277,6 +325,14 @@ void Run(const std::filesystem::path &root) {
         "retained binding depended on deleted project sources or owners");
   module.Unload();
   Check(play.Stop(), "retained Play stop");
+  start();
+  Check(module.BindAuthoredPreview(*play.PlayWorld(), *captured) && !module.IsLoaded(),
+        "retained module-free preview depended on deleted source/project owners");
+  const auto retained_preview = module.TwoDFrame({0, 0, 320, 240});
+  Check(retained_preview && retained_preview->sprites.statistics.visible == 2,
+        "retained module-free frame lost immutable assets");
+  module.Unload();
+  Check(play.Stop(), "retained module-free Stop");
 }
 } // namespace
 int main() {

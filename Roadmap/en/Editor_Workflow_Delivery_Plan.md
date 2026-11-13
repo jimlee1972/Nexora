@@ -162,6 +162,21 @@ The independent catalog/package slice (`nexora-whr.6.3`) is merged in PR #770. I
 assignment, authoring save/reopen, Build and live animation/reload remain open. This supporting
 slice does not accept ED-WF-07; workflow **5/9**, Editor **0/8**, 2D **9/11** remain unchanged.
 
+## ✅ Authored Sprite preview without a gameplay module (2026-11-13)
+
+The independent `nexora-whr.7.6` consumer freezes only source UUIDs referenced by the main
+scene and their Atlas closure, then binds an owning preview to the actual isolated Play clone
+without loading a library. The existing 2D Game selector, Pause/Step/Resume and Stop retain
+immutable source geometry and retire registrations before World release. Source-free 3D Play
+ignores unrelated unavailable 2D assets. Real Editor native acceptance repeats 32 sessions with
+exact red/blue masks and unchanged authoring pixels/source bytes; CPU coverage also verifies
+callback-free ownership, rejection and replay after source/project teardown.
+[Contract](../../Apps/Editor/README.md#module-free-main-scene-sprite-play) and
+[evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-ModuleFreePlay-Linux-2026-11-13.md).
+Configured package Play/Build, Scene View and animation/reload remain open; the independently merged
+Inspector assignment is preserved. This does not accept ED-WF-07 or change workflow **5/9**,
+graphical Editor **0/8**, 2D **9/11** or physical-host gates.
+
 ## ✅ Authored Sprite references in main module Play (2026-11-13)
 
 The independent ED-WF-07 host slice (`nexora-whr.7.4`) freezes main scene source UUID references
@@ -171,7 +186,7 @@ and rejects missing/unsupported/stale bindings before callbacks. Existing gamepl
 and negative-scale pools remain supported; mixed legacy/authored/legacy native snapshots verify
 Pivot reimport and retained owners. [Contract](../../Apps/Editor/README.md#authored-source-references-in-module-backed-play)
 and [evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-PlayReferences-Linux-2026-11-13.md).
-Scene View, no-module Play, Build export and animation/reload remain open.
+Scene View, configured package Play/Build and animation/reload remain open.
 The independently merged ND2D/Studio slice is preserved. This supporting slice does not accept ED-WF-07;
 workflow **5/9**, Editor **0/8**, 2D **9/11** remain unchanged.
 
@@ -184,7 +199,7 @@ scene Save/Reload. Exact project generation plus Content revision rejects stale 
 reimport actions; retained snapshots keep old immutable owners. Region indexes avoid repeated full
 Atlas validation per source. See the [contract](../../Engine/Editor/README.md#main-editor-sprite-source-reference-transactions)
 and [Linux evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceReferences-Linux-2026-11-13.md).
-Inspector widgets, main Scene View/Play conversion and Build export remain open. The separately
+Main Scene View/configured package Play conversion and Build export remain open. The separately
 claimed authored ND2D/Studio slice is not included. This prerequisite does not accept ED-WF-07;
 workflow **5/9**, Editor **0/8**, 2D **9/11** remain unchanged.
 
@@ -210,7 +225,7 @@ The popup owns its bounded immutable catalog, paths and keys; stale imports or c
 cancel it. No filesystem work or Runtime Sprite mutation occurs in the widgets.
 Actual 1×/2× controls and Linux X11 interaction verify batch assignment, Clear, exact Undo/Redo,
 save/reopen and unchanged read-only project bytes. See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceInspector-Linux-2026-11-13.md).
-Module-backed main Play was independently delivered by `nexora-whr.7.4` / PR #776; Scene View, no-module Play, Build,
+Module-backed main Play was independently delivered by `nexora-whr.7.4` / PR #776; Scene View, configured package Play, Build,
 source animation/reload and full ED-WF-07 remain open. Workflow **5/9**, Editor **0/8**, TwoD **9/11**
 and physical acceptance are unchanged.
 
