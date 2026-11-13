@@ -2258,12 +2258,21 @@ Undo／Redo、存檔重開與獨立 Play 快照。Studio 控制與預覽沿用�
 此 `nexora-whr.7.2` 配套不代表主 Editor Inspector 驅動的專案持久化、Build、來源動畫／熱重載或
 完整 ED-WF-07 驗收；圖形里程碑維持 **0/8**。
 
+### 無遊戲模組的主場景 Sprite Play
+
+✅ `nexora-whr.7.6` 加入只擷取實際來源參照的凍結與真正主場景 Play clone 的無 callback
+擁有者；既有 2D Game 選取即可顯示來源幾何。32 次真實原生場次驗證 Pause／Step／Resume、
+精確重啟遮罩、Stop 退休與製作畫面／位元組不變；無來源 3D Play 忽略無關的不可用資產。
+已設定套件 Play／Build、Scene View 與動畫／重載仍待完成；保留獨立 Inspector 工作及
+里程碑數字。[契約](../../Apps/Editor/README.md#module-free-main-scene-sprite-play)與
+[證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-ModuleFreePlay-Linux-2026-11-13.md)。
+
 ### 主場景參照的 module Play
 
 ✅ 主 module Play 現可在 module Create 前凍結並綁定製作來源 UUID 參照（`nexora-whr.7.4`），
 啟動前精確重查製作擷取與隔離 Runtime；缺失／不支援／過期參照在 callback 前拒絕。
 保留的 legacy／製作參照／legacy 原生影格驗證重匯入與舊擁有者生命週期。Inspector 控件、
-Scene View、無 module Play、Build 及動畫／重載仍未完成；里程碑數字不變。
+Scene View、已設定套件 Play／Build 及動畫／重載仍未完成；里程碑數字不變。
 [契約與證據](Editor_Workflow_Delivery_Plan.md#-主-editor-module-play-的製作來源參照2026-11-13)。
 
 ✅ 2026-11-13 的主 Editor 參照模型基礎（`nexora-whr.7.3`）新增擁有來源／Atlas 的查詢、精確

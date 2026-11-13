@@ -1010,11 +1010,20 @@ old-owner retention across reimport. [Evidence](../../Tools/Build/evidence/Edito
 Inspector source assignment, authoring persistence, Build, source animation/reload and complete
 Editor acceptance remain open. ED-WF stays 5/9, Editor 0/8, 2D 9/11; M6/M7 physical gates unchanged.
 
+✅ The module-free main-scene consumer (`nexora-whr.7.6`) captures only referenced source/Atlas
+closure and owns its preview in the actual Play clone. Thirty-two real Editor native sessions
+verify source pixels, Pause/Step/Resume, exact restart masks and Stop cleanup with unchanged
+authoring pixels/bytes. Source-free 3D Play ignores unrelated unavailable assets. Configured
+package Play/Build, Scene View, independent Inspector work and animation/reload remain separate;
+workflow **5/9**, Editor **0/8**, 2D **9/11** and physical-host gates do not change.
+[Contract](../../Apps/Editor/README.md#module-free-main-scene-sprite-play) and
+[evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-ModuleFreePlay-Linux-2026-11-13.md).
+
 ✅ Main module Play now freezes and binds authored source UUID references before module Create
 (`nexora-whr.7.4`), rechecks exact authored drift and rejects stale/missing/unsupported bindings.
 Legacy/authored/legacy native snapshots retain source/Pivot geometry and negative-scale pools
-after reimport and source/project destruction. Inspector widgets, Scene View, no-module Play,
-Build and animation/reload remain open; counts do not change.
+after reimport and source/project destruction. Inspector widgets, Scene View, configured package
+Play/Build and animation/reload remain open; counts do not change.
 [Contract and evidence](Editor_Workflow_Delivery_Plan.md#-authored-sprite-references-in-main-module-play-2026-11-13).
 
 ✅ The 2026-11-13 main Editor reference-model prerequisite (`nexora-whr.7.3`) adds owning source/Atlas

@@ -1746,8 +1746,49 @@ then the Sprite owner is released before its borrowed Play World. Retained captu
 their matching Runtime scene after Content/project/source destruction, while fresh production
 activation requires current provenance. All calls are serialized on the host owner thread.
 
-This adds no Inspector widget, Scene View conversion, no-module Play owner, Build export or
-source animation/reload. Main capture/loading remains gated by a configured gameplay library.
+Inspector widgets, Scene View conversion, configured package Play/Build export and source
+animation/reload remain separate. The module-free main-scene consumer is described below.
 C/Zig ABI, NX2S/ND2D/asset codecs and module dependencies are unchanged; changed C++ application
 and test consumers rebuild. The 2D-OFF embedding remains source-free. See
 [Play reference evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-PlayReferences-Linux-2026-11-13.md).
+
+### Module-free main-scene Sprite Play
+
+The main scene-clone Play path can own authored source Sprites without a gameplay library.
+`CapturePlayTwoD(..., PlayTwoDCapture::AuthoredSources)` inspects the reserved references first,
+deduplicates their UUID roots and freezes only their source/Atlas dependency closure. Missing or
+unsupported references reject before activation; unrelated unavailable 2D assets are not roots.
+A source-free scene returns its existing asset-free binding without scanning Content assets or
+serializing Runtime. Module-backed capture keeps its complete project-asset scope.
+
+The host rechecks the same exact authoring capture and current writer/Content/provenance authority
+before binding. `PlayGameplayModule::BindAuthoredPreview` requires owning authoring metadata with
+at least one supported reference and a matching active isolated Play scene. It owns the same
+private Sprite service while `IsLoaded()` remains false and `IsBoundTo()` identifies the actual
+clone. It loads no library, invokes no module callback and opens no native audio output. Rendering,
+Pause, manual Step and Resume retain static source geometry; this adds no animation clock.
+
+The existing Game View selector defaults to 3D each session. Selecting 2D extracts the clone's
+actual poses and frozen source geometry, registers its immutable Atlas owners and composes the
+same clipped Game draw list using the existing default orthographic camera (center 0,0; vertical
+size 20). This does not add camera authoring controls. Frames retain their CPU owners through
+submission. The existing
+Unload-before-Stop order releases the preview before its borrowed World; native registrations are
+retired between acquired frames. A later module load replaces the preview through the same Unload
+path. Authoring Runtime bytes, metadata/history and source files are never changed by preview.
+Calls remain serialized on the Editor owner thread; existing separate capture/frame/texture
+budgets apply. No C/Zig ABI, codec, optional-module dependency or shared exported C++ API changes.
+
+This consumer covers the main scene clone when `project.build.json` is absent. Configured package
+Play and main Build export need their own source-reference packaging integration and remain open,
+alongside Scene View, Inspector controls and animation/reload. It does not accept complete
+ED-WF-07 or change milestone counts. The 2D-OFF embedding keeps its source-free path.
+
+`editor.play_authored_sprites` covers 32 callback-free preview owners, exact Runtime/authoring
+preservation, rejection, retained frame/asset lifetime and source-free/unrelated-asset behavior.
+`editor.linux_authored_preview` drives the actual Editor with a saved wrapped scene and no module
+or package configuration. It checks 32 native 3D/2D selections, red/blue source masks, Pause/Step/
+Resume, exact restart geometry and Stop registration cleanup, while concurrent Scene pixels and
+source bytes stay unchanged. Full 1280x720 window captures are retained. This is Linux Vulkan
+integration evidence, not physical-host or performance acceptance; see the
+[module-free Play evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-ModuleFreePlay-Linux-2026-11-13.md).

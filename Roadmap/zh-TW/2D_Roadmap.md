@@ -899,10 +899,18 @@ ED-WF 驗收維持 5/9、Editor 0/8、2D 9/11；M6／M7 實機驗收判定不變
 Inspector 來源指定、製作場景持久化、Build、來源動畫／重載與完整 Editor 驗收仍待完成。
 ED-WF 維持 5/9、Editor 0/8、2D 9/11；M6／M7 實機 gate 不變。
 
+✅ 無模組主場景消費端（`nexora-whr.7.6`）只擷取實際參照的來源／Atlas 閉包，在真正 Play
+clone 擁有自有預覽。32 次真實 Editor 原生場次驗證來源像素、Pause／Step／Resume、精確
+重啟遮罩及 Stop 清理，製作畫面／位元組不變；無來源 3D Play 忽略無關的不可用資產。
+已設定套件 Play／Build、Scene View、獨立 Inspector 工作及動畫／重載仍屬後續；
+流程 **5/9**、Editor **0/8**、2D **9/11** 與實機 gate 不變。
+[契約](../../Apps/Editor/README.md#module-free-main-scene-sprite-play)與
+[證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-ModuleFreePlay-Linux-2026-11-13.md)。
+
 ✅ 主 module Play 現可在 module Create 前凍結並綁定製作來源 UUID 參照（`nexora-whr.7.4`），
 精確重查製作變動並拒絕過期／缺失／不支援綁定。legacy／製作參照／legacy 原生快照在
 重匯入與來源／專案釋放後，仍保留來源／Pivot 幾何與負縮放 pool。Inspector 控件、Scene View、
-無 module Play、Build 及動畫／重載仍待完成；進度不變。
+已設定套件 Play／Build 及動畫／重載仍待完成；進度不變。
 [契約與證據](Editor_Workflow_Delivery_Plan.md#-主-editor-module-play-的製作來源參照2026-11-13)。
 
 ✅ 2026-11-13 的主 Editor 參照模型基礎（`nexora-whr.7.3`）新增擁有來源／Atlas 的查詢，

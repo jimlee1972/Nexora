@@ -57,9 +57,22 @@ struct Fixture final {
   editor::imgui::EditorImGuiHost ui;
   editor::preview::PlayGameplayModule module;
   editor::preview::GameTwoDTextures textures{ui};
-  explicit Fixture(const std::filesystem::path &root) {
+  explicit Fixture(const std::filesystem::path &root, bool authored = false) {
     Check(workspace.Create(root, "Game 2D Preview"), "project create");
     Sources(root);
+    if (authored) {
+      for (unsigned index = 0; index < 2; ++index) {
+        twod::SpriteAsset source;
+        source.id = {41 + index, 43 + index};
+        source.atlas = index ? poolId : atlasId;
+        source.region = 1;
+        source.sourceWidth = source.sourceHeight = source.trimWidth = source.trimHeight = 1;
+        source.pivotX = source.pivotY = .5F;
+        source.pixelsPerUnit = .25F;
+        Write(root / (index ? "Content/Blue.nx2sprite" : "Content/Red.nx2sprite"),
+              twod::EncodeSpriteAsset(source));
+      }
+    }
     Check(index.ImportTree(root / "Content", {}, {},
                            editor::AssetIdentityMode::PersistentReadWrite) &&
               content.Open(workspace, index, 13) && world.Activate(scene_id),
@@ -71,6 +84,22 @@ struct Fixture final {
     Check(document.CreateMesh("Sprite", {mesh, {}}, {-1, 0, 0}) == 3 &&
               document.Save(root / ".nexora/scenes/Main.scene"),
           "source scene");
+    if (authored) {
+      const auto second = document.Create("Blue source");
+      Check(second && document.SetTransform(3, {-2.5, 0, 0}) &&
+                document.SetTransform(second, {2.5, 0, 0}),
+            "authored source transforms");
+      editor::SpriteSourceCatalog catalog;
+      Check(catalog.PublishContent(content.Browser()), "authored preview catalog");
+      for (unsigned index = 0; index < 2; ++index) {
+        const std::array keys{*document.Key(index ? second : 3)};
+        Check(document.Select(keys) &&
+                  editor::AssignSpriteSources(document, keys, {41 + index, 43 + index},
+                                              catalog.Version(), content, catalog, true),
+              "authored preview assignment");
+      }
+      Check(document.Save(root / ".nexora/scenes/Main.scene"), "authored preview scene Save");
+    }
     ui.SetDisplay(1280, 900, 1);
     Access::ConfigureSyntheticInput(ui);
     Nexora::Window::WindowEvent focus;
@@ -278,6 +307,10 @@ int main(int argc, char **argv) {
   try {
     if (argc == 3 && std::string_view(argv[1]) == "--write-fixture") {
       Fixture fixture(argv[2]);
+      return 0;
+    }
+    if (argc == 3 && std::string_view(argv[1]) == "--write-authored-fixture") {
+      Fixture fixture(argv[2], true);
       return 0;
     }
     Check(argc == 2, "fixture module argument required");

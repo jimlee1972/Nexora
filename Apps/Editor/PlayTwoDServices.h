@@ -37,6 +37,8 @@ struct PlayTwoDBinding final {
 };
 
 #if defined(NEXORA_HAS_2D)
+enum class PlayTwoDCapture { ProjectAssets, AuthoredSources };
+
 // Bounded owning previews avoid copying arbitrary plugin payloads merely to find references.
 inline std::optional<std::vector<PlayTwoDBinding::SourceSprite>>
 CapturePlaySourceReferences(const SceneDocument &document, std::string &error) {
@@ -105,25 +107,32 @@ inline bool MatchesPlayTwoD(const PlayTwoDBinding &binding, const SceneDocument 
   return false;
 }
 
-inline std::optional<PlayTwoDBinding> CapturePlayTwoD(const ProjectWorkspace &workspace,
-                                                      const ProjectContentSession &content,
-                                                      const SceneDocument &document,
-                                                      bool authorized, std::string &error) try {
+inline std::optional<PlayTwoDBinding>
+CapturePlayTwoD(const ProjectWorkspace &workspace, const ProjectContentSession &content,
+                const SceneDocument &document, bool authorized, std::string &error,
+                PlayTwoDCapture scope = PlayTwoDCapture::ProjectAssets) try {
   error.clear();
-  std::vector<runtime::AssetUuid> roots;
-  for (const auto &item : content.Browser().Items()) {
-    if (!item.twod && item.type != ".nx2atlas" && item.type != ".nx2clip" &&
-        item.type != ".nx2sprite")
-      continue;
-    if (roots.size() == 4096) {
-      error = "Play 2D asset selection exceeds 4096 sources.";
-      return {};
-    }
-    roots.push_back(item.id);
-  }
   const auto references = CapturePlaySourceReferences(document, error);
   if (!references)
     return {};
+  std::vector<runtime::AssetUuid> roots;
+  if (scope == PlayTwoDCapture::AuthoredSources) {
+    std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> unique;
+    for (const auto &reference : *references)
+      if (unique.insert(reference.source).second)
+        roots.push_back(reference.source);
+  } else {
+    for (const auto &item : content.Browser().Items()) {
+      if (!item.twod && item.type != ".nx2atlas" && item.type != ".nx2clip" &&
+          item.type != ".nx2sprite")
+        continue;
+      if (roots.size() == 4096) {
+        error = "Play 2D asset selection exceeds 4096 sources.";
+        return {};
+      }
+      roots.push_back(item.id);
+    }
+  }
   if (roots.empty() && references->empty())
     return PlayTwoDBinding{};
   auto source = document.CaptureRuntimeScene();

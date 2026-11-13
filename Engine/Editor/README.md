@@ -2856,8 +2856,10 @@ reference, including unresolved references; reopening must obtain fresh NodeKeys
 This is the main Inspector's model prerequisite. The application now converts references for
 module-backed main Play after validating and freezing the scene and asset closure; see the
 [host ownership contract](../../Apps/Editor/README.md#authored-source-references-in-module-backed-play).
+The [module-free main scene clone](../../Apps/Editor/README.md#module-free-main-scene-sprite-play)
+captures only referenced sources and owns the same private preview without a module callback.
 TwoDDocument/ND2D/Studio owns its separate source catalog. Inspector widgets, Scene View drawing,
-no-module Play and main Editor Build export remain separate consumers requiring their own closure
+configured package Play and main Editor Build export remain consumers requiring their own closure
 validation. No C/Zig ABI,
 NX2S/ND2D or asset codec changes; consumers of the new exported C++ API rebuild. When 2D is disabled,
 the helper is absent and the ordinary opaque scene wrapper still preserves its bytes. See
