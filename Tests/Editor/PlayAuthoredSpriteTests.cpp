@@ -247,12 +247,6 @@ void Run(const std::filesystem::path &root) {
   captured = editor::preview::CapturePlayTwoD(workspace, content, document, true, error);
   Check(captured && editor::preview::MatchesPlayTwoD(*captured, document, error),
         "reopened source reference capture");
-  std::filesystem::remove_all(root);
-  start();
-  Check(module.Load(*play.PlayWorld(), Loader, {}, *captured),
-        "retained binding depended on deleted project sources");
-  module.Unload();
-  Check(play.Stop(), "retained Play stop");
   // An empty 3D project keeps its historical asset-free path, but cannot hide a source reference.
   Check(content.Browser().Reset({}, 7) &&
             !editor::preview::CapturePlayTwoD(workspace, content, document, true, error),
@@ -270,6 +264,19 @@ void Run(const std::filesystem::path &root) {
             !editor::preview::MatchesPlayTwoD(*empty, document, error) && document.Undo() &&
             editor::preview::MatchesPlayTwoD(*empty, document, error),
         "new reference silently crossed an empty-capture activation boundary");
+  // Release the project writer lease before deletion. Windows correctly refuses unlinking the
+  // live lease file; retained Play snapshots must survive the owners themselves, not just unlink.
+  catalog.Clear();
+  content = editor::ProjectContentSession{};
+  assets = editor::AssetWorkspace{};
+  workspace = editor::ProjectWorkspace{};
+  std::filesystem::remove_all(root);
+  Check(!std::filesystem::exists(root), "project teardown did not remove authoring sources");
+  start();
+  Check(module.Load(*play.PlayWorld(), Loader, {}, *captured),
+        "retained binding depended on deleted project sources or owners");
+  module.Unload();
+  Check(play.Stop(), "retained Play stop");
 }
 } // namespace
 int main() {

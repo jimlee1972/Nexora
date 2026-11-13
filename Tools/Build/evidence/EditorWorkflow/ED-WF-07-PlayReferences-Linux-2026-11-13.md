@@ -87,9 +87,12 @@ CTEST_PARALLEL_LEVEL=2 ctest --preset linux-development
 
 Builds finish before graphical acceptance; no compilation overlaps the full test run.
 ✅ The final implementation configures/builds and passes **491/491**, zero failures/skips,
-**1357.85 seconds**. The final 100000-node reference probe measures **32.4834 ms** (diagnostic only),
-and its complete CPU case passes in 1.97 seconds. The enhanced actual native source case passes
-in 1.36 seconds. The earlier integrated-base run before the bulk correction passed 491/491 in
+**1349.56 seconds** after the Windows fixture lifetime correction below. The final 100000-node
+reference probe measures **28.4142 ms** (diagnostic only), and its complete CPU case passes in
+2.08 seconds. The enhanced actual native source case passes in 1.48 seconds. The initial published
+head passed Linux 491/491 in 1357.85 seconds but failed its hosted Windows fixture; that generation
+is retained separately and does not count as a cross-platform pass. The earlier integrated-base
+run before the bulk correction passed 491/491 in
 1362.55 seconds; its status log/source hashes remain separate pre-optimization evidence.
 Existing native main Game View, layout restart, C/Zig, pool, SDK, reimport, lifetime and all three
 authored-source cases from PR #773 remain in scope.
@@ -114,7 +117,9 @@ python Tools/Build/TestDocumentationCI.py
 ✅ Shipping configures/builds; by contract it strips standalone Editor/EditorCore, so it does not
 execute this new application helper. The actual graphical Editor compiles/links with 2D OFF and
 testing OFF. The Monolithic consumer compiles/links the new exported bulk API and passes **1/1**
-without graphical Editor, including its 100000-node probe and Play lifecycle/rejection checks.
+without graphical Editor, including its 100000-node probe and Play lifecycle/rejection checks
+(rebuilt after the lifetime correction; 1.99 seconds). Shipping and 2D-OFF receipts remain valid:
+all production source/CMake hashes are unchanged by this fixture-only correction.
 Documentation utilities pass **16/16**, nine changed Markdown documents/language pairs
 pass validation, touched C++ formatting and `git diff --check` pass. Root README stays unchanged.
 The final inventory query ran before the full gate; both the full named-outcome status log and
@@ -144,3 +149,21 @@ requires fresh project/source provenance even though retained matching snapshots
 without authoring sources by the isolated replay fixture. The full ED-WF-07 workflow is not accepted.
 Windows/macOS/mobile and physical-GPU runs are not claimed from this Linux execution environment;
 hosted CI results are tracked separately for the delivery head.
+
+## Initial Windows CI fixture failure
+
+The first published head `58abf51cac36f20c5e8d9682f4f1474fbf8ff920` fails Windows mimalloc job
+[131766862086](https://github.com/jimlee1972/Nexora/actions/runs/43389774021/job/131766862086)
+only in `editor.play_authored_sprites`: `remove_all(root)` attempts to delete the still-live
+ProjectWorkspace writer lease. `ProjectWorkspace::LockState` deliberately opens its Windows file
+with `FILE_SHARE_READ`, without delete sharing; the product correctly rejects that deletion.
+This is an own-fixture lifecycle error, not hosted capacity or a transient classification.
+
+The corrected fixture completes all writable/empty-Content checks first, then clears the catalog,
+Content session and index and releases ProjectWorkspace before deleting authoring files. It
+asserts the directory is absent and runs the retained frozen Play binding with all original
+project owners gone. No product code or lock policy is changed; no OS error is ignored or retried,
+and no test assertion, native predicate or deadline is relaxed. The corrected focused case passes
+in 2.11 seconds. Earlier passing Linux results do not turn this Windows failure into a pass;
+the corrected complete local gate passes 491/491 in 1349.56 seconds and the rebuilt Monolithic
+consumer passes 1/1. All new-head hosted checks are still required before merging.
