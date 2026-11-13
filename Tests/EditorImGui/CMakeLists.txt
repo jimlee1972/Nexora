@@ -873,6 +873,23 @@ target_include_directories(NexoraReflectedInspectorUiTests PRIVATE "${PROJECT_SO
 target_link_libraries(NexoraReflectedInspectorUiTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraReflectedInspectorUiTests)
 add_test(NAME editor.reflected_inspector_ui COMMAND NexoraReflectedInspectorUiTests)
+if(NEXORA_ENABLE_2D)
+  add_executable(NexoraSpriteSourceInspectorTests SpriteSourceInspectorTests.cpp)
+  target_include_directories(NexoraSpriteSourceInspectorTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+  target_link_libraries(NexoraSpriteSourceInspectorTests PRIVATE Nexora::EditorImGui)
+  nexora_apply_defaults(NexoraSpriteSourceInspectorTests)
+  add_test(NAME editor.sprite_source_inspector COMMAND NexoraSpriteSourceInspectorTests)
+  set_tests_properties(editor.sprite_source_inspector PROPERTIES TIMEOUT 90)
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE
+      AND NEXORA_ENABLE_VULKAN_BACKEND AND NEXORA_ENABLE_SLANG)
+    add_test(NAME editor.linux_sprite_source_inspector
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxSpriteSourceInspector.py"
+        --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraSpriteSourceInspectorTests>"
+        --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+    set_tests_properties(editor.linux_sprite_source_inspector PROPERTIES TIMEOUT 120
+      LABELS "editor;vulkan;virtual-display" WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+  endif()
+endif()
 add_executable(NexoraPrefabIsolationUiTests PrefabIsolationTests.cpp)
 target_include_directories(NexoraPrefabIsolationUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
 target_link_libraries(NexoraPrefabIsolationUiTests PRIVATE Nexora::EditorImGui)

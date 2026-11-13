@@ -2329,6 +2329,20 @@ old-owner retention across reimport. [Evidence](../../Tools/Build/evidence/Edito
 Inspector source assignment, authoring persistence, Build, source animation/reload and complete
 Editor acceptance remain open. ED-WF stays 5/9, Editor 0/8, 2D 9/11; M6/M7 physical gates unchanged.
 
+## ✅ Main Editor Sprite source Inspector (2026-11-13)
+
+Supporting `nexora-whr.7.5` exposes imported source choices and Clear in the real main Inspector.
+Complete selections share one metadata Undo/Redo and wrapped scene Save/Reload. Mixed, missing
+source/Atlas and unsupported references have distinct states; unsupported bytes remain protected.
+Writable project, stopped Play, focus/recovery and live selection/version checks guard every action.
+The popup owns its bounded immutable catalog, paths and keys; stale imports or context changes
+cancel it. No filesystem work or Runtime Sprite mutation occurs in the widgets.
+Actual 1×/2× controls and Linux X11 interaction verify batch assignment, Clear, exact Undo/Redo,
+save/reopen and unchanged read-only project bytes. See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceInspector-Linux-2026-11-13.md).
+Independent main Play conversion remains tracked by `nexora-whr.7.4`; Scene View rendering, Build,
+source animation/reload and full ED-WF-07 remain open. Workflow **5/9**, Editor **0/8**, TwoD **9/11**
+and physical acceptance are unchanged.
+
 ## ✅ Isolated source-bearing authoring documents (2026-11-13)
 
 TwoDDocument now owns a bounded immutable source catalog with source assignment, transactional

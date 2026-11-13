@@ -2812,6 +2812,12 @@ remain separate ED-WF-07/08 acceptance gates.
 
 ### Main Editor Sprite source reference transactions
 
+The graphical consumer in `EditorImGui` now provides source selection/Clear with batch history,
+wrapped save/reopen, mixed/missing/unsupported states and exact popup-context checks. It uses the
+transactions below without changing their ownership or wire contracts. See the
+[Inspector contract](../EditorImGui/README.md#main-sprite-source-inspector) and
+[native execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceInspector-Linux-2026-11-13.md).
+
 With `NEXORA_ENABLE_2D`, `SpriteSourceCatalog` publishes an owning, CPU-only view of the current
 Content source/Atlas closure on the authoring thread. It uses immutable `TwoDAssetPayload` owners
 already validated by `ImportTwoDAsset`, verifies UUID/type identity and the 4096-asset/64 MiB retained
@@ -2844,7 +2850,8 @@ transaction handles the batch and its Undo/Redo; unrelated components and Runtim
 Equal assignment/absent removal preserve pending Redo. Wrapped scene Save/Reload stores the UUID
 reference, including unresolved references; reopening must obtain fresh NodeKeys.
 
-This is the main Inspector's model prerequisite. It adds no Inspector widget, runtime Sprite,
+This API is the main Inspector's model prerequisite; its graphical consumer is documented above.
+The model API itself adds no widget, runtime Sprite,
 authored ND2D source catalog, Scene View drawing, main Play reference conversion or Build export.
 Those consumers must explicitly validate and freeze their closures before use. No C/Zig ABI,
 NX2S/ND2D or asset codec changes; consumers of the new exported C++ API rebuild. When 2D is disabled,
