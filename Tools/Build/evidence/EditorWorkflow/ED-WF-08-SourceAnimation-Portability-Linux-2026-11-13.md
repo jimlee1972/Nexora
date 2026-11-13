@@ -2,6 +2,12 @@
 
 Date: 2026-11-13 (UTC). Supporting task: `nexora-whr.8.1`, PR #780.
 
+
+This is historical local validation for head `a97a7cbf`; its hosted native macro test compilation
+subsequently failed. The [native-context supplement](ED-WF-08-SourceAnimation-NativeContext-Linux-2026-11-13.md) records the additional named-Clip
+fixture repair, all309 consumer compile command variants and fresh full acceptance. Its committed
+machine receipt remains unchanged.
+
 ## Corrected validation
 
 The corrected source generation passes **523/523** Linux Development tests,

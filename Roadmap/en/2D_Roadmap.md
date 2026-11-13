@@ -1112,3 +1112,10 @@ gates. GNU 15.2 before/after probes reproduce the original benchmark temporary w
 all 17 affected C++ translation units; explicit bounded test integer types address MSVC warnings.
 Warning rules and native oracles remain intact. Initial `1ec968b6` local passes and failed CI remain
 historical; complete ED-WF-07/08 and milestone counts are unchanged.
+
+Additional `nexora-whr.8.1` native-fixture portability coverage passes523/523 and all12 local gates;
+GCC15.2 compiles all309 actual TwoD consumer command variants, including the inherited CPU/native
+PlayContext test. [Final native-context evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-SourceAnimation-NativeContext-Linux-2026-11-13.md)
+preserves both earlier committed receipts and the additional failed hosted head. Production32
+source reloads/configured packaged Play and complete ED-WF-07/08 remain open; **5/9**, **0/8**, **9/11**
+are unchanged.
