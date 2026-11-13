@@ -1007,14 +1007,15 @@ Typed source indexing/reimport now owns existing Sprite metadata, and frozen pro
 capture validates its exact Atlas closure. Main Editor gameplay scene/pool instances resolve those
 immutable snapshots; real composed native pixels verify trim/Pivot geometry, negative scale and
 old-owner retention across reimport. [Evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md).
-Inspector source assignment, authoring persistence, Build, source animation/reload and complete
+Main Scene View, configured package Play/Build, source animation/reload and complete
 Editor acceptance remain open. ED-WF stays 5/9, Editor 0/8, 2D 9/11; M6/M7 physical gates unchanged.
 
 ✅ The module-free main-scene consumer (`nexora-whr.7.6`) captures only referenced source/Atlas
 closure and owns its preview in the actual Play clone. Thirty-two real Editor native sessions
 verify source pixels, Pause/Step/Resume, exact restart masks and Stop cleanup with unchanged
 authoring pixels/bytes. Source-free 3D Play ignores unrelated unavailable assets. Configured
-package Play/Build, Scene View, the merged Inspector assignment is preserved; animation/reload remains separate;
+package Play/Build, Scene View and animation/reload remain separate; the merged Inspector
+assignment is preserved, and
 workflow **5/9**, Editor **0/8**, 2D **9/11** and physical-host gates do not change.
 [Contract](../../Apps/Editor/README.md#module-free-main-scene-sprite-play) and
 [evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-ModuleFreePlay-Linux-2026-11-13.md).

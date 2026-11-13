@@ -137,5 +137,18 @@ PR #777 was merged independently while PR #778 checks were running. The current 
 main `ac15a642`; all six conflicts were pending-work wording in documentation. Both delivered
 sections remain, and source assignment plus module-free preview are no longer listed as pending.
 The earlier complete 492-case generation and its immutable receipt at head `884f52e7` are retained
-separately. Fresh combined focused/full and optional-config verification is pending; older CI
-results do not satisfy the updated-head merge gate.
+separately in the final machine receipt. They do not satisfy the updated-head merge gate.
+
+✅ Fresh combined focused verification passes **5/5** in 91.77 seconds: authored CPU 2.18 seconds,
+Inspector CPU 3.03 seconds, real Inspector native 30.17 seconds, legacy Game preview 1.86 seconds
+and module-free native 54.51 seconds. The complete integrated configure/build then passes
+**494/494**, zero failures/skips, **1448.26 seconds**, including the 32-session module-free native
+case in 54.20 seconds. Source pixels, authoring preservation and all existing native assertions
+remain unchanged. The final images and named outcomes come from this integrated run.
+
+✅ Shipping and the actual 2D-OFF/testing-OFF graphical Editor configure/build again on the
+integrated source. The rebuilt Monolithic actual consumer passes **1/1** in 2.48 seconds.
+The final receipt separates initial focused, pre-integration complete and integrated generations,
+records the merged upstream source hashes, and retains all earlier fixture failures. No runtime
+source changed after this complete gate. All applicable hosted checks must run against the final
+delivery head before merging; pre-integration CI remains historical evidence only.

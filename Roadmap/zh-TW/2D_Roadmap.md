@@ -896,13 +896,13 @@ ED-WF 驗收維持 5/9、Editor 0/8、2D 9/11；M6／M7 實機驗收判定不變
 型別化來源索引／重匯入現可保有既有 Sprite metadata，凍結的專案／cooked Play 擷取會驗證
 精確 Atlas 相依閉包。主 Editor gameplay 場景／pool 實例可解析這些不可變快照；真實合成
 原生像素驗證裁切／Pivot 幾何、負縮放與重匯入後的舊擁有者保留。[證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md)。
-Inspector 來源指定、製作場景持久化、Build、來源動畫／重載與完整 Editor 驗收仍待完成。
+主 Scene View、已設定套件 Play／Build、來源動畫／重載與完整 Editor 驗收仍待完成。
 ED-WF 維持 5/9、Editor 0/8、2D 9/11；M6／M7 實機 gate 不變。
 
 ✅ 無模組主場景消費端（`nexora-whr.7.6`）只擷取實際參照的來源／Atlas 閉包，在真正 Play
 clone 擁有自有預覽。32 次真實 Editor 原生場次驗證來源像素、Pause／Step／Resume、精確
 重啟遮罩及 Stop 清理，製作畫面／位元組不變；無來源 3D Play 忽略無關的不可用資產。
-已設定套件 Play／Build、Scene View、已合併的 Inspector 指定能力已保留；動畫／重載仍屬後續；
+已設定套件 Play／Build、Scene View 及動畫／重載仍屬後續；已合併的 Inspector 指定能力已保留。
 流程 **5/9**、Editor **0/8**、2D **9/11** 與實機 gate 不變。
 [契約](../../Apps/Editor/README.md#module-free-main-scene-sprite-play)與
 [證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-ModuleFreePlay-Linux-2026-11-13.md)。
