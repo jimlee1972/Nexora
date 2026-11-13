@@ -2306,3 +2306,26 @@ ED-WF-07 保持開啟。工作流 **5/9**、圖形編輯器 **0/8**、TwoD **9/1
 [主線整合補充證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-MainIntegration-Linux-2026-11-13.md)：
 完整 **521/521**、零失敗／略過，實際 Development／Shipping 原生像素、Monolithic 與 2D-OFF 組建通過。
 原生測試傳輸修正保留相同逾時與全部原有斷言；前輪失敗的完整測試分開保留，父項驗收與里程碑數字不變。
+
+## ✅ 來源動畫 Clip 基礎（2026-11-13）
+
+支援工作 `nexora-whr.8.1` 新增純來源 Clip schema 2，保留舊 Clip 的精確位元組與 C/Zig 表格。
+型別匯入／cook／目錄及 Editor 快照驗證完整來源／Atlas 相依；明確 Play／Advance、保留的不可變
+Clip 擁有者、ND2D 歷史與 Studio 預覽保留來源身分及樣式。實際 SDK／搬移 Player 的 Development
+與 Shipping 像素涵蓋 trim／Pivot、翻轉、負縮放、第二組預載來源／Atlas，以及穩定的來源物件池 handle。
+完整 Linux **523/523**、零失敗／略過，Shipping／原生、Monolithic 與 TwoD-OFF 驗證通過。
+[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-SourceAnimation-Linux-2026-11-13.md) 分別保留前輪失敗及中斷紀錄。
+來源重匯入、32 次實際 Zig 重載／失敗回復、主 Editor 設定式套件 Play 及完整 ED-WF-07／08 仍未完成；
+原生 `repacked` 階段只是預載動畫影格的名稱，不代表即時重匯入。工作流 **5/9**、圖形 Editor **0/8**、
+TwoD **9/11** 及實體／乾淨主機驗收維持不變。
+
+[編譯器可攜性補充證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-SourceAnimation-Portability-Linux-2026-11-13.md) 記錄修正後完整
+**523/523**、零失敗／略過，以及 Development／Shipping 原生、Monolithic 與 TwoD-OFF 驗證。
+GNU 15.2 前後對照重現原始 benchmark 暫存值警告，並驗證全部 17 個受影響 C++ 翻譯單元；
+測試採明確且有界的整數型別處理 MSVC 警告。警告規則與原生斷言維持不變，初始 `1ec968b6`
+的本機成功及 CI 失敗分開保留；完整 ED-WF-07／08 與里程碑數字不變。
+
+`nexora-whr.8.1` 額外原生測試可攜性修正通過523/523及全部12項本機驗證；GCC15.2編譯全部309個
+實際TwoD消費端命令版本，包含既有CPU／原生PlayContext測試。[最終原生版本證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-SourceAnimation-NativeContext-Linux-2026-11-13.md)
+保留兩份先前已提交紀錄及新增的雲端CI失敗。正式32次來源重載、設定式套件Play及完整ED-WF-07／08
+仍未完成；**5/9**、**0/8**、**9/11**維持不變。

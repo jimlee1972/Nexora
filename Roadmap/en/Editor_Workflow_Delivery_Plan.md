@@ -259,3 +259,31 @@ the [main integration supplement](../../Tools/Build/evidence/EditorWorkflow/ED-W
 full **521/521**, zero failures/skips, actual Development/Shipping native pixels, Monolithic and
 2D-OFF builds. Native test transport repairs retain the same deadlines and all original assertions;
 the earlier failed full gate remains separate evidence. Parent acceptance and milestone counts are unchanged.
+
+## ✅ Source animation Clip foundation (2026-11-13)
+
+Supporting `nexora-whr.8.1` adds source-only Clip schema 2 while preserving exact legacy Clip bytes
+and C/Zig tables. Typed import/cook/catalog and Editor snapshots validate the complete source/Atlas
+closure; explicit Play/Advance, immutable retained Clip ownership, ND2D history and Studio preview
+preserve source identity and style. Real SDK/relocated Player Development and Shipping pixels cover
+trim/Pivot, flips, negative scale, a second preloaded source/Atlas and stable source pool handles.
+Full Linux **523/523**, zero failures/skips, Shipping/native, Monolithic and TwoD-OFF
+gates pass. [Execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-SourceAnimation-Linux-2026-11-13.md) retains earlier
+failed/interrupted attempts. Source reimport, 32 real Zig reloads/rollback, configured packaged main
+Editor Play and full ED-WF-07/08 remain open; the `repacked` native phase names a preloaded animation
+frame, not live reimport. Workflow **5/9**, graphical Editor **0/8**, TwoD **9/11** and physical/clean-host
+gates are unchanged.
+
+The [compiler portability supplement](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-SourceAnimation-Portability-Linux-2026-11-13.md) records the
+corrected full **523/523**,zero failures/skips,Development/Shipping native,Monolithic and TwoD-OFF
+gates. GNU 15.2 before/after probes reproduce the original benchmark temporary warnings and verify
+all 17 affected C++ translation units; explicit bounded test integer types address MSVC warnings.
+Warning rules and native oracles remain intact. Initial `1ec968b6` local passes and failed CI remain
+historical; complete ED-WF-07/08 and milestone counts are unchanged.
+
+Additional `nexora-whr.8.1` native-fixture portability coverage passes523/523 and all12 local gates;
+GCC15.2 compiles all309 actual TwoD consumer command variants, including the inherited CPU/native
+PlayContext test. [Final native-context evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-SourceAnimation-NativeContext-Linux-2026-11-13.md)
+preserves both earlier committed receipts and the additional failed hosted head. Production32
+source reloads/configured packaged Play and complete ED-WF-07/08 remain open; **5/9**, **0/8**, **9/11**
+are unchanged.

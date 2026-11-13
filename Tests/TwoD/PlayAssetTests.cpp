@@ -201,6 +201,57 @@ void MaximumClosure() {
   Check(!editor::TwoDPlayAssets::Capture(store, 42, roots), "4097 asset closure succeeds");
   Check(store.ResidentBytes() == 0 && !store.IsPinned(42), "maximum closure leaks store owners");
 }
+void SourceAnimationClosure() {
+  constexpr runtime::AssetUuid sourceId{41, 43}, secondId{47, 53};
+  twod::SpriteAsset source;
+  source.id = sourceId;
+  source.atlas = atlasId;
+  source.region = source.sourceWidth = source.sourceHeight = source.trimWidth = source.trimHeight =
+      1;
+  twod::Clip clip{clipId, {}, true, {{0, 0.1, "second", sourceId}, {0, 0.2, "first", secondId}}};
+  auto first = runtime::CanonicalAsset{
+      sourceId, "sprite_source", {atlasId}, twod::EncodeSpriteAsset(source)};
+  source.id = secondId;
+  auto second = runtime::CanonicalAsset{
+      secondId, "sprite_source", {atlasId}, twod::EncodeSpriteAsset(source)};
+  auto canonical =
+      runtime::CanonicalAsset{clipId, "sprite_clip", {sourceId, secondId}, twod::EncodeClip(clip)};
+  std::shared_ptr<const editor::TwoDPlayAssets> frozen;
+  const std::array roots{clipId};
+  {
+    runtime::AssetGenerationStore store;
+    Activate(store, 1, {canonical, second, AtlasSource(), first});
+    frozen = editor::TwoDPlayAssets::Capture(store, 1, roots);
+    Check(frozen && frozen->Size() == 4 && frozen->SpriteSource(sourceId) &&
+              frozen->SpriteSource(secondId) && frozen->Atlas(atlasId),
+          "source Clip does not capture source/Atlas closure");
+    Check(store.ResidentBytes() == 0 && !store.IsPinned(1), "source capture leaks residency");
+    const auto reject = [&](std::uint64_t generation, std::vector<runtime::CanonicalAsset> assets) {
+      Activate(store, generation, assets);
+      std::string error;
+      Check(!editor::TwoDPlayAssets::Capture(store, generation, roots, &error) && !error.empty() &&
+                store.ResidentBytes() == 0 && !store.IsPinned(generation),
+            "invalid source Clip dependency closure captured or leaked");
+    };
+    auto bad = canonical;
+    bad.dependencies = {secondId, sourceId};
+    reject(2, {bad, second, AtlasSource(), first});
+    reject(3, {canonical, AtlasSource(), first});
+    auto wrong = AtlasSource();
+    auto atlas = Atlas();
+    atlas.id = secondId;
+    wrong.id = secondId;
+    wrong.payload = twod::EncodeAtlas(atlas);
+    reject(4, {canonical, wrong, AtlasSource(), first});
+    auto invalid = source;
+    invalid.region = 901;
+    second.payload = twod::EncodeSpriteAsset(invalid);
+    reject(5, {canonical, second, AtlasSource(), first});
+  }
+  Check(frozen->Clip(clipId)->frames[1].source == secondId &&
+            frozen->SpriteSource(secondId)->region == 1,
+        "source Clip snapshot borrows destroyed generation storage");
+}
 } // namespace
 int main() {
   try {
@@ -208,6 +259,7 @@ int main() {
     BudgetsAndReferences();
     InvalidAssets();
     MaximumClosure();
+    SourceAnimationClosure();
     std::cout
         << "2D cooked Play assets: generation isolation, closure, budgets and residency passed\n";
     return 0;

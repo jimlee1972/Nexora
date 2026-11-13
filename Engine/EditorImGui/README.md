@@ -203,6 +203,10 @@ Sprite source import follows the same owner-request boundary. New/current Sprite
 select immutable catalog UUIDs; source geometry replaces Size/Pivot controls while tint, transforms,
 flips and sorting remain editable. Preview uses the document source resolver. Unknown stale source
 selections cannot add a Sprite, and source aliases/catalog views retain the document's lifetime rules.
+Animation can append the selected Sprite's source to a source Clip, while region and source append
+actions prevent mixed binding modes. Source frame labels display UUIDs; duration/events, reordering,
+looping and pause reuse the existing document transaction and Animator. The frame image swatch
+selects the source's validated Atlas region; scene extraction retains its full source geometry.
 Camera preview fields are kept finite and within supported preview bounds; collider projection
 follows the same rotated orthographic camera as Sprite extraction. Graphical control tests exercise
 Undo/Redo, invalid preview-camera admission and permission rejection; Linux native Studio acceptance

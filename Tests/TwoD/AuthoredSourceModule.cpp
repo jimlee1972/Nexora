@@ -36,6 +36,9 @@ int32_t Start(void *opaque) {
       asset.kind != NEXORA_CONTENT_SPRITE_SOURCE || asset.atlas_high != 71 ||
       asset.atlas_low != 72 || asset.width != 4 || asset.height != 4)
     return -3;
+  if (content.describe_asset(content.context, 83, 84, &asset) ||
+      asset.kind != NEXORA_CONTENT_CLIP || asset.atlas_high || asset.atlas_low || asset.count != 1)
+    return -3;
   return 0;
 }
 int32_t Update(void *opaque, double) {

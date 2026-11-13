@@ -46,6 +46,7 @@ struct GameplayContent::State final {
   struct Retired final {
     std::weak_ptr<const void> owner;
     std::uint64_t texture{}, bytes{}, pixels{};
+    std::weak_ptr<const Clip> clip{};
   };
   Limits limits;
   std::vector<Retired> retired;
@@ -75,7 +76,7 @@ struct GameplayContent::State final {
     if (entry.atlas)
       retired.push_back({entry.atlas, entry.texture, entry.bytes, entry.atlas->rgba.size()});
     else if (entry.clip)
-      retired.push_back({entry.clip, 0, entry.bytes, 0});
+      retired.push_back({entry.clip, 0, entry.bytes, 0, entry.clip});
     else
       retired.push_back({entry.sprite, 0, entry.bytes, 0});
   }
@@ -188,12 +189,20 @@ struct GameplayContent::State final {
       const auto old = s.entries.find(key);
       if (old != s.entries.end() && !old->second.clip)
         return Invalid;
-      const auto dependency = s.entries.find(Identity(clip->atlas));
-      if (dependency == s.entries.end() || !dependency->second.atlas)
-        return Missing;
-      for (const auto &frame : clip->frames)
-        if (!dependency->second.atlas->Find(frame.region))
-          return Invalid;
+      if (ClipUsesSources(*clip)) {
+        for (const auto dependency : ClipDependencies(*clip)) {
+          const auto source = s.entries.find(Identity(dependency));
+          if (source == s.entries.end() || !source->second.sprite)
+            return Missing;
+        }
+      } else {
+        const auto dependency = s.entries.find(Identity(clip->atlas));
+        if (dependency == s.entries.end() || !dependency->second.atlas)
+          return Missing;
+        for (const auto &frame : clip->frames)
+          if (!dependency->second.atlas->Find(frame.region))
+            return Invalid;
+      }
       std::size_t size = clip->frames.size() * sizeof(AnimationFrame);
       for (const auto &frame : clip->frames)
         size += frame.event.size();
@@ -339,6 +348,20 @@ int32_t GameplayContent::Remove(AssetId id) noexcept {
       for (const auto &[_, e] : s.entries)
         if ((e.clip && e.clip->atlas == id) || (e.sprite && e.sprite->atlas == id))
           return Lifecycle;
+    if (found->second.sprite) {
+      const auto references = [&](const Clip &clip) {
+        return std::ranges::any_of(clip.frames,
+                                   [&](const auto &frame) { return frame.source == id; });
+      };
+      for (const auto &[_, entry] : s.entries)
+        if (entry.clip && references(*entry.clip))
+          return Lifecycle;
+      // A source animator retains the exact admitted Clip owner. Replaced/removed source Clips
+      // protect all of that generation's sources until the last playback/snapshot releases it.
+      for (const auto &retired : s.retired)
+        if (const auto clip = retired.clip.lock(); clip && references(*clip))
+          return Lifecycle;
+    }
     if (s.retired.size() >= 65536)
       return Missing;
     s.PrepareRetirement(&found->second);

@@ -1,6 +1,6 @@
 # Sprite source assets (S01 and scene bindings)
 
-This additive source-geometry slice extends the existing TwoD module. Atlas/Clip formats,
+This additive source-geometry slice extends the existing TwoD module. Atlas and legacy Clip formats,
 linear straight-alpha color, native Sprite instance records and C/Zig service prefixes remain
 unchanged. Public C++ consumers rebuild for the appended optional `Sprite::source` identity and
 `SpriteInstance` local quad. Source-bearing scenes use the additive NX2S schema 3 below; scenes
@@ -8,6 +8,10 @@ without sources retain byte-for-byte schema-2 encoding. The
 [full 2D roadmap](../../Roadmap/en/2D_Roadmap.md) retains its existing platform verdicts; this supporting work does not accept M6/M7 or the complete Sprite expansion.
 
 ## Identity and wire
+
+Source animation additionally uses Clip schema 2, described in the
+[TwoD contract](README.md#source-animation-clips). Legacy region Clips retain schema 1 bytes.
+Both formats use the same import, cook, registry and gameplay animation services.
 
 `SpriteAsset` owns values only: its UUID, Atlas UUID, stable region ID, untrimmed canvas size,
 trim rectangle, pixel Pivot, PixelsPerUnit and four borders. Renaming source files or repacking an

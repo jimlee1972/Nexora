@@ -59,14 +59,14 @@ TwoDPlayAssets::Capture(runtime::AssetGenerationStore &store, std::uint64_t gene
       result->atlases_.emplace(id, std::make_shared<const twod::Atlas>(std::move(*atlas)));
     } else if (blob->type == "sprite_clip") {
       auto clip = twod::DecodeClip(blob->payload);
-      if (!clip || clip->id != id || blob->dependencies.size() != 1 ||
-          blob->dependencies.front() != clip->atlas)
+      if (!clip || clip->id != id || blob->dependencies != twod::ClipDependencies(*clip))
         return fail("A cooked Clip is invalid or has inconsistent UUID dependencies.");
-      if (seen.insert(clip->atlas).second) {
-        if (pending.size() == limits.assets)
-          return fail("The 2D Play dependency closure exceeds the asset budget.");
-        pending.push_back(clip->atlas);
-      }
+      for (const auto dependency : blob->dependencies)
+        if (seen.insert(dependency).second) {
+          if (pending.size() == limits.assets)
+            return fail("The 2D Play dependency closure exceeds the asset budget.");
+          pending.push_back(dependency);
+        }
       result->clips_.emplace(id, std::make_shared<const twod::Clip>(std::move(*clip)));
     } else if (blob->type == "sprite_source") {
       auto source = twod::DecodeSpriteAsset(blob->payload);
@@ -86,6 +86,12 @@ TwoDPlayAssets::Capture(runtime::AssetGenerationStore &store, std::uint64_t gene
   }
   for (const auto &[id, clip] : result->clips_) {
     static_cast<void>(id);
+    if (twod::ClipUsesSources(*clip)) {
+      for (const auto &frame : clip->frames)
+        if (!result->SpriteSource(*frame.source))
+          return fail("A Clip frame references an unavailable Sprite source.");
+      continue;
+    }
     const auto atlas = result->Atlas(clip->atlas);
     if (!atlas)
       return fail("A Clip dependency is not an Atlas.");

@@ -160,11 +160,14 @@ def main():
     parser.add_argument('--compiler', type=Path)
     parser.add_argument('--shipping', action='store_true')
     parser.add_argument('--repack', action='store_true')
+    parser.add_argument('--animation', action='store_true')
     args = parser.parse_args()
     if args.catalog and not args.compiler:
         parser.error('--catalog requires --compiler')
     if args.repack and not args.catalog:
         parser.error('--repack requires --catalog')
+    if args.animation and (not args.catalog or args.repack):
+        parser.error('--animation requires --catalog without --repack')
     evidence = args.evidence_dir.resolve()
     evidence.mkdir(parents=True, exist_ok=True)
     output = Path(tempfile.mkdtemp(prefix='attempt-', dir=evidence))
@@ -173,14 +176,15 @@ def main():
         root = Path(temporary)
         source = root/'source Unicode 遊戲'
         source.mkdir()
-        fixture = 'SpriteSourceRepackPlayer.zig' if args.repack else 'SpriteSourcePlayer.zig'
+        fixture = ('SourceAnimationPlayer.zig' if args.animation else
+                   'SpriteSourceRepackPlayer.zig' if args.repack else 'SpriteSourcePlayer.zig')
         shutil.copy2(ROOT/'Tests/TwoD'/fixture, source/'game.zig')
         (source/'catalog_mode.zig').write_text('pub const enabled = ' + str(args.catalog).lower() + ';\n')
         for name, color in [('red', bytes([255, 0, 0, 255])), ('blue', bytes([0, 0, 255, 255]))]:
             atlas = struct.pack('<IIQQIIIII', 0x4132444e, 1, 8, 9, 4, 4, 1, 1, 1)
             atlas += struct.pack('<IIIII', 1, 1, 1, 2, 2) + struct.pack('<I', 64) + color * 16
             (source/(name+'.nx2atlas')).write_bytes(atlas)
-        if args.repack:
+        if args.repack or args.animation:
             for name, size, origin, palette in (
                     ('red', 4, (1, 1), [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0)]),
                     ('blue', 8, (4, 3), [(0, 255, 255), (255, 0, 255), (255, 255, 255), (0, 0, 0)])):
@@ -191,13 +195,39 @@ def main():
                 atlas = struct.pack('<IIQQIIIII', 0x4132444e, 1, 8, 9, size, size, 1, 1, 1)
                 atlas += struct.pack('<IIIII', 1, *origin, 2, 2) + struct.pack('<I', len(texels)) + texels
                 (source/(name+'.nx2atlas')).write_bytes(atlas)
-        for name, pivot in [('source', 3), ('shifted', 4)]:
+        for name, pivot in [('source', 3), ('shifted', 3 if args.animation else 4)]:
             payload = struct.pack('<IIQQQQ7I3f4I', 0x5032444e, 1, 11, 12, 8, 9,
                                   1, 6, 6, 1, 1, 2, 2, pivot, 1, 1, 0, 0, 0, 0)
             assert len(payload) == 96
             (source/(name+'.nx2sprite')).write_bytes(payload)
         assets = []
-        if args.catalog:
+        if args.animation:
+            red = bytearray((source/'red.nx2atlas').read_bytes())
+            struct.pack_into('<I', red, 44, 901)
+            (source/'red.nx2atlas').write_bytes(red)
+            blue = bytearray((source/'blue.nx2atlas').read_bytes())
+            struct.pack_into('<QQ', blue, 8, 18, 19)
+            struct.pack_into('<I', blue, 44, 73)
+            (source/'blue.nx2atlas').write_bytes(blue)
+            first = bytearray((source/'source.nx2sprite').read_bytes())
+            struct.pack_into('<I', first, 40, 901)
+            (source/'source.nx2sprite').write_bytes(first)
+            shifted = bytearray((source/'shifted.nx2sprite').read_bytes())
+            struct.pack_into('<QQQQ', shifted, 8, 13, 14, 18, 19)
+            struct.pack_into('<I', shifted, 40, 73)
+            (source/'shifted.nx2sprite').write_bytes(shifted)
+            clip = struct.pack('<IIQQQQII', 0x4332444e, 2, 15, 16, 0, 0, 1, 2)
+            for seconds, event, identity in [(0.25, b'red', (11, 12)), (0.5, b'blue', (13, 14))]:
+                clip += struct.pack('<IdI', 0, seconds, len(event))+event+struct.pack('<QQ', *identity)
+            (source/'animation.nx2clip').write_bytes(clip)
+            # Deliberately reverse all dependency levels in the descriptor.
+            for name, kind in [('animation', 'clip'), ('shifted', 'sprite'), ('blue', 'atlas'),
+                               ('source', 'sprite'), ('red', 'atlas')]:
+                run(args.compiler, 'cook', name+'.nx2'+kind, name+'.nxcook', cwd=source,
+                    log=output/(name+'-cook.log'))
+                (source/(name+'.nx2'+kind)).unlink()
+                assets.append(dict(kind=kind, path=name+'.nxcook'))
+        elif args.catalog:
             for name, kind in [('red', 'atlas'), ('source', 'sprite')]:
                 run(args.compiler, 'cook', name+'.nx2'+kind, name+'.nxcook', cwd=source,
                     log=output/(name+'-cook.log'))
@@ -233,7 +263,10 @@ def main():
         assert json.loads((package/'inventory.json').read_text())['development_test_copy'] == (not args.shipping)
         if args.catalog:
             manifest = (package/'game.nx2game').read_text()
-            assert 'sprite "assets/0000.nxcook"' in manifest and 'atlas "assets/0001.nxcook"' in manifest
+            if args.animation:
+                assert 'clip "assets/0000.nxcook"' in manifest and 'atlas "assets/0004.nxcook"' in manifest
+            else:
+                assert 'sprite "assets/0000.nxcook"' in manifest and 'atlas "assets/0001.nxcook"' in manifest
             cooked = package/'assets/0000.nxcook'
             original = cooked.read_bytes()
             cooked.write_bytes(original[:-1]+bytes([original[-1] ^ 1]))
@@ -255,7 +288,7 @@ def main():
         if args.repack:
             assert 'SOURCE PLAYER REPACK atlas=8:9 source=11:12 stable handles' in result.stderr
         if args.native:
-            native(package, args.app, output, args.repack)
+            native(package, args.app, output, args.repack or args.animation)
         after = {str(p.relative_to(package)): hashlib.sha256(p.read_bytes()).hexdigest()
                  for p in package.rglob('*') if p.is_file()}
         assert before == after, 'Player changed the runtime-only package'

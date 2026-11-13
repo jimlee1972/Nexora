@@ -386,9 +386,8 @@ void Native(const char *capture) {
   Check(display != nullptr, "native display");
   const auto native = reinterpret_cast<::Window>(windows->NativeHandle(window.handle));
   editor::TwoDDocument document;
-  Check(document.ReplaceAtlas(Atlas()) &&
-            document.ReplaceClip({clipId, atlasId, true, {{1, 0.1, "red"}, {2, 0.1, "green"}}}),
-        "native document assets");
+  const twod::Clip clip{clipId, atlasId, true, {{1, 0.1, "red"}, {2, 0.1, "green"}}};
+  Check(document.ReplaceAtlas(Atlas()) && document.ReplaceClip(clip), "native document assets");
   twod::Sprite sprite;
   sprite.atlas = atlasId;
   sprite.region = 1;

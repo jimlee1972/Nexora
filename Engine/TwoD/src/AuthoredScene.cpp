@@ -29,10 +29,10 @@ bool ValidateSceneReferences(const SpriteScene &scene, const Atlas &atlas, const
       return false;
   }
   if (!clip.frames.empty()) {
-    if (clip.atlas != atlas.id)
+    if (!ValidateClip(clip) || (!ClipUsesSources(clip) && clip.atlas != atlas.id))
       return false;
     for (const auto &frame : clip.frames)
-      if (!atlas.Find(frame.region))
+      if (frame.source ? !catalog.contains(*frame.source) : !atlas.Find(frame.region))
         return false;
   }
   if (!tiles.Tiles().empty()) {

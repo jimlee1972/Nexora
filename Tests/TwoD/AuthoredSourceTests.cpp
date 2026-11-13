@@ -236,11 +236,14 @@ int main(int argc, char **argv) {
       std::filesystem::create_directories(root);
       editor::TwoDDocument doc;
       static_cast<void>(Populate(doc));
+      Check(doc.ReplaceClip({{83, 84}, {}, true, {{0, 0.1, "source", sourceId}}}),
+            "fixture source animation Clip");
       Write(root / "initial.scene", doc.Save());
       Check(doc.ReplaceSpriteSource(Source(3)), "fixture pivot replacement");
       Write(root / "shifted.scene", doc.Save());
       Write(root / "atlas.nx2atlas", twod::EncodeAtlas(Atlas()));
       Write(root / "source.nx2sprite", twod::EncodeSpriteAsset(Source()));
+      Write(root / "clip.nx2clip", twod::EncodeClip(doc.Clip()));
     }
     std::cout << "PASS authored source catalog, v1 compatibility, Undo/reopen and isolated Play\n";
     return 0;
