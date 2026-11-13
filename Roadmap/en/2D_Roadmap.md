@@ -1105,3 +1105,10 @@ failed/interrupted attempts. Source reimport, 32 real Zig reloads/rollback, conf
 Editor Play and full ED-WF-07/08 remain open; the `repacked` native phase names a preloaded animation
 frame, not live reimport. Workflow **5/9**, graphical Editor **0/8**, TwoD **9/11** and physical/clean-host
 gates are unchanged.
+
+The [compiler portability supplement](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-SourceAnimation-Portability-Linux-2026-11-13.md) records the
+corrected full **523/523**,zero failures/skips,Development/Shipping native,Monolithic and TwoD-OFF
+gates. GNU 15.2 before/after probes reproduce the original benchmark temporary warnings and verify
+all 17 affected C++ translation units; explicit bounded test integer types address MSVC warnings.
+Warning rules and native oracles remain intact. Initial `1ec968b6` local passes and failed CI remain
+historical; complete ED-WF-07/08 and milestone counts are unchanged.

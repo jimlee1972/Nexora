@@ -1,5 +1,10 @@
 # ED-WF-08 Source animation foundation
 
+This is historical local validation for submitted head `1ec968b6`; its initial hosted CI failed
+compiler portability checks. The [corrected portability supplement](ED-WF-08-SourceAnimation-Portability-Linux-2026-11-13.md) records the fresh
+source generation and regression. Original source/Markdown hashes refer to the immutable
+[committed record](https://github.com/jimlee1972/Nexora/blob/1ec968b6c8999bf6e4784dfc04600fc8bb05ccee/Tools/Build/evidence/EditorWorkflow/ED-WF-08-SourceAnimation-Linux-2026-11-13.md).
+
 Date: 2026-11-13 (UTC). Supporting task: `nexora-whr.8.1`.
 
 ## Result and boundary

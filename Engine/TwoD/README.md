@@ -3,10 +3,10 @@
 The additive [Sprite source asset contract](SpriteAssets.md) defines separately versioned
 canvas/trim/pixel-Pivot/PPU metadata, stable Atlas-region references, persistent C++ scene/pool
 source UUIDs and source-aware extraction. Source scenes use additive NX2S schema 3 with a schema-2
-backward reader; source-free scenes still emit schema 2. Atlas/Clip/C/Zig wires and straight-alpha
+backward reader; source-free scenes still emit schema 2. Atlas, legacy Clip and C/Zig wires and straight-alpha
 behavior remain unchanged. The optional gameplay source table and canonical Player extraction are
-available; animation, Editor source authoring controls and Player file source catalogs remain
-separate follow-up gates.
+available, alongside the source animation Clips and Editor/source-catalog consumers described
+below. Live source reimport across module reloads remains a separate ED-WF-08 acceptance gate.
 
 The optional Editor's `TwoDPlayAssets` freezes validated cooked Atlas/Clip/Sprite-source closures from one
 explicit Runtime asset generation without retaining the store. It resolves Clip/source Atlas

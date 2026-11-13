@@ -47,7 +47,7 @@ void CatalogClip(twod::GameplayContent &content, const twod::Bytes &payload) {
         break;
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
     } while (std::chrono::steady_clock::now() < deadline);
-    Check(state.phase == (index ? NEXORA_ASSET_READY : NEXORA_ASSET_FAILED),
+    Check(state.phase == std::uint32_t(index ? NEXORA_ASSET_READY : NEXORA_ASSET_FAILED),
           "catalog source dependency admission");
     Check(bool(content.ResolveClip(clipId)) == bool(index),
           "failed catalog metadata published a Clip");
@@ -193,20 +193,21 @@ void Playback() {
         "start source Clip through unchanged C ABI");
   auto original = content.ResolveClip(clipId);
   NexoraTwoDAnimationResult result{};
-  std::array<NexoraTwoDEvent, 2> events{};
+  constexpr std::uint32_t eventCapacity = 2;
+  std::array<NexoraTwoDEvent, eventCapacity> events{};
   Check(api.advance_animation(api.context, entity, 0.25, nullptr, 0, &result) == 0 &&
             result.region == 0 && result.event_count == 1 && scene.Find(entity)->source == firstId,
         "count-only probe consumed source clock");
   Check(api.advance_animation(api.context, entity, 0.25, events.data(), 0, &result) == -2 &&
             scene.Find(entity)->source == firstId,
         "short event buffer consumed source clock");
-  Check(api.advance_animation(api.context, entity, 0.125, events.data(), events.size(), &result) ==
+  Check(api.advance_animation(api.context, entity, 0.125, events.data(), eventCapacity, &result) ==
                 0 &&
             result.event_count == 0,
         "partial source clock");
   sprite.sprite.order = 123;
   Check(sources.set_sprite(sources.context, entity, &sprite) == 0 &&
-            api.advance_animation(api.context, entity, 0.125, events.data(), events.size(),
+            api.advance_animation(api.context, entity, 0.125, events.data(), eventCapacity,
                                   &result) == 0 &&
             scene.Find(entity)->source == secondId && scene.Find(entity)->order == 123 &&
             scene.Find(entity)->flipX && scene.Find(entity)->sortY && result.event_count == 1 &&
@@ -223,7 +224,7 @@ void Playback() {
   original.reset();
   Check(content.Remove(clipId) == 0 && content.Remove(secondId) == -3,
         "live playback lost exact retired owner");
-  Check(api.advance_animation(api.context, entity, 0.5, events.data(), events.size(), &result) ==
+  Check(api.advance_animation(api.context, entity, 0.5, events.data(), eventCapacity, &result) ==
                 0 &&
             scene.Find(entity)->source == firstId,
         "replacement changed an existing playback's frames");
