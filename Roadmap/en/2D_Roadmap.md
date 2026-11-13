@@ -1010,6 +1010,13 @@ old-owner retention across reimport. [Evidence](../../Tools/Build/evidence/Edito
 Inspector source assignment, authoring persistence, Build, source animation/reload and complete
 Editor acceptance remain open. ED-WF stays 5/9, Editor 0/8, 2D 9/11; M6/M7 physical gates unchanged.
 
+✅ Main module Play now freezes and binds authored source UUID references before module Create
+(`nexora-whr.7.4`), rechecks exact authored drift and rejects stale/missing/unsupported bindings.
+Legacy/authored/legacy native snapshots retain source/Pivot geometry and negative-scale pools
+after reimport and source/project destruction. Scene View, no-module Play,
+Build and animation/reload remain open; counts do not change.
+[Contract and evidence](Editor_Workflow_Delivery_Plan.md#-authored-sprite-references-in-main-module-play-2026-11-13).
+
 ✅ The 2026-11-13 main Editor reference-model prerequisite (`nexora-whr.7.3`) adds owning source/Atlas
 lookup and complete-selection UUID assignment/clear with one Undo/Redo and wrapped Save/Reload.
 Exact Content generation/revision rejects stale reimports. This adds no Inspector widgets, authoring
@@ -1039,7 +1046,7 @@ The popup owns its bounded immutable catalog, paths and keys; stale imports or c
 cancel it. No filesystem work or Runtime Sprite mutation occurs in the widgets.
 Actual 1×/2× controls and Linux X11 interaction verify batch assignment, Clear, exact Undo/Redo,
 save/reopen and unchanged read-only project bytes. See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceInspector-Linux-2026-11-13.md).
-Independent main Play conversion remains tracked by `nexora-whr.7.4`; Scene View rendering, Build,
+Module-backed main Play was independently delivered by `nexora-whr.7.4` / PR #776; Scene View, no-module Play, Build,
 source animation/reload and full ED-WF-07 remain open. Workflow **5/9**, Editor **0/8**, TwoD **9/11**
 and physical acceptance are unchanged.
 
@@ -1053,5 +1060,5 @@ trim/Pivot and negative-scale geometry, and malformed export/conflicting sources
 Reference validation scans the complete Atlas once per document, then reuses the shared per-source
 resolver checks; regression coverage combines 4096 sources with 1024 Atlas regions.
 See [cloud evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-AuthoredSources-Linux-2026-11-13.md).
-Main Editor authoring rendering/Play/Build conversion, source-animation/reload and complete ED-WF-07 remain
+Main Editor authoring rendering/no-module Play/Build conversion, source-animation/reload and complete ED-WF-07 remain
 open. Workflow **5/9**, graphical Editor **0/8**, 2D **9/11** and physical M6/M7 acceptance are unchanged.

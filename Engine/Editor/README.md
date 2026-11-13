@@ -2807,8 +2807,8 @@ index/sidecar discovery, synchronous/queued reimport, renamed importer identity,
 closures, owners surviving store/project destruction, public gameplay API use, authoring isolation
 and actual composed Editor pixels across retained/reimported snapshots. See the
 [cloud evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md).
-Inspector source assignment, authoring save/reopen, Build export and live source animation/reload
-remain separate ED-WF-07/08 acceptance gates.
+Source reference Inspector/save/reopen is delivered below. Scene View, no-module Play, Build export
+and live source animation/reload remain separate ED-WF-07/08 acceptance gates.
 
 ### Main Editor Sprite source reference transactions
 
@@ -2817,6 +2817,15 @@ wrapped save/reopen, mixed/missing/unsupported states and exact popup-context ch
 transactions below without changing their ownership or wire contracts. See the
 [Inspector contract](../EditorImGui/README.md#main-sprite-source-inspector) and
 [native execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceInspector-Linux-2026-11-13.md).
+
+The whole-scene `InspectOpaqueComponents(type, reserved_name)` overload captures owning 64-byte
+previews for matching type **or** name. It validates live Editor entity membership with one index
+and traverses nodes/records once, without repeated `Key` lookups or Runtime serialization. Existing
+100000-entity/4096-record bounds apply; invalid scope rejects. Returned entity IDs, type names and
+previews survive document teardown. Unsupported records stay unmodified for caller validation.
+This is the main Play reference probe, including the asset-free 3D fast path; it avoids the
+quadratic cost of repeatedly using the single-entity Inspector accessor on every scene node.
+The new exported C++ overload requires rebuilding its consumers; no C ABI or class-layout change.
 
 With `NEXORA_ENABLE_2D`, `SpriteSourceCatalog` publishes an owning, CPU-only view of the current
 Content source/Atlas closure on the authoring thread. It uses immutable `TwoDAssetPayload` owners
@@ -2851,9 +2860,12 @@ Equal assignment/absent removal preserve pending Redo. Wrapped scene Save/Reload
 reference, including unresolved references; reopening must obtain fresh NodeKeys.
 
 This API is the main Inspector's model prerequisite; its graphical consumer is documented above.
-The model API itself adds no widget, runtime Sprite,
-authored ND2D source catalog, Scene View drawing, main Play reference conversion or Build export.
-Those consumers must explicitly validate and freeze their closures before use. No C/Zig ABI,
+The application now converts references for
+module-backed main Play after validating and freezing the scene and asset closure; see the
+[host ownership contract](../../Apps/Editor/README.md#authored-source-references-in-module-backed-play).
+TwoDDocument/ND2D/Studio owns its separate source catalog. Scene View drawing,
+no-module Play and main Editor Build export remain separate consumers requiring their own closure
+validation. No C/Zig ABI,
 NX2S/ND2D or asset codec changes; consumers of the new exported C++ API rebuild. When 2D is disabled,
 the helper is absent and the ordinary opaque scene wrapper still preserves its bytes. See
 [reference transaction evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceReferences-Linux-2026-11-13.md).

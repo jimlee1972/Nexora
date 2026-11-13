@@ -27,7 +27,7 @@ Unsupported type/name/version/data reject the complete selection without changin
 No widget file IO, Runtime components/transform changes or C/Zig/scene/asset wire changes occur.
 2D feature guards retain the ordinary opaque wrapper when this Inspector is unavailable.
 
-This accepts reference authoring only. Scene View drawing, main Play conversion, Build export,
+This accepts reference authoring only. Scene View drawing, no-module Play, Build export,
 source animation/reload and complete ED-WF-07 remain separate. Workflow **5/9**, graphical Editor
 **0/8**, TwoD **9/11** and physical device/clean-host acceptance do not change. Root README stays
 unchanged because this supporting task accepts no overall milestone.
@@ -55,8 +55,8 @@ path, two selected entities, preserved unrelated component and authoring transfo
 equality is not asserted because UI focus/layout can differ; exact scene/project bytes are the
 independent mutation result. This Linux software-GPU evidence makes no Windows/macOS/device claim.
 
-The final indexed, heartbeat-enabled focused run passes both tests: control case 2.75 seconds and
-native case 32.23 seconds, total 35.00 seconds. Full gates and final source/log/capture inventories are recorded separately
+The base-82 indexed, heartbeat-enabled focused run passes both tests: control case 2.75 seconds and
+native case 32.23 seconds, total 35.00 seconds. Full gates and source/log/capture inventories are recorded separately
 in the [machine-readable receipt](ED-WF-07-SourceInspector-Cloud.json).
 
 ## Retained initial failure
@@ -132,3 +132,39 @@ native setup failures remain separate from this complete result.
 Main independently advanced to PR #776 (`e7684590`), delivering module-backed authored source Play.
 This implementation checkpoint is retained before integrating its overlapping contract paragraphs;
 combined validation and the final delivery head are recorded as a separate generation.
+
+## Integration of independently delivered module Play
+
+Main PR #776 is merged at `e7684590`; its authored-reference freeze/bind, generic linear bulk
+inspection API, native snapshots, tests and evidence are retained unchanged. Both overlapping
+Editor contract paragraphs are resolved by keeping the graphical Inspector consumer and the new
+bulk inspection/Play contract. Module-backed Play is now independently delivered; Scene View,
+no-module Play, Build, animation/reload and full ED-WF-07 remain open. Counts stay 5/9, 0/8, 9/11.
+The source/registration changes belonging to this Inspector implementation remain unchanged;
+combined source hashes and complete local/hosted gates are verified before the integration commit.
+
+The first integrated full execution retains one native Inspector failure at Redo/save (30.05s):
+assignment and exact Undo/save succeeded, but the raw `xdotool key ctrl+y` step left the file at
+the initial bytes. The native records contain no acknowledged Y-down/up phases, so the cause is
+not declared a product Redo defect. The fixture now uses the existing documented Ctrl+Shift+Z
+Redo shortcut through `NativeSceneInput.chord`, acknowledging each modifier/key down and release
+before Save. This changes the physical Redo gesture and strengthens input observation; the exact
+assigned/initial scene bytes, history semantics, project hashes and action deadlines stay intact.
+The failed execution, input stream, actual scene and screenshots remain separate from recovery.
+
+That complete integrated execution reports 506 passes, one failure, zero skips out of 507, in
+1491.66 seconds and exits 8; it is not a passing gate. The final phased-Redo focused recovery
+passes 3/3: unchanged main Play case 2.60s, Inspector controls 2.65s and actual native window
+35.22s, total 40.49s. Exact assignment, Undo/Redo, Clear/Undo and read-only project byte predicates
+remain unchanged. A fresh complete integrated gate is required after this focused recovery.
+
+## Final combined local gates
+
+The final integrated Development configure/build and unfiltered two-worker CTest pass **507/507**,
+zero failures/skips, in **1471.98 seconds**, including the independent main authored-Play probe and
+both actual Inspector control/native cases. Integrated Full Shipping configure/build passes;
+Monolithic actual graphical Inspector test passes 1/1 in 2.67s; the testing-OFF, 2D-OFF graphical
+Editor configure/build passes. API145 exports, documentation16/16, changed Markdown/language
+pairs and edited C++ formatting pass. Final own/inherited source hashes, logs, actual captures and
+project byte inventories are in the receipt. Its complete base82 generation and the failed first
+integrated run remain distinct; neither is relabeled as this clean final execution.

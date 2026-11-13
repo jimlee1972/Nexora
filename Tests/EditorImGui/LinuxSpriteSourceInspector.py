@@ -116,7 +116,7 @@ def main():
         driver.chord('ctrl+z')
         save(initial)
         (evidence / 'undone.scene').write_bytes(scene.read_bytes())
-        driver.raw('key', 'ctrl+y')
+        driver.chord('ctrl+shift+z')
         save(assigned)
         driver.click(point('sprite_source_clear'))
         save(initial)

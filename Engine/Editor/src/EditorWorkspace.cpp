@@ -1205,6 +1205,46 @@ SceneDocument::InspectOpaqueComponents(NodeKey entity) const {
   std::ranges::sort(result, {}, &OpaqueComponentInfo::type);
   return result;
 }
+std::optional<std::vector<OpaqueComponentInfo>>
+SceneDocument::InspectOpaqueComponents(runtime::TypeId type, std::string_view reserved_name) const {
+  const auto *scene = world_.FindScene(scene_);
+  if (!type || reserved_name.empty() ||
+      reserved_name.size() > UnknownComponentStore::kMaximumNameBytes || !document_generation_ ||
+      world_.Kind() != runtime::WorldKind::Editor || !scene ||
+      scene->state == runtime::SceneState::Unloading ||
+      scene->state == runtime::SceneState::Unloaded ||
+      scene->entities.size() > kMaximumRuntimeCaptureEntities ||
+      nodes_.size() > scene->entities.size())
+    return std::nullopt;
+  std::unordered_set<runtime::Id> live;
+  live.reserve(scene->entities.size());
+  for (const auto &entity : scene->entities)
+    if (!entity.id || !live.insert(entity.id).second)
+      return std::nullopt;
+  std::vector<OpaqueComponentInfo> result;
+  std::size_t records{};
+  for (const auto &node : nodes_) {
+    if (!node.id || !node.generation || !live.erase(node.id) ||
+        node.opaque.size() > UnknownComponentStore::kMaximumComponentsPerEntity ||
+        node.opaque.size() > UnknownComponentStore::kMaximumComponents - records)
+      return std::nullopt;
+    records += node.opaque.size();
+    for (const auto &component : node.opaque) {
+      if (component.type != type && component.type_name != reserved_name)
+        continue;
+      if (component.type_name.size() > UnknownComponentStore::kMaximumNameBytes ||
+          component.data.size() > UnknownComponentStore::kMaximumComponentBytes)
+        return std::nullopt;
+      const auto count = std::min<std::size_t>(64, component.data.size());
+      result.push_back({component.type,
+                        component.type_name,
+                        component.data.size(),
+                        {component.data.begin(), component.data.begin() + count},
+                        node.id});
+    }
+  }
+  return result;
+}
 std::optional<runtime::Transform> SceneDocument::WorldTransform(runtime::Id entity) const noexcept {
   if (std::ranges::find(nodes_, entity, &Node::id) == nodes_.end())
     return std::nullopt;
