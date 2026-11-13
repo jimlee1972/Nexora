@@ -2335,5 +2335,11 @@ TwoDDocument now owns a bounded immutable source catalog with source assignment,
 metadata replacement/removal, Undo/Redo, save/reopen and isolated Play snapshots. Studio controls
 and previews use the same resolver; Player accepts exported embedded sources after relocation.
 Legacy documents retain exact schema-1 bytes. See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-AuthoredSources-Linux-2026-11-13.md).
-This supporting `nexora-whr.7.2` slice does not accept main Editor Inspector/project persistence,
+This supporting `nexora-whr.7.2` slice does not accept end-to-end main Editor Inspector/project persistence,
 Build, source animation/reload or complete ED-WF-07; graphical milestones remain **0/8**.
+
+✅ The 2026-11-13 main Editor reference-model prerequisite (`nexora-whr.7.3`) adds owning source/Atlas
+lookup, exact Content generation/revision checks and complete-selection UUID assignment/clear with
+one Undo/Redo and wrapped scene Save/Reload. Unknown payloads remain protected. This does not add
+Inspector widgets, authoring rendering, main Play conversion or Build export; the counts above stay
+unchanged. [Contract and evidence](Editor_Workflow_Delivery_Plan.md#-main-editor-sprite-source-reference-model-2026-11-13).

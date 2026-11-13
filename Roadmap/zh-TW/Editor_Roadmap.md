@@ -2255,5 +2255,10 @@ TwoDDocument 現在持有有界不可變 source 目錄，支援來源指派、�
 Undo／Redo、存檔重開與獨立 Play 快照。Studio 控制與預覽沿用同一解析器，Player 可在搬移後
 接納匯出的內嵌來源。舊文件維持精確 schema-1 位元組。
 詳見[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-AuthoredSources-Linux-2026-11-13.md)。
-此 `nexora-whr.7.2` 配套不代表主 Editor Inspector／專案持久化、Build、來源動畫／熱重載或
+此 `nexora-whr.7.2` 配套不代表主 Editor Inspector 驅動的專案持久化、Build、來源動畫／熱重載或
 完整 ED-WF-07 驗收；圖形里程碑維持 **0/8**。
+
+✅ 2026-11-13 的主 Editor 參照模型基礎（`nexora-whr.7.3`）新增擁有來源／Atlas 的查詢、精確
+Content 世代／修訂檢查，以及完整選取 UUID 指定／清除的一次 Undo／Redo 與場景儲存／重開。
+未知 payload 受到保護。本次未新增 Inspector 控件、製作繪製、主 Play 轉換或 Build 匯出；
+上述進度數字不變。[契約與證據](Editor_Workflow_Delivery_Plan.md#-主-editor-sprite-來源參照模型2026-11-13)。

@@ -162,3 +162,31 @@ Final Full Shipping configure/build and strict exported/source-deleted/relocated
 acceptance also pass. Both final Shipping captures are byte-identical to Development and the curated
 PNGs. The follow-up receipt records the complete final test inventory, separate font recovery,
 source hashes, log hashes and regenerated package/native artifact inventories.
+
+
+## Integration of the main Editor reference model
+
+Head `4f81482a` completed all 41 latest applicable hosted jobs: Push 19/19, PR 19/19 and SDK 3/3.
+The initial PR Windows desktop attempt failed the existing GUI settings-save case; the identical-head
+Push case passes in 105.57 seconds and one targeted retry passes it in 158.90 seconds. The full retry
+CTest takes 2626.30 seconds. Native inputs, assertions and deadlines remain unchanged; this records
+recovery rather than a product fix for the unproven GUI failure cause. Public job history and Beads
+retain the initial failure, peer pass and recovery.
+
+Before merge, main advanced to `2511d82a` (independently merged PR #775, `nexora-whr.7.3`). Its
+`SpriteSourceCatalog` and transactional 17-byte main-scene references are a separate model boundary
+from this ND2D/Studio catalog. Both APIs, contracts and evidence are retained. Two roadmap append
+conflicts are resolved by retaining both sections; the new main reference-model section remains at
+the end. The main model already supports UUID-reference Undo/Save/Reload; end-to-end Inspector,
+authoring rendering/Play conversion, Build and animation/reload consumers remain unaccepted.
+This integration changes no Sprite geometry or C/Zig/asset-wire rules. Workflow remains 5/9,
+graphical Editor 0/8, TwoD 9/11 and complete ED-WF-07 open. Integrated validation is recorded as a
+separate generation in the machine-readable receipt.
+
+The integrated full Development configure/build and unfiltered two-worker gate pass **504/504**,
+zero failures/skips, in **1443.24 seconds**. This includes both the new main Editor reference-model
+test and the authored-source catalog/export/native cases. Full Shipping configure/build and strict
+relocated/source-deleted native Player acceptance pass again, with unchanged curated pixel hashes.
+The integrated `NEXORA_ENABLE_2D=OFF` `NexoraEditorCore` configure/build also passes. API-M6 remains
+145 exports; documentation routing is 16/16, changed Markdown/language pairs and touched C++
+formatting pass. The `integration_775` receipt generation records these final local results.

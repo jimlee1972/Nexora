@@ -2773,7 +2773,7 @@ validates a staging owner and isolated Play retains its own source generation. S
 failure rolls back the edit. The 64 MiB document/history budgets remain unchanged; separately
 retained external aliases are outside history accounting. C++ document/context layouts change and
 consumers rebuild; C/Zig tables and existing Atlas/Clip/source/NX2S wires are unchanged.
-This is the isolated Studio document boundary. Main Editor Inspector/project save/reopen/Build and
+This is the isolated Studio document boundary. End-to-end main Editor Inspector/project save/reopen/Build and
 live source animation/reload integration remain separate ED-WF-07/08 acceptance gates.
 
 ## User appearance preference
@@ -2809,3 +2809,44 @@ and actual composed Editor pixels across retained/reimported snapshots. See the
 [cloud evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md).
 Inspector source assignment, authoring save/reopen, Build export and live source animation/reload
 remain separate ED-WF-07/08 acceptance gates.
+
+### Main Editor Sprite source reference transactions
+
+With `NEXORA_ENABLE_2D`, `SpriteSourceCatalog` publishes an owning, CPU-only view of the current
+Content source/Atlas closure on the authoring thread. It uses immutable `TwoDAssetPayload` owners
+already validated by `ImportTwoDAsset`, verifies UUID/type identity and the 4096-asset/64 MiB retained
+payload limits, and indexes each Atlas's stable regions once. Source region existence and exact
+trim dimensions validate before publication; a missing/wrong dependency rejects the entire
+candidate and preserves the previous version/owners. It does not repeat full Atlas validation per
+source. Region-index/map allocator overhead is outside the retained-payload byte limit. Unrelated
+Clips and unimported rows are outside this catalog; an unresolved dependency cannot be assigned.
+Snapshots own both source metadata and Atlas after Content reload, catalog clear or project teardown.
+
+The catalog version includes both project generation and Content revision. Lookup requires an
+exact version; reimporting an Atlas invalidates pending assignments even if project generation,
+source UUID and source payload pointer are unchanged. Selection-only Content changes retain the
+revision. Publication, lookup and document edits are serialized by the authoring-thread owner.
+No filesystem provenance, source re-read, GPU resource creation or Play publication occurs here.
+
+`editor.sprite.source` is an owning opaque scene component with reserved TypeId
+`0x4544535052540001`. Version 1 is exactly 17 bytes: byte `1`, followed by UUID high/low U64 words
+in little-endian order. The reader requires exact type/name, full 17-byte count/preview, supported
+version and nonzero UUID. Unknown versions, mismatched names/types, oversized/truncated payloads
+and zero UUIDs stay unresolved and preserved by the existing scene wrapper; there is no migration.
+
+`AssignSpriteSources` requires the complete current ordered selection, live entity/document keys,
+current Content/catalog generation and revision, and identical imported source/Atlas owners.
+`ClearSpriteSources` validates the same selection/access/version but permits absent source/Atlas
+assets. Both require writable Content and the caller's current `editable` authorization; the host
+must supply project writer, stopped-Play and recovery policy. Any unsupported component using the
+reserved type or name rejects the entire request before mutation. One existing bounded metadata
+transaction handles the batch and its Undo/Redo; unrelated components and Runtime bytes stay exact.
+Equal assignment/absent removal preserve pending Redo. Wrapped scene Save/Reload stores the UUID
+reference, including unresolved references; reopening must obtain fresh NodeKeys.
+
+This is the main Inspector's model prerequisite. It adds no Inspector widget, runtime Sprite,
+authored ND2D source catalog, Scene View drawing, main Play reference conversion or Build export.
+Those consumers must explicitly validate and freeze their closures before use. No C/Zig ABI,
+NX2S/ND2D or asset codec changes; consumers of the new exported C++ API rebuild. When 2D is disabled,
+the helper is absent and the ordinary opaque scene wrapper still preserves its bytes. See
+[reference transaction evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceReferences-Linux-2026-11-13.md).
