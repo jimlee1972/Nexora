@@ -2329,6 +2329,20 @@ old-owner retention across reimport. [Evidence](../../Tools/Build/evidence/Edito
 Inspector source assignment, authoring persistence, Build, source animation/reload and complete
 Editor acceptance remain open. ED-WF stays 5/9, Editor 0/8, 2D 9/11; M6/M7 physical gates unchanged.
 
+## ✅ Main Editor Sprite source Inspector (2026-11-13)
+
+Supporting `nexora-whr.7.5` exposes imported source choices and Clear in the real main Inspector.
+Complete selections share one metadata Undo/Redo and wrapped scene Save/Reload. Mixed, missing
+source/Atlas and unsupported references have distinct states; unsupported bytes remain protected.
+Writable project, stopped Play, focus/recovery and live selection/version checks guard every action.
+The popup owns its bounded immutable catalog, paths and keys; stale imports or context changes
+cancel it. No filesystem work or Runtime Sprite mutation occurs in the widgets.
+Actual 1×/2× controls and Linux X11 interaction verify batch assignment, Clear, exact Undo/Redo,
+save/reopen and unchanged read-only project bytes. See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceInspector-Linux-2026-11-13.md).
+Module-backed main Play was independently delivered by `nexora-whr.7.4` / PR #776; Scene View, configured package Play, Build,
+source animation/reload and full ED-WF-07 remain open. Workflow **5/9**, Editor **0/8**, TwoD **9/11**
+and physical acceptance are unchanged.
+
 ## ✅ Isolated source-bearing authoring documents (2026-11-13)
 
 TwoDDocument now owns a bounded immutable source catalog with source assignment, transactional
@@ -2344,7 +2358,7 @@ Build, source animation/reload or complete ED-WF-07; graphical milestones remain
 main scene Play clone. The existing 2D Game selector displays frozen source geometry; 32 actual
 native sessions verify Pause/Step/Resume, exact restart masks, Stop retirement and unchanged
 authoring pixels/bytes. Source-free 3D Play ignores unrelated unavailable assets. Configured
-package Play/Build, Scene View and animation/reload remain open; independent Inspector work and
+package Play/Build, Scene View and animation/reload remain open; the merged Inspector assignment and
 milestone counts are preserved. [Contract](../../Apps/Editor/README.md#module-free-main-scene-sprite-play)
 and [evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-ModuleFreePlay-Linux-2026-11-13.md).
 
@@ -2353,7 +2367,7 @@ and [evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-ModuleFreePlay
 ✅ Main module Play now freezes and binds authored source UUID references before module Create
 (`nexora-whr.7.4`), with exact authored-capture rechecks and matching isolated Runtime validation.
 Missing/unsupported/stale references reject before callbacks; retained legacy/authored/legacy
-native frames verify source reimport and old-owner retention. Inspector widgets, Scene View,
+native frames verify source reimport and old-owner retention. Scene View,
 configured package Play/Build and animation/reload remain open; milestone counts do not change.
 [Contract and evidence](Editor_Workflow_Delivery_Plan.md#-authored-sprite-references-in-main-module-play-2026-11-13).
 

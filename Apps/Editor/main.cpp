@@ -3736,6 +3736,9 @@ int RunGraphical(std::optional<ProjectState> project,
       record("close_cancel", Access::CloseControlPosition(ui, 2));
       record("reflected_enabled", Access::ReflectedPropertyPosition(ui, "enabled"));
       record("reflected_amount", Access::ReflectedPropertyPosition(ui, "nested.amount"));
+      record("sprite_source_combo", Access::InspectorSpriteSourcePosition(ui, 0));
+      record("sprite_source_first", Access::InspectorSpriteSourcePosition(ui, 1));
+      record("sprite_source_clear", Access::InspectorSpriteSourcePosition(ui, 2));
       record("array_add", Access::ReflectedArrayControlPosition(ui, 301, "samples", "Add"));
       record("array_clear", Access::ReflectedArrayControlPosition(ui, 301, "samples", "Clear"));
       record("array_insert_0",
@@ -3804,6 +3807,8 @@ int RunGraphical(std::optional<ProjectState> project,
         scene_merge_test_geometry = geometry.str();
         std::cerr << scene_merge_test_geometry << " frame=" << shortcut.frame << '\n';
       }
+      if (std::getenv("NEXORA_SPRITE_SOURCE_INSPECTOR_TEST_EVIDENCE"))
+        std::cerr << "sprite inspector frame=" << shortcut.frame << '\n';
     }
     if (std::getenv("NEXORA_PROJECT_GAME_BUILD_EVIDENCE")) {
       using Access = nexora::editor::imgui::EditorImGuiTestAccess;

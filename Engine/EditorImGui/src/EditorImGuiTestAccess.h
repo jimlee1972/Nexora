@@ -399,6 +399,13 @@ public:
   // Control 0: combo; 1: first available typed material; 2: Unassigned in its popup.
   [[nodiscard]] static std::optional<std::array<float, 2>>
   InspectorMaterialPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
+  [[nodiscard]] static std::string_view
+  InspectorSpriteSourceLabel(const EditorImGuiHost &host) noexcept;
+  // Visible centers, including disabled controls: combo, first choice, clear (0, 1, 2).
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  InspectorSpriteSourcePosition(const EditorImGuiHost &host, std::size_t control) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  InspectorSpriteSourceChoicePosition(const EditorImGuiHost &host, runtime::AssetUuid) noexcept;
   static void FocusInspector(EditorImGuiHost &host) noexcept;
   // Visible, enabled local TRS input bounds; rows Position/Rotation/Scale, axes X/Y/Z.
   [[nodiscard]] static std::optional<std::array<float, 4>>

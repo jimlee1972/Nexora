@@ -2,7 +2,8 @@
 
 Task `nexora-whr.7.6`; base main `e7684590` (PR #776). Dates use Asia/Taipei.
 This is the main scene-clone consumer of saved source UUID references without a game library.
-It preserves the independently claimed Inspector task `nexora-whr.7.5`.
+The initial implementation used that base; integration now includes merged Inspector PR #777
+(main `ac15a642`). Both supporting slices are preserved and verified together below.
 Workflow **5/9**, graphical Editor **0/8**, 2D **9/11** remain unchanged.
 
 ## Contract and boundary
@@ -30,7 +31,7 @@ that diagnostic adds no product control or alternate activation path.
 
 This covers main scene clone Play when `project.build.json` is absent. Configured package Play,
 main Build export, Scene View and animation/reload remain separate; Inspector UI is independently
-claimed. This is not complete ED-WF-07, physical-device acceptance, allocator/RSS/VRAM profiling,
+delivered by PR #777. This is not complete ED-WF-07, physical-device acceptance, allocator/RSS/VRAM profiling,
 GPU Sprite instancing or a production-scale performance claim. See the
 [application contract](../../../../Apps/Editor/README.md#module-free-main-scene-sprite-play).
 
@@ -89,7 +90,7 @@ cmake --build --preset linux-development
 CTEST_PARALLEL_LEVEL=2 ctest --preset linux-development
 ```
 
-✅ Complete Development configure/build and **492/492** tests pass, zero failures/skips,
+✅ Pre-Inspector-integration Development configure/build and **492/492** tests pass, zero failures/skips,
 **1405.68 seconds**. The final authored CPU case passes in 1.99 seconds and actual native
 module-free case in 54.09 seconds. Its 32-session report retains 1296 strict red and 1296 blue
 pixels, exact restart geometry and zero validation errors. The inventory query ran before CTest;
@@ -129,3 +130,12 @@ The exact-mask comparison covers the source geometry; no whole-window identity i
 All compilation finishes before graphical acceptance. The repository-root README stays unchanged.
 Hosted checks and merge status are tracked against the delivered head in the PR and Beads;
 passing local gates alone do not permit merging before all applicable hosted checks succeed.
+
+## Inspector integration verification
+
+PR #777 was merged independently while PR #778 checks were running. The current branch integrates
+main `ac15a642`; all six conflicts were pending-work wording in documentation. Both delivered
+sections remain, and source assignment plus module-free preview are no longer listed as pending.
+The earlier complete 492-case generation and its immutable receipt at head `884f52e7` are retained
+separately. Fresh combined focused/full and optional-config verification is pending; older CI
+results do not satisfy the updated-head merge gate.

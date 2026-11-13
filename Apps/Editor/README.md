@@ -1493,6 +1493,16 @@ in the [target-host list](../../Tools/TwoD/WindowsAcceptance.md).
 
 ## Native project and asset workflow acceptance
 
+`editor.linux_sprite_source_inspector` uses the test-only scene GUI observation stream to locate
+actual Sprite source combo/choice/Clear controls, including disabled ones. These copied centers
+carry no mutation capability. Real X11 events select two entities, assign an imported source,
+Clear, Undo/Redo, save and reopen read-only; exact wrapped scene/plugin bytes and complete project
+hashes provide the independent result checks. Full presented screenshots and input/log/receipt
+files stay in `artifacts/editor-sprite-sources/inspector-*`. This accepts reference authoring;
+Scene View drawing, configured package Play, Build and source animation remain separate work.
+With `NEXORA_SPRITE_SOURCE_INSPECTOR_TEST_EVIDENCE`, a separate test-only frame heartbeat proves
+that stable positions were observed across new frames; ordinary geometry output stays change-only.
+
 `editor.linux_project_asset_workflow` drives the real project selector and Content widgets
 with X11 pointer/key events: create, asynchronous initial OBJ import, filtering and selection,
 authored mesh creation/native Scene submission, folder drag/drop, external-source reimport,
@@ -1746,7 +1756,7 @@ then the Sprite owner is released before its borrowed Play World. Retained captu
 their matching Runtime scene after Content/project/source destruction, while fresh production
 activation requires current provenance. All calls are serialized on the host owner thread.
 
-Inspector widgets, Scene View conversion, configured package Play/Build export and source
+Scene View conversion, configured package Play/Build export and source
 animation/reload remain separate. The module-free main-scene consumer is described below.
 C/Zig ABI, NX2S/ND2D/asset codecs and module dependencies are unchanged; changed C++ application
 and test consumers rebuild. The 2D-OFF embedding remains source-free. See
@@ -1781,7 +1791,7 @@ budgets apply. No C/Zig ABI, codec, optional-module dependency or shared exporte
 
 This consumer covers the main scene clone when `project.build.json` is absent. Configured package
 Play and main Build export need their own source-reference packaging integration and remain open,
-alongside Scene View, Inspector controls and animation/reload. It does not accept complete
+alongside Scene View and animation/reload. It does not accept complete
 ED-WF-07 or change milestone counts. The 2D-OFF embedding keeps its source-free path.
 
 `editor.play_authored_sprites` covers 32 callback-free preview owners, exact Runtime/authoring

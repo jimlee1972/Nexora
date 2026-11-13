@@ -2807,10 +2807,16 @@ index/sidecar discovery, synchronous/queued reimport, renamed importer identity,
 closures, owners surviving store/project destruction, public gameplay API use, authoring isolation
 and actual composed Editor pixels across retained/reimported snapshots. See the
 [cloud evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md).
-Inspector source assignment, authoring save/reopen, Build export and live source animation/reload
-remain separate ED-WF-07/08 acceptance gates.
+Source reference Inspector/save/reopen is delivered below. Scene View, configured package Play, Build export
+and live source animation/reload remain separate ED-WF-07/08 acceptance gates.
 
 ### Main Editor Sprite source reference transactions
+
+The graphical consumer in `EditorImGui` now provides source selection/Clear with batch history,
+wrapped save/reopen, mixed/missing/unsupported states and exact popup-context checks. It uses the
+transactions below without changing their ownership or wire contracts. See the
+[Inspector contract](../EditorImGui/README.md#main-sprite-source-inspector) and
+[native execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceInspector-Linux-2026-11-13.md).
 
 The whole-scene `InspectOpaqueComponents(type, reserved_name)` overload captures owning 64-byte
 previews for matching type **or** name. It validates live Editor entity membership with one index
@@ -2853,12 +2859,13 @@ transaction handles the batch and its Undo/Redo; unrelated components and Runtim
 Equal assignment/absent removal preserve pending Redo. Wrapped scene Save/Reload stores the UUID
 reference, including unresolved references; reopening must obtain fresh NodeKeys.
 
-This is the main Inspector's model prerequisite. The application now converts references for
+This API is the main Inspector's model prerequisite; its graphical consumer is documented above.
+The application now converts references for
 module-backed main Play after validating and freezing the scene and asset closure; see the
 [host ownership contract](../../Apps/Editor/README.md#authored-source-references-in-module-backed-play).
 The [module-free main scene clone](../../Apps/Editor/README.md#module-free-main-scene-sprite-play)
 captures only referenced sources and owns the same private preview without a module callback.
-TwoDDocument/ND2D/Studio owns its separate source catalog. Inspector widgets, Scene View drawing,
+TwoDDocument/ND2D/Studio owns its separate source catalog. Scene View drawing,
 configured package Play and main Editor Build export remain consumers requiring their own closure
 validation. No C/Zig ABI,
 NX2S/ND2D or asset codec changes; consumers of the new exported C++ API rebuild. When 2D is disabled,
