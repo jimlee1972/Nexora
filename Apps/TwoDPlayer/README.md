@@ -57,7 +57,10 @@ Without it tile callbacks return `UNSUPPORTED`. Game logic names the configured 
 `load_scene`; this host provides one scene, a 1024-instance pool and copied component access.
 Other scene names and rendered/physics spawn descriptors return unsupported. An empty asset list
 and UI-only modules are valid. Atlas/Clip identities and dependencies must match their payloads;
-all Atlases are admitted before Clips, independently of descriptor order. No source art is bundled
+all Atlases, then Sprite sources, then Clips are admitted independently of descriptor order.
+Schema-2 source Clips require their complete preloaded source/Atlas closure, use the existing
+`clip` kind and retain region zero in C animation results; query the source API for the selected
+frame UUID. Legacy Clips keep schema 1. No source art is bundled
 by the engine. The game supplies its own assets and redistribution licenses.
 
 From a Windows x64 MSVC developer shell:
@@ -215,7 +218,7 @@ Sprite source entries use `{"kind": "sprite", "path": "Content/Hero.nx2sprite"}`
 add `"preload": false` for deferred loading. Export cooks canonical files with `--compiler`,
 or copies an existing `.nxcook`. The Player validates cooked hash/type, payload/container UUID
 and exactly one matching Atlas dependency, then the registry checks region/trim compatibility.
-Preloads admit all explicit Atlas entries before Clips and Sprite sources regardless of descriptor
+Preloads admit all explicit Atlas entries, then Sprite sources, then Clips regardless of descriptor
 order. A preloaded source therefore needs an explicit preloaded Atlas entry; a deferred Atlas
 cannot satisfy startup admission. Deferred sources appear as catalog kind 4 in descriptor order;
 load their Atlas first, then request the source. Kind 3 remains opaque bytes. These directives

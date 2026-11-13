@@ -4,7 +4,8 @@
 services V1 after image UI. Original, SP-01 and SP-02 service prefixes remain complete and
 unchanged. Check the returned `struct_size` before reading `get_assets_api`; Zig uses
 `nx.getAssets(services)`. Old hosts remain usable without this optional capability. Content V1
-and its cooked codecs are unchanged.
+and its C/Zig wire are unchanged. Clip payloads additionally admit source schema 2 through the
+existing kind 2 path; see [source animation](README.md#source-animation-clips).
 
 ## Catalog, requests and ownership
 
@@ -29,7 +30,9 @@ Sprite source registration table. Sources require container/payload UUID equalit
 one dependency matching their Atlas. Registry admission checks the live Atlas region and trim
 dimensions. Decode/hash work
 can consume owner-thread time: this is loading-screen/chapter IO, not a guaranteed frame-time
-streamer. A Clip or source requires its Atlas to be ready first; no implicit dependency loads occur.
+streamer. A legacy Clip or source requires its Atlas to be ready first; a source Clip requires all
+its sources first. Source Clips require exact sorted, unique source dependency edges in the cooked
+container. No implicit dependency loads occur.
 Requesting a source before its Atlas fails with `UNSUPPORTED` and publishes no source. Load the
 Atlas, then issue a fresh source request; a failed ticket does not restart itself.
 

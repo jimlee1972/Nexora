@@ -107,6 +107,7 @@ struct GameplayBridge::State {
   struct Playback {
     Animator animator;
     AssetId atlas;
+    std::shared_ptr<const Clip> owner;
   };
   std::map<runtime::Id, Playback> animations;
   std::array<SpatialIndex, 2> indices;
@@ -178,8 +179,11 @@ struct GameplayBridge::State {
     if (!Scene(id)->Set(id, *value))
       return Invalid;
     const auto it = animations.find(id);
-    if (it != animations.end() && (value->source || it->second.atlas != value->atlas))
-      animations.erase(it);
+    if (it != animations.end()) {
+      const auto source = it->second.animator.SourceId();
+      if (source ? value->source != source : value->source || it->second.atlas != value->atlas)
+        animations.erase(it);
+    }
     return Ok;
   }
   NexoraTwoDSourceApiV1 SourceApi() {
@@ -364,7 +368,7 @@ struct GameplayBridge::State {
         if (!s.Live(id) || !s.Scene(id)->Find(id) || (!hi && !lo) || !std::isfinite(speed) ||
             speed <= 0 || speed > 1000)
           return Invalid;
-        if (s.Scene(id)->Find(id)->source.has_value() || !s.clips)
+        if (!s.clips)
           return Unsupported;
         const auto clip = s.clips({hi, lo});
         if (!clip)
@@ -372,13 +376,21 @@ struct GameplayBridge::State {
         const auto *current = s.Scene(id)->Find(id);
         if (!s.Live(id) || !current)
           return Invalid;
+        const bool sources = ClipUsesSources(*clip);
+        if (sources != current->source.has_value())
+          return Unsupported;
         Playback playback;
         playback.atlas = clip->atlas;
-        if (clip->id != AssetId{hi, lo} || clip->atlas != current->atlas ||
+        if (sources)
+          playback.owner = clip;
+        if (clip->id != AssetId{hi, lo} || (!sources && clip->atlas != current->atlas) ||
             !playback.animator.Play(*clip, speed))
           return Invalid;
         auto sprite = *current;
-        sprite.region = *playback.animator.RegionId();
+        if (sources)
+          sprite.source = playback.animator.SourceId();
+        else
+          sprite.region = *playback.animator.RegionId();
         s.animations.insert_or_assign(id, std::move(playback));
         s.Scene(id)->Set(id, sprite);
         return Ok;
@@ -400,7 +412,8 @@ struct GameplayBridge::State {
         if (!result || (!events && capacity) || capacity > 65536 || !s.Live(id) ||
             !s.Scene(id)->Find(id) || it == s.animations.end())
           return Invalid;
-        if (s.Scene(id)->Find(id)->source.has_value())
+        const auto current_source = it->second.animator.SourceId();
+        if (s.Scene(id)->Find(id)->source != current_source)
           return Unsupported;
         auto candidate = it->second.animator;
         auto update = candidate.Advance(delta);
@@ -414,7 +427,10 @@ struct GameplayBridge::State {
           return events ? Unsupported : Ok;
         }
         auto sprite = *s.Scene(id)->Find(id);
-        sprite.region = update->region;
+        if (update->source)
+          sprite.source = update->source;
+        else
+          sprite.region = update->region;
         if (!s.Scene(id)->Set(id, sprite))
           return Invalid;
         it->second.animator = std::move(candidate);

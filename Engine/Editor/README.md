@@ -110,7 +110,8 @@ Project-scoped cooked asset capture is supplied by the separate owner described 
 ### Frozen cooked 2D Play assets
 
 `TwoDPlayAssets::Capture` owns an immutable CPU Atlas/Clip/Sprite-source dependency closure from an explicit,
-nonzero `AssetGenerationStore` generation. Clip and Sprite-source roots automatically include their Atlas. Duplicate
+nonzero `AssetGenerationStore` generation. Legacy Clip and Sprite-source roots include their Atlas;
+source Clip roots include every referenced source and its Atlas. Duplicate
 or zero roots, missing assets, unsupported types, mismatched payload UUIDs, noncanonical dependency
 lists, missing frame regions and incompatible source trim/region dimensions reject the complete candidate. Runtime's store supplies already
 hash-verified cooked envelopes; capture additionally checks the schema and 2D codecs. It neither
@@ -2772,7 +2773,7 @@ ND2D schema 2 embeds the source catalog; source-free saves retain exact schema-1
 validates a staging owner and isolated Play retains its own source generation. Serialization-budget
 failure rolls back the edit. The 64 MiB document/history budgets remain unchanged; separately
 retained external aliases are outside history accounting. C++ document/context layouts change and
-consumers rebuild; C/Zig tables and existing Atlas/Clip/source/NX2S wires are unchanged.
+consumers rebuild; C/Zig tables, legacy Clip schema 1, Atlas/source/NX2S wires are unchanged.
 This is the isolated Studio document boundary. End-to-end main Editor Inspector/project save/reopen/Build and
 live source animation/reload integration remain separate ED-WF-07/08 acceptance gates.
 
@@ -2789,6 +2790,13 @@ Calls run on the application owner thread; UI widgets emit values and perform no
 
 ### Immutable Sprite sources in Editor Play
 
+Source animation Clips additionally use [Clip schema 2](../TwoD/README.md#source-animation-clips).
+Typed import metadata and cooked generation capture require exact sorted unique source dependency
+edges, then validate the complete source/Atlas closure before publication. Captured Clips, sources
+and Atlases remain independently owned after generation/project destruction. ND2D authoring accepts
+source Clip frames only from its validated document catalog; missing frames reject atomically and
+Undo/Redo/save/reopen retain their UUIDs. Legacy Clip bytes remain schema 1; C/Zig wires do not change.
+
 `TwoDAssetPayload::SpriteSource()` and `TwoDPlayAssets::SpriteSource(id)` return owning immutable
 metadata decoded from the existing 96-byte schema 1. Sources remain distinct from Clips, and their
 Atlas is admitted once per closure. Decode does not resolve dependencies; complete project/cooked
@@ -2800,7 +2808,7 @@ Main Editor Play captures indexed sources and resolves their geometry from the f
 scene and pooled gameplay instances. Current source/sidecar/Content provenance must still pass
 `Matches` before production activation. The source-content registration service remains unsupported
 for this immutable embedding. Public C++ payload/snapshot layouts change, so consumers rebuild;
-legacy C/Zig descriptors, Atlas/Clip/source codecs and scene formats remain unchanged.
+legacy C/Zig descriptors, Clip schema-1 bytes, Atlas/source codecs and scene formats remain unchanged.
 
 `twod.editor_sprite_sources`, `editor.sprite_source_play` and `editor.sprite_source_native` cover
 index/sidecar discovery, synchronous/queued reimport, renamed importer identity, budgets, rejected

@@ -98,6 +98,35 @@ Advance reject without advancing state; large valid steps emit every event rathe
 updates. A relative 1e-12 frame-duration tolerance stabilizes decimal duration boundaries across
 equivalent delta partitions. It is independent of skeletal animation and application behavior.
 
+### Source animation Clips
+
+`AnimationFrame::source` selects a Sprite source UUID. A Clip exclusively uses source frames or
+legacy Atlas/region frames. Legacy Clips retain their exact schema-1 encoding. Source Clips use
+little-endian schema 2: the same magic/header, a zero Atlas UUID, then each frame's zero U32 region,
+float64 duration, length-prefixed ASCII event and two U64 source UUID halves. Source UUIDs must be
+nonzero and distinct from the Clip UUID. Mixed modes and ambiguous Atlas/region bindings reject.
+Existing 4096-frame, 256-byte event, duration and 64 MiB codec limits apply. Older decoders reject
+schema 2. Public C++ consumers rebuild for appended optional fields; C/Zig tables do not change.
+
+`ClipDependencies` returns sorted unique source UUIDs for schema 2 and the single Atlas UUID for
+schema 1. Importers, cooked catalog admission and Editor generation capture require those exact
+edges. Each source must resolve to a valid source/Atlas closure before Clip publication or snapshot
+acceptance. Authored ND2D documents validate all source frames against their owning source catalog;
+the existing source-bearing document schema retains the embedded Clip schema 2 without a new wrapper.
+
+Play requires a source-bound Sprite for source Clips and a legacy Sprite for region Clips. Source
+Play/Advance select `Sprite::source`, preserving World transforms, style, sort anchors and source
+geometry resolution. The unchanged C animation result reports region zero; read the selected UUID
+through the negotiated source API. Count-only/short event buffers never consume the clock. Editing
+the same source's style preserves playback; changing binding mode or source, or a legacy Sprite's
+Atlas, discards it. Legacy Atlas/region fields do not affect source-frame geometry.
+The source playback retains the admitted immutable Clip owner and its validated Animator copy.
+Registry replacement affects future Play calls; an existing playback continues its original sequence.
+Active and retained retired source Clips prevent removal of every referenced source. Clearing or
+forgetting playback releases that protection when no other owner remains. Source/Atlas publication
+still occurs only on the host thread. Pool publication uses the existing explicit source batch API;
+rendering and asset publication do not advance animations implicitly.
+
 SpatialIndex atomically rebuilds a sorted-ID grid of circles/AABBs. Cell references are stored
 contiguously in cell/shape order; queries deduplicate candidates and return IDs in the same sorted
 order. Rebuilds reuse a separate staging snapshot and publish only after complete validation.
@@ -190,7 +219,8 @@ TwoD. The original ABI baseline is retained alongside an additive 2D V1 wire bas
 
 The bridge borrows the supplied World, its matching SpriteScene and optional Tilemap/InstancePool;
 reject a mismatched World/scene at construction. ClipResolver returns immutable host-owned clips;
-Play validates their UUID/Atlas identity and copies a clip into its animator. Unavailable clips,
+Play validates their UUID and binding mode (plus Atlas identity for legacy Clips) and copies a Clip
+into its animator. Source playback also retains the admitted immutable owner. Unavailable clips,
 Tilemap or pool return `UNSUPPORTED`. Loading/cooking/asset generations remain host responsibilities;
 the module cannot read native paths, upload textures, or hold renderer pointers through this table.
 The host retains the table/context and services until all modules and callbacks have stopped.
@@ -212,7 +242,8 @@ The independent, fixed-stride source Sprite/Instance wires are 80/160 bytes on t
 64-bit targets; legacy wires remain 64/144 bytes. Zero source UUID means absent; a nonzero UUID
 supplies geometry while retaining tint, sorting, visibility, flips and transform. Registration and
 resolution are host-owned; setting an unresolved reference is valid and extraction marks it
-unavailable. Setting a source clears legacy region animation. Pool create/read/write validate and
+unavailable. Changing the source binding clears its animation; same-source style edits preserve it.
+Pool create/read/write validate and
 stage the entire batch before publishing or copying outputs, reuse existing owner/index/generation
 handles and destroy through the legacy API. Duplicate writes, stale/foreign handles and invalid
 values reject atomically. Null buffers are allowed only for zero count; the maximum count is

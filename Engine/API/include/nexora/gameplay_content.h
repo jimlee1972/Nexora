@@ -14,7 +14,7 @@ typedef struct NexoraContentAsset {
   uint64_t high, low;
   uint32_t kind, count;           /* atlas regions, clip frames, or one Sprite source */
   uint32_t width, height;         /* Atlas dimensions, source canvas, or zero for clips */
-  uint64_t atlas_high, atlas_low; /* dependency for clips/sources; own identity for atlases */
+  uint64_t atlas_high, atlas_low; /* legacy Clip/source dependency; Atlas identity; source Clip=0 */
 } NexoraContentAsset;
 typedef struct NexoraGameplayContentApiV1 {
   uint32_t struct_size, abi_version;

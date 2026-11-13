@@ -22,6 +22,10 @@ add_executable(NexoraSpriteSourceGameplayTests SpriteSourceGameplayTests.cpp)
 target_link_libraries(NexoraSpriteSourceGameplayTests PRIVATE Nexora::TwoD)
 nexora_apply_defaults(NexoraSpriteSourceGameplayTests)
 add_test(NAME twod.sprite_source_gameplay COMMAND NexoraSpriteSourceGameplayTests)
+add_executable(NexoraSourceAnimationTests SourceAnimationTests.cpp)
+target_link_libraries(NexoraSourceAnimationTests PRIVATE Nexora::TwoD)
+nexora_apply_defaults(NexoraSourceAnimationTests)
+add_test(NAME twod.source_animation COMMAND NexoraSourceAnimationTests)
 if(NEXORA_ZIG_EXECUTABLE)
   nexora_add_zig_test(gameplay.zig_sprite_source_wire_layout
     --cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-source-cache"
@@ -383,6 +387,12 @@ if(NEXORA_SCENE_TEST_ZIG)
     --cmake "${CMAKE_COMMAND}" --compiler "$<TARGET_FILE:NexoraTwoDAssetCompiler>" --catalog --repack
     --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/source-repack-player" ${source_player_native_args})
   set_tests_properties(twod.sprite_source_repack_player PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE LABELS "twod;source;zig;assets;export")
+  add_test(NAME twod.source_animation_player COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/SpriteSourcePlayerAcceptance.py"
+    --app "$<TARGET_FILE:NexoraTwoDPlayer>" --zig "${NEXORA_SCENE_TEST_ZIG}"
+    --cmake "${CMAKE_COMMAND}" --compiler "$<TARGET_FILE:NexoraTwoDAssetCompiler>" --catalog --animation
+    --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/source-animation-player" ${source_player_native_args})
+  set_tests_properties(twod.source_animation_player PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE LABELS "twod;source;animation;zig;assets;export")
   add_test(NAME twod.scene_project_zig COMMAND "${Python3_EXECUTABLE}"
     "${CMAKE_CURRENT_SOURCE_DIR}/SceneProjectAcceptance.py"
     --app "$<TARGET_FILE:NexoraTwoDPlayer>" --compiler "$<TARGET_FILE:NexoraTwoDAssetCompiler>"

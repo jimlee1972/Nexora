@@ -184,8 +184,7 @@ struct GameplayAssets::State final {
         return Invalid;
     } else if (f.kind == 2) {
       const auto decoded = DecodeClip(blob->payload);
-      if (!decoded || decoded->id != blob->id ||
-          blob->dependencies != std::vector<AssetId>{decoded->atlas})
+      if (!decoded || decoded->id != blob->id || blob->dependencies != ClipDependencies(*decoded))
         return Invalid;
     } else {
       const auto decoded = DecodeSpriteAsset(blob->payload);

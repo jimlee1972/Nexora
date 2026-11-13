@@ -35,7 +35,12 @@ gutters and bytes are independent of manifest input order. The C++ compiler reje
 IDs, capacity failures and invalid frames with a diagnostic and leaves the previous output intact.
 
 Clip manifests declare `type: "clip"`, id, atlas UUID, optional loop and ordered frames with
-region, seconds and optional ASCII event. See [fixtures](Fixtures/) for complete examples.
+region, seconds and optional ASCII event. Source Clip manifests omit `atlas` and instead use ordered
+frames with `source: [high, low]`, seconds and optional event. They produce Clip schema 2; mixing
+source/region frames or specifying an Atlas/region in source mode rejects before publication.
+Legacy manifests still produce identical schema-1 bytes. See [fixtures](Fixtures/) for complete examples.
+Studio startup imports the Atlas, then a supplied Sprite source, then its Clip before opening
+the native preview; a new document can therefore admit a source Clip through the existing CLI.
 Preparation uses only Python's standard library; `.nx2atlas`/`.nx2clip` validation and cooking
 use existing Runtime import/Cook services. Publication uses Core VFS atomic writes on all desktops.
 

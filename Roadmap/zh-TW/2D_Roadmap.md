@@ -968,3 +968,15 @@ ED-WF-07 保持開啟。工作流 **5/9**、圖形編輯器 **0/8**、TwoD **9/1
 [主線整合補充證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-MainIntegration-Linux-2026-11-13.md)：
 完整 **521/521**、零失敗／略過，實際 Development／Shipping 原生像素、Monolithic 與 2D-OFF 組建通過。
 原生測試傳輸修正保留相同逾時與全部原有斷言；前輪失敗的完整測試分開保留，父項驗收與里程碑數字不變。
+
+## ✅ 來源動畫 Clip 基礎（2026-11-13）
+
+支援工作 `nexora-whr.8.1` 新增純來源 Clip schema 2，保留舊 Clip 的精確位元組與 C/Zig 表格。
+型別匯入／cook／目錄及 Editor 快照驗證完整來源／Atlas 相依；明確 Play／Advance、保留的不可變
+Clip 擁有者、ND2D 歷史與 Studio 預覽保留來源身分及樣式。實際 SDK／搬移 Player 的 Development
+與 Shipping 像素涵蓋 trim／Pivot、翻轉、負縮放、第二組預載來源／Atlas，以及穩定的來源物件池 handle。
+完整 Linux **523/523**、零失敗／略過，Shipping／原生、Monolithic 與 TwoD-OFF 驗證通過。
+[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-SourceAnimation-Linux-2026-11-13.md) 分別保留前輪失敗及中斷紀錄。
+來源重匯入、32 次實際 Zig 重載／失敗回復、主 Editor 設定式套件 Play 及完整 ED-WF-07／08 仍未完成；
+原生 `repacked` 階段只是預載動畫影格的名稱，不代表即時重匯入。工作流 **5/9**、圖形 Editor **0/8**、
+TwoD **9/11** 及實體／乾淨主機驗收維持不變。

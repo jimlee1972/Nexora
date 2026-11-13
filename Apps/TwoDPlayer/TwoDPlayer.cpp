@@ -337,7 +337,7 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
     if (project) {
       std::set<std::pair<uint64_t, uint64_t>> identities;
       for (const auto kind :
-           {std::string_view("atlas"), std::string_view("clip"), std::string_view("sprite")})
+           {std::string_view("atlas"), std::string_view("sprite"), std::string_view("clip")})
         for (const auto &asset : project->assets) {
           if (asset.deferred || asset.kind != kind)
             continue;
@@ -355,7 +355,7 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
           } else if (kind == "clip") {
             const auto decoded = twod::DecodeClip(cooked->payload);
             Check(decoded && decoded->id == cooked->id &&
-                      cooked->dependencies == std::vector<twod::AssetId>{decoded->atlas},
+                      cooked->dependencies == twod::ClipDependencies(*decoded),
                   "project Clip dependency");
           } else {
             const auto decoded = twod::DecodeSpriteAsset(cooked->payload);
@@ -404,16 +404,6 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
                                             &assetHigh, &assetLow) == 0,
                   "scene Atlas admission");
         }
-        if (source->clip.id.high || source->clip.id.low) {
-          const auto bytes = twod::EncodeClip(source->clip);
-          const auto existing = content.ResolveClip(source->clip.id);
-          Check(!existing || twod::EncodeClip(*existing) == bytes,
-                "conflicting authored scene Clip identity");
-          if (!existing)
-            Check(contentApi.register_clip(contentApi.context, bytes.data(), bytes.size(),
-                                           &assetHigh, &assetLow) == 0,
-                  "scene Clip admission");
-        }
         for (const auto &sprite : source->sources) {
           const auto bytes = twod::EncodeSpriteAsset(sprite);
           const auto existing = content.ResolveSprite(sprite.id);
@@ -427,6 +417,16 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
                                                  &assetHigh, &assetLow) == 0,
                   "scene Sprite source admission");
           }
+        }
+        if (source->clip.id.high || source->clip.id.low) {
+          const auto bytes = twod::EncodeClip(source->clip);
+          const auto existing = content.ResolveClip(source->clip.id);
+          Check(!existing || twod::EncodeClip(*existing) == bytes,
+                "conflicting authored scene Clip identity");
+          if (!existing)
+            Check(contentApi.register_clip(contentApi.context, bytes.data(), bytes.size(),
+                                           &assetHigh, &assetLow) == 0,
+                  "scene Clip admission");
         }
         sceneCatalog.push_back({entry.path, entry.id, source});
       }

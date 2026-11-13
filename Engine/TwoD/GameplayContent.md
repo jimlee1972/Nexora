@@ -16,8 +16,9 @@ Use the existing PNG preparation/import/cook tools to build production assets.
 pointers for their call. They publish the UUID encoded in the payload only after successful
 registration. Null pointers, zero bytes, more than 64 MiB, malformed/truncated/trailing data or
 cross-type UUID collisions return `INVALID_ARGUMENT` without changing outputs or the registry.
-A clip's Atlas must already be registered; unavailable dependencies return `UNSUPPORTED`.
-Every animation region must exist in that Atlas. Atlas replacement checks every resident dependent
+A legacy Clip's Atlas must already be registered; a schema-2 source Clip requires every referenced
+Sprite source to be registered (and thus validated against its Atlas). Unavailable or wrong-typed
+dependencies return `UNSUPPORTED`. Every legacy animation region must exist in its Atlas. Atlas replacement checks every resident dependent
 clip and rejects removal of a referenced region. Registered identities remain active until explicit removal or owner destruction; there is no
 implicit unload on module stop/reload. The optional [asset service](GameplayAssets.md) adds removal,
 bounded catalog IO and usage without changing this V1 wire.
@@ -92,7 +93,11 @@ metadata, UUID type collisions, missing regions and trim/region dimension mismat
 `INVALID_ARGUMENT`. Rejection preserves outputs and published content. Atlas replacement validates
 all registered Clip and Sprite dependencies through the existing codecs/resolver; incompatible
 replacement preserves the previous generation. Removing a referenced Atlas returns `LIFECYCLE`;
-remove dependent Clips and sources first. Removing a source does not mutate World/pool instances.
+remove dependent Clips and sources first. Active source Clips and retained retired Clip owners
+prevent removal of their sources with `LIFECYCLE`. Source playback retains its exact Clip owner,
+so replacing/removing a Clip cannot invalidate its remaining frame dependencies. Other source
+removal does not mutate World/pool instances. Source Clip descriptions retain content kind 2 and
+frame count; their single-Atlas metadata is zero because frames may use multiple Atlases.
 
 `ResolveSprite` returns an immutable owning source snapshot for the existing source-aware
 `ExtractSprites` resolver. Identical publication reuses that owner even at the live-byte ceiling;

@@ -24,7 +24,7 @@ def run(*args, cwd=None, env=None):
     return result
 
 
-def native(package, app, output, phase, studio=None):
+def native(package, app, output, phase, studio=None, startup=None):
     sys.path.insert(0, str(ROOT/'Tests/Showcase'))
     from LinuxVirtualDisplaySmoke import start_xvfb
     from HD2DAcceptance import NativeWindow
@@ -77,6 +77,26 @@ def native(package, app, output, phase, studio=None):
             assert document.read_bytes() == baseline
             assert '2D Studio native preview and document lifecycle passed' in opened.stdout
             (output/(phase+'-studio.log')).write_text(opened.stdout+opened.stderr)
+            if startup:
+                inputs = {name: (startup/name).read_bytes() for name in
+                          ('atlas.nx2atlas', 'source.nx2sprite', 'clip.nx2clip')}
+                document = startup/'import.scene'
+                assert not document.exists()
+                imported = run(studio, '--workspace', startup, '--document', document.name,
+                    '--atlas', 'atlas.nx2atlas', '--clip', 'clip.nx2clip',
+                    '--sprite', 'source.nx2sprite', '--smoke', '--frames', '6',
+                    cwd=output, env=env)
+                saved = document.read_bytes()
+                assert saved[4:8] == bytes([2, 0, 0, 0])
+                assert inputs['clip.nx2clip'] in saved and inputs['source.nx2sprite'] in saved
+                assert '2D Studio native preview and document lifecycle passed' in imported.stdout
+                reopened = run(studio, '--workspace', startup, '--document', document.name,
+                               '--read-only', '--frames', '6', cwd=output, env=env)
+                assert '2D Studio native preview and document lifecycle passed' in reopened.stdout
+                assert document.read_bytes() == saved
+                assert all((startup/name).read_bytes() == data for name, data in inputs.items())
+                (output/'studio-source-clip-import.log').write_text(
+                    imported.stdout+imported.stderr+reopened.stdout+reopened.stderr)
     finally:
         if process and process.poll() is None:
             process.kill()
@@ -104,6 +124,12 @@ def main():
         source = Path(temporary)/'authored Unicode 來源'
         source.mkdir()
         run(args.fixture, source)
+        startup = None
+        if args.studio and args.native:
+            startup = output/'studio-startup-import'
+            startup.mkdir()
+            for name in ('atlas.nx2atlas', 'source.nx2sprite', 'clip.nx2clip'):
+                shutil.copy2(source/name, startup/name)
         shutil.copy2(args.module, source/args.module.name)
         packages = []
         for phase in ('initial', 'shifted'):
@@ -158,7 +184,8 @@ def main():
             assert status['status'] == 'PASS' and status['allocations_balanced'], status
             assert 'AUTHORED SOURCE PASS' in result.stderr, result.stderr
             if args.native:
-                native(package, args.app, output, phase, args.studio)
+                native(package, args.app, output, phase, args.studio,
+                       startup if phase == 'initial' else None)
             results[phase] = {p.relative_to(package).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
                               for p in package.rglob('*') if p.is_file()}
         (output/'receipt.json').write_text(json.dumps(dict(source_deleted=True, packages=results), indent=2)+'\n')

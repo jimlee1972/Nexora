@@ -15,6 +15,32 @@ void Run() {
   editor::TwoDDocument d;
   Check(!d.Dirty(), "initial dirty");
   Check(d.ReplaceAtlas(*atlas), "replace atlas");
+  {
+    editor::TwoDDocument animation;
+    Check(animation.ReplaceAtlas(*atlas), "animation document Atlas");
+    twod::SpriteAsset source;
+    source.id = {61, 67};
+    source.atlas = atlas->id;
+    source.region = 1;
+    source.sourceWidth = source.sourceHeight = source.trimWidth = source.trimHeight = 2;
+    Check(animation.ReplaceSpriteSource(source), "animation document source");
+    twod::Clip clip{{71, 73}, {}, true, {{0, 0.1, "frame", source.id}}};
+    Check(animation.ReplaceClip(clip), "author source Clip");
+    const auto saved = animation.Save();
+    Check(!saved.empty() && !animation.RemoveSpriteSource(source.id) && animation.Save() == saved,
+          "source Clip does not protect document dependencies");
+    auto bad = clip;
+    bad.frames[0].source = twod::AssetId{79, 83};
+    Check(!animation.ReplaceClip(bad) && animation.Save() == saved,
+          "missing source Clip frame mutated authored document");
+    editor::TwoDDocument reopened;
+    Check(reopened.Reopen(saved) && reopened.Save() == saved &&
+              reopened.Clip().frames[0].source == source.id,
+          "source Clip ND2D reopen is lossy");
+    Check(animation.Undo() && animation.Clip().frames.empty() && animation.Redo() &&
+              animation.Save() == saved,
+          "source Clip Undo/Redo is lossy");
+  }
   twod::Sprite sprite;
   sprite.atlas = atlas->id;
   sprite.region = 1;

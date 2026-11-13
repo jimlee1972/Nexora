@@ -38,7 +38,7 @@ public:
   }
   [[nodiscard]] std::size_t RetainedBytes() const noexcept { return retained_bytes_; }
   [[nodiscard]] std::vector<runtime::AssetUuid> Dependencies() const {
-    return clip_     ? std::vector{clip_->atlas}
+    return clip_     ? twod::ClipDependencies(*clip_)
            : source_ ? std::vector{source_->atlas}
                      : std::vector<runtime::AssetUuid>{};
   }

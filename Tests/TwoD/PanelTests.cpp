@@ -132,6 +132,21 @@ void Run() {
   Check(doc.ReplaceSpriteSource(source) && previewX() < beforePivot,
         "panel preview ignored retained source geometry");
 
+  Check(doc.ReplaceClip({{12, 13}, {}, true, {{0, 0.1, "source", source.id}}}),
+        "panel source Clip");
+  const auto sourceClipDocument = doc.Save();
+  panel.requestedTab = editor::imgui::TwoDPanelTab::Animation;
+  frame(true);
+  frame(true);
+  Check(panel.preview.SourceId() == source.id && panel.preview.RegionId() == 0 &&
+            doc.Save() == sourceClipDocument,
+        "graphical source Clip playback mutated authoring or lost frame UUID");
+  doc.SetReadOnly(true);
+  panel.previewPaused = true;
+  frame(true);
+  Check(panel.preview.SourceId() == source.id && doc.Save() == sourceClipDocument,
+        "read-only source Clip preview mutated authoring");
+
   ImGui::DestroyContext();
 }
 } // namespace

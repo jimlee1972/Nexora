@@ -115,10 +115,10 @@ int main(int argc, char **argv) {
     else {
       if (!atlasFile.empty())
         importAtlas();
-      if (!clipFile.empty())
-        importClip();
       if (!spriteFile.empty())
         importSprite();
+      if (!clipFile.empty())
+        importClip();
     }
     if (smoke) {
       if (atlasFile.empty()) {
