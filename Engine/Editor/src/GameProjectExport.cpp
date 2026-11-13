@@ -1,6 +1,10 @@
 #include "Nexora/Editor/GameProjectExport.h"
 #include "Nexora/Editor/MaterialAssetCatalog.h"
 #include "Nexora/Editor/MeshAssetCatalog.h"
+#if defined(NEXORA_HAS_2D)
+#include "Nexora/Editor/TwoDAssetImport.h"
+#include "Nexora/TwoD/GameSpriteAssets.h"
+#endif
 
 #include <algorithm>
 #include <unordered_set>
@@ -23,6 +27,13 @@ std::optional<runtime::ByteBuffer> CookGameProject(const GameProjectExportInput 
 #else
   if (input.scenes.empty() || input.scenes.size() > runtime::kMaximumGameScenes)
     return Reject<runtime::ByteBuffer>(error, "Game export requires 1..256 enabled scenes.");
+#if defined(NEXORA_HAS_2D)
+  if (!twod::GameSpriteAssets::Load(input.sprite_assets, error))
+    return {};
+#else
+  if (!input.sprite_assets.empty())
+    return Reject<runtime::ByteBuffer>(error, "Game Sprite export requires the TwoD feature.");
+#endif
   ProjectBuildSettings admission{input.start_scene, {}};
   std::size_t package_bytes = 64;
   for (const auto &scene : input.scenes) {
@@ -33,7 +44,9 @@ std::optional<runtime::ByteBuffer> CookGameProject(const GameProjectExportInput 
     for (const auto &node : scene.capture.nodes)
       for (const auto &opaque : node.opaque)
         if (opaque.type != kMaterialAssetReferenceType &&
-            opaque.type_name != kMaterialAssetReferenceName)
+            opaque.type_name != kMaterialAssetReferenceName &&
+            !runtime::ReadGameSpriteSourceReference(opaque.type, opaque.type_name,
+                                                    std::as_bytes(std::span(opaque.data))))
           return Reject<runtime::ByteBuffer>(error, "Unsupported required opaque game component.");
   }
   if (!ValidateProjectBuildSettings(admission, error))
@@ -49,10 +62,20 @@ std::optional<runtime::ByteBuffer> CookGameProject(const GameProjectExportInput 
       return Reject<runtime::ByteBuffer>(error,
                                          "Duplicate scene or aggregate snapshot budget exceeded.");
     snapshots += scene.capture.runtime_snapshot.size();
-    const auto single = CookStaticProjectData(input.project, scene.entry.id, scene.capture,
-                                              input.meshes, input.materials, error);
+    auto single = CookStaticProjectData(input.project, scene.entry.id, scene.capture, input.meshes,
+                                        input.materials, error);
     if (!single)
       return std::nullopt;
+    for (auto &blob : single->assets)
+      if (blob.id == scene.entry.id) {
+        std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> roots;
+        for (const auto &node : scene.capture.nodes)
+          for (const auto &opaque : node.opaque)
+            if (const auto source = runtime::ReadGameSpriteSourceReference(
+                    opaque.type, opaque.type_name, std::as_bytes(std::span(opaque.data))))
+              roots.insert(*source);
+        blob.dependencies.insert(blob.dependencies.end(), roots.begin(), roots.end());
+      }
     package.scenes.push_back(scene.entry);
     for (const auto &blob : single->assets) {
       const auto found = assets.find(blob.id);
@@ -75,6 +98,18 @@ std::optional<runtime::ByteBuffer> CookGameProject(const GameProjectExportInput 
       }
     }
   }
+  for (const auto &blob : input.sprite_assets) {
+    if (!assets.emplace(blob.id, package.assets.size()).second ||
+        package.assets.size() == runtime::kMaximumProjectPackageAssets)
+      return Reject<runtime::ByteBuffer>(error,
+                                         "Duplicate or excessive game Sprite asset identity.");
+    const auto bytes = 68 + blob.type.size() + blob.dependencies.size() * 16 + blob.payload.size();
+    if (bytes > runtime::kMaximumProjectPackageBytes - package_bytes)
+      return Reject<runtime::ByteBuffer>(error,
+                                         "Game Sprite union exceeds the package byte budget.");
+    package_bytes += bytes;
+    package.assets.push_back(blob);
+  }
   return runtime::EncodeGameProjectPackage(package, error);
 #endif
 }
@@ -89,8 +124,11 @@ CaptureGameProject(const ProjectWorkspace &workspace, ProjectBuildSettings setti
       !session.ValidateFiles(settings, error))
     return std::nullopt;
   const auto project = workspace.Project().id;
-  GameProjectExportInput input{{project.high, project.low}, settings.start_scene, {}, {}, {}};
+  GameProjectExportInput input{{project.high, project.low}, settings.start_scene, {}, {}, {}, {}};
   std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> used_meshes, used_materials;
+#if defined(NEXORA_HAS_2D)
+  std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> used_sprites;
+#endif
   std::size_t text_bytes = 0, geometry_bytes = 0, entity_count = 0;
   for (const auto &entry : settings.scenes) {
     if (!entry.enabled)
@@ -129,8 +167,24 @@ CaptureGameProject(const ProjectWorkspace &workspace, ProjectBuildSettings setti
         input.meshes.push_back({mesh->asset, *mesh->geometry});
       }
     }
+#if defined(NEXORA_HAS_2D)
+    std::size_t sprite_references{};
+#endif
     for (const auto &node : capture->nodes)
       for (const auto &opaque : node.opaque) {
+        if (opaque.type == runtime::kGameSpriteSourceReferenceType ||
+            opaque.type_name == runtime::kGameSpriteSourceReferenceName) {
+#if defined(NEXORA_HAS_2D)
+          const auto source = runtime::ReadGameSpriteSourceReference(
+              opaque.type, opaque.type_name, std::as_bytes(std::span(opaque.data)));
+          if (!source || ++sprite_references > 4096)
+            return Reject<GameProjectExportInput>(error, "Unsupported saved Sprite reference.");
+          used_sprites.insert(*source);
+          continue;
+#else
+          return Reject<GameProjectExportInput>(error, "Saved Sprite references require TwoD.");
+#endif
+        }
         if (opaque.type != kMaterialAssetReferenceType &&
             opaque.type_name != kMaterialAssetReferenceName)
           return Reject<GameProjectExportInput>(
@@ -148,6 +202,54 @@ CaptureGameProject(const ProjectWorkspace &workspace, ProjectBuildSettings setti
       }
     input.scenes.push_back({{entry.id, entry.path}, std::move(*capture)});
   }
+#if defined(NEXORA_HAS_2D)
+  if (used_sprites.size() > runtime::kMaximumProjectPackageAssets)
+    return Reject<GameProjectExportInput>(error, "Saved Sprite roots exceed 4096 assets.");
+  const auto source_roots = used_sprites;
+  std::unordered_map<runtime::AssetUuid, const ContentItem *, runtime::AssetUuidHash> indexed;
+  for (const auto &item : content.Items())
+    if (item.twod)
+      indexed.emplace(item.id, &item);
+  std::vector<runtime::AssetUuid> pending(used_sprites.begin(), used_sprites.end());
+  runtime::AssetCooker cooker;
+  runtime::DerivedDataCache cache;
+  std::size_t sprite_bytes{};
+  for (std::size_t i = 0; i < pending.size(); ++i) {
+    const auto found = indexed.find(pending[i]);
+    const auto *item = found == indexed.end() ? nullptr : found->second;
+    if (!item || !item->twod || item->twod->Id() != item->id || item->twod->Type() != item->type ||
+        item->thumbnail != ThumbnailState::Ready)
+      return Reject<GameProjectExportInput>(error, "A saved Sprite dependency is unavailable.");
+    runtime::CanonicalAsset canonical;
+    canonical.id = item->id;
+    if (const auto source = item->twod->SpriteSource()) {
+      canonical.type = "sprite_source";
+      canonical.payload = twod::EncodeSpriteAsset(*source);
+      canonical.dependencies.push_back(source->atlas);
+      if (used_sprites.insert(source->atlas).second)
+        pending.push_back(source->atlas);
+    } else if (const auto atlas = item->twod->Atlas()) {
+      canonical.type = "sprite_atlas";
+      canonical.payload = twod::EncodeAtlas(*atlas);
+    } else
+      return Reject<GameProjectExportInput>(error, "Unsupported saved Sprite dependency type.");
+    if (pending.size() > runtime::kMaximumProjectPackageAssets || canonical.payload.empty() ||
+        canonical.payload.size() > 64 * 1024 * 1024 - sprite_bytes)
+      return Reject<GameProjectExportInput>(error, "Saved Sprite closure is invalid or oversized.");
+    sprite_bytes += canonical.payload.size();
+    auto blob = cooker.Cook(canonical, "portable", "game-sprite-v1", cache);
+    if (!blob)
+      return Reject<GameProjectExportInput>(error, "Saved Sprite dependency could not be cooked.");
+    input.sprite_assets.push_back(std::move(*blob));
+  }
+  const auto typed = twod::GameSpriteAssets::Load(input.sprite_assets, error);
+  if (!typed)
+    return {};
+  for (const auto root : source_roots)
+    if (!typed->Source(root))
+      return Reject<GameProjectExportInput>(error,
+                                            "Saved Sprite reference does not name a source.");
+#endif
   return input;
 }
 } // namespace nexora::editor

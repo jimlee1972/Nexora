@@ -1072,3 +1072,22 @@ resolver checks; regression coverage combines 4096 sources with 1024 Atlas regio
 See [cloud evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-AuthoredSources-Linux-2026-11-13.md).
 Main Editor authoring rendering/configured package Play/Build conversion, source-animation/reload and complete ED-WF-07 remain
 open. Workflow **5/9**, graphical Editor **0/8**, 2D **9/11** and physical M6/M7 acceptance are unchanged.
+
+## ✅ Main-scene Sprite source Build support (2026-11-13)
+
+Supporting `nexora-whr.7.7` captures saved source UUID references with owning, deduplicated imported
+source/Atlas closure and exact publication baselines. Capability-3 games preserve source-free
+capability-2 bytes and keep Runtime independent of optional TwoD payload codecs. The canonical
+Player validates typed closure and renders actual remapped World transforms as a 2D overlay.
+CPU cases cover stale/malformed/missing closure, owning lifetime and additive ID remapping;
+real Build/SDK Zig, source deletion, Unicode relocation and zero-argument Player execution verify
+exact Sprite color masks and unchanged underlying native 3D pixels. See [Build evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-Linux-2026-11-13.md).
+Configured packaged Play preview, Scene View, source animation/pool and hot reload remain open;
+independent module-free Play work is preserved. ED-WF-07 remains open. Workflow **5/9**, graphical
+Editor **0/8**, TwoD **9/11** and physical/clean-host gates are unchanged.
+
+Integration with independently delivered module-free Play (PR #778, main `2e900aa2`) is covered by
+the [main integration supplement](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-MainIntegration-Linux-2026-11-13.md):
+full **521/521**, zero failures/skips, actual Development/Shipping native pixels, Monolithic and
+2D-OFF builds. Native test transport repairs retain the same deadlines and all original assertions;
+the earlier failed full gate remains separate evidence. Parent acceptance and milestone counts are unchanged.

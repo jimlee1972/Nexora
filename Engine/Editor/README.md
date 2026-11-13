@@ -2871,3 +2871,14 @@ validation. No C/Zig ABI,
 NX2S/ND2D or asset codec changes; consumers of the new exported C++ API rebuild. When 2D is disabled,
 the helper is absent and the ordinary opaque scene wrapper still preserves its bytes. See
 [reference transaction evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceReferences-Linux-2026-11-13.md).
+
+## Main Game Build Sprite source closure
+
+`GameProjectExportInput::sprite_assets` owns the optional source/Atlas cooked closure. Saved-scene
+capture deduplicates by full UUID, bounds payloads before cooking and validates the complete typed
+closure. `CaptureGameBuild` adds exact canonical source/artifact/mandatory sidecar baselines to the
+existing final publication guard. No Content/document pointer crosses the worker boundary.
+Source-free package bytes remain capability 2; supported source references require capability 3
+and a TwoD-capable native consumer. See [the Build contract](GameBuild.md#main-scene-sprite-source-export)
+and [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-Linux-2026-11-13.md).
+This appends a C++ owning field; consumers rebuild. No stable C/Zig descriptor or asset wire changes.

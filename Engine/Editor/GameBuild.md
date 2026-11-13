@@ -147,3 +147,26 @@ producer/publisher. ✅ Configured Play, native Linux pixels/GUI script Build, f
 macOS gates and the relocated Windows Editor/game delivery are accepted in PR #721. See the
 [acceptance record](../../Tools/Build/evidence/ProjectSceneDelivery-Acceptance-2026-10-26.md).
 This does not accept every platform's independent installation or complete Editor milestones.
+
+## Main-scene Sprite source export
+
+With TwoD enabled, saved enabled scenes may contain the supported version-1 Sprite source UUID
+reference. Capture owns its deduplicated imported source/Atlas NXAB closure across all scenes;
+4096 unique assets, 4096 references per scene and 64 MiB aggregate Sprite payloads are checked
+before publication (and before accumulating unbounded cooked copies). Imported typed identities,
+canonical raw bytes, artifact hashes and mandatory source/Atlas sidecars must agree. Exact raw
+source/sidecar baselines join the existing final `GameBuildSourcesCurrent` guard. Source edits,
+missing identities, stale imports, unsupported records, missing regions and conflicting closure
+reject; no authored file is written. Pure cooking keeps no Content/document borrow.
+
+The same producer is used by SceneOnly, ScriptProject, CLI and graphical Build workers. It emits
+source capability 3 and copies the existing optional TwoD runtime inventory. The canonical Player
+performs typed/native-data admission before publication and loads source-free game output after
+Unicode relocation and source deletion. Sprite metadata augments remapped live World transforms;
+3D content remains underneath a default-camera 2D overlay. The source-free capability-2 wire is
+byte-for-byte unchanged against the prior producer.
+
+This accepts Build/relocated Player source references, not Editor configured package Play's
+separate preview compositor: that owner currently rejects source-bearing catalogs explicitly.
+Scene View authoring rendering, source animation/pool services, live source publication and reload
+are separate acceptance. See [executed Build evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-Linux-2026-11-13.md).

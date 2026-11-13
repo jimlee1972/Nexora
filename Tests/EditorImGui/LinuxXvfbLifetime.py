@@ -6,6 +6,7 @@ import importlib.util
 import os
 import select
 import subprocess
+import sys
 import time
 
 
@@ -22,7 +23,7 @@ def load_helper(path, name):
     return module.start_xvfb
 
 
-def reset_server(xvfb, screen):
+def reset_server(xvfb, screen, readiness_read=os.read):
     """Actual default-reset negative control, with the same displayfd readiness protocol."""
     read_fd, write_fd = os.pipe()
     server = subprocess.Popen(
@@ -30,13 +31,22 @@ def reset_server(xvfb, screen):
         stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, pass_fds=(write_fd,), text=True)
     os.close(write_fd)
     try:
-        require(select.select([read_fd], [], [], 10)[0], "Negative-control Xvfb did not start")
-        number = os.read(read_fd, 64)
+        number = b""
+        deadline = time.monotonic() + 10
+        while not number.endswith(b"\n"):
+            remaining = deadline - time.monotonic()
+            require(remaining > 0 and select.select([read_fd], [], [], remaining)[0],
+                    "Negative-control Xvfb did not start")
+            chunk = readiness_read(read_fd, 64)
+            require(chunk, "Negative-control Xvfb exited before readiness")
+            number += chunk
         require(number.endswith(b"\n"), "Negative-control Xvfb failed readiness")
         return server, f":{int(number)}"
     except BaseException:
         server.terminate()
-        server.communicate(timeout=3)
+        _, stderr = server.communicate(timeout=3)
+        if stderr:
+            print(stderr, file=sys.stderr)
         raise
     finally:
         os.close(read_fd)
@@ -113,6 +123,10 @@ def main():
     parser.add_argument("--showcase-helper", required=True)
     args = parser.parse_args()
     inspect_lifetime(reset_server, args.xvfb, False)
+    # A pipe may legally return one byte even when more were requested. Keep the real server,
+    # default-reset lifetime oracle and startup deadline while fragmenting only its transport.
+    inspect_lifetime(lambda binary, screen: reset_server(
+        binary, screen, lambda fd, count: os.read(fd, min(count, 1))), args.xvfb, False)
     inspect_lifetime(load_helper(args.editor_helper, "editor_display"), args.xvfb, True)
     inspect_lifetime(load_helper(args.showcase_helper, "showcase_display"), args.xvfb, True)
     print("Xvfb default-reset negative control and both retained-display helpers passed")

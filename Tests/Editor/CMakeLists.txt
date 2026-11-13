@@ -46,6 +46,30 @@ if(NEXORA_ENABLE_ASSET_PIPELINE)
   target_link_libraries(NexoraGameBuildCaptureTests PRIVATE Nexora::Editor)
   nexora_apply_defaults(NexoraGameBuildCaptureTests)
   add_test(NAME editor.game_build_capture COMMAND NexoraGameBuildCaptureTests)
+  if(NEXORA_ENABLE_2D)
+    add_executable(NexoraGameSpriteBuildTests GameSpriteBuildTests.cpp)
+    target_link_libraries(NexoraGameSpriteBuildTests PRIVATE Nexora::Editor)
+    nexora_apply_defaults(NexoraGameSpriteBuildTests)
+    add_test(NAME editor.game_sprite_build COMMAND NexoraGameSpriteBuildTests)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND TARGET NexoraProjectPlayer AND TARGET NexoraEditor
+       AND NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL AND NEXORA_ENABLE_PROJECT_PLAYER_NATIVE
+       AND NEXORA_ENABLE_VULKAN_BACKEND AND NEXORA_ENABLE_SLANG
+       AND NEXORA_ZIG_EXECUTABLE AND NEXORA_EDITOR_GAME_NINJA_EXECUTABLE)
+      find_program(NEXORA_SPRITE_BUILD_XVFB Xvfb)
+      find_program(NEXORA_SPRITE_BUILD_XDOTOOL xdotool)
+      if(NEXORA_SPRITE_BUILD_XVFB AND NEXORA_SPRITE_BUILD_XDOTOOL)
+        add_test(NAME editor.linux_game_sprite_build
+          COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxGameSpriteBuild.py"
+            --editor "$<TARGET_FILE:NexoraEditor>" --player "$<TARGET_FILE:NexoraProjectPlayer>"
+            --fixture "$<TARGET_FILE:NexoraGameSpriteBuildTests>"
+            --xvfb "${NEXORA_SPRITE_BUILD_XVFB}" --xdotool "${NEXORA_SPRITE_BUILD_XDOTOOL}"
+            --cmake "${CMAKE_COMMAND}" --ninja "${NEXORA_EDITOR_GAME_NINJA_EXECUTABLE}"
+            --zig "${NEXORA_ZIG_EXECUTABLE}")
+        set_tests_properties(editor.linux_game_sprite_build PROPERTIES TIMEOUT 150
+          WORKING_DIRECTORY "${PROJECT_BINARY_DIR}" RUN_SERIAL TRUE)
+      endif()
+    endif()
+  endif()
   if(TARGET NexoraProjectPlayer AND TARGET NexoraEditor AND NEXORA_ENABLE_PROJECT_PLAYER_NATIVE AND NEXORA_ZIG_EXECUTABLE)
     add_executable(NexoraGameBuildTests GameBuildTests.cpp)
     target_link_libraries(NexoraGameBuildTests PRIVATE Nexora::Editor)

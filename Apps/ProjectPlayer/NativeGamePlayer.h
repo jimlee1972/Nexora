@@ -1,6 +1,9 @@
 #pragma once
 #include "NativePlayer.h"
 #include "Nexora/Runtime/GameSceneSession.h"
+#if defined(NEXORA_PROJECT_PLAYER_2D)
+#include "Nexora/TwoD/GameSpriteAssets.h"
+#endif
 #if defined(_WIN32)
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -22,6 +25,19 @@ struct PreparedGameView final : runtime::GameScenePresentation {
 inline int RunNativeGame(std::shared_ptr<const runtime::LoadedGameProject> project,
                          NativeOptions options) {
   using namespace Nexora::Presentation;
+  std::string sprite_error;
+#if defined(NEXORA_PROJECT_PLAYER_2D)
+  const auto sprite_assets = twod::GameSpriteAssets::Load(project->SpriteAssets(), &sprite_error);
+  if (!sprite_assets) {
+    std::cerr << "Game Sprite data admission failed: " << sprite_error << '\n';
+    return 1;
+  }
+#else
+  if (!project->SpriteAssets().empty()) {
+    std::cerr << "Game Sprite rendering requires TwoD support\n";
+    return 1;
+  }
+#endif
   PlayerGameplay gameplay;
   if (!gameplay.InitializeServices(project->ProjectId(), options.save_directory)) {
     std::cerr << "Game services initialization failed\n";
@@ -54,6 +70,7 @@ inline int RunNativeGame(std::shared_ptr<const runtime::LoadedGameProject> proje
   std::shared_ptr<StaticView> published;
   bool started{}, failed{}, module_loaded{};
   std::uint64_t frames{}, transitions{}, rejected{};
+  std::uint64_t sprite_draws{}, sprite_visible{};
   auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(30);
   auto previous_tick = std::chrono::steady_clock::now();
   double accumulator{}, audio_accumulator{};
@@ -124,6 +141,13 @@ inline int RunNativeGame(std::shared_ptr<const runtime::LoadedGameProject> proje
           auto palette = PrepareSceneView(*items, view.world, view.primary, &error, true);
           if (!palette)
             return {};
+#if defined(NEXORA_PROJECT_PLAYER_2D)
+          const auto sprites = sprite_assets->Extract(view, extent.width, extent.height);
+          if (!sprites || sprites->statistics.unavailable) {
+            error = "Candidate game Sprite extraction failed.";
+            return {};
+          }
+#endif
           auto staged = std::make_shared<StaticView>(std::move(*palette));
           auto prepared = std::make_unique<PreparedGameView>(staged, published);
           auto data = staged->DrawData(view.world, aspect);
@@ -140,6 +164,21 @@ inline int RunNativeGame(std::shared_ptr<const runtime::LoadedGameProject> proje
             candidate_status = result;
             return {};
           }
+#if defined(NEXORA_PROJECT_PLAYER_2D)
+          if (!sprites->vertices.empty()) {
+            const auto uploads = sprites->Uploads();
+            const auto status =
+                surface.RenderUi({sprites->vertices, std::as_bytes(std::span(sprites->indices)),
+                                  sprites->batches, uploads, true});
+            if (status != SurfaceStatus::Ready) {
+              error = "Candidate native Sprite draw failed.";
+              candidate_status = status;
+              return {};
+            }
+            ++sprite_draws;
+          }
+          sprite_visible = sprites->statistics.visible;
+#endif
           drawn = true;
           return prepared;
         });
@@ -171,6 +210,14 @@ inline int RunNativeGame(std::shared_ptr<const runtime::LoadedGameProject> proje
         failed = true;
         break;
       }
+#if defined(NEXORA_PROJECT_PLAYER_2D)
+      const auto sprites = sprite_assets->Extract(session.View(), extent.width, extent.height);
+      if (!sprites || sprites->statistics.unavailable) {
+        std::cerr << "Live game Sprite extraction failed\n";
+        failed = true;
+        break;
+      }
+#endif
       auto data = refreshed->DrawData(gameplay.world.InternalWorld(), aspect);
       if (data)
         data->retainMeshGeometry = surface.SupportsSceneGeometryResidency();
@@ -180,6 +227,19 @@ inline int RunNativeGame(std::shared_ptr<const runtime::LoadedGameProject> proje
         failed = true;
         break;
       }
+#if defined(NEXORA_PROJECT_PLAYER_2D)
+      if (!sprites->vertices.empty()) {
+        const auto uploads = sprites->Uploads();
+        if (surface.RenderUi({sprites->vertices, std::as_bytes(std::span(sprites->indices)),
+                              sprites->batches, uploads, true}) != SurfaceStatus::Ready) {
+          std::cerr << "Live game Sprite draw failed\n";
+          failed = true;
+          break;
+        }
+        ++sprite_draws;
+      }
+      sprite_visible = sprites->statistics.visible;
+#endif
     }
     const auto presented = surface.EndFrame();
     if (presented == SurfaceStatus::Ready) {
@@ -229,7 +289,8 @@ inline int RunNativeGame(std::shared_ptr<const runtime::LoadedGameProject> proje
             << ",\"stored_entities\":" << stats.stored_entities
             << ",\"presented_frames\":" << observed.presentedFrames
             << ",\"scene_draw_calls\":" << observed.sceneDrawCalls
-            << ",\"geometry_residency_available\":"
+            << ",\"sprite_draw_calls\":" << sprite_draws
+            << ",\"visible_sprites\":" << sprite_visible << ",\"geometry_residency_available\":"
             << (observed.sceneGeometryResidency.available ? "true" : "false")
             << ",\"geometry_uploads\":" << observed.sceneGeometryResidency.uploads
             << ",\"geometry_hits\":" << observed.sceneGeometryResidency.hits

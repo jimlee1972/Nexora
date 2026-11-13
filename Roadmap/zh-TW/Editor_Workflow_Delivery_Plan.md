@@ -32,7 +32,7 @@ SortingGroup、九宮格／Tiled、遮罩及進階動畫狀態機不在本批範
 | ED-WF-04 | [#745](https://github.com/jimlee1972/Nexora/issues/745) | 01 | Runtime／Zig 交易式遷移；替換失敗保留舊模組及 World | ✅ PR #758 |
 | ED-WF-05 | [#746](https://github.com/jimlee1972/Nexora/issues/746) | 02、04 | 背景編譯來源並保留狀態熱重載，不需 Stop／Play | 施工中；整合未驗收 |
 | ED-WF-06 | [#747](https://github.com/jimlee1972/Nexora/issues/747) | 01 | 相容的 C／Zig 來源 API 與 cooked Player 相依閉包 | ✅ PR #767、#769、#770、#772；[驗收](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md) |
-| ED-WF-07 | [#748](https://github.com/jimlee1972/Nexora/issues/748) | 06 | 真實 Editor 來源索引／Inspector／Undo／儲存重開／Play／Build／重匯入 | 施工中；不可變來源索引／Play 快照切片 |
+| ED-WF-07 | [#748](https://github.com/jimlee1972/Nexora/issues/748) | 06 | 真實 Editor 來源索引／Inspector／Undo／儲存重開／Play／Build／重匯入 | 施工中；來源索引、Inspector／持久化、模組 Play 與 Build 支援 |
 | ED-WF-08 | [#749](https://github.com/jimlee1972/Nexora/issues/749) | 04、06、07 | 替換後保留來源動畫錨點、存活 pool 實例與有效 handle | 待辦 |
 | ED-WF-09 | [#750](https://github.com/jimlee1972/Nexora/issues/750) | 02、03、05、07、08 | 整合原生驗收及實際解壓驗證的 Windows Editor ZIP | 待辦 |
 
@@ -214,3 +214,19 @@ Undo／重開／獨立 Play；無來源文件維持 schema 1。Studio 匯入／�
 獨立 Flip／repack 子項 `nexora-whr.6.4` 已於上節驗收。主 Editor 製作畫面／已設定套件 Play／Build
 轉換與來源動畫／熱重載仍未完成。ED-WF-07 尚未驗收；工作流 **5/9**、圖形 Editor
 **0/8** 與 2D **9/11** 維持不變。
+
+## ✅ 主場景 Sprite 來源 Build 支援（2026-11-13）
+
+支援工作 `nexora-whr.7.7` 擷取已存檔的來源 UUID 參照，擁有去重後的來源／Atlas 相依資料與
+精確發佈基準。含來源遊戲使用 capability 3，無來源 capability 2 位元組保持相容；Runtime 不依賴
+選用 TwoD 的型別編碼器。標準 Player 驗證型別相依關係，將重映射後的實際 World 變換繪成 2D 覆蓋層。
+CPU 案例涵蓋過期、損壞、缺失相依資料、擁有者生命週期與 additive ID 重映射；實際 Build／SDK Zig、
+刪除專案、中文路徑搬移及無參數啟動 Player 驗證完整 Sprite 色彩遮罩，底下的原生 3D 像素保持完全相同。
+詳見 [Build 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-Linux-2026-11-13.md)。
+設定式套件 Play 預覽、Scene View、來源動畫／物件池與熱重載仍未完成；保留獨立的無模組 Play 工作。
+ED-WF-07 保持開啟。工作流 **5/9**、圖形編輯器 **0/8**、TwoD **9/11** 與實體／乾淨主機驗收不變。
+
+與已獨立交付的無模組 Play（PR #778、main `2e900aa2`）整合後，詳見
+[主線整合補充證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-MainIntegration-Linux-2026-11-13.md)：
+完整 **521/521**、零失敗／略過，實際 Development／Shipping 原生像素、Monolithic 與 2D-OFF 組建通過。
+原生測試傳輸修正保留相同逾時與全部原有斷言；前輪失敗的完整測試分開保留，父項驗收與里程碑數字不變。
