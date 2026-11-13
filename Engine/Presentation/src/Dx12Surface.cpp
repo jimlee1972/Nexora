@@ -13,6 +13,7 @@
 #include "ScenePbrHlslShaders.h"
 #include "SceneTextureMipmaps.h"
 #include "SceneToneHlslShaders.h"
+#include "SceneUiComposition.h"
 #include "SceneViewAdmission.h"
 #include "StagedUploadAllocation.h"
 #include "ToneParametersUpload.h"
@@ -195,6 +196,7 @@ public:
       commands_->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
     }
     ++diagnostics_.acquiredFrames;
+    sceneUi_.Begin(diagnostics_.acquiredFrames);
     acquired_ = true;
     sceneDrawn_ = sceneOffscreen_ = sceneComposited_ = uiDrawn_ = compositeDrawn_ = false;
     sceneViews_.Reset();
@@ -312,13 +314,22 @@ public:
     ++diagnostics_.presentedFrames;
     return SurfaceStatus::Ready;
   }
+  std::optional<SceneTextureReference> SceneTexture() const noexcept override {
+    if (!OnThread() || !acquired_ || !sceneOffscreen_ || sceneHdr_ || sceneComposited_ || uiDrawn_)
+      return {};
+    return sceneUi_.Reference();
+  }
   SurfaceStatus RenderUi(const UiDrawData &drawData) override {
     if (!OnThread())
       return SurfaceStatus::WrongThread;
-    if (!acquired_ || uiDrawn_ || compositeDrawn_ || (sceneOffscreen_ && !sceneComposited_) ||
-        drawData.vertices.empty() || drawData.indices.empty())
+    if (!acquired_ || uiDrawn_ || compositeDrawn_ || drawData.vertices.empty() ||
+        drawData.indices.empty())
       return SurfaceStatus::InvalidDescriptor;
     if (!ValidateSpriteInstances(drawData))
+      return SurfaceStatus::InvalidDescriptor;
+    const auto scenePlan = sceneUi_.Validate(drawData, width_, height_);
+    if (!scenePlan.valid || ((sceneOffscreen_ && !sceneComposited_) && !scenePlan.sampled) ||
+        (scenePlan.sampled && (!sceneOffscreen_ || sceneHdr_ || sceneComposited_)))
       return SurfaceStatus::InvalidDescriptor;
     if (!twoDLinearRecorded_)
       ResetTwoDLinearFrame(twoDLinearFrames_[frame_]);
@@ -350,6 +361,9 @@ public:
                   instances.size());
     uiUploads_[frame_]->Unmap(0, nullptr);
     diagnostics_.spriteInstanceUploadBytes += instances.size();
+    if (scenePlan.sampled)
+      TransitionSceneTarget(sceneColors_[frame_].Get(), sceneTargetStates_[frame_].colorState,
+                            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     auto rtv = heap_->GetCPUDescriptorHandleForHeapStart();
     rtv.ptr += SIZE_T(frame_) * increment_;
     commands_->OMSetRenderTargets(1, &rtv, FALSE, nullptr);
@@ -374,19 +388,21 @@ public:
     commands_->IASetIndexBuffer(&indexView);
     for (const auto &command : drawData.commands) {
       const auto texture = uiTextures_.find(command.textureId);
-      if (texture == uiTextures_.end()) {
+      const bool sceneTexture = command.sceneTexture != SceneTextureReference{};
+      if (!sceneTexture && texture == uiTextures_.end()) {
         ++diagnostics_.nativeUiRejectedTextures;
         continue;
       }
-      commands_->SetGraphicsRootSignature(texture->second.nearest ? uiNearestRootSignature_.Get()
-                                                                  : uiRootSignature_.Get());
+      const bool nearest = !sceneTexture && texture->second.nearest;
+      commands_->SetGraphicsRootSignature(nearest ? uiNearestRootSignature_.Get()
+                                                  : uiRootSignature_.Get());
       commands_->SetPipelineState(
-          command.instanceCount
-              ? (texture->second.nearest ? spriteNearestPipeline_.Get() : spritePipeline_.Get())
-              : (texture->second.nearest ? uiNearestPipeline_.Get() : uiPipeline_.Get()));
+          command.instanceCount ? (nearest ? spriteNearestPipeline_.Get() : spritePipeline_.Get())
+                                : (nearest ? uiNearestPipeline_.Get() : uiPipeline_.Get()));
       commands_->SetGraphicsRoot32BitConstants(0, 4, transform, 0);
       auto descriptor = uiDescriptors_->GetGPUDescriptorHandleForHeapStart();
-      descriptor.ptr += static_cast<UINT64>(texture->second.descriptor) * uiDescriptorIncrement_;
+      descriptor.ptr += (sceneTexture ? UINT64(frame_) : UINT64(texture->second.descriptor)) *
+                        uiDescriptorIncrement_;
       commands_->SetGraphicsRootDescriptorTable(1, descriptor);
       const D3D12_RECT scissor{command.clipX, command.clipY,
                                command.clipX + static_cast<LONG>(command.clipWidth),
@@ -408,6 +424,12 @@ public:
       ++diagnostics_.nativeUiDrawCalls;
     }
     uiDrawn_ = true;
+    if (scenePlan.sampled) {
+      sceneUi_.Complete();
+      sceneComposited_ = true;
+      sceneViews_.SampledOffscreen(scenePlan.bounds);
+      ++diagnostics_.sceneComposites;
+    }
     return SurfaceStatus::Ready;
   }
   SurfaceStatus DrawScene(const SceneDrawData &drawData) override {
@@ -417,6 +439,8 @@ public:
       return SurfaceStatus::Unsupported;
     if (!acquired_ || compositeDrawn_ || !scenePipeline_ || drawData.vertices.empty() ||
         drawData.indices.empty())
+      return SurfaceStatus::InvalidDescriptor;
+    if (drawData.sampledByUi && (!drawData.offscreen || drawData.hdr))
       return SurfaceStatus::InvalidDescriptor;
     const auto viewport = ResolveSceneViewport(drawData.viewport, width_, height_);
     if (!viewport || !sceneViews_.CanSubmit(drawData, width_, height_, uiDrawn_) ||
@@ -644,10 +668,14 @@ public:
         targets.width == width_ && targets.height == height_ &&
         targets.shadowResolution == shadowResolution && targets.hasReflection == reflection &&
         targets.hasRefraction == refraction;
-    if (!reuseTargets)
+    // A sampled offscreen target is still read by the recorded UI commands. A later disjoint
+    // direct view must retain it until this frame's fence, even though it needs no offscreen RTV.
+    if (!reuseTargets && !sceneUi_.Sampled())
       ResetSceneTargets(frame_);
-    // A failed partial recording must never publish an incomplete target set for later reuse.
-    targets.reusable = false;
+    // A sampled offscreen view is already complete and is not changed by this later direct view.
+    // Keep its cache metadata as well as its owned resources until the frame fence.
+    if (!sceneUi_.Sampled())
+      targets.reusable = false;
     D3D12_CPU_DESCRIPTOR_HANDLE reflectionRtv{};
     const auto base = ActiveSceneUpload().allocation->GetGPUVirtualAddress();
     const auto geometryBase = base + kGeometryOffset;
@@ -678,11 +706,11 @@ public:
       rtv = sceneRtvHeap_->GetCPUDescriptorHandleForHeapStart();
       rtv.ptr += SIZE_T(frame_) * increment_;
       device_->CreateRenderTargetView(sceneColors_[frame_].Get(), nullptr, rtv);
-      if (drawData.hdr) {
+      if (drawData.hdr || drawData.sampledByUi) {
         auto handle = uiDescriptors_->GetCPUDescriptorHandleForHeapStart();
         handle.ptr += SIZE_T(frame_) * uiDescriptorIncrement_;
         D3D12_SHADER_RESOURCE_VIEW_DESC view{};
-        view.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+        view.Format = descriptor.Format;
         view.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
         view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
         view.Texture2D.MipLevels = 1;
@@ -877,15 +905,19 @@ public:
     if (drawData.shadow) {
       ++diagnostics_.sceneShadowPasses;
     }
+    if (drawData.sampledByUi && !sceneUi_.Publish(sceneViewSlot_))
+      return SurfaceStatus::Unsupported;
     static_cast<void>(sceneViews_.Commit(drawData, width_, height_, uiDrawn_));
     sceneDrawn_ = true;
-    targets.reusable = drawData.offscreen;
-    targets.hdr = drawData.hdr;
-    targets.width = width_;
-    targets.height = height_;
-    targets.shadowResolution = shadowResolution;
-    targets.hasReflection = reflection;
-    targets.hasRefraction = refraction;
+    if (!sceneUi_.Sampled()) {
+      targets.reusable = drawData.offscreen;
+      targets.hdr = drawData.hdr;
+      targets.width = width_;
+      targets.height = height_;
+      targets.shadowResolution = shadowResolution;
+      targets.hasReflection = reflection;
+      targets.hasRefraction = refraction;
+    }
     sceneOffscreen_ = drawData.offscreen;
     sceneHdr_ = drawData.hdr;
     sceneExposure_ = drawData.exposure;
@@ -2130,6 +2162,7 @@ private:
       sceneUploads_;
   SceneUploadSlot &ActiveSceneUpload() noexcept { return sceneUploads_[frame_][sceneViewSlot_]; }
   detail::SceneViewAdmission sceneViews_;
+  detail::SceneUiComposition sceneUi_;
   std::size_t sceneViewSlot_{};
 };
 } // namespace

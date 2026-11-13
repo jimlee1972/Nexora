@@ -49,8 +49,9 @@ PrepareSpriteDraws(const UiDrawData &sprites, const UiDrawData &overlay, std::ui
       }
     }
     for (const auto &command : packet->commands) {
-      if (!command.textureId || command.textureId == whiteId || !command.elementCount ||
-          command.elementCount % 3 || command.indexOffset > indices.size() ||
+      if (command.sceneTexture != SceneTextureReference{} || !command.textureId ||
+          command.textureId == whiteId || !command.elementCount || command.elementCount % 3 ||
+          command.indexOffset > indices.size() ||
           command.elementCount > indices.size() - command.indexOffset || command.clipX < 0 ||
           command.clipY < 0 || std::uint32_t(command.clipX) > width ||
           command.clipWidth > width - std::uint32_t(command.clipX) ||

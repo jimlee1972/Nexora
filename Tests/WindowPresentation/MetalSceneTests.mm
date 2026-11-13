@@ -1,3 +1,4 @@
+#include "SceneUiFixture.h"
 #include "SceneViewPairFixture.h"
 #define NEXORA_METAL_SCENE_TESTING 1
 // Compile the real private adapter into this test to read back GPU output without adding public
@@ -918,6 +919,31 @@ int main(int argc, char **argv) {
       if (!SceneViewPairFixture::Pixels(read(160, 180), read(mode < 2 ? 371 : 480, 180),
                                         read(320, 54))) {
         std::cerr << "concurrent Metal PBR uploads aliased or UI was lost\n";
+        return fail(__LINE__);
+      }
+    }
+    SceneUiFixture sceneUi;
+    for (unsigned frame = 0; frame < 12; ++frame) {
+      if (!sceneUi.Draw(*surface, 640, 360)) {
+        std::cerr << sceneUi.failure << '\n';
+        return fail(__LINE__);
+      }
+      const auto pixels = surface->ReadScenePixelsForTesting();
+      if (pixels.size() != 640 * 360 * 4)
+        return fail(__LINE__);
+      const auto read = [&](unsigned x, unsigned y) {
+        const auto offset = (y * 640 + x) * 4;
+        return std::array<unsigned, 3>{std::to_integer<unsigned>(pixels[offset + 2]),
+                                       std::to_integer<unsigned>(pixels[offset + 1]),
+                                       std::to_integer<unsigned>(pixels[offset])};
+      };
+      if (!SceneUiFixture::Pixels(read(160, 180), read(80, 180), read(160, 45), read(480, 180),
+                                  read(480, 45)) ||
+          !SceneUiFixture::Orientation(
+              {read(200, 90), read(100, 90), read(100, 270), read(200, 270)},
+              {read(520, 135), read(420, 135), read(420, 225), read(520, 225)},
+              surface->Diagnostics().uiTargetEncodesSrgb)) {
+        std::cerr << "sampled Metal Scene/UI orientation, clipping or view resources changed\n";
         return fail(__LINE__);
       }
     }

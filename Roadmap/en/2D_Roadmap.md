@@ -1130,3 +1130,14 @@ Full525/525, Shipping/native regression, Monolithic and TwoD-OFF gates pass; [ex
 retains initial failures and the interrupted run. This is a reusable isolated TwoD prerequisite:
 production Player/Editor services and native reload integration remain open under `nexora-whr.8.2`;
 full ED-WF-07/08, **5/9**, **0/8**, **9/11** and physical/clean-host acceptance are unchanged.
+
+## ✅ Fenced Scene images in single-pass UI (2026-11-13)
+
+Supporting `nexora-whr.7.8.1` adds explicit offscreen LDR Scene references sampled inside one UI
+submission with pre-upload stale/foreign validation and fenced per-view resources. Actual Linux
+Development/Shipping fixtures each pass12 frames,24 Scene draws,48 UI commands,two resizes and
+asymmetric pixel/occlusion checks; an inverted-UV negative control fails as expected. Full527/527,
+Monolithic and TwoD-OFF gates pass. [Execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SceneUiComposition-Linux-2026-11-13.md)
+retains initial failures and separates local Linux from hosted platform checks. Parent `nexora-whr.7.8`
+configured packaged Editor source Play remains guarded/open; production reload, full ED-WF-07/08,
+Workflow **5/9**, Editor **0/8**, TwoD **9/11** and physical/clean-host acceptance are unchanged.

@@ -14,6 +14,7 @@
 #include "PbrVegetationFixtures.h"
 #include "PbrWorldMappingFixtures.h"
 #include "PbrWorldNormalFixtures.h"
+#include "SceneUiFixture.h"
 #include "SceneViewPairFixture.h"
 #if defined(_WIN32)
 #define NOMINMAX
@@ -62,7 +63,8 @@ std::array<Rgb, 9> Read(
     Display *display, ::Window window,
 #endif
     unsigned width, unsigned height, const std::filesystem::path &capture,
-    std::uint64_t *sceneHash = nullptr, unsigned *intermediate = nullptr) {
+    std::uint64_t *sceneHash = nullptr, unsigned *intermediate = nullptr,
+    std::span<const std::array<unsigned, 2>> points = {}) {
 #if defined(_WIN32)
   (void)display;
   // This reads desktop pixels, so the native client must stay above other apps
@@ -108,11 +110,16 @@ std::array<Rgb, 9> Read(
                Channel(pixel, image->blue_mask)};
   };
 #endif
-  const std::array result{rgb(width / 4, height / 2),         rgb(width * 3 / 4, height / 2),
-                          rgb(width / 2, height * 3 / 20),    rgb(width / 2, height * 9 / 10),
-                          rgb(width * 129 / 400, height / 2), rgb(width * 58 / 100, height / 2),
-                          rgb(width / 2, height / 2),         rgb(width * 49 / 100, height / 2),
-                          rgb(width * 51 / 100, height / 2)};
+  std::array result{rgb(width / 4, height / 2),         rgb(width * 3 / 4, height / 2),
+                    rgb(width / 2, height * 3 / 20),    rgb(width / 2, height * 9 / 10),
+                    rgb(width * 129 / 400, height / 2), rgb(width * 58 / 100, height / 2),
+                    rgb(width / 2, height / 2),         rgb(width * 49 / 100, height / 2),
+                    rgb(width * 51 / 100, height / 2)};
+  Require(points.size() <= result.size(), "native capture sample count exceeded");
+  for (std::size_t i = 0; i < points.size(); ++i) {
+    Require(points[i][0] < width && points[i][1] < height, "native capture sample escaped client");
+    result[i] = rgb(points[i][0], points[i][1]);
+  }
   if (sceneHash) {
     *sceneHash = 14695981039346656037ULL;
     for (unsigned y = height * 3 / 10; y < height * 7 / 10; ++y)
@@ -906,6 +913,43 @@ int main(int argc, char **argv) {
                   geometryCache.retainedCpuBytes > 0,
               "native PBR geometry uploads never reused their allocation-bound keys");
     }
+    const auto beforeSceneUi = surface->Diagnostics();
+    SceneUiFixture sceneUi;
+    const std::array uiPoints{std::array{width / 4, height / 2}, std::array{width / 8, height / 2},
+                              std::array{width / 4, height / 8},
+                              std::array{width * 3 / 4, height / 2},
+                              std::array{width * 3 / 4, height / 8}};
+    const std::array orientationPoints{
+        std::array{width * 5 / 16, height / 4},      std::array{width * 5 / 32, height / 4},
+        std::array{width * 5 / 32, height * 3 / 4},  std::array{width * 5 / 16, height * 3 / 4},
+        std::array{width * 13 / 16, height * 3 / 8}, std::array{width * 21 / 32, height * 3 / 8},
+        std::array{width * 21 / 32, height * 5 / 8}, std::array{width * 13 / 16, height * 5 / 8}};
+    for (unsigned frame = 0; frame < 12; ++frame) {
+      const bool drawn = sceneUi.Draw(*surface, width, height);
+      Require(drawn,
+              sceneUi.failure.empty() ? "sampled Scene/UI draw failed" : sceneUi.failure.data());
+      bool pixels{};
+      const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
+      while (!pixels && std::chrono::steady_clock::now() < deadline) {
+        const auto sample = Read(display, native, width, height, {}, nullptr, nullptr, uiPoints);
+        const auto orientation =
+            Read(display, native, width, height, {}, nullptr, nullptr, orientationPoints);
+        pixels = SceneUiFixture::Pixels(sample[0], sample[1], sample[2], sample[3], sample[4]) &&
+                 SceneUiFixture::Orientation(
+                     {orientation[0], orientation[1], orientation[2], orientation[3]},
+                     {orientation[4], orientation[5], orientation[6], orientation[7]},
+                     surface->Diagnostics().uiTargetEncodesSrgb);
+        if (!pixels)
+          std::this_thread::sleep_for(std::chrono::milliseconds(2));
+      }
+      Require(pixels, "sampled Scene/UI source-style, orientation or disjoint view pixels changed");
+    }
+    const auto afterSceneUi = surface->Diagnostics();
+    Require(afterSceneUi.presentedFrames - beforeSceneUi.presentedFrames == 12 &&
+                afterSceneUi.sceneDrawCalls - beforeSceneUi.sceneDrawCalls == 24 &&
+                afterSceneUi.sceneComposites - beforeSceneUi.sceneComposites == 12 &&
+                afterSceneUi.nativeUiDrawCalls - beforeSceneUi.nativeUiDrawCalls == 48,
+            "sampled Scene/UI actual submission counts changed");
     Require(surface->DrainAndDestroy() == SurfaceStatus::Ready, "PBR teardown failed");
     Require(surface->Diagnostics().sceneGeometryUploadCache.retainedCpuBytes == 0,
             "native PBR teardown retained CPU geometry keys");

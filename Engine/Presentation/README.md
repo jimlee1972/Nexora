@@ -1,5 +1,14 @@
 # Nexora Presentation contract (WP-M4)
 
+## Scene images in one UI submission
+
+The explicit [offscreen Scene/UI contract](SceneUiComposition.md) adds `sampledByUi` for LDR
+offscreen producers and a current-frame `SceneTextureReference` for indexed UI consumers. The
+surface validates typed references before UI uploads, samples fenced Scene attachments in its one
+UI submission, and preserves subsequent disjoint direct-view admission through conservative UI
+clip bounds. Legacy integer texture IDs and C/Gameplay/Zig wires are unchanged; C++ consumers
+rebuild. This native boundary does not enable the guarded packaged Editor source workflow by itself.
+
 ## Shared 2D Sprite submission
 
 Metal's indexed UI packet admits at most 65 texture uploads per pass, allowing the Editor's
