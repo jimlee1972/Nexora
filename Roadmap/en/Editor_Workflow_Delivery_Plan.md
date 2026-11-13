@@ -162,6 +162,19 @@ The independent catalog/package slice (`nexora-whr.6.3`) is merged in PR #770. I
 assignment, authoring save/reopen, Build and live animation/reload remain open. This supporting
 slice does not accept ED-WF-07; workflow **5/9**, Editor **0/8**, 2D **9/11** remain unchanged.
 
+## ✅ Authored Sprite references in main module Play (2026-11-13)
+
+The independent ED-WF-07 host slice (`nexora-whr.7.4`) freezes main scene source UUID references
+with their exact Runtime/opaque capture and project asset closure. It binds default source Sprites
+to the actual isolated Play scene before module `Create`, rechecks authored drift before activation
+and rejects missing/unsupported/stale bindings before callbacks. Existing gameplay-created sources
+and negative-scale pools remain supported; mixed legacy/authored/legacy native snapshots verify
+Pivot reimport and retained owners. [Contract](../../Apps/Editor/README.md#authored-source-references-in-module-backed-play)
+and [evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-PlayReferences-Linux-2026-11-13.md).
+Inspector widgets, Scene View, no-module Play, Build export and animation/reload remain open.
+The independently merged ND2D/Studio slice is preserved. This supporting slice does not accept ED-WF-07;
+workflow **5/9**, Editor **0/8**, 2D **9/11** remain unchanged.
+
 ## ✅ Main Editor Sprite source reference model (2026-11-13)
 
 The independent ED-WF-07 model slice (`nexora-whr.7.3`) adds an owning source/Atlas catalog and

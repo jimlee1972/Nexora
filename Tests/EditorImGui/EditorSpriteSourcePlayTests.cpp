@@ -19,7 +19,7 @@ runtime::Id entity{};
 NexoraTwoDApiV1 twodApi{};
 NexoraTwoDSourceApiV1 sourceApi{};
 NexoraTwoDInstanceHandle handle{};
-bool stopped{}, destroyed{};
+bool stopped{}, destroyed{}, expect_authored{};
 void Check(bool value, const char *message) {
   if (!value)
     throw std::runtime_error(message);
@@ -50,6 +50,13 @@ int32_t Create(void **state, const NexoraGameplayHostV3 *host) {
   if (!host->get_twod_api || host->get_twod_api(host->context, &twodApi) ||
       NexoraGetTwoDSourcesV1(&twodApi, &sourceApi))
     return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+  NexoraTwoDSourceSpriteV1 authored{};
+  const auto found = sourceApi.get_sprite(sourceApi.context, entity, &authored);
+  if ((expect_authored && (found != 0 || authored.source_high != sourceId.high ||
+                           authored.source_low != sourceId.low || authored.sprite.color[0] != 1 ||
+                           authored.sprite.color[1] != 1 || authored.sprite.color[2] != 1)) ||
+      (!expect_authored && found != NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT))
+    return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
   const NexoraTransformV2 transform{{1, 0, 0}, {0, 0, 0, 1}, {1, 1, 1}};
   const NexoraTwoDCamera camera{{0, 0}, 10, 0};
   NexoraTwoDSourceSpriteV1 sprite{
@@ -179,7 +186,6 @@ void Run(const std::filesystem::path &root, const std::filesystem::path &capture
   Check(authoring.Activate(scene), "activate source scene");
   editor::SceneDocument document(authoring, scene);
   entity = document.Create("Source Sprite");
-  const auto baseline = document.CaptureRuntimeScene();
   std::array<editor::preview::PlayTwoDBinding, 2> bindings;
   {
     editor::ProjectWorkspace workspace;
@@ -203,10 +209,19 @@ void Run(const std::filesystem::path &root, const std::filesystem::path &capture
     Write(root / "Content/Sprite.nx2sprite", Source(3));
     Check(!bindings[0].assets->Matches(workspace, content, true) && content.Reimport(sourceId),
           "stale source or reimport");
+    editor::SpriteSourceCatalog catalog;
+    const auto key = *document.Key(entity);
+    Check(catalog.PublishContent(content.Browser()) && document.Select(std::array{key}) &&
+              editor::AssignSpriteSources(document, std::array{key}, sourceId, catalog.Version(),
+                                          content, catalog, true),
+          "main Editor authored source assignment");
     auto second = editor::preview::CapturePlayTwoD(workspace, content, document, true, error);
-    Check(second && second->assets && error.empty(), "reimported source Play capture");
+    Check(second && second->assets && error.empty() &&
+              editor::preview::MatchesPlayTwoD(*second, document, error),
+          "reimported authored source Play capture");
     bindings[1] = std::move(*second);
   }
+  const auto baseline = document.CaptureRuntimeScene();
   std::filesystem::remove_all(root); // Both snapshots must render without project/source owners.
 #if defined(NEXORA_EDITOR_SOURCE_NATIVE)
   auto surface =
@@ -228,6 +243,7 @@ void Run(const std::filesystem::path &root, const std::filesystem::path &capture
   std::optional<float> firstX;
   for (unsigned phase = 0; phase < 3; ++phase) {
     const bool shifted = phase == 1;
+    expect_authored = shifted;
     Check(play.Start(0.1, [](runtime::World &, double) { return true; }), "source Play clone");
     editor::preview::PlayGameplayModule module;
     Check(module.Load(*play.PlayWorld(), Loader, {}, bindings[shifted ? 1 : 0]) &&

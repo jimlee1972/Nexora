@@ -1010,6 +1010,13 @@ old-owner retention across reimport. [Evidence](../../Tools/Build/evidence/Edito
 Inspector source assignment, authoring persistence, Build, source animation/reload and complete
 Editor acceptance remain open. ED-WF stays 5/9, Editor 0/8, 2D 9/11; M6/M7 physical gates unchanged.
 
+✅ Main module Play now freezes and binds authored source UUID references before module Create
+(`nexora-whr.7.4`), rechecks exact authored drift and rejects stale/missing/unsupported bindings.
+Legacy/authored/legacy native snapshots retain source/Pivot geometry and negative-scale pools
+after reimport and source/project destruction. Inspector widgets, Scene View, no-module Play,
+Build and animation/reload remain open; counts do not change.
+[Contract and evidence](Editor_Workflow_Delivery_Plan.md#-authored-sprite-references-in-main-module-play-2026-11-13).
+
 ✅ The 2026-11-13 main Editor reference-model prerequisite (`nexora-whr.7.3`) adds owning source/Atlas
 lookup and complete-selection UUID assignment/clear with one Undo/Redo and wrapped Save/Reload.
 Exact Content generation/revision rejects stale reimports. This adds no Inspector widgets, authoring
