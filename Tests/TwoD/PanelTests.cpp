@@ -82,6 +82,56 @@ void Run() {
             doc.Save() == authored,
         "invalid preview camera or authoring mutation");
 
+  // Source import emits an owner request, including the same access checks as other imports.
+  const auto sourceImport = [&](bool allowed) {
+    const float x = undoX + 2 * (buttonWidth + style.ItemSpacing.x);
+    const float importY = y + buttonWidth + style.ItemSpacing.y;
+    io.AddMousePosEvent(x, importY);
+    io.AddMouseButtonEvent(0, true);
+    frame(allowed);
+    io.AddMouseButtonEvent(0, false);
+    frame(allowed);
+  };
+  sourceImport(true);
+  Check(panel.importSpriteRequested, "graphical source import request");
+  panel.importSpriteRequested = false;
+  sourceImport(false);
+  Check(!panel.importSpriteRequested, "unauthorized source import request");
+  doc.SetReadOnly(true);
+  sourceImport(true);
+  Check(!panel.importSpriteRequested, "read-only source import request");
+  doc.SetReadOnly(false);
+  twod::SpriteAsset source;
+  source.id = {14, 15};
+  source.atlas = atlas->id;
+  source.region = 1;
+  source.sourceWidth = source.sourceHeight = 4;
+  source.trimX = source.trimY = source.trimWidth = source.trimHeight = 1;
+  source.pivotX = source.pivotY = 2;
+  source.pixelsPerUnit = 1;
+  auto bound = *doc.Scene().Find(*spriteId);
+  bound.source = source.id;
+  Check(doc.ReplaceSpriteSource(source) && doc.EditSprite(*spriteId, bound, {}),
+        "panel source binding");
+  panel.selected = *spriteId;
+  panel.camera.verticalSize = 10;
+  panel.camera.center = {};
+  const auto previewX = [&] {
+    frame(true);
+    const auto *data = ImGui::GetDrawData();
+    for (int i = 0; i < data->CmdListsCount; ++i) {
+      const auto *list = data->CmdLists[i];
+      for (const auto &command : list->CmdBuffer)
+        if (command.GetTexID() == 1 && command.ElemCount >= 6)
+          return list->VtxBuffer[list->IdxBuffer[command.IdxOffset] + command.VtxOffset].pos.x;
+    }
+    throw std::runtime_error("source preview missing");
+  };
+  const auto beforePivot = previewX();
+  source.pivotX = 3;
+  Check(doc.ReplaceSpriteSource(source) && previewX() < beforePivot,
+        "panel preview ignored retained source geometry");
+
   ImGui::DestroyContext();
 }
 } // namespace

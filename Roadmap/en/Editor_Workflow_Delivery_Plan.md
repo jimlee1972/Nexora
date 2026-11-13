@@ -186,3 +186,15 @@ all 41 latest exact-head hosted checks pass and PR #772 is merged. The consolida
 [acceptance](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md) records compatible consumers,
 immutable cooked closure, feature-OFF builds and native repacks. Workflow is **5/9 (55.6%)**;
 Editor **0/8**, 2D **9/11** and physical/clean-host gates remain unchanged.
+
+## ✅ Source-bearing Studio document persistence (2026-11-13)
+
+Supporting `nexora-whr.7.2` adds immutable source ownership, schema-2 ND2D persistence and source-aware
+Undo/reopen/isolated Play while retaining source-free schema 1. Studio imports/assigns/previews source
+UUIDs; Player validates embedded Atlas/source closure before module callbacks. Actual moved,
+source-deleted packages and native pixels cover persisted Pivot/trim and negative scale. Initial
+fixture/build-scheduling failures remain separate from accepted results in the
+[cloud evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-AuthoredSources-Linux-2026-11-13.md).
+The independent Flip/repack task `nexora-whr.6.4` is accepted above. End-to-end main Editor Inspector,
+project save/reopen/Build and live source animation/reload remain open. ED-WF-07 is not accepted;
+workflow **5/9**, graphical Editor **0/8** and 2D **9/11** remain unchanged.

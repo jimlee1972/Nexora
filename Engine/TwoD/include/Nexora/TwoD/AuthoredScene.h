@@ -10,6 +10,7 @@ struct NEXORA_2D_API AuthoredScene final {
   Atlas atlas;
   Clip clip;
   Tilemap tiles;
+  std::vector<SpriteAsset> sources;
   AuthoredScene() = default;
   AuthoredScene(const AuthoredScene &) = delete;
   AuthoredScene &operator=(const AuthoredScene &) = delete;
@@ -17,6 +18,14 @@ struct NEXORA_2D_API AuthoredScene final {
 };
 [[nodiscard]] NEXORA_2D_API bool ValidateSceneReferences(const SpriteScene &, const Atlas &,
                                                          const Clip &, const Tilemap &);
+[[nodiscard]] NEXORA_2D_API bool ValidateSceneReferences(const SpriteScene &, const Atlas &,
+                                                         const Clip &, const Tilemap &,
+                                                         std::span<const SpriteAsset>);
 [[nodiscard]] NEXORA_2D_API Bytes EncodeAuthoredScene(const SpriteScene &, const Atlas &,
                                                       const Clip &, const Tilemap &);
+// Source-free documents retain schema 1 byte-for-byte. Schema 2 appends a bounded, sorted
+// catalog of the existing Sprite metadata wire; it never stores source paths.
+[[nodiscard]] NEXORA_2D_API Bytes EncodeAuthoredScene(const SpriteScene &, const Atlas &,
+                                                      const Clip &, const Tilemap &,
+                                                      std::span<const SpriteAsset>);
 } // namespace nexora::twod

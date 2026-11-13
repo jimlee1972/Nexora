@@ -2329,6 +2329,15 @@ old-owner retention across reimport. [Evidence](../../Tools/Build/evidence/Edito
 Inspector source assignment, authoring persistence, Build, source animation/reload and complete
 Editor acceptance remain open. ED-WF stays 5/9, Editor 0/8, 2D 9/11; M6/M7 physical gates unchanged.
 
+## ✅ Isolated source-bearing authoring documents (2026-11-13)
+
+TwoDDocument now owns a bounded immutable source catalog with source assignment, transactional
+metadata replacement/removal, Undo/Redo, save/reopen and isolated Play snapshots. Studio controls
+and previews use the same resolver; Player accepts exported embedded sources after relocation.
+Legacy documents retain exact schema-1 bytes. See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-AuthoredSources-Linux-2026-11-13.md).
+This supporting `nexora-whr.7.2` slice does not accept end-to-end main Editor Inspector/project persistence,
+Build, source animation/reload or complete ED-WF-07; graphical milestones remain **0/8**.
+
 ✅ The 2026-11-13 main Editor reference-model prerequisite (`nexora-whr.7.3`) adds owning source/Atlas
 lookup, exact Content generation/revision checks and complete-selection UUID assignment/clear with
 one Undo/Redo and wrapped scene Save/Reload. Unknown payloads remain protected. This does not add

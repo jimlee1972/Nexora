@@ -51,7 +51,7 @@ with their existing ownership, transaction, restore and save-batch contracts unc
 ## 2D authoring document
 
 ✅ TwoDDocument is compiled only with NEXORA_ENABLE_2D and owns an isolated Runtime World,
-SpriteScene, Atlas, clip and Tilemap. It uses Runtime UndoStack with whole-document snapshots,
+SpriteScene, Atlas, clip, Tilemap and an immutable Sprite source catalog. It uses Runtime UndoStack with whole-document snapshots,
 bounded to 256 transactions and 64 MiB retained bytes; a new transaction resets older history when the count/memory limit is reached. A single
 transaction exceeding the memory budget rejects without changing the document. Invalid edits restore the previous snapshot and do not record history.
 Reopen validates all codecs, UUID/frame/region references and scene membership in a staging World
@@ -2759,13 +2759,22 @@ acceptance are tracked independently in EditorImGui and the graphical publicatio
 
 ### Sprite source binding boundary
 
-`TwoDDocument` currently owns Atlas/Clip/Tilemap data, without a Sprite source catalog. Its
-AddSprite/EditSprite/Reopen boundaries reject a present `Sprite::source` atomically rather than
-accepting an asset reference they cannot freeze/restore for Undo or isolated Play. The source-free
-path accepts `std::nullopt`; an empty optional is not a present zero UUID. The underlying
-TwoD scene supports source UUID snapshots and source-aware extraction; see
+`TwoDDocument::ReplaceSpriteSource` owns validated source metadata in a sorted immutable catalog
+of at most 4096 entries. Every source must resolve against the document's Atlas through the shared
+geometry resolver; duplicate/Atlas/Clip identities, invalid regions/trim and missing bindings reject.
+`SpriteSource(id)` returns an owning alias that survives replacement, Undo and reopen. The
+`SpriteSources()` view expires on mutation. Removing a referenced source rejects; clearing a
+binding explicitly uses the Sprite's stored legacy fields. Source-free `std::nullopt` remains distinct
+from an invalid present zero UUID. The underlying TwoD scene supports source UUID snapshots; see
 [the source contract](../TwoD/SpriteAssets.md#persistent-scene-and-pool-source-bindings).
-Project import, frozen Play capture and Player catalogs still require explicit source admission.
+Source metadata, bindings and edits participate in the existing history/Dirty/read-only rules.
+ND2D schema 2 embeds the source catalog; source-free saves retain exact schema-1 bytes. Reopen
+validates a staging owner and isolated Play retains its own source generation. Serialization-budget
+failure rolls back the edit. The 64 MiB document/history budgets remain unchanged; separately
+retained external aliases are outside history accounting. C++ document/context layouts change and
+consumers rebuild; C/Zig tables and existing Atlas/Clip/source/NX2S wires are unchanged.
+This is the isolated Studio document boundary. End-to-end main Editor Inspector/project save/reopen/Build and
+live source animation/reload integration remain separate ED-WF-07/08 acceptance gates.
 
 ## User appearance preference
 

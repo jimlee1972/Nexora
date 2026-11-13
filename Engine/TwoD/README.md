@@ -299,12 +299,28 @@ Zig blob parsing and ordered selective bloom without changing Atlas/Clip or Spri
 
 ## Packaged authored 2D scenes
 
-`AuthoredScene` reads the existing ND2D schema-1 2D Studio document: NX2S World/Sprite/collider
+`AuthoredScene` reads ND2D schema-1/2 2D Studio documents: NX2S World/Sprite/collider
 snapshot plus optional embedded Atlas, Clip and Tilemap. `TwoDDocument` uses this same codec;
 Shipping never links Editor. A `.scene` extension is supported by Studio and does not turn a
-3D Editor text scene into an ND2D document. Sprite source UUID catalogs and per-scene Zig module
-binding are not part of this format. Open/validate with the appropriate editor; incompatible
+3D Editor text scene into an ND2D document. Schema 2 adds owning Sprite source metadata; per-scene
+Zig module binding remains separate. Open/validate with the appropriate editor; incompatible
 bytes reject, rather than being treated as an empty scene.
+
+Source-free encoding remains byte-identical schema 1. Schema 2 appends a little-endian U32 count
+(1..4096) after the four existing length-prefixed sections, followed by length-prefixed 96-byte
+`.nx2sprite` schema-1 records in strictly increasing UUID high/low order. The complete document
+retains its 64 MiB wire limit. Duplicate/noncanonical catalogs, unsupported versions, trailing bytes,
+missing source bindings, Atlas/Clip identity collisions and incompatible Atlas/region/trim geometry
+reject before publication. The encoder canonicalizes source order; all geometry uses the shared
+`ResolveSpriteAsset` implementation. Source-bearing reference validation checks the complete immutable
+Atlas once, then shares the resolver's per-source metadata/region/geometry checks. Its source-catalog
+cost is O(regions² + sources × log(regions)), avoiding repeated full Atlas overlap scans during edits.
+Returned `AuthoredScene` owns every record; C++ consumers rebuild.
+
+Player admits each document's Atlas, Clip and source records into the existing content registry
+before gameplay starts. Equal UUIDs across scene/asset catalogs require byte-identical metadata;
+conflicting owners reject startup. Existing global registry/byte budgets still apply, including
+embedded assets, and scene imports preserve source UUIDs when remapping entity identities.
 
 `SceneSession` owns immutable validated catalog sources and live Sprite/Tilemap metadata, borrowing
 an exclusively managed Play World. The session and World outlive `GameplayBridge` and every module

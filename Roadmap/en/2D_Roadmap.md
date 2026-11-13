@@ -1028,3 +1028,16 @@ all 41 latest exact-head hosted checks pass and PR #772 is merged. The combined
 [acceptance record](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md) completes ED-WF-06
 with legacy compatibility, immutable cooked closure and feature-OFF builds. Workflow acceptance
 is 5/9 (55.6%); Editor 0/8, 2D 9/11 and physical/clean-host gates remain unchanged.
+
+## ✅ Authored Sprite source document persistence (2026-11-13)
+
+The ED-WF-07 supporting slice `nexora-whr.7.2` adds an owning source catalog to ND2D schema 2,
+TwoDDocument history/reopen and isolated Play, plus Studio source import/assignment/preview.
+Source-free schema-1 bytes and C/Zig tables remain compatible. Player admits the embedded closure
+before gameplay; moved packages run after authoring-source deletion. Native pixels verify persisted
+trim/Pivot and negative-scale geometry, and malformed export/conflicting sources preserve rejection.
+Reference validation scans the complete Atlas once per document, then reuses the shared per-source
+resolver checks; regression coverage combines 4096 sources with 1024 Atlas regions.
+See [cloud evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-AuthoredSources-Linux-2026-11-13.md).
+End-to-end main Editor Inspector/project save/reopen/Build, source-animation/reload and complete ED-WF-07 remain
+open. Workflow **5/9**, graphical Editor **0/8**, 2D **9/11** and physical M6/M7 acceptance are unchanged.

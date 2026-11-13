@@ -168,3 +168,14 @@ ED-WF-06 的原生驗證（`nexora-whr.6.4`）透過搬移後的 catalog 遊戲�
 完整[驗收](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md)記錄相容消費端、不可變 cooked
 閉包、feature-OFF 建置及原生重排。流程為 **5/9（55.6%）**；Editor **0/8**、2D **9/11**
 及實機／乾淨主機 gate 維持不變。
+
+## ✅ Studio source 文件持久化（2026-11-13）
+
+配套子項 `nexora-whr.7.2` 加入不可變 source 所有權、ND2D schema-2 持久化，以及來源感知的
+Undo／重開／獨立 Play；無來源文件維持 schema 1。Studio 匯入／指派／預覽來源 UUID，Player
+在模組 callback 前驗證內嵌 Atlas／source 閉包。實際搬移並刪除來源的套件及原生像素覆蓋
+持久化 Pivot／trim 與負縮放。初始測試模組與建置排程失敗，和通過結果分別保留於
+[雲端證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-AuthoredSources-Linux-2026-11-13.md)。
+獨立 Flip／repack 子項 `nexora-whr.6.4` 已於上節驗收。主 Editor Inspector 驅動的專案存檔
+重開／Build 與來源動畫／熱重載仍未完成。ED-WF-07 尚未驗收；工作流 **5/9**、圖形 Editor
+**0/8** 與 2D **9/11** 維持不變。

@@ -414,6 +414,20 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
                                            &assetHigh, &assetLow) == 0,
                   "scene Clip admission");
         }
+        for (const auto &sprite : source->sources) {
+          const auto bytes = twod::EncodeSpriteAsset(sprite);
+          const auto existing = content.ResolveSprite(sprite.id);
+          Check(!existing || twod::EncodeSpriteAsset(*existing) == bytes,
+                "conflicting authored scene Sprite source identity");
+          if (!existing) {
+            NexoraGameplaySpriteContentApiV1 api{};
+            api.struct_size = sizeof(api);
+            Check(content.GetSpriteApi(&api) == 0 &&
+                      api.register_sprite_source(api.context, bytes.data(), bytes.size(),
+                                                 &assetHigh, &assetLow) == 0,
+                  "scene Sprite source admission");
+          }
+        }
         sceneCatalog.push_back({entry.path, entry.id, source});
       }
     }

@@ -914,3 +914,15 @@ Development 與嚴格 Shipping 原生擷取通過；原有內嵌／catalog 模�
 完整[驗收紀錄](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md)整合舊消費端相容性、
 不可變 cooked 閉包及 feature-OFF 建置，完成 ED-WF-06。流程驗收為 5/9（55.6%）；
 Editor 0/8、2D 9/11 及實機／乾淨主機 gate 維持不變。
+
+## ✅ Sprite source 作者文件持久化（2026-11-13）
+
+ED-WF-07 配套子項 `nexora-whr.7.2` 在 ND2D schema 2、TwoDDocument 歷史／重開與獨立 Play
+加入自有 source 目錄，並提供 Studio 來源匯入／指派／預覽。無 source 的 schema-1 位元組與
+C/Zig 表格維持相容。Player 在 gameplay 前接納內嵌相依閉包；搬移套件刪除作者來源後仍可執行。
+原生像素驗證持久化 trim／Pivot 與負縮放幾何，錯誤匯出及衝突來源持續被拒絕。
+參照驗證每份文件只完整檢查 Atlas 一次，再共用逐筆 source 的解析器檢查；
+回歸案例同時涵蓋 4096 sources 與 1024 Atlas regions。
+詳見[雲端證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-AuthoredSources-Linux-2026-11-13.md)。
+主 Editor Inspector 驅動的專案存檔重開／Build、來源動畫／熱重載與完整 ED-WF-07 仍未完成。
+工作流 **5/9**、圖形 Editor **0/8**、2D **9/11** 及 M6／M7 實機驗收維持不變。

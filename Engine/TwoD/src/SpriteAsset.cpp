@@ -89,9 +89,9 @@ std::optional<SpriteAsset> DecodeSpriteAsset(std::span<const std::byte> bytes) {
   return r.Done() && ValidateSpriteAsset(a) ? std::optional(a) : std::nullopt;
 }
 
-namespace {
-std::optional<SpriteInstance> ResolveGeometry(const SpriteAsset &a, const Atlas &atlas,
-                                              SpriteInstance instance) {
+std::optional<SpriteInstance>
+detail::ResolveSpriteAssetWithValidatedAtlas(const SpriteAsset &a, const Atlas &atlas,
+                                             SpriteInstance instance) {
   if (!ValidateSpriteAsset(a) || atlas.id != a.atlas || !instance.id)
     return std::nullopt;
   const auto *region = atlas.Find(a.region);
@@ -99,8 +99,6 @@ std::optional<SpriteInstance> ResolveGeometry(const SpriteAsset &a, const Atlas 
     return std::nullopt;
   return detail::SpriteGeometry(a, std::move(instance));
 }
-
-} // namespace
 
 std::optional<SpriteInstance> detail::SpriteGeometry(const SpriteAsset &a,
                                                      SpriteInstance instance) {
@@ -140,7 +138,7 @@ std::optional<SpriteInstance> ResolveSpriteAsset(const SpriteAsset &a, const Atl
                                                  SpriteInstance instance) {
   if (!ValidateAtlas(atlas))
     return std::nullopt;
-  return ResolveGeometry(a, atlas, std::move(instance));
+  return detail::ResolveSpriteAssetWithValidatedAtlas(a, atlas, std::move(instance));
 }
 
 } // namespace nexora::twod

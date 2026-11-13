@@ -156,6 +156,7 @@ jobs:
             build/${{ matrix.preset }}/artifacts/hd2d-zig-*/
             build/${{ matrix.preset }}/artifacts/source-player/
             build/${{ matrix.preset }}/artifacts/editor-sprite-sources/
+            build/${{ matrix.preset }}/artifacts/authored-source*/
             build/${{ matrix.preset }}/Testing/Temporary/LastTest.log
             build/${{ matrix.preset }}/development-tests.log
             build/${{ matrix.preset }}/Tests/Editor/editor-startup-splash*.bmp
