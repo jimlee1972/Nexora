@@ -146,6 +146,17 @@ GitHub README 維持讀者導向，整體 milestone 未變時不加入逐工單�
 儲存重開、Build 與即時動畫／重載仍待完成。本 supporting 切片不驗收 ED-WF-07；
 流程 **5/9**、Editor **0/8**、2D **9/11** 維持不變。
 
+## ✅ 主 Editor module Play 的製作來源參照（2026-11-13）
+
+獨立的 ED-WF-07 host 切片（`nexora-whr.7.4`）將主場景來源 UUID 參照與精確 Runtime／opaque
+擷取、專案資產閉包一起凍結，在 module `Create` 前於真正隔離 Play 場景綁定預設來源 Sprite，
+啟動前重查製作內容，並在 callback 前拒絕缺失／不支援／過期綁定。既有 gameplay 自建來源與
+負縮放 pool 仍受支援；legacy／製作參照／legacy 的混合原生快照驗證 Pivot 重匯入與舊擁有者
+保留。詳見[契約](../../Apps/Editor/README.md#authored-source-references-in-module-backed-play)
+與[證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-PlayReferences-Linux-2026-11-13.md)。
+Inspector 控件、Scene View、無 module Play、Build 匯出及動畫／重載仍待完成；獨立合併的
+ND2D／Studio 交付已保留。此基礎不驗收 ED-WF-07；流程 **5/9**、Editor **0/8**、2D **9/11** 不變。
+
 ## ✅ 主 Editor Sprite 來源參照模型（2026-11-13）
 
 獨立的 ED-WF-07 模型切片（`nexora-whr.7.3`）新增擁有來源／Atlas 的目錄，以及主 Editor

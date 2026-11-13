@@ -2812,6 +2812,15 @@ remain separate ED-WF-07/08 acceptance gates.
 
 ### Main Editor Sprite source reference transactions
 
+The whole-scene `InspectOpaqueComponents(type, reserved_name)` overload captures owning 64-byte
+previews for matching type **or** name. It validates live Editor entity membership with one index
+and traverses nodes/records once, without repeated `Key` lookups or Runtime serialization. Existing
+100000-entity/4096-record bounds apply; invalid scope rejects. Returned entity IDs, type names and
+previews survive document teardown. Unsupported records stay unmodified for caller validation.
+This is the main Play reference probe, including the asset-free 3D fast path; it avoids the
+quadratic cost of repeatedly using the single-entity Inspector accessor on every scene node.
+The new exported C++ overload requires rebuilding its consumers; no C ABI or class-layout change.
+
 With `NEXORA_ENABLE_2D`, `SpriteSourceCatalog` publishes an owning, CPU-only view of the current
 Content source/Atlas closure on the authoring thread. It uses immutable `TwoDAssetPayload` owners
 already validated by `ImportTwoDAsset`, verifies UUID/type identity and the 4096-asset/64 MiB retained
@@ -2844,9 +2853,12 @@ transaction handles the batch and its Undo/Redo; unrelated components and Runtim
 Equal assignment/absent removal preserve pending Redo. Wrapped scene Save/Reload stores the UUID
 reference, including unresolved references; reopening must obtain fresh NodeKeys.
 
-This is the main Inspector's model prerequisite. It adds no Inspector widget, runtime Sprite,
-authored ND2D source catalog, Scene View drawing, main Play reference conversion or Build export.
-Those consumers must explicitly validate and freeze their closures before use. No C/Zig ABI,
+This is the main Inspector's model prerequisite. The application now converts references for
+module-backed main Play after validating and freezing the scene and asset closure; see the
+[host ownership contract](../../Apps/Editor/README.md#authored-source-references-in-module-backed-play).
+TwoDDocument/ND2D/Studio owns its separate source catalog. Inspector widgets, Scene View drawing,
+no-module Play and main Editor Build export remain separate consumers requiring their own closure
+validation. No C/Zig ABI,
 NX2S/ND2D or asset codec changes; consumers of the new exported C++ API rebuild. When 2D is disabled,
 the helper is absent and the ordinary opaque scene wrapper still preserves its bytes. See
 [reference transaction evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceReferences-Linux-2026-11-13.md).

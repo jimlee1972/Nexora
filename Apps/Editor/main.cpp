@@ -2796,8 +2796,11 @@ int RunGraphical(std::optional<ProjectState> project,
             })) {
           std::string gameplay_error;
 #if defined(NEXORA_HAS_2D)
-          if (two_d.assets && !two_d.assets->Matches(project->workspace, content,
-                                                     scene_authoring_allowed(), &gameplay_error)) {
+          if (!ui.GameplayLibrary().empty() &&
+              (!nexora::editor::preview::MatchesPlayTwoD(two_d, active_scene(), gameplay_error) ||
+               (two_d.assets &&
+                !two_d.assets->Matches(project->workspace, content, scene_authoring_allowed(),
+                                       &gameplay_error)))) {
             static_cast<void>(play.Stop());
             ui.SetGameplayStatus(gameplay_error);
             log(nexora::runtime::RuntimeLogSeverity::Error, "PIE", gameplay_error);

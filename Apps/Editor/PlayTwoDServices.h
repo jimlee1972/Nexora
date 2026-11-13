@@ -3,6 +3,7 @@
 #include "Nexora/Runtime/Runtime.h"
 #if defined(NEXORA_HAS_2D)
 #include "Nexora/Editor/ProjectTwoDPlayAssets.h"
+#include "Nexora/Editor/SpriteSourceCatalog.h"
 #include "Nexora/Runtime/GameplayAudio.h"
 #include "Nexora/Runtime/GameplayGamepad.h"
 #include "Nexora/Runtime/GameplayInput.h"
@@ -17,6 +18,7 @@
 #include <chrono>
 #include <functional>
 #include <stdexcept>
+#include <unordered_set>
 #endif
 
 namespace nexora::editor::preview {
@@ -24,11 +26,85 @@ namespace nexora::editor::preview {
 struct PlayTwoDBinding final {
   runtime::Id scene{};
 #if defined(NEXORA_HAS_2D)
+  struct SourceSprite final {
+    runtime::Id entity{};
+    runtime::AssetUuid source;
+    friend bool operator==(const SourceSprite &, const SourceSprite &) = default;
+  };
   std::shared_ptr<const ProjectTwoDPlayAssets> assets;
+  std::shared_ptr<const SceneDocument::RuntimeSceneCapture> authoring{};
 #endif
 };
 
 #if defined(NEXORA_HAS_2D)
+// Bounded owning previews avoid copying arbitrary plugin payloads merely to find references.
+inline std::optional<std::vector<PlayTwoDBinding::SourceSprite>>
+CapturePlaySourceReferences(const SceneDocument &document, std::string &error) {
+  std::vector<PlayTwoDBinding::SourceSprite> result;
+  const auto components =
+      document.InspectOpaqueComponents(kSpriteSourceReferenceType, kSpriteSourceReferenceName);
+  if (!components) {
+    error = "Play Sprite reference inspection requires a live bounded Editor scene.";
+    return {};
+  }
+  for (const auto &component : *components) {
+    const auto source = ReadSpriteSourceReference(component);
+    if (!source || result.size() == 4096) {
+      error = "Play Sprite reference is unsupported, malformed or exceeds the 4096 Sprite limit.";
+      return {};
+    }
+    result.push_back({component.entity, *source});
+  }
+  return result;
+}
+
+inline std::optional<std::vector<PlayTwoDBinding::SourceSprite>>
+CapturePlaySourceReferences(const SceneDocument::RuntimeSceneCapture &capture, std::string &error) {
+  std::vector<PlayTwoDBinding::SourceSprite> result;
+  if (capture.nodes.size() > SceneDocument::kMaximumRuntimeCaptureEntities)
+    return {};
+  for (const auto &node : capture.nodes)
+    for (const auto &component : node.opaque) {
+      if (component.type != kSpriteSourceReferenceType &&
+          component.type_name != kSpriteSourceReferenceName)
+        continue;
+      if (component.type != kSpriteSourceReferenceType ||
+          component.type_name != kSpriteSourceReferenceName || component.data.size() != 17) {
+        error = "Frozen Play Sprite reference has an unsupported identity or size.";
+        return {};
+      }
+      OpaqueComponentInfo info{component.type, component.type_name, component.data.size(),
+                               component.data, node.key.id};
+      const auto source = ReadSpriteSourceReference(info);
+      if (!source || result.size() == 4096) {
+        error = "Frozen Play Sprite reference is unsupported, malformed or exceeds its limit.";
+        return {};
+      }
+      result.push_back({node.key.id, *source});
+    }
+  return result;
+}
+
+// Production activation rechecks the exact authored capture, including opaque reference bytes.
+// Retained bindings can still replay against their matching isolated World after owners disappear.
+inline bool MatchesPlayTwoD(const PlayTwoDBinding &binding, const SceneDocument &document,
+                            std::string &error) try {
+  error.clear();
+  if (!binding.authoring) {
+    const auto references = CapturePlaySourceReferences(document, error);
+    if (references && references->empty())
+      return true;
+  } else if (const auto current = document.CaptureRuntimeScene();
+             current && *current == *binding.authoring)
+    return true;
+  if (error.empty())
+    error = "Play Sprite references or scene changed; prepare Play again.";
+  return false;
+} catch (...) {
+  error = "Play Sprite reference recheck failed.";
+  return false;
+}
+
 inline std::optional<PlayTwoDBinding> CapturePlayTwoD(const ProjectWorkspace &workspace,
                                                       const ProjectContentSession &content,
                                                       const SceneDocument &document,
@@ -45,9 +121,12 @@ inline std::optional<PlayTwoDBinding> CapturePlayTwoD(const ProjectWorkspace &wo
     }
     roots.push_back(item.id);
   }
-  if (roots.empty())
+  const auto references = CapturePlaySourceReferences(document, error);
+  if (!references)
+    return {};
+  if (roots.empty() && references->empty())
     return PlayTwoDBinding{};
-  const auto source = document.CaptureRuntimeScene();
+  auto source = document.CaptureRuntimeScene();
   if (!source) {
     error = "Play 2D scene capture is unavailable.";
     return {};
@@ -57,7 +136,14 @@ inline std::optional<PlayTwoDBinding> CapturePlayTwoD(const ProjectWorkspace &wo
                                                authorized, &error);
   if (!assets)
     return {};
-  return PlayTwoDBinding{source->scene, std::move(assets)};
+  for (const auto &reference : *references)
+    if (!assets->Assets()->SpriteSource(reference.source)) {
+      error = "An authored Play Sprite source is missing from the frozen project assets.";
+      return {};
+    }
+  return PlayTwoDBinding{
+      source->scene, std::move(assets),
+      std::make_shared<const SceneDocument::RuntimeSceneCapture>(std::move(*source))};
 } catch (...) {
   error = "Play 2D asset preparation failed.";
   return {};
@@ -75,18 +161,41 @@ inline std::uint64_t PlayTextureId() {
     throw std::runtime_error("Play texture identity exhausted");
   return value;
 }
-// Borrows the actual Play clone. No second World and no authoring Sprite metadata are created.
+// Borrows the actual Play clone and owns frozen Sprite metadata copied from authored references.
 // Destroy after module callbacks and before the borrowed World. Calls serialize on its owner
 // thread.
 class PlayTwoDServices final {
 public:
   static std::unique_ptr<PlayTwoDServices>
-  Bind(runtime::World &world, const PlayTwoDBinding &binding, bool native = false) {
+  Bind(runtime::World &world, const PlayTwoDBinding &binding, bool native = false) try {
     const auto *scene = world.FindScene(binding.scene);
     if (world.Kind() != runtime::WorldKind::Play || !scene ||
         scene->state != runtime::SceneState::Active || !binding.assets || !binding.assets->Assets())
       return {};
-    return std::unique_ptr<PlayTwoDServices>(new PlayTwoDServices(world, binding, native));
+    std::vector<PlayTwoDBinding::SourceSprite> references;
+    if (binding.authoring) {
+      if (binding.authoring->scene != binding.scene ||
+          scene->entities.size() > SceneDocument::kMaximumRuntimeCaptureEntities)
+        return {};
+      const auto current =
+          world.SaveScene(binding.scene, SceneDocument::kMaximumRuntimeCaptureBytes);
+      if (!current || *current != binding.authoring->runtime_snapshot)
+        return {};
+      std::string error;
+      auto captured = CapturePlaySourceReferences(*binding.authoring, error);
+      if (!captured)
+        return {};
+      references = std::move(*captured);
+    }
+    std::unordered_set<runtime::Id> entities;
+    for (const auto &reference : references)
+      if (!reference.entity || !entities.insert(reference.entity).second ||
+          !binding.assets->Assets()->SpriteSource(reference.source))
+        return {};
+    return std::unique_ptr<PlayTwoDServices>(
+        new PlayTwoDServices(world, binding, references, native));
+  } catch (...) {
+    return {};
   }
   int32_t GetApi(NexoraTwoDApiV1 *output) noexcept { return bridge_.GetApi(output); }
   int32_t GetServices(NexoraGameplayServicesApiV1 *output) noexcept {
@@ -323,12 +432,21 @@ public:
   }
 
 private:
-  PlayTwoDServices(runtime::World &world, const PlayTwoDBinding &binding, bool native)
+  PlayTwoDServices(runtime::World &world, const PlayTwoDBinding &binding,
+                   std::span<const PlayTwoDBinding::SourceSprite> references, bool native)
       : assets_(binding.assets->Assets()), scene_(world, binding.scene), pool_(4096),
         bridge_(
             world, scene_, [assets = assets_](auto id) { return assets->Clip(id); }, nullptr,
             &pool_),
         native_(native) {
+    // Publish only into this private owner, before input/audio/storage or module callbacks.
+    // Immutable capture validated the Atlas closure once; Set validates the live scene member.
+    for (const auto &reference : references) {
+      twod::Sprite sprite;
+      sprite.source = reference.source;
+      if (!scene_.Set(reference.entity, sprite))
+        throw std::runtime_error("Authored Play Sprite entity is unavailable");
+    }
     services_.input = input_.Api();
     services_.audio = audio_.Api();
     services_.ui.struct_size = sizeof(services_.ui);

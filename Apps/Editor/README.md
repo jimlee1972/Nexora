@@ -1713,3 +1713,41 @@ snapshots survive later reimport and project/store destruction. The immutable em
 content registration service still returns `UNSUPPORTED`. Inspector source assignment, authoring
 persistence, animation/reload and Build acceptance remain ED-WF-07/08 work. See the
 [executed snapshot/native evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md).
+
+### Authored source references in module-backed Play
+
+Main scene `editor.sprite.source` UUID references now become default styled Sprites in the actual
+isolated Play scene before gameplay module `Create`. The host captures a bounded owning
+`SceneDocument::RuntimeSceneCapture` together with immutable project 2D assets. References store
+UUIDs; project capture retains provenance paths for activation rechecks, while binding/rendering
+uses owned asset data without reading those paths. Reference inspection uses bounded owning
+previews in one indexed scene traversal, rejects unsupported reserved
+type/name/version/size/zero identities, and requires every source in the validated frozen asset
+closure. Empty Content cannot silently discard a present reference. An asset-free scene without
+references retains the existing empty binding path.
+
+Immediately before production module loading, `MatchesPlayTwoD` compares the exact current Runtime
+and opaque authoring capture, including document/entity generations. Asset provenance and current
+writer/recovery policy still require `ProjectTwoDPlayAssets::Matches` independently. Reference-only
+changes and document reopen invalidate activation. Bind then checks the active Play scene against
+the frozen Runtime bytes and decodes references from the immutable owning capture. Missing source,
+foreign/duplicate entity, malformed metadata or changed clone rejects before module callbacks;
+partially constructed private Sprite metadata is discarded without World mutation. Existing scene
+membership checks remain preparation work; no new per-frame reference scan is introduced.
+
+Capture retains the existing separate Runtime (100000 entities/64 MiB), opaque metadata
+(4096 records/16 MiB payload) and 2D asset (4096 assets/64 MiB) limits, rather than promising a total
+process-memory bound. Bound services retain private Sprite values and immutable CPU assets, rather
+than the preparation's document/provenance capture. Runtime transforms are borrowed from the actual
+Play World. Source geometry uses the existing frozen resolver, and gameplay may
+read/style/replace a bound source through the existing C/Zig source API. Gameplay-created Sprites
+and pools retain their legacy path. Stop/destroy callbacks retain services until they finish;
+then the Sprite owner is released before its borrowed Play World. Retained captures can replay
+their matching Runtime scene after Content/project/source destruction, while fresh production
+activation requires current provenance. All calls are serialized on the host owner thread.
+
+This adds no Inspector widget, Scene View conversion, no-module Play owner, Build export or
+source animation/reload. Main capture/loading remains gated by a configured gameplay library.
+C/Zig ABI, NX2S/ND2D/asset codecs and module dependencies are unchanged; changed C++ application
+and test consumers rebuild. The 2D-OFF embedding remains source-free. See
+[Play reference evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-PlayReferences-Linux-2026-11-13.md).
