@@ -146,6 +146,18 @@ GitHub README 維持讀者導向，整體 milestone 未變時不加入逐工單�
 儲存重開、Build 與即時動畫／重載仍待完成。本 supporting 切片不驗收 ED-WF-07；
 流程 **5/9**、Editor **0/8**、2D **9/11** 維持不變。
 
+## ✅ 主 Editor Sprite 來源參照模型（2026-11-13）
+
+獨立的 ED-WF-07 模型切片（`nexora-whr.7.3`）新增擁有來源／Atlas 的目錄，以及主 Editor
+場景包裝中的版本化 UUID 參照。完整選取的指定／清除共用一次 metadata Undo／Redo，保留
+無關／不支援的元件，並可隨場景儲存／重開。精確比對專案世代與 Content 修訂，拒絕來源或
+Atlas 重匯入前的過期操作；保留的快照持續擁有舊不可變資產。Region 索引避免為每個來源重複
+完整驗證 Atlas。詳見[契約](../../Engine/Editor/README.md#main-editor-sprite-source-reference-transactions)
+與 [Linux 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceReferences-Linux-2026-11-13.md)。
+Inspector 控件、主 Scene View／Play 轉換與 Build 匯出仍未完成；另一個已認領的 authored
+ND2D／Studio 切片不在本次範圍。此基礎不驗收 ED-WF-07；流程 **5/9**、Editor **0/8**、
+2D **9/11** 維持不變。
+
 ## ✅ ED-WF-06 來源 API 與 Player 驗收
 
 ED-WF-06 的原生驗證（`nexora-whr.6.4`）透過搬移後的 catalog 遊戲，以非對稱原生像素

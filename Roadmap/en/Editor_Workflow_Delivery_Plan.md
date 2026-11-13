@@ -162,6 +162,19 @@ The independent catalog/package slice (`nexora-whr.6.3`) is merged in PR #770. I
 assignment, authoring save/reopen, Build and live animation/reload remain open. This supporting
 slice does not accept ED-WF-07; workflow **5/9**, Editor **0/8**, 2D **9/11** remain unchanged.
 
+## ✅ Main Editor Sprite source reference model (2026-11-13)
+
+The independent ED-WF-07 model slice (`nexora-whr.7.3`) adds an owning source/Atlas catalog and
+versioned UUID references in the main Editor scene wrapper. Complete-selection assignment/clear
+uses one metadata Undo/Redo, preserves unrelated/unsupported components and round-trips wrapped
+scene Save/Reload. Exact project generation plus Content revision rejects stale source or Atlas
+reimport actions; retained snapshots keep old immutable owners. Region indexes avoid repeated full
+Atlas validation per source. See the [contract](../../Engine/Editor/README.md#main-editor-sprite-source-reference-transactions)
+and [Linux evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceReferences-Linux-2026-11-13.md).
+Inspector widgets, main Scene View/Play conversion and Build export remain open. The separately
+claimed authored ND2D/Studio slice is not included. This prerequisite does not accept ED-WF-07;
+workflow **5/9**, Editor **0/8**, 2D **9/11** remain unchanged.
+
 ## ✅ ED-WF-06 source API and Player acceptance
 
 The native ED-WF-06 proof (`nexora-whr.6.4`) exercises actual SDK/C ABI source flips and Atlas

@@ -1010,6 +1010,12 @@ old-owner retention across reimport. [Evidence](../../Tools/Build/evidence/Edito
 Inspector source assignment, authoring persistence, Build, source animation/reload and complete
 Editor acceptance remain open. ED-WF stays 5/9, Editor 0/8, 2D 9/11; M6/M7 physical gates unchanged.
 
+✅ The 2026-11-13 main Editor reference-model prerequisite (`nexora-whr.7.3`) adds owning source/Atlas
+lookup and complete-selection UUID assignment/clear with one Undo/Redo and wrapped Save/Reload.
+Exact Content generation/revision rejects stale reimports. This adds no Inspector widgets, authoring
+rendering, main Play conversion, Build export or ND2D catalog; counts remain unchanged.
+[Contract and evidence](Editor_Workflow_Delivery_Plan.md#-main-editor-sprite-source-reference-model-2026-11-13).
+
 ## ✅ ED-WF-06 source API and Player acceptance (2026-11-12)
 
 The actual SDK-built Zig file-catalog fixture now verifies asymmetric X/Y/combined flips,
