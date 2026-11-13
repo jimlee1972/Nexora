@@ -202,3 +202,11 @@ checks; they are not fresh native pixel, minimum-PC or Windows/Mac/mobile accept
 
 See the [source foundation evidence](evidence/SpriteSource-Linux-2026-10-28.md) and
 [scene binding evidence](evidence/SpriteSourceScenes-Linux-2026-10-28.md) for executed commands.
+
+The real SDK/C ABI consumer `twod.sprite_source_repack_player` adds asymmetric native quadrant
+checks for X/Y/combined flips, Pivot-relative trim mirroring and negative-scale pool composition.
+An Atlas-only replacement changes extent and packed region coordinates while source UUIDs,
+authored transforms, style and handles stay fixed. The relocated file-catalog game runs after raw
+source deletion; both original embedded and catalog fixtures remain. Development and strict
+Monolithic Shipping native checks are recorded in the
+[native source evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-NativeSource-Linux-2026-11-12.md).

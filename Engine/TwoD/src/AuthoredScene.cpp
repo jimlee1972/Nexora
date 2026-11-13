@@ -1,4 +1,5 @@
 #include "Nexora/TwoD/AuthoredScene.h"
+#include "SpriteGeometry.h"
 #include "Wire.h"
 #include <algorithm>
 #include <unordered_map>
@@ -9,7 +10,7 @@ bool ValidateSceneReferences(const SpriteScene &scene, const Atlas &atlas, const
 }
 bool ValidateSceneReferences(const SpriteScene &scene, const Atlas &atlas, const Clip &clip,
                              const Tilemap &tiles, std::span<const SpriteAsset> sources) {
-  if (sources.size() > 4096)
+  if (sources.size() > 4096 || (!sources.empty() && !ValidateAtlas(atlas)))
     return false;
   std::unordered_map<AssetId, const SpriteAsset *, runtime::AssetUuidHash> catalog;
   for (const auto &source : sources) {
@@ -18,7 +19,7 @@ bool ValidateSceneReferences(const SpriteScene &scene, const Atlas &atlas, const
     witness.matrix = runtime::ToMatrix({});
     if (source.id == atlas.id || source.id == clip.id ||
         !catalog.emplace(source.id, &source).second ||
-        !ResolveSpriteAsset(source, atlas, std::move(witness)))
+        !detail::ResolveSpriteAssetWithValidatedAtlas(source, atlas, std::move(witness)))
       return false;
   }
   for (const auto &[id, sprite] : scene.Sprites()) {

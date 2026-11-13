@@ -8,7 +8,19 @@ floating Content geometry and byte-identical layouts; new-layout and explicit fo
 Test-only scene comparison/extension observations are guarded consistently, restoring graphical
 `BUILD_TESTING=OFF` compilation; desktop CI now rebuilds that configuration after its normal gates.
 See the [scoped Linux evidence](../../Tools/Build/evidence/EditorLayoutBuild-Linux-2026-11-12.md).
-Physical docking/input acceptance, ED-WF work-order acceptance and the 0/8 milestone count remain open.
+Physical docking/input and the complete graphical Editor milestones remain open (0/8).
+This layout/build slice does not itself accept an ED-WF work order.
+
+### ✅ X11 legacy held-key fixture boundary (2026-11-12)
+
+The Sprite acceptance candidate also exposed an existing X11 legacy held-key fixture race:
+its live gesture assumed the fallback's matching press was already buffered. The fixture now
+queues the genuine held gesture under a confirmed stopped consumer and observes every buffered
+repeat pair, retaining all physical/text/focus/lifecycle assertions and the live detectable-repeat
+case. Production Window behavior is unchanged. [Follow-up evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-X11Fixture-Linux-2026-11-12.md)
+retains the failed hosted gate and successful controlled/full regression. Repaired-head
+CI passes and PR #772 is merged; [ED-WF-06 acceptance](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md)
+records the complete delivery gate. Physical input acceptance remains separate.
 
 Local crash/game-log persistence is tracked in [Crash Logging Delivery](Crash_Logging_Delivery_Plan.md). It includes native gameplay callback capture and keeps platform/physical-host gates separate; it does not complete this roadmap’s broader milestones.
 
@@ -28,7 +40,7 @@ Superseded failures and their repairs remain recorded. Rect/combined tools, vert
 orientation widget, maximized view and a new XY 2D mode remain outside this change.
 Physical clean-host acceptance is NOT_RUN; the validated input ZIP is not the final workflow ZIP.
 See [Editor controls](../../Apps/Editor/README.md#unity-style-editor-input-issue-759).
-This supporting task does not alter the 4/9 workflow count or 0/8 Editor milestone count.
+This supporting task does not alter the 5/9 workflow count or 0/8 Editor milestone count.
 
 
 
@@ -37,7 +49,7 @@ This supporting task does not alter the 4/9 workflow count or 0/8 Editor milesto
 The approved [delivery plan](Editor_Workflow_Delivery_Plan.md) and
 [Epic #741](https://github.com/jimlee1972/Nexora/issues/741) track nine dependent work orders for
 script Build UI, clean game output, stateful reload and source-aware Editor/Player/Zig integration.
-Acceptance is 4/9 (44.4%): ED-WF-01 ✅ [PR #751](https://github.com/jimlee1972/Nexora/pull/751), ED-WF-02 ✅ [PR #754](https://github.com/jimlee1972/Nexora/pull/754), ED-WF-03 ✅ [PR #756](https://github.com/jimlee1972/Nexora/pull/756), ED-WF-04 ✅ [PR #758](https://github.com/jimlee1972/Nexora/pull/758); existing supporting capabilities are not counted as complete workflows.
+Acceptance is 5/9 (55.6%): ED-WF-01 ✅ [PR #751](https://github.com/jimlee1972/Nexora/pull/751), ED-WF-02 ✅ [PR #754](https://github.com/jimlee1972/Nexora/pull/754), ED-WF-03 ✅ [PR #756](https://github.com/jimlee1972/Nexora/pull/756), ED-WF-04 ✅ [PR #758](https://github.com/jimlee1972/Nexora/pull/758); ED-WF-06 ✅ [acceptance](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md); existing supporting capabilities are not counted as complete workflows.
 The full Editor milestone count remains 0/8. Existing CLI and `.bat` development remains available.
 
 ### Windows exported game entry (2026-10-30)
@@ -2315,7 +2327,7 @@ capture validates its exact Atlas closure. Main Editor gameplay scene/pool insta
 immutable snapshots; real composed native pixels verify trim/Pivot geometry, negative scale and
 old-owner retention across reimport. [Evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md).
 Inspector source assignment, authoring persistence, Build, source animation/reload and complete
-Editor acceptance remain open. ED-WF stays 4/9, Editor 0/8, 2D 9/11; M6/M7 physical gates unchanged.
+Editor acceptance remain open. ED-WF stays 5/9, Editor 0/8, 2D 9/11; M6/M7 physical gates unchanged.
 
 ## ✅ Isolated source-bearing authoring documents (2026-11-13)
 

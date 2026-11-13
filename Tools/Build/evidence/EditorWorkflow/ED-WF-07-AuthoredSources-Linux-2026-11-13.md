@@ -2,7 +2,9 @@
 
 Date: 2026-11-13 (Asia/Taipei). Base: `cde8e8e5` (PR #770, including PR #771).
 Tracking: `nexora-whr.7.2`, supporting [#748](https://github.com/jimlee1972/Nexora/issues/748).
-The separately claimed Flip/Atlas-repack task `nexora-whr.6.4` remains independently owned.
+The independent Flip/Atlas-repack task `nexora-whr.6.4` was delivered in PR #772 and accepted by
+PR #774 while this PR ran CI. Final integration includes their main `6cfd05eb` without changing
+their acceptance evidence or taking over their work.
 
 ## Scope and contracts
 
@@ -20,6 +22,16 @@ rolls back before recording history. Existing 256-transaction/64 MiB history bou
 retained owners are outside history accounting. C++ document/context/decoded-scene/panel layouts
 change, so consumers must rebuild.
 
+Review correction: source-bearing reference validation performs one complete Atlas validation before
+the catalog loop, then calls the same internal metadata/Atlas identity/region/trim/geometry resolver
+used by public `ResolveSpriteAsset`. It preserves every rejection check and leaves source-free
+behavior unchanged. Catalog validation costs O(regions² + sources × log(regions)), rather than
+repeating the full region-overlap scan for each source. The existing test now combines both limits
+(4096 sources, 1024 regions) and rejects an overlapping region outside the referenced source, as
+well as mismatched trim through both public resolution and authored validation.
+The repaired-environment focused execution measures the maximum-catalog reference call at
+5.48264 ms. This is one observed wall-time sample, not a portable performance threshold.
+
 ✅ Studio provides source import requests and new/current Sprite UUID selection, source-aware
 preview and source-owned geometry controls. IO stays in the workspace owner; the panel never writes
 files. Player admits embedded Atlas/Clip/source closure before module callbacks, preserving existing
@@ -27,7 +39,7 @@ registry capacity, retirement and cross-document identity checks. Conflicting sa
 rejects startup. Exported scenes need no source paths after relocation.
 
 This supports isolated 2D Studio documents. Main Editor Inspector/project save/reopen/Build, live
-source animation/reload and complete ED-WF-07 remain open. Workflow **4/9**, graphical Editor
+source animation/reload and complete ED-WF-07 remain open. Workflow **5/9**, graphical Editor
 **0/8**, 2D **9/11** and physical M6/M7 acceptance remain unchanged.
 
 ## Executed evidence
@@ -110,3 +122,43 @@ Development retains optional Zig/Slang/graphical Editor coverage. Shipping strip
 Editor and tests Runtime/SDK linkage; actual native graphics run in Development and the Shipping
 Player. The repository-root README stays unchanged because this supporting slice accepts no major
 milestone.
+
+## Workspace recovery and review follow-up
+
+The cloud workspace was recreated while initial-head hosted CI ran. The pushed initial commit and
+all committed source hashes, inventories and curated PNGs were recovered unchanged in a separate
+worktree. Ephemeral raw local logs/toolchains from the initial validation were lost; their committed
+hashes and recorded results remain historical evidence, not claims that those raw files still exist.
+The source change above addresses the automated P2 review before delivery; final follow-up validation
+is recorded separately in the receipt, and does not overwrite the initial passing execution.
+
+Initial-head Push iOS configure and PR macOS mimalloc jobs were cancelled before acquiring hosted
+runners. Both GitHub annotations report hosted macOS capacity constraints; dependent CI aggregation
+failed as expected. All jobs that actually executed succeeded. These cancellations never count as
+passes, and the corrected head requires fresh applicable CI before merge. During reconstruction, a
+build failed because Zig's default global cache was read-only; the retry explicitly selects writable
+task-local Zig/XDG caches without changing compiler flags or code.
+
+The first integrated 503-case test attempt was interrupted after 250 completed cases, including
+38 failures. Missing `clang++` and a read-only default XDG state directory caused the setup failures;
+its output and temporary CTest log are retained separately. A user-owned Clang 19 package and
+writable task-local XDG state/data/config roots repair the environment. The unchanged production
+toolchain, Core, authored-source catalog/export/native tests then pass 5/5 before a fresh unfiltered
+run. The 503-case configuration includes every prior 477 case, 25 additional Showcase cases and the
+independently merged source Flip/repack case; no old case is omitted.
+
+The fresh full run reports one font-bake skip because optional `fonttools` was absent. The pinned
+`Tools/TwoD/font-requirements.txt` dependencies are installed and that exact case is rerun separately.
+The receipt keeps the full-run skip and its recovery distinct; it does not describe their combined
+coverage as a single clean no-skip execution.
+
+Final integrated Development configure/build pass. Its unfiltered gate completes in 1416.05 seconds:
+502 passes, zero failures and one dependency skip across 503 registered cases. The repaired font-bake
+case passes separately in 0.17 seconds (CTest wall time 0.19 seconds), leaving all 503 cases verified
+and no unresolved failures/skips across the full execution and recovery. The original 477-case clean
+run remains separately recorded above. The independent Flip/repack and X11 held-key regressions pass
+in this final integration. New Development native PNGs are byte-identical to the curated originals.
+Final Full Shipping configure/build and strict exported/source-deleted/relocated native Player
+acceptance also pass. Both final Shipping captures are byte-identical to Development and the curated
+PNGs. The follow-up receipt records the complete final test inventory, separate font recovery,
+source hashes, log hashes and regenerated package/native artifact inventories.

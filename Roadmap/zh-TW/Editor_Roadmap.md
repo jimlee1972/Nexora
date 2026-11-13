@@ -7,7 +7,17 @@ Hierarchy／Project 與 Scene／Game 選取。四個 DPI 縮放層級保持浮�
 新建版面與明確的焦點操作仍維持原行為。測試專用的 scene comparison／extension 觀察函式補齊條件保護，
 恢復圖形版 `BUILD_TESTING=OFF` 編譯；桌面 CI 在一般 gates 後另建置此組態。
 參閱[限定 Linux 證據](../../Tools/Build/evidence/EditorLayoutBuild-Linux-2026-11-12.md)。
-實體停靠／輸入驗收、ED-WF 工單驗收與 0/8 里程碑完成度維持未完成。
+實體停靠／輸入與完整圖形 Editor 里程碑仍未驗收（0/8）；此版面／建置切片本身不驗收 ED-WF 工單。
+
+### ✅ X11 legacy 按住鍵案例邊界（2026-11-12）
+
+Sprite 驗收候選另揭露既有 X11 legacy 按住鍵案例的競態：即時手勢假設 fallback 所需的
+相符 press 已在緩衝區。案例現會確認消費者已停止，排入真正按住鍵手勢，並觀察每個已緩衝
+重複事件配對；實體／文字／焦點／生命週期斷言及正常 detectable-repeat 即時案例均保留。
+正式 Window 行為不變。[後續證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-X11Fixture-Linux-2026-11-12.md)
+保留失敗的 hosted gate 與成功的受控／完整回歸。修正版本 CI 通過且 PR #772 已合併；
+[ED-WF-06 驗收](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md)記錄完整交付 gate，
+實體輸入驗收仍另計。
 
 本機 crash/game log 持久化與原生 gameplay callback 捕捉見 [Crash Logging Delivery](Crash_Logging_Delivery_Plan.md)。平台與實體主機 gate 仍分開驗收，此 supporting slice 不代表本 roadmap 的整體里程碑完成。
 
@@ -26,7 +36,7 @@ Hierarchy／Project 與 Scene／Game 選取。四個 DPI 縮放層級保持浮�
 Rect／整合工具、頂點吸附、方向元件、最大化視窗與新的 XY 2D 模式不在本次範圍。
 乾淨實機驗收仍為 NOT_RUN；本次輸入驗收 ZIP 並非最後工作流程交付版。
 操作細節見 [Editor 文件](../../Apps/Editor/README.md#unity-style-editor-input-issue-759)。
-此支援工單不改變工作流程 4/9 與 Editor 里程碑 0/8 完成度。
+此支援工單不改變工作流程 5/9 與 Editor 里程碑 0/8 完成度。
 
 
 
@@ -34,7 +44,7 @@ Rect／整合工具、頂點吸附、方向元件、最大化視窗與新的 XY 
 
 核准的[交付計畫](Editor_Workflow_Delivery_Plan.md)及
 [Epic #741](https://github.com/jimlee1972/Nexora/issues/741) 追蹤九張相依工單，涵蓋腳本 Build UI、
-乾淨遊戲成品、有狀態熱重載及來源感知 Editor／Player／Zig 整合。驗收為 4/9（44.4%）：ED-WF-01 ✅ PR #751，ED-WF-02 ✅ PR #754，ED-WF-03 ✅ PR #756、ED-WF-04 ✅ PR #758；
+乾淨遊戲成品、有狀態熱重載及來源感知 Editor／Player／Zig 整合。驗收為 5/9（55.6%）：ED-WF-01 ✅ PR #751，ED-WF-02 ✅ PR #754，ED-WF-03 ✅ PR #756、ED-WF-04 ✅ PR #758；ED-WF-06 ✅ [驗收](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md)；
 既有 supporting capabilities 不直接算完整流程完成；完整 Editor 里程碑維持 0/8。
 現有 CLI 與 `.bat` 開發流程持續可用。
 
@@ -2237,7 +2247,7 @@ output、local preset、credential、private project 或 sensitive capture。`Ed
 精確 Atlas 相依閉包。主 Editor gameplay 場景／pool 實例可解析這些不可變快照；真實合成
 原生像素驗證裁切／Pivot 幾何、負縮放與重匯入後的舊擁有者保留。[證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md)。
 Inspector 來源指定、製作場景持久化、Build、來源動畫／重載與完整 Editor 驗收仍待完成。
-ED-WF 維持 4/9、Editor 0/8、2D 9/11；M6／M7 實機 gate 不變。
+ED-WF 維持 5/9、Editor 0/8、2D 9/11；M6／M7 實機 gate 不變。
 
 ## ✅ 獨立 source 作者文件（2026-11-13）
 

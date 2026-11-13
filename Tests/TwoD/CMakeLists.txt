@@ -377,6 +377,12 @@ if(NEXORA_SCENE_TEST_ZIG)
     --cmake "${CMAKE_COMMAND}" --compiler "$<TARGET_FILE:NexoraTwoDAssetCompiler>" --catalog
     --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/source-catalog-player" ${source_player_native_args})
   set_tests_properties(twod.sprite_source_catalog_player PROPERTIES TIMEOUT 300 LABELS "twod;source;zig;assets;export")
+  add_test(NAME twod.sprite_source_repack_player COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/SpriteSourcePlayerAcceptance.py"
+    --app "$<TARGET_FILE:NexoraTwoDPlayer>" --zig "${NEXORA_SCENE_TEST_ZIG}"
+    --cmake "${CMAKE_COMMAND}" --compiler "$<TARGET_FILE:NexoraTwoDAssetCompiler>" --catalog --repack
+    --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/source-repack-player" ${source_player_native_args})
+  set_tests_properties(twod.sprite_source_repack_player PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE LABELS "twod;source;zig;assets;export")
   add_test(NAME twod.scene_project_zig COMMAND "${Python3_EXECUTABLE}"
     "${CMAKE_CURRENT_SOURCE_DIR}/SceneProjectAcceptance.py"
     --app "$<TARGET_FILE:NexoraTwoDPlayer>" --compiler "$<TARGET_FILE:NexoraTwoDAssetCompiler>"

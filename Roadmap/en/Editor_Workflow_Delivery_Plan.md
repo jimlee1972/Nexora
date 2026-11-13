@@ -2,10 +2,10 @@
 
 [繁體中文](../zh-TW/Editor_Workflow_Delivery_Plan.md) · [Epic #741](https://github.com/jimlee1972/Nexora/issues/741)
 
-Updated: 2026-11-01. Baseline: `8c4aa989ee7443cc0b2129d54f0f0f77c73d2b49`.
+Updated: 2026-11-12. Baseline: `8c4aa989ee7443cc0b2129d54f0f0f77c73d2b49`.
 Initial documentation publication base: `67db45d23e631b0e05b42c23716245a34ae996d5`.
 ED-WF-04 integration base: main `a21c1ca2293e4200de8dcaa4b892ffef34687c9c`, including the appearance update.
-Acceptance snapshot: **4/9 work orders (44.4%)**; ED-WF-01 merged in [PR #751](https://github.com/jimlee1972/Nexora/pull/751), ED-WF-02 in [PR #754](https://github.com/jimlee1972/Nexora/pull/754), ED-WF-03 in [PR #756](https://github.com/jimlee1972/Nexora/pull/756), ED-WF-04 in [PR #758](https://github.com/jimlee1972/Nexora/pull/758).
+Acceptance snapshot: **5/9 work orders (55.6%)**; ED-WF-01 merged in [PR #751](https://github.com/jimlee1972/Nexora/pull/751), ED-WF-02 in [PR #754](https://github.com/jimlee1972/Nexora/pull/754), ED-WF-03 in [PR #756](https://github.com/jimlee1972/Nexora/pull/756), ED-WF-04 in [PR #758](https://github.com/jimlee1972/Nexora/pull/758); ED-WF-06 is accepted through [PR #772](https://github.com/jimlee1972/Nexora/pull/772) and its prerequisite slices.
 The Epic records subsequent accepted work and its merged PR/evidence. Complete graphical Editor
 acceptance remains **0/8**; this plan does not accept physical-device or clean-host gates.
 
@@ -32,7 +32,7 @@ SortingGroup, nine-slice/Tiled rendering, masks and advanced animation state mac
 | ED-WF-03 | [#744](https://github.com/jimlee1972/Nexora/issues/744) | 01 | Source-free runtime output; development receipts and publication inventory kept outside it | ✅ PR #756 |
 | ED-WF-04 | [#745](https://github.com/jimlee1972/Nexora/issues/745) | 01 | Transactional Runtime/Zig migration; failed replacement retains the old module and World | ✅ PR #758 |
 | ED-WF-05 | [#746](https://github.com/jimlee1972/Nexora/issues/746) | 02, 04 | Background source compilation and stateful Play reload without Stop/Play | In progress; integration unaccepted |
-| ED-WF-06 | [#747](https://github.com/jimlee1972/Nexora/issues/747) | 01 | Compatible C/Zig source APIs and cooked Player dependency closure | In progress; source registry/API/catalog/Player slices |
+| ED-WF-06 | [#747](https://github.com/jimlee1972/Nexora/issues/747) | 01 | Compatible C/Zig source APIs and cooked Player dependency closure | ✅ PRs #767, #769, #770, #772; [acceptance](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md) |
 | ED-WF-07 | [#748](https://github.com/jimlee1972/Nexora/issues/748) | 06 | Source indexing/Inspector/Undo/save/reopen/Play/Build/reimport in the real Editor | In progress; immutable source index/Play snapshot slice |
 | ED-WF-08 | [#749](https://github.com/jimlee1972/Nexora/issues/749) | 04, 06, 07 | Source animation anchors, live pool instances and valid handles survive replacement | Pending |
 | ED-WF-09 | [#750](https://github.com/jimlee1972/Nexora/issues/750) | 02, 03, 05, 07, 08 | Integrated native acceptance and a verified, extracted Windows Editor ZIP | Pending |
@@ -47,7 +47,8 @@ descriptors, compatible optional table negotiation and canonical Player registry
 SDK-built Zig module runs after export, relocation and source deletion, with native pixels checking
 negative-scale pool geometry and source/Atlas replacement. See [API/Player evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceAPI-Linux-2026-11-12.md).
 Editor source workflow and source-animation reload remain open.
-These supporting slices do not accept ED-WF-06 or change **4/9 (44.4%)** or **0/8**.
+The combined [ED-WF-06 acceptance](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md)
+includes the catalog and native-repack gates below. Complete Editor milestones remain **0/8**.
 
 ✅ The independent catalog slice (`nexora-whr.6.3`) adds cooked Sprite sources as catalog kind 4,
 preloaded/deferred Player admission and canonical source export. Existing opaque kind 3, C/Zig
@@ -55,8 +56,8 @@ table layouts, explicit Atlas-first loading and immutable ownership remain uncha
 [Linux evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SpriteCatalog-Linux-2026-11-12.md)
 records real relocated-package admission and corruption/closure rejection. A real SDK-built Zig
 file-catalog game integrates the source API accepted in PR #769 and verifies scene/pool native
-pixels after relocation, source deletion and replacement. Editor authoring and complete ED-WF-06 acceptance remain
-open. Counts stay **4/9** and **0/8**.
+pixels after relocation, source deletion and replacement. Editor authoring remains open in ED-WF-07; the combined ED-WF-06 acceptance below
+raises workflow completion to **5/9**, with graphical Editor still **0/8**.
 
 Each work order records exact commands/results and limitations in
 `Tools/Build/evidence/EditorWorkflow/ED-WF-XX.md`. The existing
@@ -83,7 +84,7 @@ The accepted [ED-WF-04 evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF
 [CI inventory](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04-CI.json) record 495/495 Cloud tests,
 Shipping builds, native Windows/macOS proof, all 42 successful CI checks and merged tree equality.
 Real Zig retains 32 accepted reloads and 224 expected rejections. Editor coordination, Sprite
-workflows and final delivery remain ED-WF-05 through ED-WF-09.
+authoring/animation and final delivery remain ED-WF-05, ED-WF-07, ED-WF-08 and ED-WF-09.
 Accepted count is the number of children with acceptance evidence and a merged delivery PR,
 divided by nine. Accepted rows use `✅`; pending or blocked work stays unmarked.
 
@@ -157,9 +158,21 @@ captures exact source/Atlas cooked/project closure. Main Editor Play resolves ca
 scene/pool instances through the existing geometry implementation. Real composed Editor pixels
 verify Pivot replacement, negative scale and retained old snapshots after source owners are gone;
 see [cloud evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md).
-Catalog/package work remains independently owned by `nexora-whr.6.3` / PR #770. Inspector source
+The independent catalog/package slice (`nexora-whr.6.3`) is merged in PR #770. Inspector source
 assignment, authoring save/reopen, Build and live animation/reload remain open. This supporting
-slice does not accept ED-WF-07; workflow **4/9**, Editor **0/8**, 2D **9/11** remain unchanged.
+slice does not accept ED-WF-07; workflow **5/9**, Editor **0/8**, 2D **9/11** remain unchanged.
+
+## ✅ ED-WF-06 source API and Player acceptance
+
+The native ED-WF-06 proof (`nexora-whr.6.4`) exercises actual SDK/C ABI source flips and Atlas
+repacks with asymmetric native pixels in a relocated catalog game. Scene and negative-scale pool
+handles, authored transforms and source identity survive Atlas-only replacement. Development and
+strict Shipping native checks pass; [evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-NativeSource-Linux-2026-11-12.md)
+retains failed fixture/setup attempts. Full regression passes 486/486 without failures or skips;
+all 41 latest exact-head hosted checks pass and PR #772 is merged. The consolidated
+[acceptance](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md) records compatible consumers,
+immutable cooked closure, feature-OFF builds and native repacks. Workflow is **5/9 (55.6%)**;
+Editor **0/8**, 2D **9/11** and physical/clean-host gates remain unchanged.
 
 ## ✅ Source-bearing Studio document persistence (2026-11-13)
 
@@ -169,6 +182,6 @@ UUIDs; Player validates embedded Atlas/source closure before module callbacks. A
 source-deleted packages and native pixels cover persisted Pivot/trim and negative scale. Initial
 fixture/build-scheduling failures remain separate from accepted results in the
 [cloud evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-AuthoredSources-Linux-2026-11-13.md).
-The active Flip/repack task `nexora-whr.6.4` remains independently owned. Main Editor Inspector,
+The independent Flip/repack task `nexora-whr.6.4` is accepted above. Main Editor Inspector,
 project save/reopen/Build and live source animation/reload remain open. ED-WF-07 is not accepted;
-workflow **4/9**, graphical Editor **0/8** and 2D **9/11** remain unchanged.
+workflow **5/9**, graphical Editor **0/8** and 2D **9/11** remain unchanged.

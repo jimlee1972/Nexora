@@ -1,6 +1,7 @@
 #include "Nexora/Editor/TwoDPlayContext.h"
 #include "Nexora/TwoD/AuthoredScene.h"
 #include <array>
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -138,6 +139,39 @@ void Run() {
       twod::EncodeAuthoredScene(doc.Scene(), doc.Atlas(), doc.Clip(), doc.Tiles(), maximum);
   Check(twod::AuthoredScene::Decode(maximumBytes) && maximumBytes.size() < 64 * 1024 * 1024,
         "exact source count bound");
+  // Exercise both catalog bounds together, including rejection of an unrelated overlapping
+  // region. Per-source resolution must retain full Atlas validation without repeating it.
+  auto largeAtlas = Atlas();
+  largeAtlas.width = largeAtlas.height = 96;
+  largeAtlas.rgba.resize(96 * 96 * 4);
+  largeAtlas.regions.clear();
+  for (std::uint32_t i = 0; i < 1024; ++i)
+    largeAtlas.regions.push_back({i + 1, 1 + (i % 32) * 3, 1 + (i / 32) * 3, 1, 1});
+  for (std::size_t i = 0; i < maximum.size(); ++i)
+    maximum[i].region = std::uint32_t(i % 1024) + 1;
+  const auto validationStart = std::chrono::steady_clock::now();
+  Check(twod::ValidateSceneReferences(doc.Scene(), largeAtlas, doc.Clip(), doc.Tiles(), maximum),
+        "maximum source and Atlas catalogs");
+  std::cout << "Maximum-catalog reference validation: "
+            << std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() -
+                                                         validationStart)
+                   .count()
+            << " ms (4096 sources, 1024 regions)\n";
+  largeAtlas.regions.back().x = largeAtlas.regions.front().x;
+  largeAtlas.regions.back().y = largeAtlas.regions.front().y;
+  Check(!twod::ValidateSceneReferences(doc.Scene(), largeAtlas, doc.Clip(), doc.Tiles(),
+                                       std::span(maximum).first(1)),
+        "unrelated overlapping Atlas region admitted");
+  largeAtlas = Atlas();
+  auto incompatible = Source();
+  incompatible.trimWidth = 2;
+  twod::SpriteInstance witness;
+  witness.id = 1;
+  witness.matrix = runtime::ToMatrix({});
+  Check(!twod::ResolveSpriteAsset(incompatible, largeAtlas, witness) &&
+            !twod::ValidateSceneReferences(doc.Scene(), largeAtlas, doc.Clip(), doc.Tiles(),
+                                           std::span(&incompatible, 1)),
+        "shared source trim rejection");
   maximum.push_back(other);
   Check(
       twod::EncodeAuthoredScene(doc.Scene(), doc.Atlas(), doc.Clip(), doc.Tiles(), maximum).empty(),

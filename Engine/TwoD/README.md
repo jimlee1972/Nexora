@@ -312,7 +312,10 @@ Source-free encoding remains byte-identical schema 1. Schema 2 appends a little-
 retains its 64 MiB wire limit. Duplicate/noncanonical catalogs, unsupported versions, trailing bytes,
 missing source bindings, Atlas/Clip identity collisions and incompatible Atlas/region/trim geometry
 reject before publication. The encoder canonicalizes source order; all geometry uses the shared
-`ResolveSpriteAsset` implementation. Returned `AuthoredScene` owns every record; C++ consumers rebuild.
+`ResolveSpriteAsset` implementation. Source-bearing reference validation checks the complete immutable
+Atlas once, then shares the resolver's per-source metadata/region/geometry checks. Its source-catalog
+cost is O(regions² + sources × log(regions)), avoiding repeated full Atlas overlap scans during edits.
+Returned `AuthoredScene` owns every record; C++ consumers rebuild.
 
 Player admits each document's Atlas, Clip and source records into the existing content registry
 before gameplay starts. Equal UUIDs across scene/asset catalogs require byte-identical metadata;

@@ -47,7 +47,33 @@ def pixels(path):
     return width, height, sample
 
 
-def native(package, app, output):
+def repack_pixels(phase, sample):
+    colors = dict(R=(255, 0, 0), G=(0, 255, 0), B=(0, 0, 255), Y=(255, 255, 0),
+                  C=(0, 255, 255), M=(255, 0, 255), W=(255, 255, 255), K=(0, 0, 0))
+    # Hand-authored screen-space expectations; the pool's negative X scale composes with each flip.
+    scene, pool = {'base': ('RGBY', 'GRYB'), 'flip-x': ('GRYB', 'RGBY'),
+                   'flip-y': ('BYRG', 'YBGR'), 'flip-xy': ('YBGR', 'BYRG'),
+                   'repacked': ('KWMC', 'WKCM')}[phase]
+    # Trim local bounds [-2,0]x[2,4] mirror around the noncentral source Pivot.
+    scene_x, pool_x = ((124, 148), (196, 220)) if phase in ('flip-x', 'flip-xy', 'repacked') else (
+        (76, 100), (244, 268))
+    ys = (180, 204) if phase in ('flip-y', 'flip-xy', 'repacked') else (36, 60)
+    occupied = set()
+    for pattern, xs in ((scene, scene_x), (pool, pool_x)):
+        for color, (x, y) in zip(pattern, ((xs[0], ys[0]), (xs[1], ys[0]), (xs[0], ys[1]), (xs[1], ys[1]))):
+            occupied.add((x, y))
+            rgb = sample(x, y)
+            assert all(abs(a-b) <= 8 for a, b in zip(rgb, colors[color])), (phase, x, y, rgb, color)
+    for x in (76, 100, 124, 148, 196, 220, 244, 268):
+        for y in (36, 60, 180, 204):
+            if (x, y) not in occupied:
+                assert max(sample(x, y)) < 200, (phase, 'stale geometry', x, y, sample(x, y))
+    for x in (52, 172, 292):
+        for y in (12, 48, 84, 156, 192, 228):
+            assert max(sample(x, y)) < 200, (phase, 'geometry drift', x, y, sample(x, y))
+
+
+def native(package, app, output, repack=False):
     sys.path.insert(0, str(ROOT/'Tests/Showcase'))
     from LinuxVirtualDisplaySmoke import start_xvfb
     from HD2DAcceptance import NativeWindow
@@ -88,21 +114,25 @@ def native(package, app, output):
             captures[phase] = window.capture(path)
             width, height, sample = pixels(path)
             assert (width, height) == (320, 240), (width, height)
-            colored = (124, 244) if phase == 'red' else (76, 292)
-            empty = (76, 292) if phase == 'red' else (124, 244)
-            for x in colored:
-                rgb = sample(x, 120)
-                assert (rgb[0] > 240 and rgb[1] < 5 and rgb[2] < 5) if phase == 'red' else (
-                    rgb[2] > 240 and rgb[0] < 5 and rgb[1] < 5), (phase, x, rgb)
-            for x in empty:
-                assert max(sample(x, 120)) < 200, (phase, x, sample(x, 120))
+            if repack:
+                repack_pixels(phase, sample)
+            else:
+                colored = (124, 244) if phase == 'red' else (76, 292)
+                empty = (76, 292) if phase == 'red' else (124, 244)
+                for x in colored:
+                    rgb = sample(x, 120)
+                    assert (rgb[0] > 240 and rgb[1] < 5 and rgb[2] < 5) if phase == 'red' else (
+                        rgb[2] > 240 and rgb[0] < 5 and rgb[1] < 5), (phase, x, rgb)
+                for x in empty:
+                    assert max(sample(x, 120)) < 200, (phase, x, sample(x, 120))
         stdout = process.stdout.read()
         process.wait(timeout=5)
         reader.join(timeout=5)
         (output/'native.stdout.log').write_text(stdout)
         (output/'native.stderr.log').write_text(''.join(lines))
         assert process.returncode == 0 and not reader.is_alive(), ''.join(lines)
-        assert set(captures) == {'red', 'blue'}, captures
+        expected = {'base', 'flip-x', 'flip-y', 'flip-xy', 'repacked'} if repack else {'red', 'blue'}
+        assert set(captures) == expected, captures
         assert 'SOURCE PLAYER PASS' in ''.join(lines) and 'SOURCE PLAYER FAIL' not in ''.join(lines)
         report = json.loads((output/'native.json').read_text())
         assert report['status'] == 'PASS' and report['native_frames'] == 30 and report['allocations_balanced']
@@ -129,9 +159,12 @@ def main():
     parser.add_argument('--catalog', action='store_true')
     parser.add_argument('--compiler', type=Path)
     parser.add_argument('--shipping', action='store_true')
+    parser.add_argument('--repack', action='store_true')
     args = parser.parse_args()
     if args.catalog and not args.compiler:
         parser.error('--catalog requires --compiler')
+    if args.repack and not args.catalog:
+        parser.error('--repack requires --catalog')
     evidence = args.evidence_dir.resolve()
     evidence.mkdir(parents=True, exist_ok=True)
     output = Path(tempfile.mkdtemp(prefix='attempt-', dir=evidence))
@@ -140,12 +173,24 @@ def main():
         root = Path(temporary)
         source = root/'source Unicode 遊戲'
         source.mkdir()
-        shutil.copy2(ROOT/'Tests/TwoD/SpriteSourcePlayer.zig', source/'game.zig')
+        fixture = 'SpriteSourceRepackPlayer.zig' if args.repack else 'SpriteSourcePlayer.zig'
+        shutil.copy2(ROOT/'Tests/TwoD'/fixture, source/'game.zig')
         (source/'catalog_mode.zig').write_text('pub const enabled = ' + str(args.catalog).lower() + ';\n')
         for name, color in [('red', bytes([255, 0, 0, 255])), ('blue', bytes([0, 0, 255, 255]))]:
             atlas = struct.pack('<IIQQIIIII', 0x4132444e, 1, 8, 9, 4, 4, 1, 1, 1)
             atlas += struct.pack('<IIIII', 1, 1, 1, 2, 2) + struct.pack('<I', 64) + color * 16
             (source/(name+'.nx2atlas')).write_bytes(atlas)
+        if args.repack:
+            for name, size, origin, palette in (
+                    ('red', 4, (1, 1), [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0)]),
+                    ('blue', 8, (4, 3), [(0, 255, 255), (255, 0, 255), (255, 255, 255), (0, 0, 0)])):
+                texels = bytearray(bytes([31, 47, 63, 255]) * (size * size))
+                for index, color in enumerate(palette):
+                    x, y = origin[0] + index % 2, origin[1] + index // 2
+                    texels[(y*size+x)*4:(y*size+x+1)*4] = bytes((*color, 255))
+                atlas = struct.pack('<IIQQIIIII', 0x4132444e, 1, 8, 9, size, size, 1, 1, 1)
+                atlas += struct.pack('<IIIII', 1, *origin, 2, 2) + struct.pack('<I', len(texels)) + texels
+                (source/(name+'.nx2atlas')).write_bytes(atlas)
         for name, pivot in [('source', 3), ('shifted', 4)]:
             payload = struct.pack('<IIQQQQ7I3f4I', 0x5032444e, 1, 11, 12, 8, 9,
                                   1, 6, 6, 1, 1, 2, 2, pivot, 1, 1, 0, 0, 0, 0)
@@ -207,13 +252,16 @@ def main():
         assert 'SOURCE PLAYER PASS' in result.stderr and 'SOURCE PLAYER FAIL' not in result.stderr
         if args.catalog:
             assert 'SOURCE PLAYER FILE CATALOG' in result.stderr
+        if args.repack:
+            assert 'SOURCE PLAYER REPACK atlas=8:9 source=11:12 stable handles' in result.stderr
         if args.native:
-            native(package, args.app, output)
+            native(package, args.app, output, args.repack)
         after = {str(p.relative_to(package)): hashlib.sha256(p.read_bytes()).hexdigest()
                  for p in package.rglob('*') if p.is_file()}
         assert before == after, 'Player changed the runtime-only package'
     print('PASS real Zig source Sprite/pool/registry, replacement and relocated Player; '
           + ('file catalog; ' if args.catalog else 'module-embedded initial content; ')
+          + ('asymmetric flip/repack; ' if args.repack else '')
           + ('native pixels passed' if args.native else 'native pixels not selected')
           + '; evidence=' + str(output))
 
