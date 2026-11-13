@@ -2789,10 +2789,13 @@ int RunGraphical(std::optional<ProjectState> project,
         }
         nexora::editor::preview::PlayTwoDBinding two_d;
 #if defined(NEXORA_HAS_2D)
-        if (!ui.GameplayLibrary().empty()) {
+        {
           std::string error;
           auto captured = nexora::editor::preview::CapturePlayTwoD(
-              project->workspace, content, active_scene(), scene_authoring_allowed(), error);
+              project->workspace, content, active_scene(), scene_authoring_allowed(), error,
+              ui.GameplayLibrary().empty()
+                  ? nexora::editor::preview::PlayTwoDCapture::AuthoredSources
+                  : nexora::editor::preview::PlayTwoDCapture::ProjectAssets);
           if (!captured) {
             ui.SetGameplayStatus(error);
             log(nexora::runtime::RuntimeLogSeverity::Error, "PIE", error);
@@ -2806,14 +2809,21 @@ int RunGraphical(std::optional<ProjectState> project,
             })) {
           std::string gameplay_error;
 #if defined(NEXORA_HAS_2D)
-          if (!ui.GameplayLibrary().empty() &&
-              (!nexora::editor::preview::MatchesPlayTwoD(two_d, active_scene(), gameplay_error) ||
-               (two_d.assets &&
-                !two_d.assets->Matches(project->workspace, content, scene_authoring_allowed(),
-                                       &gameplay_error)))) {
+          if (!nexora::editor::preview::MatchesPlayTwoD(two_d, active_scene(), gameplay_error) ||
+              (two_d.assets &&
+               !two_d.assets->Matches(project->workspace, content, scene_authoring_allowed(),
+                                      &gameplay_error))) {
             static_cast<void>(play.Stop());
             ui.SetGameplayStatus(gameplay_error);
             log(nexora::runtime::RuntimeLogSeverity::Error, "PIE", gameplay_error);
+            break;
+          }
+          if (ui.GameplayLibrary().empty() && two_d.authoring &&
+              !gameplay.BindAuthoredPreview(*play.PlayWorld(), two_d)) {
+            static_cast<void>(play.Stop());
+            ui.SetGameplayStatus("Authored Sprite preview could not bind to the Play clone.");
+            log(nexora::runtime::RuntimeLogSeverity::Error, "PIE",
+                "Authored Sprite preview binding failed.");
             break;
           }
 #endif
@@ -2825,8 +2835,9 @@ int RunGraphical(std::optional<ProjectState> project,
             log(nexora::runtime::RuntimeLogSeverity::Error, "PIE", gameplay_error);
             break;
           }
-          ui.SetGameplayStatus(gameplay.IsLoaded()
-                                   ? "Gameplay module running."
+          ui.SetGameplayStatus(gameplay.IsLoaded() ? "Gameplay module running."
+                               : gameplay.IsBoundTo(play.PlayWorld())
+                                   ? "Inspection only: authored Sprite sources are available in 2D."
                                    : "Inspection only: no gameplay library selected.");
           play_meshes = std::move(frozen_meshes);
           play_materials = std::move(frozen_materials);
@@ -3852,7 +3863,8 @@ int RunGraphical(std::optional<ProjectState> project,
       std::ostringstream observation;
       observation << "game 2d ui state=" << static_cast<unsigned>(play.State())
                   << " steps=" << play.Stats().manual_steps
-                  << " textures=" << game_two_d_textures.Size();
+                  << " textures=" << game_two_d_textures.Size() << " module=" << gameplay.IsLoaded()
+                  << " bound=" << gameplay.IsBoundTo(play.PlayWorld());
       const auto point = [&](const char *name, std::optional<std::array<float, 2>> position) {
         if (position)
           observation << ' ' << name << '=' << (*position)[0] * dpi << ',' << (*position)[1] * dpi;

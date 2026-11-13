@@ -971,6 +971,13 @@ if(NEXORA_ENABLE_2D AND NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
       --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/editor-game-twod")
   set_tests_properties(editor.linux_native_game_twod PROPERTIES
     TIMEOUT 180 RUN_SERIAL TRUE LABELS "editor;twod;vulkan;virtual-display")
+  add_test(NAME editor.linux_authored_preview
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxAuthoredPreview.py"
+      --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraGameTwoDPreviewTests>"
+      --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}"
+      --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/editor-authored-preview")
+  set_tests_properties(editor.linux_authored_preview PROPERTIES
+    TIMEOUT 180 RUN_SERIAL TRUE LABELS "editor;twod;source;vulkan;virtual-display")
 endif()
 
 add_executable(NexoraContentDependencyTests ContentDependencyTests.cpp)

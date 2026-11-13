@@ -1,5 +1,9 @@
 # ED-WF-07 main-scene Sprite source Build — Linux cloud execution
 
+Historical validation for the original base is retained below. The latest main2e900 integration,
+full521-test gate and native transport repairs are recorded in the
+[main integration supplement](ED-WF-07-SourceBuild-MainIntegration-Linux-2026-11-13.md).
+
 Date: 2026-11-13 (Asia/Taipei). Supporting task: `nexora-whr.7.7`.
 Base: main `ac15a642` / Inspector PR #777. Independent module-free Play task 7.6 is preserved.
 
