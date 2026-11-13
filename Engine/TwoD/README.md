@@ -363,3 +363,23 @@ See [Player descriptor/export](../../Apps/TwoDPlayer/README.md#authored-scene-ca
 [Studio selection](../../Tools/TwoD/README.md#multiple-authored-scenes). Portable regressions are
 `twod.scene_session`, `twod.scene_project_zig`, `twod.authoring_contracts` and
 `twod.project_manifest`; the SDK consumer additionally exercises real Zig/native DX12 transitions.
+
+## Optional main-game package Sprite admission
+
+`GameSpriteAssets` consumes Runtime's owning auxiliary NXABs without an Editor dependency.
+Load validates payload codecs/UUID/dependency agreement, once-per-Atlas region indexes and source
+trim closure, with 4096 assets/64 MiB payloads. It owns shared immutable decoded data and no files,
+store, World, callback or publication authority. Copies retain matching immutable texture identities.
+Extraction borrows one current `GameSceneView`, remaps template IDs through each live instance and
+uses one actual World pose snapshot per scene. It returns an owning source-aware frame; retained
+Atlas owners outlive draw submission. Source geometry and negative scale use the common extractor.
+Destroyed authored entities contribute no geometry; malformed/unresolved metadata rejects.
+
+The default 2D camera is centered at (0,0), rotation zero and vertical size 20. It projects a flat
+Sprite overlay independently from the 3D camera. At most 100000 live Sprite inputs enter a frame.
+The existing common extractor limit of 64 resolved Atlases per frame still applies; native Build
+data admission checks the candidate before publication.
+Each Atlas receives a monotonic immutable texture ID in [2^57,2^58); the native surface drains
+before the asset owner is replaced/destroyed. Per-frame uploads borrow only for the native call.
+This is packaged reference rendering, not gameplay Sprite/pool APIs, source animation or hot reload.
+See [the Runtime boundary](../Runtime/GameProjectPackage.md#sprite-source-capability-3).

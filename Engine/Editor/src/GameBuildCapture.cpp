@@ -2,6 +2,9 @@
 #include "AtomicFile.h"
 #include "Nexora/Editor/MaterialAssetCatalog.h"
 #include "Nexora/Editor/MeshAssetCatalog.h"
+#if defined(NEXORA_HAS_2D)
+#include "Nexora/Editor/TwoDAssetImport.h"
+#endif
 #include "ReimportSource.h"
 #include <algorithm>
 #include <sstream>
@@ -238,6 +241,30 @@ std::optional<GameBuildCapture> CaptureGameBuild(const ProjectWorkspace &workspa
     if (!asset(material.asset, false))
       return Fail<GameBuildCapture>(error,
                                     "Material source/catalog changed; reimport before building.");
+#if defined(NEXORA_HAS_2D)
+  std::unordered_map<runtime::AssetUuid, const ContentItem *, runtime::AssetUuidHash> sprite_items;
+  for (const auto &item : content.Items())
+    if (item.twod)
+      sprite_items.emplace(item.id, &item);
+  for (const auto &blob : result.project.sprite_assets) {
+    const auto found = sprite_items.find(blob.id);
+    const auto *item = found == sprite_items.end() ? nullptr : found->second;
+    if (!item || !item->twod || item->twod->Id() != blob.id ||
+        item->twod->Dependencies() != blob.dependencies)
+      return Fail<GameBuildCapture>(error, "Sprite source/catalog dependency changed.");
+    const auto *source = add(item->path, kMaximumTwoDSourceBytes);
+    if (!source || !source->bytes || *source->bytes != blob.payload)
+      return Fail<GameBuildCapture>(error, "Sprite source changed; reimport before building.");
+    const auto hash = detail::SourceHashHex(detail::HashSourceChunk(
+        Text(*source->bytes),
+        detail::HashSourceChunk(item->id.ToString(), 1469598103934665603ULL)));
+    if (hash != item->artifact_hash)
+      return Fail<GameBuildCapture>(error, "Sprite source artifact is stale.");
+    const auto *identity = add(AssetWorkspace::IdentitySidecar(item->path), 4096);
+    if (!identity || !identity->bytes || !Identity(*identity, *item))
+      return Fail<GameBuildCapture>(error, "Sprite source identity changed; refresh Content.");
+  }
+#endif
   if (workspace.HasExternalChange() ||
       !GameBuildSourcesCurrent(workspace.Root(), result.sources, error))
     return {};

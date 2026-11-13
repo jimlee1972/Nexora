@@ -89,9 +89,23 @@ public:
       } else if (blob.type == kCookedSceneType) {
         if (!scene_ids.contains(blob.id))
           return Fail<LoadedGameProject>(error, "Unlisted scene in game package.");
+      } else if (blob.type == "sprite_atlas" || blob.type == "sprite_source") {
+        const auto serialized = AssetCooker::Serialize(blob);
+        if (!PreflightBlob(serialized) || !AssetCooker::Deserialize(serialized))
+          return Fail<LoadedGameProject>(error, "Game Sprite asset integrity failed.");
+        if ((blob.type == "sprite_atlas" && !blob.dependencies.empty()) ||
+            (blob.type == "sprite_source" && blob.dependencies.size() != 1))
+          return Fail<LoadedGameProject>(error, "Invalid Sprite asset dependency framing.");
+        result.sprites_.push_back(blob);
       } else if (blob.type != kCookedScalarPbrType)
         return Fail<LoadedGameProject>(error, "Unsupported game asset type.");
     }
+    for (const auto &blob : result.sprites_)
+      if (blob.type == "sprite_source") {
+        const auto atlas = blobs.find(blob.dependencies.front());
+        if (atlas == blobs.end() || atlas->second->type != "sprite_atlas")
+          return Fail<LoadedGameProject>(error, "Sprite source Atlas is missing or wrong-typed.");
+      }
     std::unordered_map<AssetUuid, std::shared_ptr<const CookedMesh>, AssetUuidHash> meshes;
     std::unordered_map<AssetUuid, std::shared_ptr<const CookedScalarPbr>, AssetUuidHash> materials;
     for (const auto &entry : package.scenes) {
@@ -100,19 +114,40 @@ public:
         return Fail<LoadedGameProject>(error,
                                        "Catalog scene asset is missing or has the wrong type.");
       StaticProjectPackage single{package.project, entry.id, {*found->second}};
+      single.assets.front().dependencies.clear();
+      std::unordered_set<AssetUuid, AssetUuidHash> sprite_roots;
       for (const auto id : found->second->dependencies) {
         const auto dependency = blobs.find(id);
         if (dependency == blobs.end() || dependency->second->type == kCookedSceneType)
           return Fail<LoadedGameProject>(
               error, "Missing dependency or unsupported cross-scene reference.");
-        single.assets.push_back(*dependency->second);
+        if (dependency->second->type == "sprite_source") {
+          if (!sprite_roots.insert(id).second)
+            return Fail<LoadedGameProject>(error, "Duplicate scene Sprite dependency.");
+          used.insert(dependency->second->dependencies.front());
+        } else {
+          single.assets.front().dependencies.push_back(id);
+          single.assets.push_back(*dependency->second);
+        }
       }
       auto loaded = LoadStaticProjectPackage(single, error);
       if (!loaded)
         return std::nullopt;
-      if (loaded->InactiveComponentCount())
+      std::unordered_set<AssetUuid, AssetUuidHash> referenced;
+      std::size_t sprite_count{};
+      for (const auto &opaque : loaded->SceneData().opaque)
+        if (opaque.type == kGameSpriteSourceReferenceType ||
+            opaque.type_name == kGameSpriteSourceReferenceName) {
+          const auto source =
+              ReadGameSpriteSourceReference(opaque.type, opaque.type_name, opaque.data);
+          if (!source || !sprite_roots.contains(*source) || ++sprite_count > 4096)
+            return Fail<LoadedGameProject>(error, "Invalid or unresolved scene Sprite reference.");
+          referenced.insert(*source);
+        }
+      if (referenced != sprite_roots || loaded->InactiveComponentCount() != sprite_count)
         return Fail<LoadedGameProject>(
             error, "Required opaque component behavior is unsupported in a game package.");
+      loaded->inactive_components_ = 0;
       const auto text_bytes = loaded->SceneData().world_snapshot.size();
       const auto entities = loaded->WorldView().FindScene(loaded->SceneId())->entities.size();
       if (text_bytes > kCookedSceneMaximumSnapshotBytes - snapshots ||
@@ -169,7 +204,7 @@ std::optional<ByteBuffer> EncodeGameProjectPackage(const GameProjectPackage &pac
     return std::nullopt;
   ByteBuffer output(kGameMagic.begin(), kGameMagic.end());
   Append(output, 1, 4); // Schema.
-  Append(output, 2, 4); // Packaged scene catalog capability; never StaticView.
+  Append(output, loaded->SpriteAssets().empty() ? 2 : 3, 4);
   for (const auto value : {package.project.high, package.project.low, package.start_scene.high,
                            package.start_scene.low})
     Append(output, value, 8);
@@ -216,7 +251,7 @@ std::optional<LoadedGameProject> DecodeGameProjectPackage(std::span<const std::b
   GameProjectPackage package;
   std::uint64_t schema{}, capability{}, count{};
   if (!reader.Number(schema, 4) || schema != 1 || !reader.Number(capability, 4) ||
-      capability != 2 || !reader.Number(package.project.high, 8) ||
+      (capability != 2 && capability != 3) || !reader.Number(package.project.high, 8) ||
       !reader.Number(package.project.low, 8) || !reader.Number(package.start_scene.high, 8) ||
       !reader.Number(package.start_scene.low, 8) || !reader.Number(count, 4) || !count ||
       count > kMaximumGameScenes)
@@ -256,7 +291,10 @@ std::optional<LoadedGameProject> DecodeGameProjectPackage(std::span<const std::b
   }
   if (reader.offset != reader.bytes.size())
     return Fail<LoadedGameProject>(error, "Unexpected game package suffix.");
-  return LoadGameProjectPackage(package, error);
+  auto loaded = LoadGameProjectPackage(package, error);
+  if (loaded && (loaded->SpriteAssets().empty() ? 2U : 3U) != capability)
+    return Fail<LoadedGameProject>(error, "Game capability disagrees with Sprite asset presence.");
+  return loaded;
 }
 std::optional<LoadedGameProject> ReadGameProjectPackage(const std::filesystem::path &path,
                                                         std::string *error) {

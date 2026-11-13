@@ -2740,6 +2740,16 @@ int RunGraphical(std::optional<ProjectState> project,
               capture ? nexora::editor::CookGameProject(capture->project, &error) : std::nullopt;
           auto loaded =
               bytes ? nexora::runtime::DecodeGameProjectPackage(*bytes, &error) : std::nullopt;
+          if (loaded && !loaded->SpriteAssets().empty()) {
+            error =
+                "Configured Play does not yet support Sprite source packages. Use Build and Run.";
+#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+            if (std::getenv("NEXORA_SPRITE_BUILD_UI_TEST_EVIDENCE"))
+              std::cerr << "sprite package Play rejected: state="
+                        << static_cast<unsigned>(play.State()) << '\n';
+#endif
+            loaded.reset();
+          }
           if (!loaded) {
             ui.SetGameplayStatus(error);
             log(nexora::runtime::RuntimeLogSeverity::Error, "PIE", error);

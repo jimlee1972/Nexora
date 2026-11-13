@@ -2,6 +2,7 @@
 #include "Nexora/Runtime/GameProjectPackage.h"
 #include "Nexora/Runtime/ProjectPackage.h"
 #if defined(NEXORA_PROJECT_PLAYER_2D)
+#include "Nexora/TwoD/GameSpriteAssets.h"
 #include "TwoDPlayer.h"
 #endif
 #if defined(NEXORA_PROJECT_PLAYER_NATIVE)
@@ -41,8 +42,19 @@ int VerifyGame(const std::filesystem::path &path) {
     std::cerr << "Game package verification failed: " << error << '\n';
     return 1;
   }
-  std::cout << "{\"status\":\"VERIFIED_GAME_PACKAGE\",\"schema_version\":1,\"capability\":2,"
-               "\"start_scene\":\""
+  if (!project->SpriteAssets().empty()) {
+#if defined(NEXORA_PROJECT_PLAYER_2D)
+    if (!nexora::twod::GameSpriteAssets::Load(project->SpriteAssets(), &error)) {
+      std::cerr << "Game Sprite admission failed: " << error << '\n';
+      return 1;
+    }
+#else
+    std::cerr << "Game Sprite admission requires TwoD support\n";
+    return 1;
+#endif
+  }
+  std::cout << "{\"status\":\"VERIFIED_GAME_PACKAGE\",\"schema_version\":1,\"capability\":"
+            << (project->SpriteAssets().empty() ? 2 : 3) << ',' << "\"start_scene\":\""
             << project->StartupScene().ToString()
             << "\",\"scene_count\":" << project->Scenes().size()
             << ",\"asset_count\":" << project->AssetCount()
@@ -57,6 +69,18 @@ int VerifyNativeGame(const std::filesystem::path &path) {
     std::cerr << "Game data verification failed: " << error << '\n';
     return 1;
   }
+#if defined(NEXORA_PROJECT_PLAYER_2D)
+  const auto sprites = nexora::twod::GameSpriteAssets::Load(project->SpriteAssets(), &error);
+  if (!sprites) {
+    std::cerr << "Native game Sprite admission failed: " << error << '\n';
+    return 1;
+  }
+#else
+  if (!project->SpriteAssets().empty()) {
+    std::cerr << "Native game Sprite admission requires TwoD support\n";
+    return 1;
+  }
+#endif
   for (const auto &entry : project->Scenes()) {
     const auto scene = project->ResolveScene(entry.id);
     auto view = scene ? nexora::player::PrepareSceneView(scene->RenderItems(), scene->WorldView(),
@@ -67,6 +91,16 @@ int VerifyNativeGame(const std::filesystem::path &path) {
                 << '\n';
       return 1;
     }
+#if defined(NEXORA_PROJECT_PLAYER_2D)
+    nexora::runtime::GameSceneInstance instance{scene->SceneId(), entry.id, scene, {}};
+    for (const auto &entity : scene->WorldView().FindScene(scene->SceneId())->entities)
+      instance.entities.emplace(entity.id, entity.id);
+    if (!sprites->Extract({scene->WorldView(), std::span(&instance, 1), scene->SceneId(), 0}, 960,
+                          640)) {
+      std::cerr << "Native game Sprite extraction failed for " << entry.id.ToString() << '\n';
+      return 1;
+    }
+#endif
   }
   std::cout << "{\"status\":\"VERIFIED_NATIVE_GAME_DATA\",\"scene_count\":"
             << project->Scenes().size()

@@ -17,6 +17,9 @@ public:
   };
   explicit PackagedPlayContext(std::shared_ptr<const runtime::LoadedGameProject> project)
       : project_(std::move(project)), scenes_(world_, project_) {
+    if (!project_->SpriteAssets().empty())
+      throw std::runtime_error(
+          "Configured Sprite package Play requires a source-capable preview owner.");
     std::uint64_t request{};
     if (scenes_.RequestLoad(project_->StartupScene(), runtime::GameSceneLoadMode::Replace, false,
                             request) != runtime::GameSceneError::None)

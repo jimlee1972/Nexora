@@ -8,7 +8,7 @@ The existing [StaticView schema 1](ProjectPackage.md) remains a distinct format/
 
 ## Wire and bounds
 
-Schema 1 starts with eight bytes `NXGAME\0\1`, little-endian u32 schema=1 and capability=2,
+Source-free schema 1 starts with eight bytes `NXGAME\0\1`, little-endian u32 schema=1 and capability=2,
 project UUID high/low u64, startup UUID high/low u64 and u32 scene count. Each scene record contains
 its full UUID high/low u64, u32 UTF-8 locator byte count and those locator bytes. Records sort by full
 UUID `(high,low)`. A u32 asset count follows, then u64 byte length plus schema-1 NXAB bytes for each
@@ -39,8 +39,9 @@ authority: actual World snapshot/hierarchy/components, exact binding dependencie
 reference metadata, raw NXAB hash and BundleBuilder integrity checks are preserved.
 
 Unlike StaticView inspection, this capability rejects opaque records whose required behavior
-would remain inactive. Known scalar-material metadata is admitted with the existing exact
-version/binding checks. No claim is made for arbitrary 2D, physics or plugin asset formats.
+would remain inactive. Known scalar-material metadata uses the existing exact version/binding
+checks; the explicit source capability below admits only its reserved source references.
+No claim is made for arbitrary 2D, physics or plugin asset formats.
 
 `LoadedGameProject` owns its sorted catalog and shared immutable scene templates. Templates own
 isolated Play-kind Worlds and authored scene snapshots; matching UUIDs share decoded mesh/PBR
@@ -68,3 +69,27 @@ are unchanged. C++ consumers rebuild; the stable C/Zig ABI has not changed in th
 counts and explicit native_rendering=false/gameplay_loaded=false. It consumes no authored source
 files. Legacy `--verify-package` continues to reject this separate format and accepts StaticView.
 Native startup/transitions and zero-argument built-game delivery are subsequent integration work.
+
+## Sprite source capability 3
+
+Source-bearing games use schema 1 with capability **3**; source-free writers retain capability 2
+and their exact prior bytes. Capability/presence disagreement rejects. Old consumers reject 3.
+StaticView remains unchanged. The common Runtime has no dependency on optional TwoD codecs.
+It admits only `sprite_source` and `sprite_atlas` auxiliary NXAB types, checks their framing/hash,
+nonzero unique identities, source-to-Atlas type/dependency edge and exact transitive scene closure.
+Each scene directly depends on exactly its referenced source UUIDs plus its mesh/material roots;
+source assets each depend on one Atlas, and Atlases have no dependencies. Unreferenced extras reject.
+
+The reserved `editor.sprite.source` record uses type `0x4544535052540001`, version byte 1 followed
+by little-endian high/low UUID words (17 bytes). Type/name aliases, unknown versions, zero or
+unresolved UUIDs and more than 4096 references per scene reject. Existing StaticView validation
+still checks every World/node/binding and unknown required opaque behavior rejects. A scene's
+source records remain in its immutable template for the explicit source-capable host.
+
+`LoadedGameProject::SpriteAssets()` borrows owning auxiliary blobs from the catalog. Runtime
+admission is **structural**, not typed Atlas/source acceptance. Before reporting full admission,
+callbacks or drawing, optional TwoD consumers must call `GameSpriteAssets::Load`; feature-OFF
+Player modes reject capability 3 visibly. That layer checks embedded UUIDs, complete payload codecs,
+exact payload dependencies, Atlas regions/trim and the aggregate 64 MiB payload budget. Runtime
+limits remain independently enforced. C++ consumers rebuild; stable C/Zig wires are unchanged.
+The new package capability does not advertise gameplay 2D services or support arbitrary opaque code.

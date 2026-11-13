@@ -33,7 +33,7 @@ SortingGroup, nine-slice/Tiled rendering, masks and advanced animation state mac
 | ED-WF-04 | [#745](https://github.com/jimlee1972/Nexora/issues/745) | 01 | Transactional Runtime/Zig migration; failed replacement retains the old module and World | ✅ PR #758 |
 | ED-WF-05 | [#746](https://github.com/jimlee1972/Nexora/issues/746) | 02, 04 | Background source compilation and stateful Play reload without Stop/Play | In progress; integration unaccepted |
 | ED-WF-06 | [#747](https://github.com/jimlee1972/Nexora/issues/747) | 01 | Compatible C/Zig source APIs and cooked Player dependency closure | ✅ PRs #767, #769, #770, #772; [acceptance](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md) |
-| ED-WF-07 | [#748](https://github.com/jimlee1972/Nexora/issues/748) | 06 | Source indexing/Inspector/Undo/save/reopen/Play/Build/reimport in the real Editor | In progress; immutable source index/Play snapshot slice |
+| ED-WF-07 | [#748](https://github.com/jimlee1972/Nexora/issues/748) | 06 | Source indexing/Inspector/Undo/save/reopen/Play/Build/reimport in the real Editor | In progress; source index, Inspector/persistence, module Play and Build support |
 | ED-WF-08 | [#749](https://github.com/jimlee1972/Nexora/issues/749) | 04, 06, 07 | Source animation anchors, live pool instances and valid handles survive replacement | Pending |
 | ED-WF-09 | [#750](https://github.com/jimlee1972/Nexora/issues/750) | 02, 03, 05, 07, 08 | Integrated native acceptance and a verified, extracted Windows Editor ZIP | Pending |
 
@@ -225,3 +225,16 @@ fixture/build-scheduling failures remain separate from accepted results in the
 The independent Flip/repack task `nexora-whr.6.4` is accepted above. Main Editor authoring rendering,
 No-module Play/Build conversion and live source animation/reload remain open. ED-WF-07 is not accepted;
 workflow **5/9**, graphical Editor **0/8** and 2D **9/11** remain unchanged.
+
+## ✅ Main-scene Sprite source Build support (2026-11-13)
+
+Supporting `nexora-whr.7.7` captures saved source UUID references with owning, deduplicated imported
+source/Atlas closure and exact publication baselines. Capability-3 games preserve source-free
+capability-2 bytes and keep Runtime independent of optional TwoD payload codecs. The canonical
+Player validates typed closure and renders actual remapped World transforms as a 2D overlay.
+CPU cases cover stale/malformed/missing closure, owning lifetime and additive ID remapping;
+real Build/SDK Zig, source deletion, Unicode relocation and zero-argument Player execution verify
+exact Sprite color masks and unchanged underlying native 3D pixels. See [Build evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-Linux-2026-11-13.md).
+Configured packaged Play preview, Scene View, source animation/pool and hot reload remain open;
+independent module-free Play work is preserved. ED-WF-07 remains open. Workflow **5/9**, graphical
+Editor **0/8**, TwoD **9/11** and physical/clean-host gates are unchanged.

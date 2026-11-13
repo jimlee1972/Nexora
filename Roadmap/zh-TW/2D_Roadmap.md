@@ -944,3 +944,14 @@ C/Zig 表格維持相容。Player 在 gameplay 前接納內嵌相依閉包；搬
 詳見[雲端證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-AuthoredSources-Linux-2026-11-13.md)。
 主 Editor 製作畫面／無模組 Play／Build 轉換、來源動畫／熱重載與完整 ED-WF-07 仍未完成。
 工作流 **5/9**、圖形 Editor **0/8**、2D **9/11** 及 M6／M7 實機驗收維持不變。
+
+## ✅ 主場景 Sprite 來源 Build 支援（2026-11-13）
+
+支援工作 `nexora-whr.7.7` 擷取已存檔的來源 UUID 參照，擁有去重後的來源／Atlas 相依資料與
+精確發佈基準。含來源遊戲使用 capability 3，無來源 capability 2 位元組保持相容；Runtime 不依賴
+選用 TwoD 的型別編碼器。標準 Player 驗證型別相依關係，將重映射後的實際 World 變換繪成 2D 覆蓋層。
+CPU 案例涵蓋過期、損壞、缺失相依資料、擁有者生命週期與 additive ID 重映射；實際 Build／SDK Zig、
+刪除專案、中文路徑搬移及無參數啟動 Player 驗證完整 Sprite 色彩遮罩，底下的原生 3D 像素保持完全相同。
+詳見 [Build 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-Linux-2026-11-13.md)。
+設定式套件 Play 預覽、Scene View、來源動畫／物件池與熱重載仍未完成；保留獨立的無模組 Play 工作。
+ED-WF-07 保持開啟。工作流 **5/9**、圖形編輯器 **0/8**、TwoD **9/11** 與實體／乾淨主機驗收不變。

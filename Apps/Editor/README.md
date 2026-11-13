@@ -1761,3 +1761,24 @@ source animation/reload. Main capture/loading remains gated by a configured game
 C/Zig ABI, NX2S/ND2D/asset codecs and module dependencies are unchanged; changed C++ application
 and test consumers rebuild. The 2D-OFF embedding remains source-free. See
 [Play reference evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-PlayReferences-Linux-2026-11-13.md).
+
+## Sprite source Build acceptance
+
+The shared Build producer exports supported saved main-scene Sprite source references and their
+owning source/Atlas closure through both SceneOnly and ScriptProject. Exact source/sidecar baselines
+remain in the existing publication guard, and output contains only runtime artifacts. The explicit
+source package capability requires the optional TwoD-capable Player; legacy source-free bytes stay
+unchanged. See [the contract](../../Engine/Editor/GameBuild.md#main-scene-sprite-source-export).
+
+`editor.game_sprite_build` verifies owning capture, exact stale-source/sidecar rejection, canonical
+shared multi-scene closure, frozen pre-change legacy bytes, typed malformed-source rejection and
+actual remapped additive extraction after all authoring owners/files are gone.
+`editor.linux_game_sprite_build` invokes the real Build CLI and SDK Zig compiler, deletes the
+project, relocates the game under a Unicode path and launches `Game` without arguments. X11 reads
+actual native pixels: complete crop/Pivot/mirrored color masks and exact underlying 3D pixels
+against an independently built source-free SceneOnly baseline. WM close verifies gameplay
+Stop/Destroy and native drain; authored and runtime file hashes remain unchanged. Attempts,
+logs, screenshots and receipts live under `artifacts/editor-sprite-sources/build-*`.
+Configured packaged Play uses a separate one-UI-pass compositor and explicitly rejects source
+catalogs until its preview owner is integrated. Scene View, animation/pool/reload and full ED-WF-07
+acceptance remain separate. See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-Linux-2026-11-13.md).
