@@ -154,7 +154,7 @@ GitHub README 維持讀者導向，整體 milestone 未變時不加入逐工單�
 負縮放 pool 仍受支援；legacy／製作參照／legacy 的混合原生快照驗證 Pivot 重匯入與舊擁有者
 保留。詳見[契約](../../Apps/Editor/README.md#authored-source-references-in-module-backed-play)
 與[證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-PlayReferences-Linux-2026-11-13.md)。
-Inspector 控件、Scene View、無 module Play、Build 匯出及動畫／重載仍待完成；獨立合併的
+Scene View、無 module Play、Build 匯出及動畫／重載仍待完成；獨立合併的
 ND2D／Studio 交付已保留。此基礎不驗收 ED-WF-07；流程 **5/9**、Editor **0/8**、2D **9/11** 不變。
 
 ## ✅ 主 Editor Sprite 來源參照模型（2026-11-13）
@@ -180,6 +180,18 @@ ED-WF-06 的原生驗證（`nexora-whr.6.4`）透過搬移後的 catalog 遊戲�
 閉包、feature-OFF 建置及原生重排。流程為 **5/9（55.6%）**；Editor **0/8**、2D **9/11**
 及實機／乾淨主機 gate 維持不變。
 
+## ✅ 主 Editor Sprite 來源 Inspector（2026-11-13）
+
+配套子項 `nexora-whr.7.5` 在實際主 Inspector 提供已匯入來源的選擇與清除。
+完整選取共用一次 metadata Undo／Redo，並隨場景包裝存檔／重開；混合、缺失來源／Atlas
+與不支援的參照分別呈現，不支援的位元組持續保留。每次操作檢查專案寫入權、停止的 Play、
+焦點／復原限制、存活選取與匯入版本。選單自有有界不可變目錄、路徑與節點鍵，過期匯入
+或上下文變更會取消操作；控件不執行檔案 IO，也不修改 Runtime Sprite。
+實際 1×／2× 控件與 Linux X11 操作驗證批次指派、清除、精確 Undo／Redo、存檔重開及
+唯讀專案位元組不變。詳見[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceInspector-Linux-2026-11-13.md)。
+模組主 Play 已由獨立的 `nexora-whr.7.4`／PR #776 交付；Scene View、無模組 Play、Build、來源動畫／熱重載及
+完整 ED-WF-07 仍開放。工作流 **5/9**、圖形 Editor **0/8**、TwoD **9/11** 與實機驗收維持不變。
+
 ## ✅ Studio source 文件持久化（2026-11-13）
 
 配套子項 `nexora-whr.7.2` 加入不可變 source 所有權、ND2D schema-2 持久化，以及來源感知的
@@ -187,6 +199,6 @@ Undo／重開／獨立 Play；無來源文件維持 schema 1。Studio 匯入／�
 在模組 callback 前驗證內嵌 Atlas／source 閉包。實際搬移並刪除來源的套件及原生像素覆蓋
 持久化 Pivot／trim 與負縮放。初始測試模組與建置排程失敗，和通過結果分別保留於
 [雲端證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-AuthoredSources-Linux-2026-11-13.md)。
-獨立 Flip／repack 子項 `nexora-whr.6.4` 已於上節驗收。主 Editor Inspector 驅動的專案存檔
-重開／Build 與來源動畫／熱重載仍未完成。ED-WF-07 尚未驗收；工作流 **5/9**、圖形 Editor
+獨立 Flip／repack 子項 `nexora-whr.6.4` 已於上節驗收。主 Editor 製作畫面／無模組 Play／Build
+轉換與來源動畫／熱重載仍未完成。ED-WF-07 尚未驗收；工作流 **5/9**、圖形 Editor
 **0/8** 與 2D **9/11** 維持不變。

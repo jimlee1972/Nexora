@@ -6,6 +6,9 @@
 #include "Nexora/Editor/PrefabAssets.h"
 #include "Nexora/Editor/ViewportMath.h"
 #include "Nexora/Runtime/RenderSync.h"
+#if defined(NEXORA_HAS_2D)
+#include "Nexora/Editor/SpriteSourceCatalog.h"
+#endif
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
 #include "EditorImGuiTestAccess.h"
 #include <set>
@@ -515,6 +518,22 @@ struct EditorImGuiHost::State final {
   std::array<std::optional<std::array<float, 2>>, 3> inspector_material_positions{};
   std::string inspector_mesh_label;
   std::array<std::optional<std::array<float, 2>>, 3> inspector_mesh_positions{};
+#if defined(NEXORA_HAS_2D)
+  struct SpriteSourcePopup final {
+    std::uintptr_t owner{};
+    std::filesystem::path root;
+    SpriteSourceContentVersion version;
+    std::vector<SceneDocument::NodeKey> keys;
+    SpriteSourceCatalog catalog;
+    std::vector<std::pair<runtime::AssetUuid, std::string>> choices;
+    std::string error;
+    int frame{};
+  };
+  std::optional<SpriteSourcePopup> inspector_sprite_popup;
+  std::string inspector_sprite_label;
+  std::array<std::optional<std::array<float, 2>>, 3> inspector_sprite_positions{};
+  std::vector<std::pair<runtime::AssetUuid, std::array<float, 2>>> inspector_sprite_choices;
+#endif
   std::uint32_t inspector_selection = 0;
   std::vector<OpaqueComponentInfo> inspector_opaque_info;
   ReflectedInspector reflected_inspector;
@@ -771,6 +790,9 @@ template <typename StateT> void CancelSceneGestures(StateT &state) {
 }
 
 template <typename StateT> void CancelInspectorDrafts(StateT &state) {
+#if defined(NEXORA_HAS_2D)
+  state.inspector_sprite_popup.reset();
+#endif
   ++state.reflected_draft_generation;
   state.reflected_pending.reset();
   if (std::ranges::any_of(state.inspector_transform_active, [](bool active) { return active; }) ||
@@ -3349,12 +3371,15 @@ void AcceptInspectorMeshDrop(StateT &state, ProjectContentSession *content,
 #include "PrefabPlacementRebasePanel.inl"
 #include "PrefabPlacementSourcePanel.inl"
 #include "ReflectedInspectorPanel.inl"
+#if defined(NEXORA_HAS_2D)
+#include "SpriteSourceInspectorPanel.inl"
+#endif
 
 template <typename StateT>
 void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *content,
                    const MeshAssetCatalog *meshes, const MaterialAssetCatalog *materials,
-                   bool editable, bool copy_allowed, bool override_readable,
-                   bool override_writable) {
+                   bool editable, bool copy_allowed, bool override_readable, bool override_writable,
+                   [[maybe_unused]] bool source_editable) {
   DrawPrefabPlacementSource(state, scene, copy_allowed);
   DrawPrefabPlacementOverrides(state, override_readable, override_writable);
   DrawPrefabPlacementRebase(state, override_readable, override_writable);
@@ -3447,7 +3472,15 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
           present != has_material_reference || reference != material_reference;
     }
   }
+#if defined(NEXORA_HAS_2D)
+  DrawSpriteSourceInspector(state, *scene, content, keys, state.inspector_opaque_info,
+                            source_editable);
+#endif
   std::erase_if(state.inspector_opaque_info, [&](const auto &info) {
+#if defined(NEXORA_HAS_2D)
+    if (ReadSpriteSourceReference(info))
+      return true;
+#endif
     return ReadMaterialAssetReference(info).has_value() ||
            std::ranges::find(state.reflected_rendered_types, info.type) !=
                state.reflected_rendered_types.end();
@@ -5751,6 +5784,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                                        const MeshAssetCatalog *meshes,
                                        const MaterialAssetCatalog *materials) {
   Activate(state_->context);
+#if defined(NEXORA_HAS_2D)
+  state_->inspector_sprite_label.clear();
+  state_->inspector_sprite_positions = {};
+  state_->inspector_sprite_choices.clear();
+#endif
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
   state_->game_canvas_hovered = state_->game_canvas_clicked = state_->game_capture_allowed = false;
 #endif
@@ -6338,7 +6376,10 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       DrawInspector(*state_, scene, content, meshes, materials, scene_editable,
                     !interaction_blocked,
                     !external_modal_open && !rename_open && !state_->content_rename_target,
-                    rename_editable && !rename_open);
+                    rename_editable && !rename_open,
+                    scene_editable && writable && !game_running && !recovery_available &&
+                        !state_->close_prompt_requested && state_->app_focused && content &&
+                        workspace && content->Root() == workspace->Root());
     }
   } else {
     CancelInspectorDrafts(*state_);
@@ -9811,6 +9852,42 @@ std::string_view EditorImGuiTestAccess::ProjectSelectorRoot(const EditorImGuiHos
 
 bool EditorImGuiTestAccess::ProjectSelectorErrorVisible(const EditorImGuiHost &host) noexcept {
   return host.state_->selector_error_visible;
+}
+
+std::string_view
+EditorImGuiTestAccess::InspectorSpriteSourceLabel(const EditorImGuiHost &host) noexcept {
+#if defined(NEXORA_HAS_2D)
+  return host.state_->inspector_sprite_label;
+#else
+  static_cast<void>(host);
+  return {};
+#endif
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::InspectorSpriteSourcePosition(const EditorImGuiHost &host,
+                                                     std::size_t control) noexcept {
+#if defined(NEXORA_HAS_2D)
+  return control < host.state_->inspector_sprite_positions.size()
+             ? host.state_->inspector_sprite_positions[control]
+             : std::nullopt;
+#else
+  static_cast<void>(host);
+  static_cast<void>(control);
+  return std::nullopt;
+#endif
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::InspectorSpriteSourceChoicePosition(const EditorImGuiHost &host,
+                                                           runtime::AssetUuid asset) noexcept {
+#if defined(NEXORA_HAS_2D)
+  for (const auto &[id, position] : host.state_->inspector_sprite_choices)
+    if (id == asset)
+      return position;
+#else
+  static_cast<void>(host);
+  static_cast<void>(asset);
+#endif
+  return std::nullopt;
 }
 
 void EditorImGuiTestAccess::ConfigureSyntheticInput(EditorImGuiHost &host,

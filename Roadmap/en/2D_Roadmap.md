@@ -1013,7 +1013,7 @@ Editor acceptance remain open. ED-WF stays 5/9, Editor 0/8, 2D 9/11; M6/M7 physi
 ✅ Main module Play now freezes and binds authored source UUID references before module Create
 (`nexora-whr.7.4`), rechecks exact authored drift and rejects stale/missing/unsupported bindings.
 Legacy/authored/legacy native snapshots retain source/Pivot geometry and negative-scale pools
-after reimport and source/project destruction. Inspector widgets, Scene View, no-module Play,
+after reimport and source/project destruction. Scene View, no-module Play,
 Build and animation/reload remain open; counts do not change.
 [Contract and evidence](Editor_Workflow_Delivery_Plan.md#-authored-sprite-references-in-main-module-play-2026-11-13).
 
@@ -1036,6 +1036,20 @@ all 41 latest exact-head hosted checks pass and PR #772 is merged. The combined
 with legacy compatibility, immutable cooked closure and feature-OFF builds. Workflow acceptance
 is 5/9 (55.6%); Editor 0/8, 2D 9/11 and physical/clean-host gates remain unchanged.
 
+## ✅ Main Editor Sprite source Inspector (2026-11-13)
+
+Supporting `nexora-whr.7.5` exposes imported source choices and Clear in the real main Inspector.
+Complete selections share one metadata Undo/Redo and wrapped scene Save/Reload. Mixed, missing
+source/Atlas and unsupported references have distinct states; unsupported bytes remain protected.
+Writable project, stopped Play, focus/recovery and live selection/version checks guard every action.
+The popup owns its bounded immutable catalog, paths and keys; stale imports or context changes
+cancel it. No filesystem work or Runtime Sprite mutation occurs in the widgets.
+Actual 1×/2× controls and Linux X11 interaction verify batch assignment, Clear, exact Undo/Redo,
+save/reopen and unchanged read-only project bytes. See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceInspector-Linux-2026-11-13.md).
+Module-backed main Play was independently delivered by `nexora-whr.7.4` / PR #776; Scene View, no-module Play, Build,
+source animation/reload and full ED-WF-07 remain open. Workflow **5/9**, Editor **0/8**, TwoD **9/11**
+and physical acceptance are unchanged.
+
 ## ✅ Authored Sprite source document persistence (2026-11-13)
 
 The ED-WF-07 supporting slice `nexora-whr.7.2` adds an owning source catalog to ND2D schema 2,
@@ -1046,5 +1060,5 @@ trim/Pivot and negative-scale geometry, and malformed export/conflicting sources
 Reference validation scans the complete Atlas once per document, then reuses the shared per-source
 resolver checks; regression coverage combines 4096 sources with 1024 Atlas regions.
 See [cloud evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-AuthoredSources-Linux-2026-11-13.md).
-End-to-end main Editor Inspector/project save/reopen/Build, source-animation/reload and complete ED-WF-07 remain
+Main Editor authoring rendering/no-module Play/Build conversion, source-animation/reload and complete ED-WF-07 remain
 open. Workflow **5/9**, graphical Editor **0/8**, 2D **9/11** and physical M6/M7 acceptance are unchanged.

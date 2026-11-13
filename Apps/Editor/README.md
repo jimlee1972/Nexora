@@ -1493,6 +1493,16 @@ in the [target-host list](../../Tools/TwoD/WindowsAcceptance.md).
 
 ## Native project and asset workflow acceptance
 
+`editor.linux_sprite_source_inspector` uses the test-only scene GUI observation stream to locate
+actual Sprite source combo/choice/Clear controls, including disabled ones. These copied centers
+carry no mutation capability. Real X11 events select two entities, assign an imported source,
+Clear, Undo/Redo, save and reopen read-only; exact wrapped scene/plugin bytes and complete project
+hashes provide the independent result checks. Full presented screenshots and input/log/receipt
+files stay in `artifacts/editor-sprite-sources/inspector-*`. This accepts reference authoring;
+Scene View drawing, no-module Play, Build and source animation remain separate work.
+With `NEXORA_SPRITE_SOURCE_INSPECTOR_TEST_EVIDENCE`, a separate test-only frame heartbeat proves
+that stable positions were observed across new frames; ordinary geometry output stays change-only.
+
 `editor.linux_project_asset_workflow` drives the real project selector and Content widgets
 with X11 pointer/key events: create, asynchronous initial OBJ import, filtering and selection,
 authored mesh creation/native Scene submission, folder drag/drop, external-source reimport,

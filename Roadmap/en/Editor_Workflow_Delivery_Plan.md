@@ -171,7 +171,7 @@ and rejects missing/unsupported/stale bindings before callbacks. Existing gamepl
 and negative-scale pools remain supported; mixed legacy/authored/legacy native snapshots verify
 Pivot reimport and retained owners. [Contract](../../Apps/Editor/README.md#authored-source-references-in-module-backed-play)
 and [evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-PlayReferences-Linux-2026-11-13.md).
-Inspector widgets, Scene View, no-module Play, Build export and animation/reload remain open.
+Scene View, no-module Play, Build export and animation/reload remain open.
 The independently merged ND2D/Studio slice is preserved. This supporting slice does not accept ED-WF-07;
 workflow **5/9**, Editor **0/8**, 2D **9/11** remain unchanged.
 
@@ -200,6 +200,20 @@ all 41 latest exact-head hosted checks pass and PR #772 is merged. The consolida
 immutable cooked closure, feature-OFF builds and native repacks. Workflow is **5/9 (55.6%)**;
 Editor **0/8**, 2D **9/11** and physical/clean-host gates remain unchanged.
 
+## ✅ Main Editor Sprite source Inspector (2026-11-13)
+
+Supporting `nexora-whr.7.5` exposes imported source choices and Clear in the real main Inspector.
+Complete selections share one metadata Undo/Redo and wrapped scene Save/Reload. Mixed, missing
+source/Atlas and unsupported references have distinct states; unsupported bytes remain protected.
+Writable project, stopped Play, focus/recovery and live selection/version checks guard every action.
+The popup owns its bounded immutable catalog, paths and keys; stale imports or context changes
+cancel it. No filesystem work or Runtime Sprite mutation occurs in the widgets.
+Actual 1×/2× controls and Linux X11 interaction verify batch assignment, Clear, exact Undo/Redo,
+save/reopen and unchanged read-only project bytes. See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceInspector-Linux-2026-11-13.md).
+Module-backed main Play was independently delivered by `nexora-whr.7.4` / PR #776; Scene View, no-module Play, Build,
+source animation/reload and full ED-WF-07 remain open. Workflow **5/9**, Editor **0/8**, TwoD **9/11**
+and physical acceptance are unchanged.
+
 ## ✅ Source-bearing Studio document persistence (2026-11-13)
 
 Supporting `nexora-whr.7.2` adds immutable source ownership, schema-2 ND2D persistence and source-aware
@@ -208,6 +222,6 @@ UUIDs; Player validates embedded Atlas/source closure before module callbacks. A
 source-deleted packages and native pixels cover persisted Pivot/trim and negative scale. Initial
 fixture/build-scheduling failures remain separate from accepted results in the
 [cloud evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-AuthoredSources-Linux-2026-11-13.md).
-The independent Flip/repack task `nexora-whr.6.4` is accepted above. End-to-end main Editor Inspector,
-project save/reopen/Build and live source animation/reload remain open. ED-WF-07 is not accepted;
+The independent Flip/repack task `nexora-whr.6.4` is accepted above. Main Editor authoring rendering,
+No-module Play/Build conversion and live source animation/reload remain open. ED-WF-07 is not accepted;
 workflow **5/9**, graphical Editor **0/8** and 2D **9/11** remain unchanged.

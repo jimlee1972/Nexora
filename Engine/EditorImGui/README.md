@@ -87,6 +87,35 @@ they retain no ImGui/model pointer and neither execute actions nor grant authori
 authority. Native fixtures still send real X11 input and check independent pixels, values, files
 and access rejection. See the [application observer contract](../../Apps/Editor/README.md#native-project-and-asset-workflow-acceptance).
 
+## Main Sprite source Inspector
+
+With `NEXORA_HAS_2D`, the main Inspector selects imported Sprite source UUIDs and clears supported
+references through `AssignSpriteSources`/`ClearSpriteSources`. A complete selection is one bounded
+metadata transaction with existing Undo/Redo and wrapped Save/Reload. The popup captures owning
+source/Atlas metadata, display paths, live NodeKeys, Content generation/revision and project scope
+once when opened. It never retains a model borrow or reads files. Subsequent frames require the
+same scope/version/selection and consecutive visible frames; context loss or draft cancellation
+releases it. Assignment rechecks exact imported owners through the model. Idle presentation reuses
+the ordinary Inspector's owning component previews and, when supported references exist, indexes
+typed source/Atlas rows once per frame. Referenced metadata/dependency checks add no per-target
+linear document/Content scans or complete Atlas validation.
+
+None, Mixed, missing source/Atlas and unsupported reserved components remain distinct. Missing
+supported references can clear without a resolvable catalog; unsupported versions/type/name/data
+disable the whole edit and remain in unavailable-component inspection. Valid references use the
+dedicated Inspector instead of appearing as unavailable plugin data. More than 4096 targets skip
+this section's reference parsing/indexing. Controls require the current project writer and writable
+Content, stopped Play, focus and ordinary scene/recovery/modal permission. Source editing does not
+change Runtime components, transforms, C/Zig tables or any scene/asset wire. Existing material,
+mesh and reflected Inspector contracts remain independent; Scene View/Build consumers are separate.
+
+Private test access returns copied visible centers (including disabled controls) and a label;
+it clears observations every shell frame and grants no authoring authority. The real Linux
+X11 fixture observes stable presented geometry and then sends normal input, verifies exact scene
+bytes/history and read-only project hashes, and retains full screenshots/input/logs/receipts under
+`artifacts/editor-sprite-sources/inspector-*`. See the
+[scoped evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceInspector-Linux-2026-11-13.md).
+
 ## Project Build Settings
 
 Build > Project Build Settings edits a separate owning draft of the game's startup scene and

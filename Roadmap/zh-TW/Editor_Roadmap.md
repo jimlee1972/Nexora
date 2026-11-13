@@ -2249,6 +2249,18 @@ output、local preset、credential、private project 或 sensitive capture。`Ed
 Inspector 來源指定、製作場景持久化、Build、來源動畫／重載與完整 Editor 驗收仍待完成。
 ED-WF 維持 5/9、Editor 0/8、2D 9/11；M6／M7 實機 gate 不變。
 
+## ✅ 主 Editor Sprite 來源 Inspector（2026-11-13）
+
+配套子項 `nexora-whr.7.5` 在實際主 Inspector 提供已匯入來源的選擇與清除。
+完整選取共用一次 metadata Undo／Redo，並隨場景包裝存檔／重開；混合、缺失來源／Atlas
+與不支援的參照分別呈現，不支援的位元組持續保留。每次操作檢查專案寫入權、停止的 Play、
+焦點／復原限制、存活選取與匯入版本。選單自有有界不可變目錄、路徑與節點鍵，過期匯入
+或上下文變更會取消操作；控件不執行檔案 IO，也不修改 Runtime Sprite。
+實際 1×／2× 控件與 Linux X11 操作驗證批次指派、清除、精確 Undo／Redo、存檔重開及
+唯讀專案位元組不變。詳見[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceInspector-Linux-2026-11-13.md)。
+模組主 Play 已由獨立的 `nexora-whr.7.4`／PR #776 交付；Scene View、無模組 Play、Build、來源動畫／熱重載及
+完整 ED-WF-07 仍開放。工作流 **5/9**、圖形 Editor **0/8**、TwoD **9/11** 與實機驗收維持不變。
+
 ## ✅ 獨立 source 作者文件（2026-11-13）
 
 TwoDDocument 現在持有有界不可變 source 目錄，支援來源指派、交易式中繼資料替換／移除、
@@ -2262,7 +2274,7 @@ Undo／Redo、存檔重開與獨立 Play 快照。Studio 控制與預覽沿用�
 
 ✅ 主 module Play 現可在 module Create 前凍結並綁定製作來源 UUID 參照（`nexora-whr.7.4`），
 啟動前精確重查製作擷取與隔離 Runtime；缺失／不支援／過期參照在 callback 前拒絕。
-保留的 legacy／製作參照／legacy 原生影格驗證重匯入與舊擁有者生命週期。Inspector 控件、
+保留的 legacy／製作參照／legacy 原生影格驗證重匯入與舊擁有者生命週期。
 Scene View、無 module Play、Build 及動畫／重載仍未完成；里程碑數字不變。
 [契約與證據](Editor_Workflow_Delivery_Plan.md#-主-editor-module-play-的製作來源參照2026-11-13)。
 
