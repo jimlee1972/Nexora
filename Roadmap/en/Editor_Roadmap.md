@@ -2485,3 +2485,19 @@ CI is required before delivery. Main packaged source-animation/pool gameplay ser
 remain open; Workflow **5/9**, Editor **0/8**, TwoD **9/11** are unchanged.
 
 [Full local execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-PlayerGeneration-Linux-2026-11-14.md) retains initial failures and complete scope.
+
+## ✅ Native Scene Sprite source preview (2026-11-14)
+
+Supporting `nexora-whr.7.9` displays owning imported Sprite sources as cutout planes in the actual
+native 3D Scene View. Trim/Pivot/PPU, mirrored/full hierarchical matrices, exact source/mesh union
+bounds, alpha-aware picks and ordinary transform preview/Undo/Redo share the same source geometry.
+One application Scene texture owner retains exact immutable Atlases and retires replaced native
+textures between frames. Two fenced sampled LDR views precede the same owning GUI submission;
+source-free rendering and guarded configured Play publication remain intact. Scene/Game canvases
+still require disjoint rectangles; floating auxiliary-window occlusion follows GUI order.
+[Contract](../../Apps/Editor/README.md#native-scene-sprite-sources) and
+[execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SceneSpritePreview-Linux-2026-11-14.md).
+This uses existing linear PBR sampling and alpha cutoff0.5. Partial blending, pixel-perfect2D/XY
+editing, main packaged source animation/pool/publication/reload and full ED-WF-07/08 remain open. Full Linux 510/510, Shipping, actual TwoD-OFF/noTests and graphical Monolithic gates pass.
+Exact-head hosted CI is required before delivery; Workflow **5/9**, graphical Editor **0/8**, TwoD **9/11** and
+physical/clean-host acceptance are unchanged.

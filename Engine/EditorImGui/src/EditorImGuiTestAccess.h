@@ -153,6 +153,9 @@ public:
   [[nodiscard]] static SceneComparisonSnapshot SceneComparisonStatus(const EditorImGuiHost &);
   [[nodiscard]] static SceneShortcutObservation
   SceneShortcutInput(const EditorImGuiHost &) noexcept;
+  // Raw processed keys for native preview acceptance: Ctrl,S,Z,Y,1,3,W,Home,F5,F6,F10,A.
+  [[nodiscard]] static std::array<bool, 12> ScenePreviewKeys(const EditorImGuiHost &) noexcept;
+
   [[nodiscard]] static std::uint32_t SceneComparisonRenderedRows(const EditorImGuiHost &);
   [[nodiscard]] static std::optional<std::array<float, 2>>
   SceneMergePosition(const EditorImGuiHost &, std::size_t control);

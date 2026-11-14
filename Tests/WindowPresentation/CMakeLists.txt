@@ -53,6 +53,17 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_NATIVE_BACKENDS AND
   find_package(X11 REQUIRED)
   add_executable(NexoraVulkanSceneTests VulkanSceneTests.cpp)
   add_executable(NexoraVulkanSceneUiTests VulkanSceneUiTests.cpp)
+  add_executable(NexoraVulkanDualSceneUiTests VulkanSceneUiTests.cpp)
+  target_compile_definitions(NexoraVulkanDualSceneUiTests PRIVATE NEXORA_SCENE_UI_DUAL=1)
+  target_link_libraries(NexoraVulkanDualSceneUiTests PRIVATE Nexora::Presentation X11::X11)
+  nexora_apply_defaults(NexoraVulkanDualSceneUiTests)
+  add_test(NAME window_presentation.vulkan_dual_scene_ui
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tests/Showcase/LinuxVulkanSceneAcceptance.py"
+      --native-test "$<TARGET_FILE:NexoraVulkanDualSceneUiTests>"
+      --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/dual-scene-ui-vulkan")
+  set_tests_properties(window_presentation.vulkan_dual_scene_ui PROPERTIES
+    LABELS "vulkan;virtual-display;ui" SKIP_RETURN_CODE 77 TIMEOUT 45)
+
   target_link_libraries(NexoraVulkanSceneUiTests PRIVATE Nexora::Presentation X11::X11)
   nexora_apply_defaults(NexoraVulkanSceneUiTests)
   add_test(NAME window_presentation.vulkan_scene_ui
@@ -296,3 +307,21 @@ foreach(scene_adapter_fixture IN LISTS scene_adapter_fixtures)
       "${PROJECT_SOURCE_DIR}/Engine/Presentation/src/SceneUiComposition.cpp")
   endif()
 endforeach()
+
+# Exercise bounded Scene generations on each real native backend, independently of UI cache IDs.
+if(NEXORA_ENABLE_NATIVE_BACKENDS AND (WIN32 OR APPLE OR
+   (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_VULKAN_BACKEND)))
+  add_executable(NexoraSceneTextureRetirementTests SceneTextureRetirementTests.cpp)
+  target_link_libraries(NexoraSceneTextureRetirementTests PRIVATE Nexora::Presentation)
+  nexora_apply_defaults(NexoraSceneTextureRetirementTests)
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    add_test(NAME window_presentation.scene_texture_retirement
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tests/Showcase/LinuxVulkanSceneAcceptance.py"
+        --native-contract "$<TARGET_FILE:NexoraSceneTextureRetirementTests>" --timeout 45
+        --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/scene-texture-retirement")
+  else()
+    add_test(NAME window_presentation.scene_texture_retirement COMMAND NexoraSceneTextureRetirementTests)
+  endif()
+  set_tests_properties(window_presentation.scene_texture_retirement PROPERTIES
+    SKIP_RETURN_CODE 77 TIMEOUT 60 RUN_SERIAL TRUE LABELS "native-acceptance;lifecycle")
+endif()

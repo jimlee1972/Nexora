@@ -10,7 +10,7 @@ struct SceneUiFixture final {
   using Status = Nexora::Presentation::SurfaceStatus;
   std::string_view failure;
   std::optional<Nexora::Presentation::SceneTextureReference> previous;
-  bool Draw(Surface &surface, std::uint32_t width, std::uint32_t height) {
+  bool Draw(Surface &surface, std::uint32_t width, std::uint32_t height, bool dual = false) {
     using namespace Nexora::Presentation;
     if (surface.Acquire() != Status::Ready || surface.SceneTexture())
       return Fail("sampled Scene acquire/reference phase failed");
@@ -32,8 +32,18 @@ struct SceneUiFixture final {
     const auto reference = surface.SceneTexture();
     if (!reference || (previous && *previous == *reference))
       return Fail("prepared Scene reference absent or reused across frames");
+    std::optional<SceneTextureReference> second;
+    if (dual) {
+      scene.base_color[0] = 1;
+      scene.base_color[1] = 0;
+      if (surface.DrawScene(scene) != Status::Ready)
+        return Fail("second independent sampled Scene preparation failed");
+      second = surface.SceneTexture();
+      if (!second || *second == *reference)
+        return Fail("two sampled Scene views alias their reference");
+    }
     const auto w = static_cast<float>(width), h = static_cast<float>(height);
-    std::array<UiVertex, 16> vertices{};
+    std::array<UiVertex, 20> vertices{};
     const auto quad = [&](std::size_t n, float x, float y, float right, float bottom,
                           std::uint32_t color) {
       vertices[n] = {{x, y}, {0, 0}, color};
@@ -45,18 +55,27 @@ struct SceneUiFixture final {
     quad(4, 0, 0, w / 2, h, UINT32_MAX);
     quad(8, w / 16, h * 3 / 8, w * 3 / 16, h * 5 / 8, 0xff0000ffU);
     quad(12, w / 4 - 8, h / 8 - 8, w / 4 + 8, h / 8 + 8, 0xff00ffffU);
-    const std::array<std::uint16_t, 24> indices{0, 1, 2,  0, 2,  3,  4,  5,  6,  4,  6,  7,
-                                                8, 9, 10, 8, 10, 11, 12, 13, 14, 12, 14, 15};
+    quad(16, w / 2, h / 4, w, h * 3 / 4, UINT32_MAX);
+    const std::array<std::uint16_t, 30> indices{0,  1,  2,  0,  2,  3,  4,  5,  6,  4,
+                                                6,  7,  8,  9,  10, 8,  10, 11, 12, 13,
+                                                14, 12, 14, 15, 16, 17, 18, 16, 18, 19};
     constexpr std::uint64_t whiteId = 15001;
-    std::array<UiDrawCommand, 4> commands{{{0, 0, width, height, whiteId, 6, 0, 0},
-                                           {0, 0, width / 2, height, 0, 6, 6, 0},
-                                           {0, 0, width, height, whiteId, 6, 12, 0},
-                                           {0, 0, width, height, whiteId, 6, 18, 0}}};
+    std::array<UiDrawCommand, 5> commands{
+        {{0, 0, width, height, whiteId, 6, 0, 0},
+         {0, 0, width / 2, height, 0, 6, 6, 0},
+         {0, 0, width, height, whiteId, 6, 12, 0},
+         {0, 0, width, height, whiteId, 6, 18, 0},
+         {static_cast<std::int32_t>(width / 2), static_cast<std::int32_t>(height / 4), width / 2,
+          height / 2, 0, 6, 24, 0}}};
     commands[1].sceneTexture = *reference;
+    if (second)
+      commands[4].sceneTexture = *second;
     const std::array<std::byte, 4> white{std::byte{255}, std::byte{255}, std::byte{255},
                                          std::byte{255}};
     const std::array uploads{UiTextureUpload{whiteId, 1, 1, 4, white, true, true}};
-    const UiDrawData packet{vertices, std::as_bytes(std::span(indices)), commands, uploads};
+    const UiDrawData packet{std::span(vertices).first(dual ? 20 : 16),
+                            std::as_bytes(std::span(indices).first(dual ? 30 : 24)),
+                            std::span(commands).first(dual ? 5 : 4), uploads};
     const auto before = surface.Diagnostics();
     auto bad = *reference;
     bad.surface ^= UINT64_C(1) << 62;
@@ -67,6 +86,13 @@ struct SceneUiFixture final {
       commands[1].sceneTexture = *previous;
       if (surface.RenderUi(packet) != Status::InvalidDescriptor)
         return Fail("stale Scene reference was accepted");
+    }
+    if (dual) {
+      commands[1].sceneTexture = *reference;
+      commands[4].sceneTexture = bad;
+      if (surface.RenderUi(packet) != Status::InvalidDescriptor)
+        return Fail("invalid second reference changed dual UI admission");
+      commands[4].sceneTexture = *second;
     }
     if (surface.Diagnostics().nativeUiTextureUploads != before.nativeUiTextureUploads ||
         surface.Diagnostics().nativeUiDrawCalls != before.nativeUiDrawCalls)
@@ -85,7 +111,8 @@ struct SceneUiFixture final {
     auto overlap = scene;
     overlap.viewport.x = width / 2 - 1;
     if (surface.DrawScene(overlap) != Status::InvalidDescriptor ||
-        surface.DrawScene(scene) != Status::Ready || surface.Present() != Status::Ready)
+        surface.DrawScene(scene) != (dual ? Status::InvalidDescriptor : Status::Ready) ||
+        surface.Present() != Status::Ready)
       return Fail("disjoint native Scene after sampled UI failed");
     return true;
   }

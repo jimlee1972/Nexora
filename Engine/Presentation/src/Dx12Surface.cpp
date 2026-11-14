@@ -361,9 +361,13 @@ public:
                   instances.size());
     uiUploads_[frame_]->Unmap(0, nullptr);
     diagnostics_.spriteInstanceUploadBytes += instances.size();
-    if (scenePlan.sampled)
-      TransitionSceneTarget(sceneColors_[frame_].Get(), sceneTargetStates_[frame_].colorState,
-                            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    for (std::size_t view = 0; view < scenePlan.views.size(); ++view)
+      if (scenePlan.views[view]) {
+        auto &color = view ? secondarySceneColors_[frame_] : sceneColors_[frame_];
+        auto &state = view ? secondarySceneTargetStates_[frame_] : sceneTargetStates_[frame_];
+        TransitionSceneTarget(color.Get(), state.colorState,
+                              D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+      }
     auto rtv = heap_->GetCPUDescriptorHandleForHeapStart();
     rtv.ptr += SIZE_T(frame_) * increment_;
     commands_->OMSetRenderTargets(1, &rtv, FALSE, nullptr);
@@ -401,8 +405,10 @@ public:
                                 : (nearest ? uiNearestPipeline_.Get() : uiPipeline_.Get()));
       commands_->SetGraphicsRoot32BitConstants(0, 4, transform, 0);
       auto descriptor = uiDescriptors_->GetGPUDescriptorHandleForHeapStart();
-      descriptor.ptr += (sceneTexture ? UINT64(frame_) : UINT64(texture->second.descriptor)) *
-                        uiDescriptorIncrement_;
+      const auto sceneDescriptor = command.sceneTexture.view ? 4 * kMaximumFrames + frame_ : frame_;
+      descriptor.ptr +=
+          (sceneTexture ? UINT64(sceneDescriptor) : UINT64(texture->second.descriptor)) *
+          uiDescriptorIncrement_;
       commands_->SetGraphicsRootDescriptorTable(1, descriptor);
       const D3D12_RECT scissor{command.clipX, command.clipY,
                                command.clipX + static_cast<LONG>(command.clipWidth),
@@ -660,7 +666,10 @@ public:
     const bool refraction = HasSceneRefraction(drawData);
     const bool reflection = drawData.planarReflection.has_value();
     const auto shadowResolution = drawData.shadow ? drawData.shadow->resolution : 0U;
-    auto &targets = sceneTargetStates_[frame_];
+    const bool secondarySample = drawData.sampledByUi && sceneViewSlot_ == 1;
+    auto &sceneColor = secondarySample ? secondarySceneColors_[frame_] : sceneColors_[frame_];
+    auto &targets =
+        secondarySample ? secondarySceneTargetStates_[frame_] : sceneTargetStates_[frame_];
     // Acquire already waited this swapchain slot's fence. Retain only complete compatible
     // offscreen resources; all views and material bindings still describe this submission.
     const bool reuseTargets =
@@ -670,8 +679,12 @@ public:
         targets.hasRefraction == refraction;
     // A sampled offscreen target is still read by the recorded UI commands. A later disjoint
     // direct view must retain it until this frame's fence, even though it needs no offscreen RTV.
-    if (!reuseTargets && !sceneUi_.Sampled())
-      ResetSceneTargets(frame_);
+    if (!reuseTargets && !sceneUi_.Sampled()) {
+      if (secondarySample)
+        ResetSecondarySceneTarget(frame_);
+      else
+        ResetSceneTargets(frame_);
+    }
     // A sampled offscreen view is already complete and is not changed by this later direct view.
     // Keep its cache metadata as well as its owned resources until the frame fence.
     if (!sceneUi_.Sampled())
@@ -698,23 +711,24 @@ public:
       if (!reuseTargets &&
           FAILED(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &descriptor,
                                                   D3D12_RESOURCE_STATE_RENDER_TARGET, &clear,
-                                                  IID_PPV_ARGS(&sceneColors_[frame_]))))
+                                                  IID_PPV_ARGS(&sceneColor))))
         return SurfaceStatus::DeviceLost;
       if (reuseTargets)
-        TransitionSceneTarget(sceneColors_[frame_].Get(), targets.colorState,
+        TransitionSceneTarget(sceneColor.Get(), targets.colorState,
                               D3D12_RESOURCE_STATE_RENDER_TARGET);
       rtv = sceneRtvHeap_->GetCPUDescriptorHandleForHeapStart();
-      rtv.ptr += SIZE_T(frame_) * increment_;
-      device_->CreateRenderTargetView(sceneColors_[frame_].Get(), nullptr, rtv);
+      rtv.ptr += SIZE_T((secondarySample ? 3 * frames_ : 0) + frame_) * increment_;
+      device_->CreateRenderTargetView(sceneColor.Get(), nullptr, rtv);
       if (drawData.hdr || drawData.sampledByUi) {
         auto handle = uiDescriptors_->GetCPUDescriptorHandleForHeapStart();
-        handle.ptr += SIZE_T(frame_) * uiDescriptorIncrement_;
+        handle.ptr +=
+            SIZE_T((secondarySample ? 4 * kMaximumFrames : 0) + frame_) * uiDescriptorIncrement_;
         D3D12_SHADER_RESOURCE_VIEW_DESC view{};
         view.Format = descriptor.Format;
         view.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
         view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
         view.Texture2D.MipLevels = 1;
-        device_->CreateShaderResourceView(sceneColors_[frame_].Get(), &view, handle);
+        device_->CreateShaderResourceView(sceneColor.Get(), &view, handle);
       }
       if (refraction) {
         descriptor.Flags = D3D12_RESOURCE_FLAG_NONE;
@@ -808,7 +822,7 @@ public:
           std::array<D3D12_RESOURCE_BARRIER, 2> snapshotBarriers{};
           for (auto &barrier : snapshotBarriers)
             barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-          auto *source = mirrorPass ? reflectionColors_[frame_].Get() : sceneColors_[frame_].Get();
+          auto *source = mirrorPass ? reflectionColors_[frame_].Get() : sceneColor.Get();
           snapshotBarriers[0].Transition = {source, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
                                             D3D12_RESOURCE_STATE_RENDER_TARGET,
                                             D3D12_RESOURCE_STATE_COPY_SOURCE};
@@ -996,6 +1010,39 @@ public:
     auto result = diagnostics_;
     result.twoDTextureCount = uiTextures_.size();
     return result;
+  }
+  SurfaceStatus ReleaseSceneTextures(std::span<const std::uint64_t> ids) override {
+    if (!OnThread())
+      return SurfaceStatus::WrongThread;
+    if (destroyed_)
+      return SurfaceStatus::SurfaceLost;
+    if (acquired_)
+      return SurfaceStatus::InvalidDescriptor;
+    if (ids.size() > 64)
+      return SurfaceStatus::InvalidDescriptor;
+    for (const auto id : ids)
+      if (!id || id >= UINT64_MAX - 1)
+        return SurfaceStatus::InvalidDescriptor;
+    if (ids.empty())
+      return SurfaceStatus::Ready;
+    // Reserve before draining/mutation so descriptor reclamation cannot partially allocate.
+    freeUiDescriptors_.reserve(freeUiDescriptors_.size() + ids.size() * 2);
+    const auto value = ++fenceValue_;
+    if (FAILED(queue_->Signal(fence_.Get(), value)) ||
+        FAILED(fence_->SetEventOnCompletion(value, event_)) ||
+        WaitForSingleObject(event_, INFINITE) != WAIT_OBJECT_0)
+      return SurfaceStatus::DeviceLost;
+    for (const auto id : ids)
+      for (auto *textures : {&sceneTextures_, &linearSceneTextures_}) {
+        const auto found = textures->find(id);
+        if (found == textures->end())
+          continue;
+        freeUiDescriptors_.push_back(found->second.descriptor);
+        if (found->second.srgbDescriptor != found->second.descriptor)
+          freeUiDescriptors_.push_back(found->second.srgbDescriptor);
+        textures->erase(found);
+      }
+    return SurfaceStatus::Ready;
   }
   SurfaceStatus ReleaseSpriteTextures(std::span<const std::uint64_t> ids) override {
     if (!OnThread())
@@ -1382,7 +1429,7 @@ private:
       return false;
     D3D12_DESCRIPTOR_HEAP_DESC sceneHeap{};
     sceneHeap.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-    sceneHeap.NumDescriptors = frames_ * 3;
+    sceneHeap.NumDescriptors = frames_ * 4;
     if (FAILED(device_->CreateDescriptorHeap(&sceneHeap, IID_PPV_ARGS(&sceneRtvHeap_))))
       return false;
     // Column-vector convention (row_major storage, mul(matrix, vector)) to match
@@ -1606,7 +1653,12 @@ private:
     pipeline.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
     return SUCCEEDED(device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&tonePipeline_)));
   }
+  void ResetSecondarySceneTarget(UINT slot) {
+    secondarySceneColors_[slot].Reset();
+    secondarySceneTargetStates_[slot] = {};
+  }
   void ResetSceneTargets(UINT slot) {
+    ResetSecondarySceneTarget(slot);
     reflectionColors_[slot].Reset();
     refractionColors_[slot].Reset();
     sceneColors_[slot].Reset();
@@ -2088,7 +2140,7 @@ private:
   HANDLE frameReady_{};
   UINT increment_{};
   UINT uiDescriptorIncrement_{};
-  UINT nextUiDescriptor_{4 * kMaximumFrames}; // Fence-owned HDR SRVs reserve the first frame slots.
+  UINT nextUiDescriptor_{5 * kMaximumFrames}; // Fence-owned HDR SRVs reserve the first frame slots.
   std::vector<UINT> freeUiDescriptors_;
   std::array<std::vector<UINT>, kMaximumFrames> retiredUiDescriptors_;
   uint64_t fenceValue_{};
@@ -2110,6 +2162,7 @@ private:
   ComPtr<ID3D12DescriptorHeap> sceneRtvHeap_;
   std::array<ComPtr<ID3D12Resource>, kMaximumFrames> sceneColors_, refractionColors_,
       reflectionColors_;
+  std::array<ComPtr<ID3D12Resource>, kMaximumFrames> secondarySceneColors_;
   std::array<ComPtr<ID3D12Resource>, kMaximumFrames> shadowColors_, shadowDepths_;
   struct SceneTargetState {
     bool reusable{}, hdr{}, hasReflection{}, hasRefraction{};
@@ -2118,7 +2171,7 @@ private:
     D3D12_RESOURCE_STATES reflectionState = D3D12_RESOURCE_STATE_RENDER_TARGET;
     D3D12_RESOURCE_STATES shadowState = D3D12_RESOURCE_STATE_RENDER_TARGET;
   };
-  std::array<SceneTargetState, kMaximumFrames> sceneTargetStates_{};
+  std::array<SceneTargetState, kMaximumFrames> sceneTargetStates_{}, secondarySceneTargetStates_{};
   ComPtr<ID3D12PipelineState> shadowPipeline_;
   ComPtr<ID3D12DescriptorHeap> uiDescriptors_;
   ComPtr<ID3D12RootSignature> uiRootSignature_;

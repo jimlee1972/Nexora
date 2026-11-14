@@ -1086,7 +1086,9 @@ public:
     vkUnmapMemory(device_, frame.uiMemory);
     diagnostics_.spriteInstanceUploadBytes += instanceBytes.size();
 
-    if (scenePlan.sampled) {
+    for (std::size_t view = 0; view < scenePlan.views.size(); ++view) {
+      if (!scenePlan.views[view])
+        continue;
       VkImageMemoryBarrier barrier{};
       barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
       barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
@@ -1094,7 +1096,7 @@ public:
       barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
       barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
       barrier.srcQueueFamilyIndex = barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-      barrier.image = Scene(frame).sceneColor;
+      barrier.image = frame.scenes[view].sceneColor;
       barrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
       vkCmdPipelineBarrier(frame.commands, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1,
@@ -1257,6 +1259,38 @@ public:
     auto result = diagnostics_;
     result.twoDTextureCount = uiTextures_.size();
     return result;
+  }
+  SurfaceStatus ReleaseSceneTextures(std::span<const std::uint64_t> ids) override {
+    if (!OnThread())
+      return SurfaceStatus::WrongThread;
+    if (destroyed_)
+      return SurfaceStatus::SurfaceLost;
+    if (acquired_)
+      return SurfaceStatus::InvalidDescriptor;
+    if (ids.size() > 64)
+      return SurfaceStatus::InvalidDescriptor;
+    for (const auto id : ids)
+      if (!id || id >= UINT64_MAX - 1)
+        return SurfaceStatus::InvalidDescriptor;
+    if (ids.empty())
+      return SurfaceStatus::Ready;
+    if (vkDeviceWaitIdle(device_) != VK_SUCCESS)
+      return SurfaceStatus::DeviceLost;
+    for (const auto id : ids)
+      for (auto *textures : {&sceneTextures_, &linearSceneTextures_}) {
+        const auto found = textures->find(id);
+        if (found == textures->end())
+          continue;
+        auto &texture = found->second;
+        vkFreeDescriptorSets(device_, uiDescriptorPool_, 1, &texture.descriptor);
+        if (texture.srgbView)
+          vkDestroyImageView(device_, texture.srgbView, nullptr);
+        vkDestroyImageView(device_, texture.view, nullptr);
+        vkDestroyImage(device_, texture.image, nullptr);
+        vkFreeMemory(device_, texture.memory, nullptr);
+        textures->erase(found);
+      }
+    return SurfaceStatus::Ready;
   }
   SurfaceStatus ReleaseSpriteTextures(std::span<const std::uint64_t> ids) override {
     if (!OnThread())

@@ -60,6 +60,7 @@ public:
   // Scene Sprite triangles already projected by the 2D camera, followed by optional HUD/UI.
   // Shares the native unlit triangle pipeline, with one upload/render pass per acquired frame.
   [[nodiscard]] SurfaceStatus ReleaseSpriteTextures(std::span<const std::uint64_t> ids);
+  [[nodiscard]] SurfaceStatus ReleaseSceneTextures(std::span<const std::uint64_t> ids);
   [[nodiscard]] SurfaceStatus DrawSprites(const UiDrawData &sprites, const UiDrawData &overlay = {},
                                           bool instanceQuads = false,
                                           std::uint32_t background = 0xFF29140A);

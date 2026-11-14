@@ -54,3 +54,15 @@ pause/step/stop and unchanged authoring source/Undo. Run complete Linux Developm
 then every applicable final-head hosted CI job. Vulkan core/synchronization validation must also
 reject pipeline/render-pass incompatibility: clear/load passes share identical dependencies,
 including color reads, as well as compatible attachments. Current validation is still in progress.
+
+## Sampled UI extension (2026-11-14)
+
+The native authoring Sprite consumer additionally prepares up to two explicit sampled LDR/
+non-shadow offscreen views before the same UI submission. Each view publishes a distinct typed
+frame/domain/view reference and retains its own fenced color target; DX12/Metal clear the shared
+per-frame scratch depth serially. UI commands select each view independently and preserve owning
+window order. Existing single-sampled plus disjoint-direct operation remains supported. Ordinary
+untagged offscreen, HDR and shadow paths remain exclusive, and the total draw count stays two.
+The Editor continues to suppress overlapping Scene/Game canvases. Floating auxiliary-window
+occlusion is supported for sampled images; this does not accept arbitrary Scene/Game overlap.
+See [Scene-image lifetime](../../Engine/Presentation/SceneUiComposition.md).
