@@ -136,6 +136,14 @@ struct Fixture final {
         rejected.commands = malformed;
         Check(!ui.DrawGameTwoDSprites(rejected) && Access::GameTwoDVertices(ui) == before,
               "invalid texture appended partial geometry");
+        for (const auto reference : {Nexora::Presentation::SceneTextureReference{1, 1, 0},
+                                     Nexora::Presentation::SceneTextureReference{0, 1, 0}}) {
+          malformed = frame->batches;
+          malformed.back().sceneTexture = reference;
+          rejected.commands = malformed;
+          Check(!ui.DrawGameTwoDSprites(rejected) && Access::GameTwoDVertices(ui) == before,
+                "Scene texture reference was silently discarded by the Sprite translator");
+        }
         std::size_t submitted_vertices{};
         for (const auto &command : frame->batches)
           submitted_vertices += command.elementCount / 6 * 4;

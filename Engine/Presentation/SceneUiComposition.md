@@ -31,9 +31,10 @@ imageCommand.sceneTexture = *reference;
 
 All-zero `sceneTexture` selects the ordinary `textureId` path. No additional integer texture IDs
 are reserved. Existing C/Gameplay/Zig V1 command layouts are unchanged; the public C++ structs and
-optional surface method require C++ consumers to rebuild. Sprite preparation and FP16 TwoD linear
-submission explicitly reject typed Scene references, including malformed references paired with
-ordinary texture IDs. They do not silently reinterpret these values as ordinary textures.
+optional surface method require C++ consumers to rebuild. Sprite preparation, the Editor's indexed
+2D Sprite translation and FP16 TwoD linear submission explicitly reject typed Scene references,
+including malformed references paired with ordinary texture IDs. They do not silently reinterpret
+these values as ordinary textures.
 
 ## Admission and lifetime
 
