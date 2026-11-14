@@ -10,6 +10,7 @@
 #include "SceneGeometryUploadKey.h"
 #include "SceneInstanceUpload.h"
 #include "SceneTextureMipmaps.h"
+#include "SceneUiComposition.h"
 #include "SceneViewAdmission.h"
 #include "TwoDEffectsProfiling.h"
 
@@ -300,6 +301,7 @@ public:
     sceneOffscreen_ = sceneComposited_ = false;
     acquired_ = true;
     ++diagnostics_.acquiredFrames;
+    sceneUi_.Begin(diagnostics_.acquiredFrames);
     if (result == VK_SUBOPTIMAL_KHR)
       dirty_.store(true);
     return SurfaceStatus::Ready;
@@ -390,6 +392,8 @@ public:
     if (!acquired_ || !scenePipeline_ || transferTarget_ || data.vertices.empty() ||
         data.indices.empty() || data.vertices.size() > 65535 || data.indices.size() > 1048576 ||
         data.indices.size() % 3 != 0)
+      return SurfaceStatus::InvalidDescriptor;
+    if (data.sampledByUi && (!data.offscreen || data.hdr))
       return SurfaceStatus::InvalidDescriptor;
     if ((data.hdr && (!sceneHdrPipeline_ || !tonePipeline_)) || (data.shadow && !shadowPipeline_))
       return SurfaceStatus::Unsupported;
@@ -948,6 +952,29 @@ public:
       }
       vkCmdEndRenderPass(frame.commands);
     }
+    if (data.sampledByUi) {
+      const VkDescriptorSetAllocateInfo allocation{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+                                                   nullptr, uiDescriptorPool_, 1,
+                                                   &uiDescriptorLayout_};
+      if (vkAllocateDescriptorSets(device_, &allocation, &Scene(frame).toneDescriptor) !=
+          VK_SUCCESS)
+        return SurfaceStatus::DeviceLost;
+      const VkDescriptorImageInfo image{uiSampler_, Scene(frame).sceneColorView,
+                                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+      const VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                                       nullptr,
+                                       Scene(frame).toneDescriptor,
+                                       0,
+                                       0,
+                                       1,
+                                       VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                       &image,
+                                       nullptr,
+                                       nullptr};
+      vkUpdateDescriptorSets(device_, 1, &write, 0, nullptr);
+      if (!sceneUi_.Publish(sceneViewSlot_))
+        return SurfaceStatus::Unsupported;
+    }
     static_cast<void>(sceneViews_.Commit(data, width_, height_, afterUi));
     sceneRendered_ = true;
     sceneOffscreen_ = data.offscreen;
@@ -1005,6 +1032,12 @@ public:
     ++diagnostics_.sceneComposites;
     return SurfaceStatus::Ready;
   }
+  std::optional<SceneTextureReference> SceneTexture() const noexcept override {
+    if (!OnThread() || !acquired_ || !sceneOffscreen_ || sceneHdr_ || sceneComposited_ ||
+        frames_[frame_].uiFramebuffer)
+      return {};
+    return sceneUi_.Reference();
+  }
   SurfaceStatus RenderUi(const UiDrawData &drawData) override {
 #if !defined(NEXORA_HAS_NATIVE_UI_SHADERS)
     (void)drawData;
@@ -1012,10 +1045,14 @@ public:
 #else
     if (!OnThread())
       return SurfaceStatus::WrongThread;
-    if ((sceneOffscreen_ && !sceneComposited_) || !acquired_ || transferTarget_ ||
-        frames_[frame_].uiFramebuffer || drawData.vertices.empty() || drawData.indices.empty())
+    if (!acquired_ || transferTarget_ || frames_[frame_].uiFramebuffer ||
+        drawData.vertices.empty() || drawData.indices.empty())
       return SurfaceStatus::InvalidDescriptor;
     if (!ValidateSpriteInstances(drawData))
+      return SurfaceStatus::InvalidDescriptor;
+    const auto scenePlan = sceneUi_.Validate(drawData, width_, height_);
+    if (!scenePlan.valid || ((sceneOffscreen_ && !sceneComposited_) && !scenePlan.sampled) ||
+        (scenePlan.sampled && (!sceneOffscreen_ || sceneHdr_ || sceneComposited_)))
       return SurfaceStatus::InvalidDescriptor;
     if (!twoDLinearRecorded_)
       DestroyTwoDLinearFrame(twoDLinearFrames_[frame_]);
@@ -1049,6 +1086,21 @@ public:
     vkUnmapMemory(device_, frame.uiMemory);
     diagnostics_.spriteInstanceUploadBytes += instanceBytes.size();
 
+    if (scenePlan.sampled) {
+      VkImageMemoryBarrier barrier{};
+      barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+      barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+      barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+      barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+      barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+      barrier.srcQueueFamilyIndex = barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      barrier.image = Scene(frame).sceneColor;
+      barrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+      vkCmdPipelineBarrier(frame.commands, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                           VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1,
+                           &barrier);
+    }
+
     VkImageView attachment = imageViews_[imageIndex_];
     VkFramebufferCreateInfo framebufferCreate{};
     framebufferCreate.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -1070,7 +1122,7 @@ public:
     begin.clearValueCount = 1;
     begin.pClearValues = &clear;
     vkCmdBeginRenderPass(frame.commands, &begin, VK_SUBPASS_CONTENTS_INLINE);
-    if (!sceneRendered_) {
+    if (!sceneRendered_ || scenePlan.sampled) {
       const VkClearAttachment clearAttachment{VK_IMAGE_ASPECT_COLOR_BIT, 0, clear};
       const VkClearRect rect{{{0, 0}, {width_, height_}}, 0, 1};
       vkCmdClearAttachments(frame.commands, 1, &clearAttachment, 1, &rect);
@@ -1089,12 +1141,15 @@ public:
                        sizeof(transform), transform);
     for (const auto &command : drawData.commands) {
       const auto texture = uiTextures_.find(command.textureId);
-      if (texture == uiTextures_.end()) {
+      const bool sceneTexture = command.sceneTexture != SceneTextureReference{};
+      if (!sceneTexture && texture == uiTextures_.end()) {
         ++diagnostics_.nativeUiRejectedTextures;
         continue;
       }
+      const auto descriptor = sceneTexture ? frame.scenes[command.sceneTexture.view].toneDescriptor
+                                           : texture->second.descriptor;
       vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, uiPipelineLayout_, 0,
-                              1, &texture->second.descriptor, 0, nullptr);
+                              1, &descriptor, 0, nullptr);
       const VkRect2D scissor{{command.clipX, command.clipY},
                              {command.clipWidth, command.clipHeight}};
       vkCmdSetScissor(frame.commands, 0, 1, &scissor);
@@ -1114,6 +1169,12 @@ public:
       ++diagnostics_.nativeUiDrawCalls;
     }
     vkCmdEndRenderPass(frame.commands);
+    if (scenePlan.sampled) {
+      sceneUi_.Complete();
+      sceneComposited_ = true;
+      sceneViews_.SampledOffscreen(scenePlan.bounds);
+      ++diagnostics_.sceneComposites;
+    }
     transferTarget_ = false;
     return SurfaceStatus::Ready;
 #endif
@@ -2993,6 +3054,7 @@ private:
   VkDescriptorSetLayout pbrMaterialLayout_{};
   VkDescriptorPool pbrMaterialPool_{};
   detail::SceneViewAdmission sceneViews_;
+  detail::SceneUiComposition sceneUi_;
   std::size_t sceneViewSlot_{};
   bool sceneRendered_{};
   bool sceneOffscreen_{}, sceneComposited_{}, sceneHdr_{};

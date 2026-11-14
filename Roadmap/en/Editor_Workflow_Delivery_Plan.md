@@ -298,3 +298,25 @@ Full525/525, Shipping/native regression, Monolithic and TwoD-OFF gates pass; [ex
 retains initial failures and the interrupted run. This is a reusable isolated TwoD prerequisite:
 production Player/Editor services and native reload integration remain open under `nexora-whr.8.2`;
 full ED-WF-07/08, **5/9**, **0/8**, **9/11** and physical/clean-host acceptance are unchanged.
+
+## ✅ Fenced Scene images in single-pass UI (2026-11-13)
+
+Supporting `nexora-whr.7.8.1` adds explicit offscreen LDR Scene references sampled inside one UI
+submission with pre-upload stale/foreign validation and fenced per-view resources. Actual Linux
+Development/Shipping fixtures each pass12 frames,24 Scene draws,48 UI commands,two resizes and
+asymmetric pixel/occlusion checks; an inverted-UV negative control fails as expected. Full527/527,
+Monolithic and TwoD-OFF gates pass. [Execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SceneUiComposition-Linux-2026-11-13.md)
+retains initial failures and separates local Linux from hosted platform checks. Parent `nexora-whr.7.8`
+configured packaged Editor source Play remains guarded/open; production reload, full ED-WF-07/08,
+Workflow **5/9**, Editor **0/8**, TwoD **9/11** and physical/clean-host acceptance are unchanged.
+
+## ✅ Editor Sprite Scene-tag rejection (2026-11-14)
+
+Supporting `nexora-whr.7.8.1` now rejects nonzero Scene references in the existing indexed Sprite
+translator before appending ImGui geometry. The same real external fixture fails against the old
+library and passes after the production guard; complete/partial tags reject while ordinary
+submission remains valid. Fresh full 527/527, Shipping native, Monolithic five-test and TwoD-OFF
+gates pass. [Supplementary evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SceneUiComposition-EditorTag-Linux-2026-11-14.md) preserves
+both original native evidence files and the reproduced failure. This does not implement owning
+ImGui Scene bindings or guarded packaged source Play; parent `nexora-whr.7.8`, production reload,
+full ED-WF-07/08, **5/9**, **0/8**, **9/11** and physical/clean-host acceptance remain open/unchanged.

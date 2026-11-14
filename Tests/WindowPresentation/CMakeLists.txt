@@ -42,11 +42,26 @@ target_include_directories(NexoraSceneViewAdmissionTests PRIVATE "${CMAKE_SOURCE
 target_link_libraries(NexoraSceneViewAdmissionTests PRIVATE Nexora::Presentation)
 nexora_apply_defaults(NexoraSceneViewAdmissionTests)
 add_test(NAME window_presentation.scene_view_admission COMMAND NexoraSceneViewAdmissionTests)
+add_executable(NexoraSceneUiCompositionTests SceneUiCompositionTests.cpp)
+target_include_directories(NexoraSceneUiCompositionTests PRIVATE "${CMAKE_SOURCE_DIR}/Engine/Presentation/src")
+target_link_libraries(NexoraSceneUiCompositionTests PRIVATE Nexora::Presentation)
+nexora_apply_defaults(NexoraSceneUiCompositionTests)
+add_test(NAME window_presentation.scene_ui_composition COMMAND NexoraSceneUiCompositionTests)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_NATIVE_BACKENDS AND
    NEXORA_ENABLE_VULKAN_BACKEND)
   find_package(X11 REQUIRED)
   add_executable(NexoraVulkanSceneTests VulkanSceneTests.cpp)
+  add_executable(NexoraVulkanSceneUiTests VulkanSceneUiTests.cpp)
+  target_link_libraries(NexoraVulkanSceneUiTests PRIVATE Nexora::Presentation X11::X11)
+  nexora_apply_defaults(NexoraVulkanSceneUiTests)
+  add_test(NAME window_presentation.vulkan_scene_ui
+    COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_SOURCE_DIR}/Tests/Showcase/LinuxVulkanSceneAcceptance.py"
+      --native-test "$<TARGET_FILE:NexoraVulkanSceneUiTests>"
+      --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/scene-ui-vulkan")
+  set_tests_properties(window_presentation.vulkan_scene_ui PROPERTIES
+    LABELS "vulkan;virtual-display;ui" SKIP_RETURN_CODE 77 TIMEOUT 45)
   target_link_libraries(NexoraVulkanSceneTests PRIVATE Nexora::Presentation X11::X11)
   nexora_apply_defaults(NexoraVulkanSceneTests)
   add_test(NAME window_presentation.vulkan_scene
@@ -267,3 +282,17 @@ elseif(WIN32 OR APPLE)
   set_tests_properties(window_presentation.twod_linear_native PROPERTIES
     SKIP_RETURN_CODE 77 TIMEOUT 120 RUN_SERIAL TRUE LABELS "twod;native-display")
 endif()
+
+# These fixtures compile the real private adapters into their executables for native readback.
+# Their surface-domain issuer must be linked there as well as in the production module.
+set(scene_adapter_fixtures NexoraVulkanSceneUploadTests NexoraVulkanSwapchainTests
+    NexoraDx12SwapchainTests NexoraMetalSceneTests)
+if(WIN32 OR APPLE)
+  list(APPEND scene_adapter_fixtures NexoraTwoDLinearNativeTests)
+endif()
+foreach(scene_adapter_fixture IN LISTS scene_adapter_fixtures)
+  if(TARGET ${scene_adapter_fixture})
+    target_sources(${scene_adapter_fixture} PRIVATE
+      "${PROJECT_SOURCE_DIR}/Engine/Presentation/src/SceneUiComposition.cpp")
+  endif()
+endforeach()

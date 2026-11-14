@@ -158,6 +158,10 @@ SurfaceStatus RenderSurface::DrawScene(const SceneDrawData &draw_data) {
   return !state_ || state_->destroyed ? SurfaceStatus::SurfaceLost
                                       : state_->surface->DrawScene(draw_data);
 }
+std::optional<SceneTextureReference> RenderSurface::SceneTexture() const noexcept {
+  return state_ && !state_->destroyed && state_->surface ? state_->surface->SceneTexture()
+                                                         : std::nullopt;
+}
 
 bool RenderSurface::SupportsSceneGeometryResidency() const noexcept {
   return state_ && !state_->destroyed && state_->surface &&

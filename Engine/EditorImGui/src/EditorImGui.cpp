@@ -9306,7 +9306,8 @@ bool EditorImGuiHost::DrawGameTwoDSprites(const Nexora::Presentation::UiDrawData
       return false;
   std::size_t quads{};
   for (const auto &command : packet.commands) {
-    if (!command.elementCount || command.elementCount % 6 || command.instanceCount ||
+    if (command.sceneTexture != Nexora::Presentation::SceneTextureReference{} ||
+        !command.elementCount || command.elementCount % 6 || command.instanceCount ||
         command.firstInstance || command.indexOffset > index_count ||
         command.elementCount > index_count - command.indexOffset || command.clipX < 0 ||
         command.clipY < 0 || !command.clipWidth || !command.clipHeight ||

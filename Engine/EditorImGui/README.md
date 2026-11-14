@@ -228,6 +228,10 @@ support; overlap suppresses native Scene submission to preserve GUI stacking. Th
 GUI preview, not the separate instanced Sprite path. See the [application contract](../../Apps/Editor/README.md#bounded-2d-game-view)
 and [Linux evidence](../../Tools/Build/evidence/EditorEDM3-GameTwoDPreview-Linux-2026-10-16.md).
 
+This Sprite-only translation rejects every nonzero `SceneTextureReference`, including partial
+references paired with ordinary texture IDs, before appending any geometry. Scene image bindings
+require a separate owning ImGui integration; this path cannot silently discard their tags.
+
 The private View-option position observer publishes only visible, enabled items in a nonhidden
 popup. ImGui's first size-measurement frame is excluded because its coordinates are not interactive
 and can change before display. The portable preview test checks exclusion on every actual opening,

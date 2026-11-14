@@ -1007,3 +1007,22 @@ GNU 15.2 前後對照重現原始 benchmark 暫存值警告，並驗證全部 17
 完整525/525、Shipping／原生回歸、Monolithic及TwoD-OFF通過；[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-GenerationStaging-Linux-2026-11-13.md)
 保留初期失敗與中斷紀錄。這是可重用的獨立TwoD先決基礎；`nexora-whr.8.2` 的正式Player／Editor
 服務與原生重載整合仍未完成，完整ED-WF-07／08、**5/9**、**0/8**、**9/11**及實體／乾淨主機驗收不變。
+
+## ✅ 單次UI中的受柵欄保護Scene影像（2026-11-13）
+
+支援工作 `nexora-whr.7.8.1` 提供明確的離屏LDR Scene參照，在單次UI提交內取樣；上傳前拒絕
+過期／異表面參照，各視圖資源由完成柵欄保護。實際Linux Development／Shipping各通過12影格、
+24次Scene繪製、48個UI命令、兩次縮放及非對稱像素／遮擋檢查；反轉UV的負向對照如預期失敗。
+完整527/527、Monolithic與TwoD-OFF通過；[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SceneUiComposition-Linux-2026-11-13.md)
+保留初期失敗並區分本機Linux與託管平台檢查。`nexora-whr.7.8` 的正式設定封裝Editor來源Play
+仍有保護且未完成；正式重載、完整ED-WF-07／08、Workflow **5/9**、Editor **0/8**、TwoD **9/11**
+及實體／乾淨主機驗收維持不變。
+
+## ✅ Editor Sprite 拒絕 Scene 標記（2026-11-14）
+
+支援工作 `nexora-whr.7.8.1` 在既有索引 Sprite 轉譯器附加 ImGui 幾何前，拒絕所有非零 Scene
+參照。同一個實際外部測試對舊函式庫失敗、套用正式檢查後通過；完整／不完整標記均拒絕，普通
+提交仍有效。新一輪完整 527/527、Shipping 原生、Monolithic 五項及 TwoD-OFF 通過；
+[補充證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SceneUiComposition-EditorTag-Linux-2026-11-14.md) 保留原始兩份原生證據與實際重現失敗。
+這尚未實作有擁有者的 ImGui Scene 綁定或受保護的封裝來源 Play；`nexora-whr.7.8`、正式重載、
+完整 ED-WF-07／08、**5/9**、**0/8**、**9/11** 及實體／乾淨主機驗收仍未完成／維持不變。

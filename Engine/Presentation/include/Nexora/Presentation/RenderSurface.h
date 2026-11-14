@@ -73,6 +73,7 @@ public:
                                                 const std::array<std::uint32_t, 4> &viewport = {},
                                                 const TwoDLighting *lighting = nullptr);
   [[nodiscard]] SurfaceStatus DrawScene(const SceneDrawData &draw_data);
+  [[nodiscard]] std::optional<SceneTextureReference> SceneTexture() const noexcept;
   [[nodiscard]] bool SupportsSceneGeometryResidency() const noexcept;
   [[nodiscard]] bool SupportsBoundedSceneViews() const noexcept;
   [[nodiscard]] SurfaceStatus CompositeScene();
