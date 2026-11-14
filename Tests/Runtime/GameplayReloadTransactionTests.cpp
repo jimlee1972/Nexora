@@ -138,9 +138,182 @@ void Verify(const Owner &owner, std::uint64_t counter) {
   assert(entity && entity->transform.x == static_cast<double>(counter));
   assert(owner.world.ActiveSceneCount() == 1 && owner.world.ActiveEntityCount() == 1);
 }
+
+struct CaptureOwner final : Owner {
+  enum class Fault { None, Begin, Query, Body, QueryWrite, BodyWrite, Validate };
+  Fault fault{};
+  bool capturing{}, violation{};
+  unsigned begins{}, ends{}, saves{}, validations{};
+  static CaptureOwner &From(void *pointer) {
+    return *static_cast<CaptureOwner *>(static_cast<Owner *>(pointer));
+  }
+  NexoraGameplayHostV3 Api() {
+    auto host = Owner::Api();
+    host.write_component = [](void *pointer, std::uint64_t target, std::uint64_t type,
+                              const void *input, std::uint32_t size) {
+      return Call(pointer, [&](Context &context) -> std::int32_t {
+        auto &owner = *static_cast<CaptureOwner *>(context.owner);
+        if (owner.capturing) {
+          owner.violation = true;
+          return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
+        }
+        return game::WriteGameplayComponent(*context.world, target, type, input, size);
+      });
+    };
+    return host;
+  }
+  Host::ReloadTransaction GuardedTransaction() {
+    auto hooks = Transaction();
+    hooks.begin = [](void *pointer, NexoraGameplayHostV3 &host) noexcept {
+      auto &owner = From(pointer);
+      assert(!owner.capturing && owner.begins == owner.ends);
+      const auto original = owner.Transaction();
+      return original.begin(pointer, host);
+    };
+    hooks.capture_begin = [](void *pointer) noexcept {
+      auto &owner = From(pointer);
+      assert(!owner.capturing && owner.job_finished);
+      owner.capturing = true;
+      owner.violation = false;
+      ++owner.begins;
+      return owner.fault != Fault::Begin;
+    };
+    hooks.capture_valid = [](void *pointer) noexcept {
+      const auto &owner = From(pointer);
+      assert(owner.capturing);
+      return !owner.violation;
+    };
+    hooks.capture_end = [](void *pointer) noexcept {
+      auto &owner = From(pointer);
+      assert(owner.capturing);
+      owner.capturing = false;
+      ++owner.ends;
+    };
+    hooks.validate = [](void *pointer) noexcept {
+      auto &owner = From(pointer);
+      assert(!owner.capturing);
+      ++owner.validations;
+      return owner.fault != Fault::Validate;
+    };
+    return hooks;
+  }
+};
+
+std::uint32_t GuardedSave(void *pointer, void *output, std::uint32_t size) {
+  auto &state = *static_cast<State *>(pointer);
+  auto &owner = *static_cast<CaptureOwner *>(Owner::Get(state.host->context).owner);
+  assert(owner.capturing);
+  ++owner.saves;
+  using Fault = CaptureOwner::Fault;
+  if ((owner.fault == Fault::QueryWrite && !output) ||
+      (owner.fault == Fault::BodyWrite && output)) {
+    const game::GameplayTransformWire changed{9999, 0, 0};
+    // A module may ignore a rejected host write and still return a valid state blob.
+    assert(state.host->write_component(state.host->context, state.wire.entity,
+                                       game::TransformComponentType(), &changed,
+                                       sizeof(changed)) == NEXORA_GAMEPLAY_ERROR_LIFECYCLE);
+  }
+  if (owner.fault == Fault::Query && !output)
+    return 0;
+  if (owner.fault == Fault::Body && output)
+    return sizeof(Wire) - 1;
+  return Save(pointer, output, size);
+}
+int32_t GuardedLoad(std::uint32_t abi, NexoraGameModuleV3 *module) {
+  const auto result = Load(abi, module);
+  module->save_state = GuardedSave;
+  return result;
+}
+
+void CaptureContracts() {
+  using Fault = CaptureOwner::Fault;
+  CaptureOwner owner;
+  Host host(owner.Api(), owner.Barrier(), owner.GuardedTransaction());
+  assert(host.Load(GuardedLoad) && host.Update(0.1));
+  for (const auto fault : {Fault::Begin, Fault::Query, Fault::Body, Fault::QueryWrite,
+                           Fault::BodyWrite, Fault::Validate}) {
+    owner.fault = fault;
+    const auto generation = host.Generation();
+    const auto saved_calls = owner.saves;
+    const auto allocated = owner.allocations;
+    const auto frees = owner.frees;
+    assert(!host.Reload(GuardedLoad));
+    const auto expected = fault == Fault::Query || fault == Fault::Body
+                              ? Host::ReloadFailure::SaveState
+                              : Host::ReloadFailure::Isolation;
+    assert(host.GetReloadFailure() == expected && host.Generation() == generation);
+    assert(!owner.capturing && owner.begins == owner.ends && owner.commits == 0 &&
+           owner.stops == 0 && owner.allocations - owner.frees == 1);
+    if (fault == Fault::Begin)
+      assert(owner.saves == saved_calls);
+    if (fault != Fault::Validate)
+      assert(owner.allocations == allocated && owner.frees == frees);
+    else
+      assert(owner.allocations == allocated + 1 && owner.frees == frees + 1);
+    Verify(owner, static_cast<State *>(owner.active)->wire.counter);
+    assert(host.Update(0.1)); // Every failure restores dispatch and the live host's write access.
+    Verify(owner, static_cast<State *>(owner.active)->wire.counter);
+  }
+  owner.fault = Fault::None;
+  const auto generation = host.Generation();
+  auto lease = host.AcquireWork(generation);
+  assert(lease);
+  owner.job_finished = false;
+  owner.barrier_entered = false;
+  auto *old = static_cast<State *>(owner.active);
+  const auto counter = old->wire.counter;
+  std::thread job([&, ticket = std::move(lease)]() mutable {
+    {
+      std::unique_lock lock(owner.mutex);
+      owner.changed.wait(lock, [&] { return owner.release_job; });
+    }
+    // Actual old-generation work finishes before capture protection is entered.
+    assert(!owner.capturing);
+    old->wire.counter += 100;
+    owner.job_finished = true;
+    ticket = {};
+  });
+  std::thread release([&] {
+    std::unique_lock lock(owner.mutex);
+    owner.changed.wait(lock, [&] { return owner.barrier_entered; });
+    assert(!owner.capturing && !host.AcquireWork(generation));
+    owner.release_job = true;
+    owner.changed.notify_all();
+  });
+  assert(host.Reload(GuardedLoad));
+  job.join();
+  release.join();
+  assert(!owner.captured_before_job && !owner.capturing && owner.begins == owner.ends);
+  Verify(owner, counter + 100);
+  assert(host.Update(0.1));
+  Verify(owner, counter + 101);
+  host.Unload();
+  assert(owner.allocations == owner.frees);
+
+  for (unsigned missing = 0; missing != 3; ++missing) {
+    CaptureOwner invalid;
+    auto hooks = invalid.GuardedTransaction();
+    if (missing == 0)
+      hooks.capture_begin = nullptr;
+    else if (missing == 1)
+      hooks.capture_valid = nullptr;
+    else
+      hooks.capture_end = nullptr;
+    Host partial(invalid.Api(), {}, hooks);
+    assert(partial.Load(GuardedLoad) && partial.Update(0.1));
+    assert(!partial.Reload(GuardedLoad) &&
+           partial.GetReloadFailure() == Host::ReloadFailure::Isolation);
+    assert(invalid.begins == 0 && invalid.ends == 0 && invalid.saves == 0 &&
+           invalid.allocations == 1 && invalid.commits == 0);
+    Verify(invalid, 1);
+    assert(partial.Update(0.1));
+    Verify(invalid, 2);
+  }
+}
 } // namespace
 
 int main() {
+  CaptureContracts();
   static_assert(std::is_nothrow_move_assignable_v<runtime::World>);
   Owner owner;
   Host host(owner.Api(), owner.Barrier(), owner.Transaction());

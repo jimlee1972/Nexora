@@ -32,9 +32,15 @@ auto Files(const Path &root) {
   return result;
 }
 void Run(const Path &fixture, int argc, char **argv) {
-  Require(argc == 5, "expected Player/CMake/Ninja/Zig paths");
+  const bool authored_test_rejection =
+      argc == 6 && std::string_view(argv[5]) == "--authored-test-rejection";
+  const bool unicode_temporary_parent =
+      argc == 6 && std::string_view(argv[5]) == "--unicode-temporary-parent";
+  Require(argc == 5 || authored_test_rejection || unicode_temporary_parent,
+          "expected Player/CMake/Ninja/Zig paths");
   const auto project = fixture / Path{u8"專案 scripts"};
-  const auto temporary = fixture / "operations";
+  const auto temporary = fixture / (unicode_temporary_parent ? Path{u8"private SDK 陰陽 operations"}
+                                                             : Path{"operations"});
   std::filesystem::create_directories(project / "Code");
   std::filesystem::create_directory(temporary);
   const std::string script = R"zig(const nx = @import("nexora");
@@ -65,6 +71,43 @@ pub const Game = struct {
   request.tools.zig = Path(argv[4]);
   const auto original = Files(project);
   std::string error;
+  const auto observed = editor::ObserveGameScriptSources(request, {}, &error);
+  Require(observed.has_value(), error.c_str());
+  const auto observation_time = std::filesystem::last_write_time(project / "Code/game.zig");
+  auto edited = script;
+  edited[0] = 'C';
+  Write(project / "Code/game.zig", edited);
+  std::filesystem::last_write_time(project / "Code/game.zig", observation_time);
+  Require(editor::ObserveGameScriptSources(request) != observed,
+          "same-size/time source edit escaped background content observation");
+  Write(project / "Code/game.zig", script);
+  std::filesystem::create_directory(project / "Code/.zig-cache");
+  Write(project / "Code/.zig-cache/ignored", "generated compiler cache");
+  Require(editor::ObserveGameScriptSources(request) == observed,
+          "generated compiler caches changed the canonical observation");
+  std::filesystem::remove(project / "Code/.zig-cache/ignored");
+  std::filesystem::remove(project / "Code/.zig-cache");
+  Write(project / "Code/added.zig", "// added source");
+  const auto added = editor::ObserveGameScriptSources(request);
+  Require(added && added != observed, "added source escaped background inventory");
+  std::filesystem::rename(project / "Code/added.zig", project / "Code/renamed.zig");
+  Require(editor::ObserveGameScriptSources(request) != added,
+          "renamed source escaped background inventory");
+  std::filesystem::remove(project / "Code/renamed.zig");
+  Require(editor::ObserveGameScriptSources(request) == observed,
+          "source deletion did not restore the original observation");
+  Write(project / "project.build.json", "{}");
+  Require(editor::ObserveGameScriptSources(request) != observed,
+          "saved project settings escaped background scope observation");
+  std::filesystem::remove(project / "project.build.json");
+  auto limited = request;
+  limited.maximum_source_bytes = 1;
+  Require(!editor::ObserveGameScriptSources(limited), "observer ignored content byte budget");
+  core::CancellationSource observation_cancel;
+  observation_cancel.Cancel();
+  Require(!editor::ObserveGameScriptSources(request, observation_cancel.Token()),
+          "pre-cancelled observer read script contents");
+  Require(Files(project) == original, "background observation modified authored input");
   auto worker = std::async(std::launch::async, [request, &error] {
     return editor::PrepareGameScript(request, {}, &error);
   });
@@ -75,6 +118,24 @@ pub const Game = struct {
           "canonical SDK tests did not execute");
   Require(Files(project) == original && !exists(project / "project.nexora"),
           "script-only compilation required scene/project cooking or changed authored sources");
+  if (unicode_temporary_parent) {
+    Require(!Read(first->Library()).empty(), "Unicode temporary-parent module is empty");
+    return;
+  }
+  if (authored_test_rejection) {
+    const auto first_bytes = Read(first->Library());
+    Write(project / "Code/game.zig",
+          script +
+              "\ntest \"authored test rejection\" { return error.InjectedScriptTestFailure; }\n");
+    Require(
+        !editor::PrepareGameScript(request, {}, &error) && !error.empty() &&
+            Read(first->Library()) == first_bytes,
+        "a compiled module with failing authored tests was admitted or changed a prior candidate");
+    Write(project / "Code/game.zig", script);
+    Require(first->Current() && Files(project) == original,
+            "failed authored tests changed project sources or the previous candidate baseline");
+    return;
+  }
   auto second = editor::PrepareGameScript(request, {}, &error);
   Require(second.has_value(), error.c_str());
   Require(first->Library() != second->Library() &&
@@ -136,8 +197,16 @@ int main(int argc, char **argv) {
     Require(resolved == fixture && resolved.parent_path() == parent,
             "fixture cleanup escaped root");
     std::filesystem::remove_all(resolved);
-    std::cout << "Standalone canonical SDK compilation, unique candidates, source/artifact guards "
-                 "and failure conservation passed\n";
+    if (argc == 6 && std::string_view(argv[5]) == "--unicode-temporary-parent")
+      std::cout
+          << "Canonical SDK compiled, tested and admitted a module through Unicode private paths\n";
+    else if (argc == 6)
+      std::cout
+          << "Canonical SDK authored-test rejection preserved the prior candidate and project\n";
+    else
+      std::cout
+          << "Standalone canonical SDK compilation, unique candidates, source/artifact guards "
+             "and failure conservation passed\n";
     return 0;
   } catch (const std::exception &error) {
     std::cerr << error.what() << "\nFixture retained at " << fixture << '\n';

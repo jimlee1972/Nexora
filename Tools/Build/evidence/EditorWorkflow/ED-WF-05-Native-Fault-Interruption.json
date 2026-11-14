@@ -1,0 +1,24 @@
+{
+  "status": "INCOMPLETE_RESULT_MISSING",
+  "observed_utc": "2026-11-03T14:05:39.340343+00:00",
+  "original_session": 29652,
+  "session_missing": true,
+  "native_editor_process_absent_at_observation": true,
+  "terminal_exit_code": null,
+  "cause": "Unknown; runner observation was interrupted. No product crash or operator action is inferred.",
+  "four_rejection_observations": [
+    "script reload admission: project=1 play=1 source=4 applied=0 generation=2 message=Game build tool failed: Build process returned a nonzero exit code.",
+    "script reload admission: project=1 play=1 source=5 applied=0 generation=2 message=Gameplay replacement rejected; the previous module and state remain active.",
+    "script reload admission: project=1 play=1 source=6 applied=0 generation=2 message=Gameplay replacement rejected; the previous module and state remain active.",
+    "script reload admission: project=1 play=1 source=7 applied=0 generation=2 message=Gameplay replacement rejected; the previous module and state remain active."
+  ],
+  "last_progress": [
+    "script reload progress: stage=4 source=8"
+  ],
+  "last_ticks": [
+    "script reload gameplay: live tick version=1 counter=19920 scene=1 entity=4",
+    "script reload gameplay: live tick version=1 counter=19980 scene=1 entity=4"
+  ],
+  "stderr_sha256": "e6314b3146f0591da75bf60627729df8e5e3eee7ec49854d5f36cfc17fa6efbf",
+  "scope": "Not a PASS receipt; no completed recovery, cancellation, close or owned-job drain proof."
+}

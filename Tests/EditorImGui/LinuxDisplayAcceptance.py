@@ -120,7 +120,7 @@ def wait_for_window(xdotool: str, environment: dict[str, str]) -> str:
     deadline = time.monotonic() + 15
     while time.monotonic() < deadline:
         found = subprocess.run(
-            [xdotool, "search", "--name", "Nexora Editor"],
+            [xdotool, "search", "--onlyvisible", "--name", "Nexora Editor"],
             env=environment,
             capture_output=True,
             text=True,

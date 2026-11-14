@@ -68,6 +68,28 @@ A test sink or ALSA null output verifies submission/lifetime only; it is not evi
 physical output. Windows target-host playback, error recovery and human audibility still require
 native acceptance.
 
+## Reload mixer branches
+
+`ForkForReload` creates an unpublished owner-thread mixer with the same voice IDs, cursors,
+pause/loop/gain/bus state, next ID, assets, retained sample generations, residency budgets and peak.
+It copies PCM once per distinct generation into independent residency accounting: failed candidate
+registration/removal cannot change the live owner's counts or historical peak. Allocation failure
+leaves the source untouched. No native library/device/event/buffer or host sink is copied/opened,
+and no sink is invoked. The branch carries the source's logical output availability so candidate
+callbacks may stage playback. Its `Pump` still fails until the host explicitly installs a real
+sink; no samples are submitted or clock advanced by that failure. This availability is preparation
+for publication, not a claim of another physical output device.
+
+`SwapReloadMixer` exchanges mixer state between related owner-thread branches without allocation.
+Output devices, queued blocks, sink/context pointers and submission scratch remain with each
+provider. The embedding uses generation-owned service proxies: it must route retired callbacks
+to the retired mixer and admitted callbacks to the live output owner's mixer, keeping every raw
+context alive through module callbacks/finalizers. Raw API contexts themselves do not follow
+swapped voices. Stop/pause/removal on retired state cannot affect the published mixer after that
+routing. Unrelated owners, threads, rates, capacities or budgets reject before exchange. These
+operations do not implement Editor generation routing, native device migration, a realtime mixer
+or audible-host acceptance. The existing C/Zig wire tables remain unchanged.
+
 Return values are `0` success, `-1` invalid arguments, `-2` unavailable output,
 `-3` missing assets/stale voice handles/capacity exhaustion. Queries write results
 only on success. `is_playing` reports whether a voice still exists (including

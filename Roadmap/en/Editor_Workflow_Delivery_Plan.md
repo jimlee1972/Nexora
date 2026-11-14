@@ -77,6 +77,10 @@ gate remains unaccepted (231/247 pass,16 fail): injected F5 also carries Alt and
 The [native input repair](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Input-CI-Failure.md)
 uses validated physical X11 function-key codes and retains all original runtime/pixel/deadline
 checks. Repaired-head native/full gates remain required; no accepted-count change.
+PR #762 is now merged as `f7537be874d8`, with the same tree as `d093841b`.
+The [Cloud receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Cloud-d093841b.json)
+records496/496 and all five gates exit0; the [CI inventory](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-CI-d093841b.json)
+records41 successful checks/three workflows. This foundation does not accept ED-WF-05 or change4/9.
 The [ED-WF-02 evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02.md) and [Cloud receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02-Cloud.json) record accepted PR #754: 42 successful CI checks, 490/490 Cloud tests and Shipping build, with initial environment/local-capture failures retained. Beads synchronization recovered by adopting existing history; Epic `nexora-whr` and children `.1` through `.9` map to the linked GitHub work orders.
 The accepted [ED-WF-03 evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03.md), [Cloud receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03-Cloud.json) and [CI inventory](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03-CI.json) record PR #756: native GUI/core passes, 490/490 Cloud tests and Shipping, all 42 CI checks and unchanged merged tree. ED-WF-04 is accepted in PR #758.
 The accepted [ED-WF-04 evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04.md),

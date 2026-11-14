@@ -187,6 +187,13 @@ endif()
 
 if(BUILD_TESTING)
   find_package(Python3 REQUIRED COMPONENTS Interpreter)
+  if(WIN32)
+    find_program(NEXORA_SHOWCASE_POWERSHELL NAMES pwsh powershell REQUIRED)
+    add_test(NAME showcase.windows_state_export
+      COMMAND "${NEXORA_SHOWCASE_POWERSHELL}" -NoProfile -ExecutionPolicy Bypass
+        -File "${CMAKE_SOURCE_DIR}/Tests/Showcase/WindowsStateExportTests.ps1")
+    set_tests_properties(showcase.windows_state_export PROPERTIES TIMEOUT 20)
+  endif()
   find_program(NEXORA_SHOWCASE_GLSLANG NAMES glslangValidator)
   if(NEXORA_SHOWCASE_GLSLANG)
     add_test(NAME showcase.embedded_vulkan_shaders COMMAND "${Python3_EXECUTABLE}"

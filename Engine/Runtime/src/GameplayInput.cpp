@@ -19,6 +19,14 @@ template <class T> void Copy(T *output, const T &value) {
 }
 } // namespace
 GameplayInput::GameplayInput() : owner_(std::this_thread::get_id()) {}
+GameplayInput::GameplayInput(const GameplayInput &source, ReloadCopy)
+    : users_(source.users_), owner_(source.owner_), sequence_(source.sequence_),
+      focused_(source.focused_) {}
+std::unique_ptr<GameplayInput> GameplayInput::ForkForReload() const {
+  if (!Owner())
+    return {};
+  return std::unique_ptr<GameplayInput>(new GameplayInput(*this, ReloadCopy{}));
+}
 bool GameplayInput::Owner() const noexcept { return owner_ == std::this_thread::get_id(); }
 bool GameplayInput::BeginFrame() noexcept {
   if (!Owner())

@@ -214,6 +214,175 @@ void NativeFrame(editor::imgui::EditorImGuiHost &uiHost, editor::ProductShell &s
   throw std::runtime_error("Editor 2D Sprite/UI pixels or viewport clip mismatch");
 }
 #endif
+struct ReloadApis final {
+  NexoraTwoDApiV1 two_d{};
+  NexoraGameplayInputApiV1 input{};
+  NexoraGameplayUiApiV1 ui{};
+  NexoraGameplayAudioApiV1 audio{};
+  NexoraStorageApiV1 storage{};
+  explicit ReloadApis(editor::preview::PlayTwoDServices &owner) {
+    two_d.struct_size = sizeof(two_d);
+    NexoraGameplayServicesApiV1 services{};
+    services.struct_size = sizeof(services);
+    services.abi_version = 1;
+    input.struct_size = sizeof(input);
+    input.abi_version = 1;
+    ui.struct_size = sizeof(ui);
+    ui.abi_version = 1;
+    audio.struct_size = sizeof(audio);
+    audio.abi_version = 1;
+    storage.struct_size = sizeof(storage);
+    storage.abi_version = 1;
+    Check(owner.GetApi(&two_d) == 0 && owner.GetServices(&services) == 0 &&
+              services.get_input_api(services.context, &input) == 0 &&
+              services.get_ui_api(services.context, &ui) == 0 &&
+              services.get_audio_api(services.context, &audio) == 0 &&
+              services.get_storage_api(services.context, &storage) == 0,
+          "reload service negotiation");
+  }
+};
+void ReloadServices(runtime::World &authoring, const editor::preview::PlayTwoDBinding &binding) {
+  using editor::preview::PlayServiceGate;
+  using editor::preview::PlayTwoDServices;
+  using Phase = PlayServiceGate::Phase;
+  auto world = authoring.CloneForPlay();
+  auto gate = std::make_unique<PlayServiceGate>();
+  auto live = PlayTwoDServices::Bind(world, binding, false, gate.get());
+  Check(bool(live), "reload live services");
+  ReloadApis first(*live);
+  const auto sprite = Sprite();
+  NexoraTwoDInstance instance{{{0, 0, 0}, {0, 0, 0, 1}, {1, 1, 1}}, sprite};
+  NexoraTwoDInstanceHandle pooled{};
+  const NexoraTwoDCollider collider{0, {0, 0}, {0.5F, 0.5F}, 0.5F, 1, UINT32_MAX};
+  const NexoraTwoDCamera camera{{0.1F, 0.2F}, 8, 0.1F};
+  const NexoraGameplayInputBindingV1 key{
+      sizeof(key), 1, NEXORA_INPUT_DEVICE_KEYBOARD, 0, NEXORA_INPUT_KEY_A, 1, 0, 0};
+  Check(first.two_d.set_sprite(first.two_d.context, parent, &sprite) == 0 &&
+            first.two_d.set_collider(first.two_d.context, parent, &collider) == 0 &&
+            first.two_d.rebuild_queries(first.two_d.context, 0) == 0 &&
+            first.two_d.set_camera(first.two_d.context, &camera) == 0 &&
+            first.two_d.create_instances(first.two_d.context, &instance, 1, &pooled) == 0 &&
+            first.two_d.play_animation(first.two_d.context, parent, clipId.high, clipId.low, 1) ==
+                0 &&
+            first.input.bind(first.input.context, 0, 42, &key) == 0 &&
+            first.ui.begin_frame(first.ui.context, 320, 240) == 0 &&
+            first.ui.panel(first.ui.context, {0, 0, 320, 240}, 0x330000ffU) == 0 &&
+            first.ui.end_frame(first.ui.context) == 0,
+        "reload initial resource state");
+  Nexora::Window::WindowEvent press{};
+  press.type = Nexora::Window::WindowEventType::Key;
+  press.value0 = static_cast<int>(Nexora::Window::Key::A);
+  press.value1 = 1;
+  live->ProcessInput(std::span(&press, 1), true, 0);
+  live->UpdateAudio(0);
+  const auto initial_frame = live->ExtractFrame({40, 30, 320, 240});
+  Check(initial_frame && initial_frame->sprites.statistics.visible == 2 &&
+            !initial_frame->sprites.retainedAtlases.empty(),
+        "reload initial extraction");
+  const auto texture = initial_frame->sprites.retainedAtlases.front().texture;
+  std::unique_ptr<runtime::World> stale_world;
+  std::unique_ptr<PlayServiceGate> stale_gate;
+  std::unique_ptr<PlayTwoDServices> stale;
+  for (unsigned generation = 1; generation <= 32; ++generation) {
+    ReloadApis old(*live);
+    Check(gate->SetPhase(Phase::Capture), "capture phase");
+    runtime::World branch_world = world;
+    auto candidate_gate = std::make_unique<PlayServiceGate>(Phase::Candidate);
+    if (generation == 1) {
+      stale_world = std::make_unique<runtime::World>(world);
+      stale_gate = std::make_unique<PlayServiceGate>(Phase::Candidate);
+      stale = live->ForkForReload(*stale_world, *stale_gate);
+      Check(bool(stale), "stale branch fixture");
+    }
+    Check(!live->ForkForReload(world, *candidate_gate) &&
+              !live->ForkForReload(authoring, *candidate_gate),
+          "reload borrowed live/editor World");
+    std::thread worker([&] {
+      Check(!live->ForkForReload(branch_world, *candidate_gate), "wrong-thread resource fork");
+    });
+    worker.join();
+    {
+      auto discarded = live->ForkForReload(branch_world, *candidate_gate);
+      Check(bool(discarded), "discard resource fork");
+      ReloadApis rejected(*discarded);
+      Check(rejected.two_d.destroy_instances(rejected.two_d.context, &pooled, 1) == 0 &&
+                rejected.two_d.set_sprite(rejected.two_d.context, parent, nullptr) == 0 &&
+                rejected.input.clear_bindings(rejected.input.context, 0, 42) == 0 &&
+                rejected.ui.begin_frame(rejected.ui.context, 32, 32) == 0,
+            "discard candidate isolation setup");
+      std::vector<std::uint64_t> retired;
+      discarded->RetireTextures(retired);
+      Check(retired.empty(), "discarded fork retired live texture registrations");
+    }
+    auto candidate = live->ForkForReload(branch_world, *candidate_gate);
+    Check(bool(candidate), "candidate resource fork");
+    ReloadApis next(*candidate);
+    NexoraTwoDSprite preserved{};
+    NexoraGameplayActionStateV1 held{};
+    held.struct_size = sizeof(held);
+    held.abi_version = 1;
+    NexoraTwoDInstance copied{};
+    NexoraTwoDCamera copied_camera{};
+    const NexoraTwoDShape query{0, collider};
+    std::uint64_t hit{};
+    std::uint32_t count{};
+    Check(next.two_d.get_sprite(next.two_d.context, parent, &preserved) == 0 &&
+              preserved.region == sprite.region && preserved.pivot.x == sprite.pivot.x &&
+              next.two_d.read_instances(next.two_d.context, &pooled, 1, &copied) == 0 &&
+              copied.sprite.region == sprite.region &&
+              next.input.read_action(next.input.context, 0, 42, &held) == 0 && held.held &&
+              held.pressed && next.two_d.get_camera(next.two_d.context, &copied_camera) == 0 &&
+              copied_camera.center.x == camera.center.x &&
+              copied_camera.center.y == camera.center.y &&
+              copied_camera.vertical_size == camera.vertical_size &&
+              copied_camera.rotation_radians == camera.rotation_radians &&
+              next.two_d.overlap(next.two_d.context, 0, &query, &hit, 1, &count) == 0 &&
+              count == 1 && hit == parent,
+          "resource fork lost Sprite/pool handle/input edge state");
+    NexoraTwoDEvent event{};
+    NexoraTwoDAnimationResult result{};
+    const double seconds = generation % 2 ? 0.04 : 0.06;
+    Check(next.two_d.advance_animation(next.two_d.context, parent, seconds, &event, 1, &result) ==
+                  0 &&
+              result.event_count == (generation % 2 ? 0U : 1U),
+          "animation phase reset across resource generations");
+    // Move the exact staged World into its existing PlaySession address, then quarantine old
+    // callbacks on the previous World before retirement. The frame/texture owner moves once.
+    runtime::World retired_world = std::move(world);
+    world = std::move(branch_world);
+    Check(live->RebindForReload(retired_world) && candidate->RebindForReload(world) &&
+              gate->SetPhase(Phase::Retired),
+          "resource retirement/rebind");
+    if (generation > 1)
+      Check(!stale->CommitReloadResources(*live), "stale resource generation was published");
+    Check(candidate->CommitReloadResources(*live), "resource commit/rebind");
+    Check(old.two_d.destroy_instances(old.two_d.context, &pooled, 1) == 0 &&
+              old.two_d.set_sprite(old.two_d.context, parent, nullptr) == 0 &&
+              old.input.clear_bindings(old.input.context, 0, 42) == 0 &&
+              old.audio.stop_all(old.audio.context) == 0,
+          "retired callbacks lost their private state");
+    std::vector<std::uint64_t> retired;
+    live->RetireTextures(retired);
+    Check(retired.empty(), "old generation retired transferred texture registrations");
+    live.reset(); // All old proxy/provider owners die only after their final callback.
+    gate = std::move(candidate_gate);
+    live = std::move(candidate);
+    Check(gate->SetPhase(Phase::Live) &&
+              next.two_d.read_instances(next.two_d.context, &pooled, 1, &copied) == 0 &&
+              next.two_d.get_sprite(next.two_d.context, parent, &preserved) == 0 &&
+              next.input.read_action(next.input.context, 0, 42, &held) == 0 && held.held &&
+              held.pressed,
+          "retired cleanup changed admitted generation");
+    const auto frame = live->ExtractFrame({40, 30, 320, 240});
+    Check(frame && frame->sprites.statistics.visible == 2 && !frame->data.commands.empty() &&
+              frame->sprites.retainedAtlases.front().texture == texture,
+          "committed Sprite/UI frame or texture identity reset");
+  }
+  std::vector<std::uint64_t> final_textures;
+  live->RetireTextures(final_textures);
+  Check(std::ranges::count(final_textures, texture) == 1,
+        "final resource owner lost transferred texture registration");
+}
 void Run(const std::filesystem::path &root, const std::filesystem::path &capture) {
 #if defined(NEXORA_PLAY_2D_NATIVE)
   editor::imgui::EditorImGuiHost uiHost;
@@ -268,6 +437,72 @@ void Run(const std::filesystem::path &root, const std::filesystem::path &capture
     Check(binding.assets->Matches(workspace, content, true), "restored source scope");
   }
   Check(!editor::preview::PlayTwoDServices::Bind(authoring, binding), "authoring World admitted");
+  ReloadServices(authoring, binding);
+  {
+    using editor::preview::PlayServiceGate;
+    using Phase = PlayServiceGate::Phase;
+    auto guarded_world = authoring.CloneForPlay();
+    PlayServiceGate gate;
+    auto guarded = editor::preview::PlayTwoDServices::Bind(guarded_world, binding, false, &gate);
+    Check(bool(guarded), "guarded Play services binding failed");
+    NexoraTwoDApiV1 cached{};
+    cached.struct_size = sizeof(cached);
+    NexoraGameplayServicesApiV1 registry{};
+    registry.struct_size = sizeof(registry);
+    registry.abi_version = 1;
+    NexoraGameplayInputApiV1 cached_input{};
+    cached_input.struct_size = sizeof(cached_input);
+    cached_input.abi_version = 1;
+    NexoraGameplayUiApiV1 cached_ui{};
+    cached_ui.struct_size = sizeof(cached_ui);
+    cached_ui.abi_version = 1;
+    NexoraStorageApiV1 cached_storage{};
+    cached_storage.struct_size = sizeof(cached_storage);
+    cached_storage.abi_version = 1;
+    Check(guarded->GetApi(&cached) == 0 && guarded->GetServices(&registry) == 0 &&
+              registry.get_input_api(registry.context, &cached_input) == 0 &&
+              registry.get_ui_api(registry.context, &cached_ui) == 0 &&
+              registry.get_storage_api(registry.context, &cached_storage) == 0,
+          "guarded cached service negotiation failed");
+    const auto sprite = Sprite();
+    Check(cached.set_sprite(cached.context, parent, &sprite) == 0,
+          "guarded live Sprite setup failed");
+    const NexoraGameplayInputBindingV1 action_binding{
+        sizeof(action_binding), 1, NEXORA_INPUT_DEVICE_KEYBOARD, 0, NEXORA_INPUT_KEY_A, 1, 0, 0};
+    Check(cached_input.bind(cached_input.context, 0, 42, &action_binding) == 0,
+          "guarded live input setup failed");
+    Nexora::Window::WindowEvent press{};
+    press.type = Nexora::Window::WindowEventType::Key;
+    press.value0 = static_cast<int>(Nexora::Window::Key::A);
+    press.value1 = 1;
+    guarded->ProcessInput(std::span(&press, 1), true, 0);
+    Check(
+        gate.SetPhase(Phase::Capture) &&
+            cached.set_sprite(cached.context, parent, nullptr) == NEXORA_GAMEPLAY_ERROR_LIFECYCLE &&
+            cached_input.clear_bindings(cached_input.context, 0, 42) ==
+                NEXORA_GAMEPLAY_ERROR_LIFECYCLE &&
+            cached_ui.begin_frame(cached_ui.context, 320, 240) == NEXORA_GAMEPLAY_ERROR_LIFECYCLE &&
+            !gate.Valid(),
+        "cached Play services bypassed capture guard");
+    NexoraTwoDSprite preserved{};
+    NexoraGameplayActionStateV1 held{};
+    held.struct_size = sizeof(held);
+    held.abi_version = 1;
+    Check(cached.get_sprite(cached.context, parent, &preserved) == 0 && preserved.region == 1 &&
+              cached_input.read_action(cached_input.context, 0, 42, &held) == 0 && held.held,
+          "capture guard changed Sprite/input data or blocked side-effect-free reads");
+    const std::uint8_t payload = 17;
+    for (const auto phase : {Phase::Candidate, Phase::Retired}) {
+      Check(gate.SetPhase(phase) &&
+                !editor::preview::PlayTwoDServices::Bind(guarded_world, binding, true, &gate),
+            "fresh native binding replaced a reload fork");
+      Check(cached_storage.save(cached_storage.context, "reload-probe", 12, 1, &payload, 1) ==
+                    NEXORA_STORAGE_IO_ERROR &&
+                !gate.Valid() && cached.set_sprite(cached.context, parent, &sprite) == 0,
+            "external storage escaped reload isolation or isolated memory updates were rejected");
+    }
+    Check(gate.SetPhase(Phase::Live), "guarded services live restoration failed");
+  }
   runtime::PlaySession play(authoring);
   editor::preview::PlayGameplayModule module;
   std::uint64_t previousTexture{};

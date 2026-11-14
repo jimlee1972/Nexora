@@ -1,0 +1,233 @@
+{
+  "status": "WINDOWS_SDK_SCOPED_PASS_FULL_INTEGRATED_GATES_PENDING",
+  "parent_head": "90e9b92ce95a5919a9404eaf4df1777768dd01fa",
+  "parent_main": "1df6ab357da69ee3257097a9b5176695b7c96b9a",
+  "upstream_main_integration_pending": "b1671eaa95b0863571a4f8b4a7b636068fdc02fd",
+  "scope": "Windows native compiler/SDK and CLI tests, no new graphical Editor/Player acceptance",
+  "implementation": "CMake invokes canonical SDK build-lib/test/test directly; all library modules ReleaseSafe, tests Debug, Windows MSVC target and compiler-rt preserved; no shared cache or SDK lifetime; standalone build.zig and macOS path unchanged",
+  "build": {
+    "log": "C:\\Users\\Jim-PC\\.codex\\worktrees\\editor-workflow\\Nexora\\build\\editor-workflow-native\\ed-wf05-direct-sdk-build.log",
+    "seconds": 128.0763665,
+    "exit": 0
+  },
+  "initial_native_tests": {
+    "command": "ctest --test-dir build/editor-workflow-native -C Development --output-on-failure -V -R '^editor\\.(game_build_sdk_bytes|game_script_build|game_build|game_script_compiler)$'",
+    "exit": 0,
+    "passed": 4,
+    "ctest_seconds": 374.33,
+    "note": "Before isolating the additional authored-test rejection into a distinct registered case; original four-case log and exact source hashes retained"
+  },
+  "final_case_build": {
+    "seconds": 101.6626462,
+    "exit": 0
+  },
+  "final_registered_cases": {
+    "command": "ctest --test-dir build/editor-workflow-native -C Development --output-on-failure -V -R '^editor\\.(game_script_build|game_script_authored_tests)$'",
+    "exit": 0,
+    "passed": 2,
+    "ctest_seconds": 181.53,
+    "authored_test_rejection_seconds": 84.0,
+    "limits": "Original game_script_build300s unchanged; independent new authored-test case300s. No skip/retry/deadline waiver."
+  },
+  "diagnostics": {
+    "private_and_shared_cache": {
+      "receipt_sha256": "14d4b87c5d467cdb19ef6142b5094ecc6b3284ea2ffca1dd7d6c439b6f06797a",
+      "status": "DIAGNOSTIC_COMPLETE_NOT_ACCEPTANCE",
+      "rows": [
+        {
+          "mode": "isolated",
+          "generation": 1,
+          "seconds": 83.3604343002662,
+          "exit_codes": [
+            0,
+            0
+          ],
+          "build_runner_cache_before": null,
+          "build_runner_cache_after": null
+        },
+        {
+          "mode": "isolated",
+          "generation": 2,
+          "seconds": 81.29031850025058,
+          "exit_codes": [
+            0,
+            0
+          ],
+          "build_runner_cache_before": null,
+          "build_runner_cache_after": null
+        },
+        {
+          "mode": "shared",
+          "generation": 1,
+          "seconds": 122.04945930000395,
+          "exit_codes": [
+            0,
+            0
+          ],
+          "build_runner_cache_before": null,
+          "build_runner_cache_after": null
+        },
+        {
+          "mode": "shared",
+          "generation": 2,
+          "seconds": 79.24852210003883,
+          "exit_codes": [
+            0,
+            0
+          ],
+          "build_runner_cache_before": null,
+          "build_runner_cache_after": null
+        }
+      ]
+    },
+    "stable_sdk": {
+      "receipt_sha256": "51dd5bedfb35d8aa9b87ad6c2c2e3748e3ddebaa36452db4314be2ddaf059cf2",
+      "status": "DIAGNOSTIC_COMPLETE_NOT_ACCEPTANCE",
+      "rows": [
+        {
+          "mode": null,
+          "generation": 1,
+          "seconds": 52.26951580028981,
+          "exit_codes": [
+            0,
+            0
+          ],
+          "build_runner_cache_before": [
+            "o\\9d6954676d43f19a8fbb7d07445e055f\\build.exe",
+            "o\\e9f99d1489c9948bc86e30d0bc5a64e0\\build.exe"
+          ],
+          "build_runner_cache_after": [
+            "o\\9d6954676d43f19a8fbb7d07445e055f\\build.exe",
+            "o\\e9f99d1489c9948bc86e30d0bc5a64e0\\build.exe",
+            "o\\f4b3d92a7709b4dfd977356ff446b4da\\build.exe"
+          ]
+        },
+        {
+          "mode": null,
+          "generation": 2,
+          "seconds": 42.61647059954703,
+          "exit_codes": [
+            0,
+            0
+          ],
+          "build_runner_cache_before": [
+            "o\\9d6954676d43f19a8fbb7d07445e055f\\build.exe",
+            "o\\e9f99d1489c9948bc86e30d0bc5a64e0\\build.exe",
+            "o\\f4b3d92a7709b4dfd977356ff446b4da\\build.exe"
+          ],
+          "build_runner_cache_after": [
+            "o\\9d6954676d43f19a8fbb7d07445e055f\\build.exe",
+            "o\\e9f99d1489c9948bc86e30d0bc5a64e0\\build.exe",
+            "o\\f4b3d92a7709b4dfd977356ff446b4da\\build.exe"
+          ]
+        }
+      ]
+    },
+    "direct_private_sdk": {
+      "receipt_sha256": "1e599ef7d87dd300e2a8434a050abb6b59b2d11d8a223191779e3c854d1c98a6",
+      "status": "DIAGNOSTIC_COMPLETE_NOT_ACCEPTANCE",
+      "rows": [
+        {
+          "mode": null,
+          "generation": 1,
+          "seconds": 42.14962090086192,
+          "exit_codes": [
+            0,
+            0,
+            0
+          ],
+          "build_runner_cache_before": null,
+          "build_runner_cache_after": null
+        },
+        {
+          "mode": null,
+          "generation": 2,
+          "seconds": 40.24912790115923,
+          "exit_codes": [
+            0,
+            0,
+            0
+          ],
+          "build_runner_cache_before": null,
+          "build_runner_cache_after": null
+        },
+        {
+          "mode": null,
+          "generation": 3,
+          "seconds": 11.491668299771845,
+          "exit_codes": [
+            1
+          ],
+          "build_runner_cache_before": null,
+          "build_runner_cache_after": null
+        }
+      ]
+    }
+  },
+  "limitations": [
+    "Diagnostic timing samples are scoped Windows observations, not general performance guarantees or Linux failure attribution.",
+    "Old Cloud8870 remains FAIL491/502; no failed check is waived.",
+    "Latest main integration, immutable full Cloud/Shipping/allCI and updated Windows package/native32 gates remain required.",
+    "Work orders4/9, Editor0/8; ED-WF-05 unaccepted."
+  ],
+  "source_files": [
+    {
+      "path": "CMake/Modules/NexoraGameProject.cmake",
+      "sha256": "93733cce9ad5e6ab1b0ac45645ad9b62002b783715e7fd13dfec3b62cb959238"
+    },
+    {
+      "path": "Tests/Editor/CMakeLists.txt",
+      "sha256": "aa6bf2c3ef2ca0c8dac974df783810379b93eb9f4aa15ca919bc97642b1f547c"
+    },
+    {
+      "path": "Tests/Editor/GameScriptBuildTests.cpp",
+      "sha256": "2b5d59d68c6e926cec5da4712af30f0b63b3b5e6d4f165881ab874c077539fd1"
+    },
+    {
+      "path": "Tools/Zig/README.md",
+      "sha256": "cb36751a9394b32c03223be4ea34347269cd2ede599e41591f63704658c162a6"
+    },
+    {
+      "path": "Engine/Editor/GameBuild.md",
+      "sha256": "8742b4dec88238a4859b602960c2ed9f0c34cd8c7330db17ce36bcc490d9bc64"
+    }
+  ],
+  "retained_logs": [
+    {
+      "path": "build/editor-workflow-native/ed-wf05-direct-sdk-build.log",
+      "sha256": "79cff937100cdfd84337ca8705563f24295c2eeaa0c86323f447e8d4078c6d8b"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-direct-sdk-build-exit.json",
+      "sha256": "45168bf8d6210d726cefa8d770db5c5d288876f6932f11e930711edc3d5b68ec"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-direct-sdk-tests.log",
+      "sha256": "999ecc8645923795e2cc353991327784178e72d9c20bb2e8e423d6bc459e4352"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-direct-sdk-tests-exit.json",
+      "sha256": "cf373816fb3bf9878807339add159dc2d30239487cae515ae04bd73ccd1952cd"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-direct-sdk-tests-before-case-split.json",
+      "sha256": "b5164fba90e17abe4546a88db106206a4ec9b38daa66af4e970bda91d6acc900"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-direct-sdk-case-build.log",
+      "sha256": "082d4349a3ba329d6a2dc8304b358ed44b42a43ac9e4bef9c56784170236d130"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-direct-sdk-case-build-exit.json",
+      "sha256": "fb71896aec019551423577e60a63061e9ead8bc91f9d88d7ddd4a7623cc8e389"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-direct-sdk-case-tests.log",
+      "sha256": "e263335c8fb810b6a7a2b75579ebfeb15257d9a2ab671038a5d57d1542d7c6fb"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-direct-sdk-case-tests-exit.json",
+      "sha256": "6170f4c9b69cf0c35a86bc793048bab7dd5b931ca4acbc1166b2ecfa9fe28999"
+    }
+  ]
+}

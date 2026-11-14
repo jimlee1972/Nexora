@@ -108,7 +108,7 @@ def main() -> int:
         output.mkdir(parents=True, exist_ok=True)
         report = output / "windowed.json"
         # A failed run must never inherit a passing report from a previous invocation.
-        for name in ("windowed.json", "stdout.log", "stderr.log", "launch.json"):
+        for name in ("windowed.json", "stdout.log", "stderr.log", "launch.json", "xvfb.stderr.log"):
             (output / name).unlink(missing_ok=True)
         xvfb = shutil.which("Xvfb")
         if xvfb is None:
@@ -131,14 +131,31 @@ def main() -> int:
                 "--no-reload",
                 f"--report={report}",
             ]
-            completed = subprocess.run(
-                command,
-                env=environment,
-                capture_output=True,
-                text=True,
-                timeout=30,
-                check=False,
-            )
+            try:
+                completed = subprocess.run(
+                    command,
+                    env=environment,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    check=False,
+                )
+            except subprocess.TimeoutExpired as error:
+                # run() has killed and reaped its child. TimeoutExpired may carry bytes even
+                # in text mode; retain the partial streams instead of losing startup evidence.
+                for name, value in (("stdout.log", error.stdout), ("stderr.log", error.stderr)):
+                    if isinstance(value, bytes):
+                        value = value.decode("utf-8", errors="replace")
+                    (output / name).write_text(value or "", encoding="utf-8")
+                launch = {
+                    "command": command, "exit_code": None, "timed_out": True,
+                    "timeout_seconds": 30, "display": display,
+                    "acceptance_scope": "Linux/X11/Vulkan virtual display",
+                    "physical_display_verified": False, "acceptance_passed": False,
+                }
+                (output / "launch.json").write_text(json.dumps(launch, indent=2) + "\n", encoding="utf-8")
+                print(f"FAIL: Showcase exceeded the original 30-second limit; evidence: {output}")
+                return 1
             (output / "stdout.log").write_text(completed.stdout, encoding="utf-8")
             (output / "stderr.log").write_text(completed.stderr, encoding="utf-8")
             launch = {
@@ -165,11 +182,14 @@ def main() -> int:
             print(json.dumps(windowed, indent=2))
             return 0
         finally:
-            server.terminate()
+            if server.poll() is None:
+                server.terminate()
             try:
-                server.wait(timeout=3)
+                _, errors = server.communicate(timeout=3)
             except subprocess.TimeoutExpired:
                 server.kill()
+                _, errors = server.communicate(timeout=3)
+            (output / "xvfb.stderr.log").write_text(errors or "", encoding="utf-8")
 
 
 if __name__ == "__main__":

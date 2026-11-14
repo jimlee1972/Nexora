@@ -17,8 +17,109 @@ NexoraTwoDApiV1 Get(twod::GameplayBridge &bridge) {
   assert(api.abi_version == 1);
   return api;
 }
+void ReloadResources() {
+  runtime::World world(runtime::WorldKind::Play);
+  const auto id = world.LoadScene("Reload resources");
+  const auto entity = world.CreateEntity(id).id;
+  const auto source_entity = world.CreateEntity(id).id;
+  auto scene = std::make_unique<twod::SpriteScene>(world, id);
+  auto pool = std::make_unique<twod::InstancePool>(4);
+  auto tiles = std::make_unique<twod::Tilemap>();
+  tiles->atlas = {1, 2};
+  auto clip = std::make_shared<const twod::Clip>(
+      twod::Clip{{3, 4}, {1, 2}, true, {{1, .1, "a"}, {2, .1, "b"}}});
+  auto bridge = std::make_unique<twod::GameplayBridge>(
+      world, *scene, [clip](auto asset) { return asset == clip->id ? clip : nullptr; }, tiles.get(),
+      pool.get());
+  auto api = Get(*bridge);
+  auto sprite = SpriteWire();
+  sprite.pivot = {.25F, .75F};
+  sprite.order = 19;
+  assert(api.set_sprite(api.context, entity, &sprite) == 0);
+  twod::Sprite source;
+  source.atlas = {1, 2};
+  source.region = 1;
+  source.source = twod::AssetId{5, 6};
+  source.pivot = {.125F, .875F};
+  source.sortY = true;
+  assert(scene->Set(source_entity, source));
+  const auto collider = ColliderWire();
+  assert(api.set_collider(api.context, entity, &collider) == 0 &&
+         api.rebuild_queries(api.context, 0) == 0);
+  const NexoraTwoDCamera camera{{3, -4}, 17, .35F};
+  assert(api.set_camera(api.context, &camera) == 0 &&
+         api.play_animation(api.context, entity, 3, 4, 1) == 0);
+  NexoraTwoDInstance value{{{7, 0, 0}, {0, 0, 0, 1}, {1, 1, 1}}, SpriteWire()};
+  NexoraTwoDInstanceHandle handle{};
+  assert(api.create_instances(api.context, &value, 1, &handle) == 0);
+  runtime::World editor_world;
+  assert(!scene->ForkForReload(world) && !scene->ForkForReload(editor_world) &&
+         !bridge->ForkForReload(world, *scene, tiles.get(), pool.get()));
+  for (unsigned generation = 1; generation <= 32; ++generation) {
+    auto staged_world = world;
+    auto staged_metadata = scene->ForkForReload(staged_world);
+    assert(staged_metadata);
+    auto staged_scene = std::make_unique<twod::SpriteScene>(std::move(*staged_metadata));
+    auto staged_pool = pool->ForkForReload();
+    auto staged_tiles = std::make_unique<twod::Tilemap>(*tiles);
+    twod::InstancePool foreign_pool(4);
+    assert(!bridge->ForkForReload(staged_world, *staged_scene, staged_tiles.get(), &foreign_pool));
+    std::thread foreign([&] {
+      assert(!bridge->ForkForReload(staged_world, *staged_scene, staged_tiles.get(),
+                                    staged_pool.get()) &&
+             !bridge->RebindForReload(world, *scene, tiles.get(), pool.get()));
+    });
+    foreign.join();
+    auto candidate =
+        bridge->ForkForReload(staged_world, *staged_scene, staged_tiles.get(), staged_pool.get());
+    assert(candidate);
+    auto next = Get(*candidate);
+    const auto context = next.context;
+    NexoraTwoDCamera restored_camera{};
+    assert(next.get_camera(context, &restored_camera) == 0 &&
+           restored_camera.vertical_size == camera.vertical_size &&
+           restored_camera.rotation_radians == camera.rotation_radians);
+    NexoraTwoDShape query{0, ColliderWire()};
+    std::uint32_t count{};
+    assert(next.overlap(context, 0, &query, nullptr, 0, &count) == 0 && count == 1);
+    NexoraTwoDAnimationResult predicted{}, advanced{};
+    std::array<NexoraTwoDEvent, 4> events{};
+    const auto previous = *scene->Find(entity);
+    assert(api.advance_animation(api.context, entity, .037, nullptr, 0, &predicted) == 0 &&
+           next.advance_animation(context, entity, .037, events.data(), 4, &advanced) == 0 &&
+           predicted.region == advanced.region && predicted.event_count == advanced.event_count);
+    assert(staged_scene->Find(entity)->pivot.x == .25F && staged_scene->Find(entity)->order == 19 &&
+           scene->Find(entity)->region == previous.region);
+    value.transform.position.x = generation + 7;
+    assert(next.write_instances(context, &handle, 1, &value) == 0);
+    NexoraTwoDInstance original{};
+    assert(api.read_instances(api.context, &handle, 1, &original) == 0 &&
+           original.transform.position.x == generation + 6);
+
+    // Reproduce the embedding's stable World address, isolated retirement and context rebinding.
+    auto retired_world = std::move(world);
+    assert(scene->RebindForReload(retired_world) &&
+           bridge->RebindForReload(retired_world, *scene, tiles.get(), pool.get()));
+    world = std::move(staged_world);
+    assert(staged_scene->RebindForReload(world) &&
+           candidate->RebindForReload(world, *staged_scene, staged_tiles.get(), staged_pool.get()));
+    bridge->ForgetEntity(entity);
+    assert(api.destroy_instances(api.context, &handle, 1) == 0 && staged_scene->Find(entity) &&
+           staged_scene->Find(source_entity)->source == source.source &&
+           staged_scene->Find(source_entity)->pivot.y == .875F &&
+           next.read_instances(context, &handle, 1, &original) == 0 &&
+           original.transform.position.x == generation + 7);
+    bridge = std::move(candidate);
+    scene = std::move(staged_scene);
+    pool = std::move(staged_pool);
+    tiles = std::move(staged_tiles);
+    api = Get(*bridge);
+    assert(api.context == context && &scene->WorldOwner() == &world);
+  }
+}
 } // namespace
 int main() {
+  ReloadResources();
   runtime::World world(runtime::WorldKind::Play);
   const auto id = world.LoadScene("2D gameplay");
   const auto entity = world.CreateEntity(id).id;

@@ -1,0 +1,1024 @@
+{
+  "status": "FAIL",
+  "commit": "0c82cf373d5fc6f7ea870ff01e2795dca7401610",
+  "tree": "c1e428b7dc0d1c03f209a9bc38b96568312f99d2",
+  "working_tree_clean": true,
+  "registered": {
+    "registered": 504,
+    "added": [
+      "editor.game_script_authored_tests",
+      "runtime.crash_diagnostics"
+    ],
+    "removed": []
+  },
+  "executed": 504,
+  "passed": 449,
+  "failed": 55,
+  "skipped": 0,
+  "ctest_seconds": 3365.85,
+  "retries": [],
+  "environment_whitelist": {
+    "LP_NUM_THREADS": null,
+    "GALLIUM_DRIVER": null,
+    "VK_ICD_FILENAMES": null,
+    "VK_DRIVER_FILES": null,
+    "OMP_NUM_THREADS": null,
+    "MESA_LOADER_DRIVER_OVERRIDE": null,
+    "LIBGL_ALWAYS_SOFTWARE": null,
+    "CMAKE_BUILD_PARALLEL_LEVEL": "2",
+    "CTEST_PARALLEL_LEVEL": "1",
+    "XDG_CACHE_HOME": "/workspace/validation-754/cache",
+    "ZIG_GLOBAL_CACHE_DIR": "/workspace/validation-754/cache/zig-global",
+    "ZIG_LOCAL_CACHE_DIR": "/workspace/validation-754/cache/zig-local"
+  },
+  "parallelism": {
+    "build": 2,
+    "ctest": 1,
+    "stages_overlap": false
+  },
+  "oom": 0,
+  "oom_kill": 0,
+  "residual_process_check": {
+    "live": [],
+    "zombies": [
+      "9673       1 Z    Xvfb",
+      "10211       1 Z    NexoraEditor",
+      "12813       1 Z    Xvfb",
+      "12816       1 Z    NexoraEditor"
+    ],
+    "exit_code": 0
+  },
+  "prior_archives_sha256_unchanged": {
+    "validation-759-fix2-evidence.tar.gz": "d65da145378d69740f1e5360b4d4cd845cd0cba68e4a3c3b274afb4bcab3c73d",
+    "validation-762-fix4-evidence.tar.gz": "0dbf75c00c244e07ed232d40295fb119ed88b24283497e81efb72f34df59f044",
+    "validation-759-fix1-evidence.tar.gz": "96a4d97579bf59b1a012b791b97b9bdfda3a81a08851bcf3dcba211ba189b8b5",
+    "validation-pointer-fix-evidence.tar.gz": "ed92b56fb9b7c119bf4736c9b57f00eb38c4957bf51b0d9c81eaa42614ffdafb",
+    "validation-754-evidence.tar.gz": "f8f719ec430558c936b93865aa1f3d5768822d0faa3c28ae0ff7fcfe2a421209",
+    "validation-762-evidence.tar.gz": "162cf5c30bc229d7b4ecd5a91add07c142bf303d9ef9ee198bb1a66998f5f53e",
+    "validation-editor-transaction-evidence.tar.gz": "fc0ff88d8377596db13c37ef5b9ba29dac33cbaaa583c06476822412565de771",
+    "validation-758-evidence.tar.gz": "6ab758ffdf8b5569937cce488ae6db734398152fbbd3564bb6a0350883c50e71",
+    "validation-758-fix2-evidence.tar.gz": "08e61d10bbd1ec7108a8550e2bc6a5cc5acd47a16d355ed85f7178b06fe6cbcc",
+    "diagnose-pointer-evidence.tar.gz": "c2610a04faa0fb259172cae3b26f3be4e8dce85c9a451cb1586e1d486f17f8df",
+    "validation-762-fix5-evidence.tar.gz": "de2e93be895f9ab2d6d7f321314b67956dc8c2bf7af173d7bdfa472ab69f6272",
+    "validation-758-fix1-evidence.tar.gz": "a3b5f2b120cb03b78b3d4014f5a9259bad8292ab3504210d7254fc0289210e38",
+    "validation-8870d63e-evidence.tar.gz": "bbc9d9509ffff4ac684e3ea64633d7067a8f29f5afad8a74356b14a5be901d2f",
+    "diagnose-pointer-causes-evidence.tar.gz": "742dfe7f3f598ab0d12371458ee3f0bc5be042bddb7e6e2103ae637446cba2b6",
+    "diagnose-play-memory-8870d63e-evidence.tar.gz": "2f91fbfd5b6e0ea720719a27adfef0cd8cc6d387c0a9b8b40f6d7e069bfc1419",
+    "validation-763-51bd8a16-rerun-evidence.tar.gz": "261a0d2f93a122cbb94254f94ada683534fec7466e6dd2f45e05e88bccbbf60c",
+    "validation-759-evidence.tar.gz": "2fe20c077a83033779ad09dc47f358186e1657952ca4af5aaec939b69b2f01d0",
+    "validation-762-fix2-evidence.tar.gz": "0a40b6636a2dc5789010d01be66ba5120208b5eed89027f47613b1bc48dbca65",
+    "diagnose-play-memory-8870d63e-network-enabled-evidence.tar.gz": "87892da5cfb7f7a6e100683ac6acaa8537694c392f203af39393c011e824b7d9",
+    "validation-756-evidence.tar.gz": "05ef561d2fbf742680ed1928678f1c4c34206128f985a78f6762aff438f0c848"
+  },
+  "platform": "Linux x86_64 / Debian13 / Xvfb / software Vulkan. Existing null/headless audio; no physical device, Windows or macOS acceptance.",
+  "shipping": "Graphical Editor/Editor/testing OFF; Runtime/native Player link boundary only. No Shipping CTest.",
+  "incremental_reuse": {
+    "from_built_commit": "8870d63e107a829ee17e873c30fdbec4e2d3b6a7",
+    "to_commit": "0c82cf373d5fc6f7ea870ff01e2795dca7401610",
+    "to_tree": "c1e428b7dc0d1c03f209a9bc38b96568312f99d2",
+    "checkout": "/workspace/Nexora-validation-8870d63e",
+    "changed_paths": [
+      ".github/workflows/editor-windows-package.yml",
+      "Apps/DedicatedServer/main.cpp",
+      "Apps/Editor/README.md",
+      "Apps/Editor/main.cpp",
+      "Apps/Host/main.cpp",
+      "Apps/ProjectPlayer/GameplayPlayer.h",
+      "Apps/ProjectPlayer/README.md",
+      "Apps/ProjectPlayer/main.cpp",
+      "Apps/Showcase/README.md",
+      "Apps/Showcase/main.cpp",
+      "Apps/TwoDPlayer/GameMain.cpp",
+      "Apps/TwoDPlayer/README.md",
+      "Apps/TwoDPlayer/TwoDPlayer.cpp",
+      "CMake/Modules/NexoraGameProject.cmake",
+      "Engine/Core/CMakeLists.txt",
+      "Engine/Core/README.md",
+      "Engine/Core/include/Nexora/Core/Diagnostics.h",
+      "Engine/Core/src/Diagnostics.cpp",
+      "Engine/Core/src/Engine.cpp",
+      "Engine/Core/src/JobSystem.cpp",
+      "Engine/Core/src/Log.cpp",
+      "Engine/Editor/GameBuild.md",
+      "Engine/RHI/README.md",
+      "Engine/RHI/src/DeviceFactory.cpp",
+      "Engine/Renderer/README.md",
+      "Engine/Renderer/src/RenderGraph.cpp",
+      "Engine/Runtime/README.md",
+      "Engine/Runtime/src/EditorSdk.cpp",
+      "Engine/Runtime/src/GameSceneSession.cpp",
+      "Engine/Runtime/src/GameplayModuleHost.cpp",
+      "Engine/Runtime/src/Shipping.cpp",
+      "Roadmap/en/2D_Roadmap.md",
+      "Roadmap/en/Crash_Logging_Delivery_Plan.md",
+      "Roadmap/en/Cross-platform_3D_Engine_V1_Complete_Plan_v1_2.md",
+      "Roadmap/en/Editor_Roadmap.md",
+      "Roadmap/en/Editor_Workflow_Delivery_Plan.md",
+      "Roadmap/en/Engine_API_Foundation_Roadmap.md",
+      "Roadmap/en/V1-Visual-Showcase-Long-Term-Plan.md",
+      "Roadmap/zh-TW/2D_Roadmap.md",
+      "Roadmap/zh-TW/Crash_Logging_Delivery_Plan.md",
+      "Roadmap/zh-TW/Editor_Roadmap.md",
+      "Roadmap/zh-TW/Editor_Workflow_Delivery_Plan.md",
+      "\"Roadmap/zh-TW/Engine_API_\\345\\237\\272\\347\\244\\216_Roadmap.md\"",
+      "Roadmap/zh-TW/V1-Visual-Showcase-Long-Term-Plan.md",
+      "\"Roadmap/zh-TW/\\350\\267\\250\\345\\271\\263\\345\\217\\2603D_Engine_V1_\\345\\256\\214\\346\\225\\264\\350\\246\\217\\345\\212\\203\\346\\233\\270_v1_2.md\"",
+      "Tests/Editor/CMakeLists.txt",
+      "Tests/Editor/GameScriptBuildTests.cpp",
+      "Tests/Editor/WindowsNativeTestDesktop.py",
+      "Tests/Editor/WindowsScriptReload.py",
+      "Tests/Editor/WindowsStartupIntegration.py",
+      "Tests/EditorImGui/LinuxPackagedPlay.py",
+      "Tests/Runtime/CMakeLists.txt",
+      "Tests/Runtime/CrashDiagnostics.py",
+      "Tests/Runtime/CrashDiagnosticsFixture.cpp",
+      "Tests/Runtime/CrashGameplayModule.cpp",
+      "Tests/Showcase/LinuxShowcaseInteraction.py",
+      "Tests/Showcase/LinuxVirtualDisplaySmoke.py",
+      "Tests/Showcase/LinuxVirtualDisplaySmokeTests.py",
+      "Tools/Build/evidence/Crash-Logging-Linux-2026-11-03.md",
+      "Tools/Build/evidence/EditorWorkflow/ED-WF-05-CI-885693db.json",
+      "Tools/Build/evidence/EditorWorkflow/ED-WF-05-Cloud-8870d63e.json",
+      "Tools/Build/evidence/EditorWorkflow/ED-WF-05-Crash-Integration-Windows.json",
+      "Tools/Build/evidence/EditorWorkflow/ED-WF-05-Launcher-Windows.json",
+      "Tools/Build/evidence/EditorWorkflow/ED-WF-05-Linux-CI-885693db.json",
+      "Tools/Build/evidence/EditorWorkflow/ED-WF-05-Package-885693db.json",
+      "Tools/Build/evidence/EditorWorkflow/ED-WF-05-SDK-Direct-Windows.json",
+      "Tools/Build/evidence/EditorWorkflow/ED-WF-05-Showcase-Diagnostics.json",
+      "Tools/Build/evidence/EditorWorkflow/ED-WF-05.md",
+      "Tools/Editor/README.md",
+      "Tools/Zig/README.md"
+    ],
+    "mode": "Incremental existing completed8870 build directories/cache; full configure/build execute. Changed Core/Runtime/SDK inputs require real regeneration/rebuild. NOT clean-from-scratch; no old binary acceptance claimed."
+  },
+  "scope": "Exact immutable integrated 0c82cf37 source; incremental prior8870 cache, real rebuild required; NOT clean-from-scratch. No LP candidate applied. No source changes, commits, pushes, PR/Beads changes. Original FAIL and diagnostic archives remain unchanged.",
+  "gates": [
+    {
+      "name": "development-configure",
+      "argv": [
+        "cmake",
+        "--preset",
+        "linux-development",
+        "-DNEXORA_ENABLE_ZIG_GAMEPLAY=ON",
+        "-DNEXORA_ENABLE_SLANG=ON",
+        "-DNEXORA_ENABLE_VULKAN_BACKEND=ON",
+        "-DNEXORA_BUILD_PROJECT_PLAYER=ON",
+        "-DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON",
+        "-DNEXORA_CRYPTOGRAPHY_BACKEND=OPENSSL",
+        "-DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON",
+        "-DFETCHCONTENT_SOURCE_DIR_NEXORA_IMGUI=/workspace/Nexora/build/linux-development/_deps/nexora_imgui-src",
+        "-DFETCHCONTENT_SOURCE_DIR_NEXORA_VULKAN_HEADERS=/workspace/Nexora/build/linux-development/_deps/nexora_vulkan_headers-src"
+      ],
+      "cwd": "/workspace/Nexora-validation-8870d63e",
+      "commit": "0c82cf373d5fc6f7ea870ff01e2795dca7401610",
+      "tree": "c1e428b7dc0d1c03f209a9bc38b96568312f99d2",
+      "state": "completed",
+      "start": 1793803466.816698,
+      "pid": 1147,
+      "exit_code": 0,
+      "end": 1793803476.6318114,
+      "duration_seconds": 9.815113306045532
+    },
+    {
+      "name": "development-build",
+      "argv": [
+        "cmake",
+        "--build",
+        "--preset",
+        "linux-development"
+      ],
+      "cwd": "/workspace/Nexora-validation-8870d63e",
+      "commit": "0c82cf373d5fc6f7ea870ff01e2795dca7401610",
+      "tree": "c1e428b7dc0d1c03f209a9bc38b96568312f99d2",
+      "state": "completed",
+      "start": 1793803477.1608484,
+      "pid": 1217,
+      "exit_code": 0,
+      "end": 1793803970.1949563,
+      "duration_seconds": 493.0341079235077
+    },
+    {
+      "name": "development-ctest",
+      "argv": [
+        "ctest",
+        "--preset",
+        "linux-development",
+        "-V",
+        "--output-junit",
+        "/workspace/validation-0c82cf37/development-junit.xml"
+      ],
+      "cwd": "/workspace/Nexora-validation-8870d63e",
+      "commit": "0c82cf373d5fc6f7ea870ff01e2795dca7401610",
+      "tree": "c1e428b7dc0d1c03f209a9bc38b96568312f99d2",
+      "state": "completed",
+      "start": 1793803970.3228514,
+      "pid": 3411,
+      "exit_code": 8,
+      "end": 1793807336.6667542,
+      "duration_seconds": 3366.343902826309
+    },
+    {
+      "name": "shipping-configure",
+      "argv": [
+        "cmake",
+        "--preset",
+        "linux-shipping",
+        "-DNEXORA_ENABLE_ZIG_GAMEPLAY=ON",
+        "-DNEXORA_ENABLE_SLANG=ON",
+        "-DNEXORA_ENABLE_VULKAN_BACKEND=ON",
+        "-DNEXORA_BUILD_PROJECT_PLAYER=ON",
+        "-DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON",
+        "-DNEXORA_CRYPTOGRAPHY_BACKEND=OPENSSL",
+        "-DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=OFF",
+        "-DFETCHCONTENT_SOURCE_DIR_NEXORA_IMGUI=/workspace/Nexora/build/linux-development/_deps/nexora_imgui-src",
+        "-DFETCHCONTENT_SOURCE_DIR_NEXORA_VULKAN_HEADERS=/workspace/Nexora/build/linux-development/_deps/nexora_vulkan_headers-src"
+      ],
+      "cwd": "/workspace/Nexora-validation-8870d63e",
+      "commit": "0c82cf373d5fc6f7ea870ff01e2795dca7401610",
+      "tree": "c1e428b7dc0d1c03f209a9bc38b96568312f99d2",
+      "state": "completed",
+      "start": 1793807336.6688933,
+      "pid": 16216,
+      "exit_code": 0,
+      "end": 1793807338.324564,
+      "duration_seconds": 1.6556706428527832
+    },
+    {
+      "name": "shipping-build",
+      "argv": [
+        "cmake",
+        "--build",
+        "--preset",
+        "linux-shipping"
+      ],
+      "cwd": "/workspace/Nexora-validation-8870d63e",
+      "commit": "0c82cf373d5fc6f7ea870ff01e2795dca7401610",
+      "tree": "c1e428b7dc0d1c03f209a9bc38b96568312f99d2",
+      "state": "completed",
+      "start": 1793807338.3267264,
+      "pid": 16308,
+      "exit_code": 0,
+      "end": 1793807450.752692,
+      "duration_seconds": 112.42596554756165
+    }
+  ],
+  "classification_counts": {
+    "explicit_readonly_logs": 45,
+    "other": 10
+  },
+  "archive": {
+    "path": "/workspace/validation-0c82cf37-evidence.tar.gz",
+    "bytes": 47186108,
+    "sha256": "ab799e632458b82dd3373c21e9fadbdc98e0486344376f79ec68c2d0b30e7c64",
+    "verification": "previously verified; no repack"
+  },
+  "original_log_hashes": {
+    "commands.txt": {
+      "bytes": 3006,
+      "sha256": "b6d328f7e409a196be4bae960f62d4279cc3c5a1d4886b86945945cef696b70e"
+    },
+    "development-junit.xml": {
+      "bytes": 516166,
+      "sha256": "a4c089bda216d26dfc50e853ef331ee5f0855c4b86d7a5ba846d8dd1fd052503"
+    },
+    "failure-fixtures-manifest.json": {
+      "bytes": 106323,
+      "sha256": "ac79e2db96c54e6681e9a8601f4359c2e9cb470cd6347cfd07096b2d977b3bfe"
+    },
+    "native-evidence/manifest.json": {
+      "bytes": 10847,
+      "sha256": "f673c1afb196daa6d87692186e671ef8a142c8876806a728ab1c8878e5b694aa"
+    },
+    "registered-tests.json": {
+      "bytes": 400388,
+      "sha256": "e876d5fdcb9b784fae0e4e20c4581805322f5725002e9b09a02e463d5fe9ed5f"
+    },
+    "development-after-build-binaries.json": {
+      "bytes": 1833,
+      "sha256": "a15b5d7717148cca8116a43d4a4f7cc3a3fc55bc6a9a17578c7f0e5426974182"
+    }
+  },
+  "schema": "nexora.editor.workflow.cloud-gate.v1",
+  "failures": [
+    {
+      "name": "gameplay.zig_twod_static",
+      "seconds": "0.0111543",
+      "status": "Failed",
+      "outer_seconds": null,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]"
+    },
+    {
+      "name": "gameplay.zig_twod_dynamic",
+      "seconds": "0.0113431",
+      "status": "Failed",
+      "outer_seconds": null,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]"
+    },
+    {
+      "name": "gameplay.zig_display_player",
+      "seconds": "0.249753",
+      "status": "Failed",
+      "outer_seconds": 90,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "AssertionError: ('', 'Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]\\n')"
+    },
+    {
+      "name": "gameplay.zig_image_ui_player",
+      "seconds": "0.856357",
+      "status": "Failed",
+      "outer_seconds": 90,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "AssertionError: ('', 'Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]\\n')"
+    },
+    {
+      "name": "gameplay.zig_asset_transitions",
+      "seconds": "7.80033",
+      "status": "Failed",
+      "outer_seconds": 180,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "AssertionError: ('', 'Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]\\n')"
+    },
+    {
+      "name": "gameplay.zig_color_slice",
+      "seconds": "0.115925",
+      "status": "Failed",
+      "outer_seconds": 90,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "subprocess.CalledProcessError: Command '['/workspace/Nexora-validation-8870d63e/build/linux-development/Tools/TwoD/NexoraTwoDAssetCompiler', 'pack', 'source.bin', 'compiled.asset']' returned non-zero exit status 1."
+    },
+    {
+      "name": "gameplay.zig_voice_player",
+      "seconds": "1.24427",
+      "status": "Failed",
+      "outer_seconds": 240,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "AssertionError: ('', 'Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]\\n')"
+    },
+    {
+      "name": "gameplay.zig_lifecycle_player",
+      "seconds": "0.293874",
+      "status": "Failed",
+      "outer_seconds": 90,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "AssertionError: ('', 'Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]\\n')"
+    },
+    {
+      "name": "gameplay.zig_hd2d_fallback",
+      "seconds": "0.44711",
+      "status": "Failed",
+      "outer_seconds": 90,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "AssertionError: Player exit 1: Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]"
+    },
+    {
+      "name": "gameplay.zig_hd2d_native",
+      "seconds": "0.650132",
+      "status": "Failed",
+      "outer_seconds": 420,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "AssertionError: Player exit 1: Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]"
+    },
+    {
+      "name": "gameplay.hd2d_diagnostic_assets",
+      "seconds": "0.104984",
+      "status": "Failed",
+      "outer_seconds": 45,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "subprocess.CalledProcessError: Command '['/workspace/Nexora-validation-8870d63e/build/linux-development/Tools/TwoD/NexoraTwoDAssetCompiler', 'pack', 'source.bin', 'compiled.asset']' returned non-zero exit status 1."
+    },
+    {
+      "name": "showcase.visual_tour_cli",
+      "seconds": "0.0979559",
+      "status": "Failed",
+      "outer_seconds": null,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "RuntimeError: Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]"
+    },
+    {
+      "name": "showcase.guided_tour_cli",
+      "seconds": "0.00867743",
+      "status": "Failed",
+      "outer_seconds": null,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]"
+    },
+    {
+      "name": "showcase.probe_export",
+      "seconds": "0.0072364",
+      "status": "Failed",
+      "outer_seconds": null,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]"
+    },
+    {
+      "name": "showcase.zig_headless",
+      "seconds": "0.00713752",
+      "status": "Failed",
+      "outer_seconds": null,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]"
+    },
+    {
+      "name": "showcase.feature_gallery",
+      "seconds": "0.00536127",
+      "status": "Failed",
+      "outer_seconds": null,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]"
+    },
+    {
+      "name": "showcase.zig_dynamic",
+      "seconds": "0.00715428",
+      "status": "Failed",
+      "outer_seconds": null,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]"
+    },
+    {
+      "name": "showcase.capability_fallbacks",
+      "seconds": "0.00841884",
+      "status": "Failed",
+      "outer_seconds": null,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]"
+    },
+    {
+      "name": "showcase.linux_vulkan_interaction",
+      "seconds": "0.225411",
+      "status": "Failed",
+      "outer_seconds": 180,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "RuntimeError: Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]"
+    },
+    {
+      "name": "showcase.linux_vulkan_virtual_display",
+      "seconds": "0.276913",
+      "status": "Failed",
+      "outer_seconds": 45,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]"
+    },
+    {
+      "name": "showcase.linux_vulkan_rendering_room",
+      "seconds": "0.16425",
+      "status": "Failed",
+      "outer_seconds": 45,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]"
+    },
+    {
+      "name": "showcase.linux_vulkan_camera_input",
+      "seconds": "5.23713",
+      "status": "Failed",
+      "outer_seconds": 45,
+      "child_timeout_seconds_explicit_in_error": 5,
+      "classification": "other_no_cause_attribution",
+      "original_error": "subprocess.TimeoutExpired: Command '['xdotool', 'search', '--sync', '--onlyvisible', '--name', '^Nexora Showcase$']' timed out after 5 seconds"
+    },
+    {
+      "name": "core.runtime",
+      "seconds": "0.0223065",
+      "status": "Failed",
+      "outer_seconds": null,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "Failed"
+    },
+    {
+      "name": "runtime.game_project_player_cli",
+      "seconds": "0.10563",
+      "status": "Failed",
+      "outer_seconds": null,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "AssertionError: (1, '', 'Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]\\n')"
+    },
+    {
+      "name": "runtime.static_project_player_cli",
+      "seconds": "0.10362",
+      "status": "Failed",
+      "outer_seconds": null,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "AssertionError: Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]"
+    },
+    {
+      "name": "runtime.linux_native_static_player",
+      "seconds": "0.266821",
+      "status": "Failed",
+      "outer_seconds": 60,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "other_no_cause_attribution",
+      "original_error": "RuntimeError: native player exited before its window"
+    },
+    {
+      "name": "runtime.linux_native_game_player",
+      "seconds": "0.242349",
+      "status": "Failed",
+      "outer_seconds": 180,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "RuntimeError: Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]"
+    },
+    {
+      "name": "gameplay.zig_twod_native",
+      "seconds": "8.25682",
+      "status": "Failed",
+      "outer_seconds": 45,
+      "child_timeout_seconds_explicit_in_error": 8,
+      "classification": "other_no_cause_attribution",
+      "original_error": "subprocess.TimeoutExpired: Command '['/workspace/validation-754/sysroot/usr/bin/xdotool', 'search', '--sync', '--onlyvisible', '--name', '^Nexora Zig 2D$']' timed out after 8 seconds"
+    },
+    {
+      "name": "twod.asset_tool",
+      "seconds": "0.114466",
+      "status": "Failed",
+      "outer_seconds": null,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "subprocess.CalledProcessError: Command '['/workspace/Nexora-validation-8870d63e/build/linux-development/Tools/TwoD/NexoraTwoDAssetCompiler', 'pack', 'source.bin', 'compiled.asset']' returned non-zero exit status 1."
+    },
+    {
+      "name": "twod.cloud_native",
+      "seconds": "0.377488",
+      "status": "Failed",
+      "outer_seconds": 120,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "subprocess.CalledProcessError: Command '['/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12', '/workspace/Nexora-validation-8870d63e/Tools/TwoD/PrepareAssets.py', '/workspace/Nexora-validation-8870d63e/Tools/TwoD/Fixtures/atlas.json', '--compiler', '/workspace/Nexora-validation-8870d63e/build/linux-development/Tools/TwoD/NexoraTwoDAssetCompiler', '--output', '/workspace/Nexora-validation-8870d63e/build/linux-development/artifacts/twod-cloud/atlas.nx2atlas']' returned non-zero exit status 1."
+    },
+    {
+      "name": "twod.cooked_product_services",
+      "seconds": "0.48348",
+      "status": "Failed",
+      "outer_seconds": 90,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "subprocess.CalledProcessError: Command '['/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12', '/workspace/Nexora-validation-8870d63e/Tools/TwoD/PrepareAssets.py', '/workspace/Nexora-validation-8870d63e/build/linux-development/artifacts/twod-product/twod-product-source-61x3tost/atlas.json', '--compiler', '/workspace/Nexora-validation-8870d63e/build/linux-development/Tools/TwoD/NexoraTwoDAssetCompiler', '--output', '/workspace/Nexora-validation-8870d63e/build/linux-development/artifacts/twod-product/twod-product-source-61x3tost/atlas.nx2atlas']' returned non-zero exit status 1."
+    },
+    {
+      "name": "twod.cooked_product_native",
+      "seconds": "0.362242",
+      "status": "Failed",
+      "outer_seconds": 90,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "subprocess.CalledProcessError: Command '['/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12', '/workspace/Nexora-validation-8870d63e/Tools/TwoD/PrepareAssets.py', '/workspace/Nexora-validation-8870d63e/build/linux-development/artifacts/twod-product-native/twod-product-source-9i6349xh/atlas.json', '--compiler', '/workspace/Nexora-validation-8870d63e/build/linux-development/Tools/TwoD/NexoraTwoDAssetCompiler', '--output', '/workspace/Nexora-validation-8870d63e/build/linux-development/artifacts/twod-product-native/twod-product-source-9i6349xh/atlas.nx2atlas']' returned non-zero exit status 1."
+    },
+    {
+      "name": "twod.host_fixture",
+      "seconds": "0.276544",
+      "status": "Failed",
+      "outer_seconds": 90,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "AssertionError: b'Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]\\n'"
+    },
+    {
+      "name": "twod.project_export",
+      "seconds": "0.444487",
+      "status": "Failed",
+      "outer_seconds": 90,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "AssertionError: ('', 'Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]\\n')"
+    },
+    {
+      "name": "twod.backend_options",
+      "seconds": "0.0961222",
+      "status": "Failed",
+      "outer_seconds": 60,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "AssertionError: b'Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]\\n'"
+    },
+    {
+      "name": "twod.game_entry_acceptance",
+      "seconds": "0.163506",
+      "status": "Failed",
+      "outer_seconds": 90,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "AssertionError: (b'', b'Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]\\n')"
+    },
+    {
+      "name": "twod.project_export_native",
+      "seconds": "0.666482",
+      "status": "Failed",
+      "outer_seconds": 90,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "AssertionError: ('', 'Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]\\n')"
+    },
+    {
+      "name": "twod.emission_asset_tool",
+      "seconds": "0.149573",
+      "status": "Failed",
+      "outer_seconds": 45,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "subprocess.CalledProcessError: Command '['/workspace/Nexora-validation-8870d63e/build/linux-development/Tools/TwoD/NexoraTwoDAssetCompiler', 'pack', 'source.bin', 'compiled.asset']' returned non-zero exit status 1."
+    },
+    {
+      "name": "twod.scene_project_zig",
+      "seconds": "80.2226",
+      "status": "Failed",
+      "outer_seconds": 300,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "RuntimeError: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]"
+    },
+    {
+      "name": "twod.scene_project_native",
+      "seconds": "84.0795",
+      "status": "Failed",
+      "outer_seconds": 300,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "RuntimeError: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]"
+    },
+    {
+      "name": "editor.game_build",
+      "seconds": "0.341949",
+      "status": "Failed",
+      "outer_seconds": 600,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]"
+    },
+    {
+      "name": "editor.game_script_build",
+      "seconds": "57.0102",
+      "status": "Failed",
+      "outer_seconds": 300,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]"
+    },
+    {
+      "name": "editor.game_script_authored_tests",
+      "seconds": "83.2003",
+      "status": "Failed",
+      "outer_seconds": 300,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]"
+    },
+    {
+      "name": "editor.project_cli",
+      "seconds": "0.481008",
+      "status": "Failed",
+      "outer_seconds": 90,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "AssertionError: 1 != 0 : ('--create-project=/tmp/nexora-project-cli-7hjmvt9w/陰陽 project with spaces', '--project-name=陰陽', '--report=/tmp/nexora-project-cli-7hjmvt9w/建立 report.json'): exit=1; stdout=''; stderr='Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]\\n'"
+    },
+    {
+      "name": "editor.static_project_export_cli",
+      "seconds": "20.2032",
+      "status": "Failed",
+      "outer_seconds": 300,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "RuntimeError: verify-package: exit=1; stdout=''; stderr='Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]\\n'"
+    },
+    {
+      "name": "editor.static_project_export_cli_optimized",
+      "seconds": "22.5204",
+      "status": "Failed",
+      "outer_seconds": 300,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "RuntimeError: verify-package: exit=1; stdout=''; stderr='Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]\\n'"
+    },
+    {
+      "name": "editor.linux_project_cli",
+      "seconds": "0.340219",
+      "status": "Failed",
+      "outer_seconds": 90,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "RuntimeError: create graphical CLI failed: exit=1; stdout=''; stderr='Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]\\n'"
+    },
+    {
+      "name": "editor.linux_prefab_isolation",
+      "seconds": "180.04",
+      "status": "Timeout",
+      "outer_seconds": 180,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "other_no_cause_attribution",
+      "original_error": "Timeout"
+    },
+    {
+      "name": "editor.linux_display_acceptance",
+      "seconds": "16.0265",
+      "status": "Failed",
+      "outer_seconds": 90,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "other_no_cause_attribution",
+      "original_error": "RuntimeError: Nexora Editor window did not appear"
+    },
+    {
+      "name": "editor.linux_process_memory",
+      "seconds": "0.318049",
+      "status": "Failed",
+      "outer_seconds": 45,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "other_no_cause_attribution",
+      "original_error": "subprocess.CalledProcessError: Command '['/workspace/Nexora-validation-8870d63e/build/linux-development/Apps/Editor/NexoraEditor', '--graphical', '--project=/tmp/nexora-process-memory-6bbi_sh4', '--frames=24', '--recent-projects=/tmp/nexora-process-memory-6bbi_sh4/recent-projects']' returned non-zero exit status 1."
+    },
+    {
+      "name": "editor.linux_native_scene_preview",
+      "seconds": "45.1969",
+      "status": "Timeout",
+      "outer_seconds": 45,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "other_no_cause_attribution",
+      "original_error": "Timeout"
+    },
+    {
+      "name": "editor.linux_native_scene_center",
+      "seconds": "10.3275",
+      "status": "Failed",
+      "outer_seconds": 45,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "other_no_cause_attribution",
+      "original_error": "RuntimeError: first root proxy is not visible"
+    },
+    {
+      "name": "editor.linux_native_scene_meshes",
+      "seconds": "24.2209",
+      "status": "Failed",
+      "outer_seconds": 45,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "other_no_cause_attribution",
+      "original_error": "RuntimeError: center Y rotation ring is not visible"
+    },
+    {
+      "name": "editor.linux_packaged_play",
+      "seconds": "0.27498",
+      "status": "Failed",
+      "outer_seconds": 300,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "explicit_readonly_logs",
+      "original_error": "RuntimeError: Nexora diagnostics startup failed: filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]"
+    },
+    {
+      "name": "editor.linux_appearance",
+      "seconds": "15.1808",
+      "status": "Failed",
+      "outer_seconds": 90,
+      "child_timeout_seconds_explicit_in_error": null,
+      "classification": "other_no_cause_attribution",
+      "original_error": "RuntimeError: Nexora Editor window did not appear"
+    }
+  ],
+  "receipt_supplement": {
+    "unset_registered_TIMEOUT_actual_computed_bounds": [
+      {
+        "name": "gameplay.zig_twod_static",
+        "original_ctest_computed_timeout_seconds": 10000000
+      },
+      {
+        "name": "gameplay.zig_twod_dynamic",
+        "original_ctest_computed_timeout_seconds": 10000000
+      },
+      {
+        "name": "showcase.visual_tour_cli",
+        "original_ctest_computed_timeout_seconds": 10000000
+      },
+      {
+        "name": "showcase.guided_tour_cli",
+        "original_ctest_computed_timeout_seconds": 10000000
+      },
+      {
+        "name": "showcase.probe_export",
+        "original_ctest_computed_timeout_seconds": 10000000
+      },
+      {
+        "name": "showcase.zig_headless",
+        "original_ctest_computed_timeout_seconds": 10000000
+      },
+      {
+        "name": "showcase.feature_gallery",
+        "original_ctest_computed_timeout_seconds": 10000000
+      },
+      {
+        "name": "showcase.zig_dynamic",
+        "original_ctest_computed_timeout_seconds": 10000000
+      },
+      {
+        "name": "showcase.capability_fallbacks",
+        "original_ctest_computed_timeout_seconds": 10000000
+      },
+      {
+        "name": "core.runtime",
+        "original_ctest_computed_timeout_seconds": 10000000
+      },
+      {
+        "name": "runtime.game_project_player_cli",
+        "original_ctest_computed_timeout_seconds": 10000000
+      },
+      {
+        "name": "runtime.static_project_player_cli",
+        "original_ctest_computed_timeout_seconds": 10000000
+      },
+      {
+        "name": "twod.asset_tool",
+        "original_ctest_computed_timeout_seconds": 10000000
+      }
+    ],
+    "core.runtime_original_error": "filesystem error: cannot create directories: Read-only file system [/home/agent/.local/state/Nexora/Logs]",
+    "original_editor_binary_sha256": "e8c175f55f7e01ff3b30637dd87568b51f2256f17fbb13d34c7c45de95fd1361",
+    "binary_hash_provenance": "sealed development-after-build-binaries.json; not current cc282 binary"
+  },
+  "prefab_failure_observation": {
+    "scope": "READ_ONLY_ORIGINAL_FAILURE_NOT_A_RETRY_NO_CAUSE_INFERENCE",
+    "source_commit": "0c82cf373d5fc6f7ea870ff01e2795dca7401610",
+    "source_tree": "c1e428b7dc0d1c03f209a9bc38b96568312f99d2",
+    "case": "editor.linux_prefab_isolation",
+    "original_outer_timeout_seconds": 180,
+    "fixture": "/workspace/validation-0c82cf37/failure-fixtures/nexora-native-prefab-gqavnrns",
+    "input": {
+      "count": 456,
+      "timestamp_clock": "original harness time field; not converted to wall clock",
+      "first_timestamp": 6057.879260097,
+      "last_timestamp": 6234.276264526,
+      "span_seconds": 176.39700442899994,
+      "last12_commands": [
+        {
+          "time": 6231.05833683,
+          "input": [
+            "mousemove",
+            "--window",
+            "2097153",
+            "385",
+            "236"
+          ]
+        },
+        {
+          "time": 6231.328192385,
+          "input": [
+            "mousedown",
+            "1"
+          ]
+        },
+        {
+          "time": 6231.60637216,
+          "input": [
+            "mouseup",
+            "1"
+          ]
+        },
+        {
+          "time": 6231.936875518,
+          "input": [
+            "mousemove",
+            "--window",
+            "2097153",
+            "295",
+            "436"
+          ]
+        },
+        {
+          "time": 6232.243489726,
+          "input": [
+            "mousedown",
+            "1"
+          ]
+        },
+        {
+          "time": 6232.503836172,
+          "input": [
+            "mouseup",
+            "1"
+          ]
+        },
+        {
+          "time": 6232.790504611,
+          "input": [
+            "keydown",
+            "Control_L"
+          ]
+        },
+        {
+          "time": 6233.074990119,
+          "input": [
+            "keydown",
+            "a"
+          ]
+        },
+        {
+          "time": 6233.362397952,
+          "input": [
+            "keyup",
+            "a"
+          ]
+        },
+        {
+          "time": 6233.650491929,
+          "input": [
+            "keyup",
+            "Control_L"
+          ]
+        },
+        {
+          "time": 6233.938170406,
+          "input": [
+            "type",
+            "--clearmodifiers",
+            "--delay",
+            "5",
+            "--",
+            "Forbidden readonly edit"
+          ]
+        },
+        {
+          "time": 6234.276264526,
+          "input": [
+            "keydown",
+            "Return"
+          ]
+        }
+      ]
+    },
+    "stderr": {
+      "bytes": 278457,
+      "prefab_ui_record_count": 482,
+      "last3_prefab_ui_records": [
+        "prefab ui pointer=397,29 down=0 active=0 hovered=917545031 undo=5,5 redo=5,5 focused=1 keys=000000 shift=0 dirty=0 node=2 name_hex=4e657720736f75726365 x=11 frame=2764",
+        "prefab ui pointer=397,29 down=0 active=0 hovered=917545031 undo=5,5 redo=5,5 focused=1 keys=100000 shift=0 dirty=0 node=2 name_hex=4e657720736f75726365 x=11 frame=2769",
+        "prefab ui pointer=397,29 down=0 active=0 hovered=917545031 undo=5,5 redo=5,5 focused=1 keys=000000 shift=0 dirty=0 node=2 name_hex=4e657720736f75726365 x=11 frame=2785"
+      ],
+      "prefab_action_record_count": 39,
+      "last5_prefab_action_records": [
+        "prefab action=3 applied=1 asset=00000000-0000-02bd-0000-000000000002 revision=13 dirty=0",
+        "prefab action=1 applied=1 asset=00000000-0000-02bd-0000-000000000001 revision=6 dirty=0",
+        "prefab action=3 applied=1 asset=00000000-0000-02bd-0000-000000000001 revision=7 dirty=0",
+        "prefab action=1 applied=1 asset=00000000-0000-02bd-0000-000000000002 revision=13 dirty=0",
+        "prefab action=12 applied=1 asset=00000000-0000-02bd-0000-000000000002 revision=13 dirty=0"
+      ]
+    },
+    "file_hashes": {
+      "input.jsonl": {
+        "bytes": 28762,
+        "sha256": "f6853fc3dd921e1107db73233505917cb7f3b7d9db1aa7e523a0d96ab3f480b9"
+      },
+      "editor-1.stdout.log": {
+        "bytes": 152,
+        "sha256": "ad2035502c5c1667cabb9102e4d8a88bc1365aa58a3f53b1da0b02b79b8491b5"
+      },
+      "editor-1.stderr.log": {
+        "bytes": 278457,
+        "sha256": "42263d609a976abba14ca57dd8945ff014863d955214e1ab77c0aaa6a3221730"
+      },
+      "project/.nexora/scenes/Main.scene": {
+        "bytes": 588,
+        "sha256": "bf77e4a3883771e8db6a02fbc993e9cca487bd9b5a0fa8fd10fe69365b62393b"
+      }
+    },
+    "collector_manifest": {
+      "path": "/workspace/validation-0c82cf37/failure-fixtures-manifest.json",
+      "sha256": "ac79e2db96c54e6681e9a8601f4359c2e9cb470cd6347cfd07096b2d977b3bfe"
+    },
+    "original_harness": {
+      "path": "Tests/EditorImGui/LinuxPrefabIsolation.py",
+      "git_blob": "d82b65dfad5da7377b4af448ae1cd7c453c2a29d",
+      "sha256": "ba18f70652e5995fa17ae41a313425162c0f8502f7bbcb04e23ce1b1f7753ea9"
+    }
+  },
+  "root_import": {
+    "parts": [
+      "1/3",
+      "2/3",
+      "3/3"
+    ],
+    "all_parts_untruncated": true,
+    "archive_downloaded_to_root": false,
+    "archive_verification_scope": "Sealed archive size/hash verified in Cloud; full archive not downloaded to Windows root. Original failures remain failures.",
+    "acceptance": "NOT ACCEPTED; scoped later diagnostics and writable-state run do not override this full failure."
+  }
+}

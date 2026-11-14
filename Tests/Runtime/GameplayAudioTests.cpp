@@ -4,22 +4,111 @@
 #include <cassert>
 #include <cmath>
 #include <limits>
+#include <thread>
 #include <vector>
 
 namespace {
 struct Capture {
   std::vector<float> samples;
   bool fail{};
+  unsigned calls{};
   static bool Write(void *ctx, const float *samples, std::uint32_t frames, std::uint32_t rate) {
     auto &self = *static_cast<Capture *>(ctx);
+    ++self.calls;
     assert(rate == 48000);
     self.samples.assign(samples, samples + frames * 2);
     return !self.fail;
   }
 };
 void Near(float actual, float expected) { assert(std::abs(actual - expected) < .00001f); }
+NexoraAudioUsageV1 Usage(nexora::runtime::GameplayAudio &audio) {
+  auto api = audio.StateApi();
+  NexoraAudioUsageV1 result{};
+  result.struct_size = sizeof(result);
+  assert(api.get_usage(api.context, &result) == 0);
+  return result;
+}
+bool SameUsage(const NexoraAudioUsageV1 &a, const NexoraAudioUsageV1 &b) {
+  return a.active_assets == b.active_assets && a.active_voices == b.active_voices &&
+         a.retired_generations == b.retired_generations && a.active_bytes == b.active_bytes &&
+         a.retired_bytes == b.retired_bytes && a.peak_live_bytes == b.peak_live_bytes &&
+         a.active_limit == b.active_limit && a.live_limit == b.live_limit &&
+         a.asset_limit == b.asset_limit;
+}
+void ReloadMixer() {
+  using nexora::runtime::GameplayAudio;
+  GameplayAudio live(48000, 4), reference(48000, 4), foreign(48000, 4);
+  Capture output, expected;
+  live.SetOutput(Capture::Write, &output);
+  reference.SetOutput(Capture::Write, &expected);
+  const std::array<float, 4> original{.1F, .2F, .3F, .4F};
+  const std::array<float, 2> replacement{.6F, .7F};
+  std::uint64_t first{}, second{};
+  for (auto *owner : {&live, &reference}) {
+    auto api = owner->Api();
+    const NexoraAudioPlayDesc music{10, NEXORA_AUDIO_BUS_MUSIC, 1, .5F};
+    const NexoraAudioPlayDesc sfx{10, NEXORA_AUDIO_BUS_SFX, 1, .25F};
+    assert(owner->RegisterPcm(10, 24000, 1, original) &&
+           api.play(api.context, &music, &first) == 0 &&
+           owner->RegisterPcm(10, 48000, 1, replacement) &&
+           api.play(api.context, &sfx, &second) == 0 && owner->Pump(3));
+  }
+  assert(!live.SwapReloadMixer(foreign));
+  const std::array<float, 16> extra{.125F};
+  for (unsigned generation = 1; generation <= 32; ++generation) {
+    const auto before = Usage(live);
+    auto discarded = live.ForkForReload();
+    assert(discarded && SameUsage(before, Usage(*discarded)) &&
+           discarded->RegisterPcm(999, 48000, 1, extra));
+    auto rejected = discarded->Api();
+    assert(rejected.stop_all(rejected.context) == 0 && SameUsage(before, Usage(live)));
+    discarded.reset();
+    assert(SameUsage(before, Usage(live)));
+
+    auto candidate = live.ForkForReload();
+    assert(candidate && !candidate->Pump(1)); // No fake submission/clock advance in a branch.
+    std::thread wrong([&] { assert(!live.ForkForReload() && !live.SwapReloadMixer(*candidate)); });
+    wrong.join();
+    auto api = candidate->Api();
+    auto baseline = reference.Api();
+    const auto calls = output.calls;
+    const auto paused = generation % 2;
+    const auto gain = generation % 3 == 0 ? .25F : .5F;
+    assert(api.set_paused(api.context, second, paused) == 0 &&
+           baseline.set_paused(baseline.context, second, paused) == 0 &&
+           api.set_gain(api.context, first, gain) == 0 &&
+           baseline.set_gain(baseline.context, first, gain) == 0 &&
+           candidate->RegisterPcm(99, 48000, 1, extra) &&
+           reference.RegisterPcm(99, 48000, 1, extra));
+    const NexoraAudioPlayDesc transient{99, NEXORA_AUDIO_BUS_SFX, 0, 1};
+    std::uint64_t staged_voice{}, expected_voice{};
+    assert(api.play(api.context, &transient, &staged_voice) == 0 &&
+           baseline.play(baseline.context, &transient, &expected_voice) == 0 &&
+           staged_voice == expected_voice && staged_voice > second &&
+           api.stop(api.context, staged_voice) == 0 &&
+           baseline.stop(baseline.context, expected_voice) == 0 && output.calls == calls &&
+           SameUsage(before, Usage(live)));
+    assert(live.SwapReloadMixer(*candidate) && SameUsage(Usage(live), Usage(reference)));
+    // The Editor must redirect old generation proxies to this retired mixer before cleanup;
+    // a provider's raw context intentionally stays attached to that provider object.
+    auto retired = candidate->Api();
+    assert(retired.stop_all(retired.context) == 0 && !candidate->Pump(1) &&
+           SameUsage(Usage(live), Usage(reference)) && output.calls == calls);
+    assert(live.Pump(7) && reference.Pump(7) && output.calls == calls + 1 &&
+           output.samples.size() == expected.samples.size());
+    for (std::size_t index = 0; index < output.samples.size(); ++index)
+      Near(output.samples[index], expected.samples[index]);
+  }
+  GameplayAudio unavailable;
+  auto branch = unavailable.ForkForReload();
+  assert(branch);
+  auto api = branch->Api();
+  std::uint32_t available = 1;
+  assert(api.output_available(api.context, &available) == 0 && !available && !branch->Pump(1));
+}
 } // namespace
 int main() {
+  ReloadMixer();
   nexora::runtime::GameplayAudio audio(48000, 2);
   auto api = audio.Api();
   assert(api.abi_version == 1 && api.struct_size == sizeof(api));
