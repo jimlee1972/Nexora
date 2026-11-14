@@ -15,12 +15,12 @@ using Access = editor::imgui::EditorImGuiTestAccess;
 using Event = Nexora::Window::WindowEvent;
 using Type = Nexora::Window::WindowEventType;
 using Key = Nexora::Window::Key;
-constexpr runtime::AssetUuid atlasId{101, 1};
+constexpr runtime::AssetUuid defaultAtlasId{101, 1};
 void Check(bool value, const char *message) {
   if (!value)
     throw std::runtime_error(message);
 }
-void Fixture(const std::filesystem::path &root, runtime::AssetUuid atlas_id = atlasId) {
+void Fixture(const std::filesystem::path &root, runtime::AssetUuid atlas_id = defaultAtlasId) {
   editor::ProjectWorkspace workspace;
   Check(workspace.Create(root, "Create Sprite source"), "workspace fixture");
   twod::Atlas atlas{atlas_id,

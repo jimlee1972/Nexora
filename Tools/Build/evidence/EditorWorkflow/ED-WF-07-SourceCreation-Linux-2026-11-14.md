@@ -89,6 +89,16 @@ the original/current hashes and failed Windows job-log hash. Updated-head hosted
 full; this targeted compiler-portability check is not claimed as another full local run or local
 Windows execution.
 
+## MSVC test-fixture name follow-up
+
+At `5fc90649`, Windows subsequently compiled past main and diagnosed C4459 in the new UI test:
+its per-DPI `atlasId` hid the global fixture default. Only the default and its reference are renamed
+to `defaultAtlasId`; both1×/2× identities and all behavior remain intact. Product code is unchanged.
+The actual UI test passes again (**1.81 s**). Additional GCC `-Wshadow` syntax probes cover all7
+changed C++ translation units: no diagnostics in new ranges; two existing, untouched declarations
+are recorded separately. Project/compiler/CI warning settings remain unchanged. The receipt retains
+this failed Windows log and exact focused validation. Every updated-head hosted check must pass.
+
 ## Exact commands
 
 Source the established cloud SDK environment, then:
