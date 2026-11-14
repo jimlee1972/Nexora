@@ -1,6 +1,6 @@
 # Main Editor Sprite source creation — Linux, 2026-11-14
 
-Task `nexora-whr.7.11`; base main `1a057c16ce34b6d5c06d19ca52c3a35cb017efbd`.
+Task `nexora-whr.7.11`; base main `76fb7244a743abccfb41b4b1a6967311175fc9bb`.
 Workflow **5/9**, graphical Editor **0/8**, TwoD **9/11** remain unchanged.
 
 ## Delivered behavior
@@ -28,8 +28,8 @@ preserved. This is a cooperative local-filesystem operation, without power-loss 
 
 ## Acceptance
 
-Complete Development Modular configure/all-build and unfiltered **514/514** tests pass,
-zero failures/skips, **1793.69 seconds**. All 16 frozen source hashes match.
+Complete Development Modular configure/all-build and unfiltered **516/516** tests pass,
+zero failures/skips, **1878.37 seconds**. All 21 frozen source hashes match.
 Shipping Full, actual TwoD-OFF/testing-OFF graphical Editor/native Player, graphical Monolithic
 TwoD-ON model/control tests and the actual native creation flow pass. Exact-head hosted CI is
 required before actual delivery; PR/Beads record its final result. No local Windows/macOS/mobile
@@ -61,19 +61,21 @@ errors were corrected before this frozen acceptance gate; no admission guard or 
 The initial native oracle expected a different magic, although the product created canonical bytes;
 the oracle now checks the existing codec's exact magic/schema and complete metadata.
 
-## Review follow-up and provenance
+## Review and main integration
 
-The initial proposal at `9c17c45c` passed its own full local gate (514/514, 1740.31 s).
-[Automated review](https://github.com/jimlee1972/Nexora/pull/789#discussion_r4574356631)
-then identified that a cached index could still occupy a path vacated through Content Rename/Move.
-The current implementation preflights live/Undo admission before publication and reconciles the
-index from current same-root Content. Model regressions cover both Rename and Move, including
-ASCII case aliases, no-write Undo reservation rejection, released-path import and preserved Undo.
-The extended native flow performs real renames and recreates a distinct UUID in that released path.
-The full gate recorded here reruns all product and test changes, including the earlier test-only
-canonical-root correction for aliased temporary directories. All 16 current source hashes match.
-The previous receipt and raw logs are retained separately; current acceptance does not substitute
-old-head CI or a targeted test for this fresh complete gate.
+Automated review of the initial proposal exposed stale cached paths after Content Rename/Move.
+Private discovery now rejects live/retained-Undo names and ASCII aliases before file publication;
+import reconciles paths/rows/owners from the current same-root Content session. Model regressions
+cover Rename and Move, and native input verifies real renames, reserved-name no-write rejection,
+released-name reuse, immediate import, assignment, Save and byte-identical read-only reopening.
+The canonical-root test correction for aliased temporary directories is included in this full gate.
+
+The reviewed feature at `eb6b901c` passed514/514 local tests in1793.69 s before independent PR #788
+landed as main `76fb7244`. Its Clip picker and all acceptance records remain intact. The only
+merge conflict was the adjacent CMake test declarations; both executables/tests are preserved.
+The complete combined gate above reruns516/516 tests and all optional builds/native checks on
+21 frozen integration source hashes. Earlier full receipts/logs remain retained separately.
+New-head hosted CI is required; earlier feature-head CI is not substituted for the combined tree.
 
 ## Exact commands
 

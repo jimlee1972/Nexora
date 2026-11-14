@@ -179,10 +179,7 @@ def main():
             # A saved Game tab now survives restart. Explicitly select Scene through real input
             # before its viewport assertions; keep the original twelve-second operation bound.
             deadline = time.monotonic() + 12
-            driver.raw('windowfocus', window, deadline=deadline)
-            driver.wait(lambda value: value['focused'] == '1' and value['text_input'] == '0',
-                        'Restored Editor is not ready for Scene focus', deadline)
-            driver.raw('key', '--clearmodifiers', '--delay', '80', 'ctrl+1', deadline=deadline)
+            driver.focus_scene(deadline)
             return wait_view(b'native scene viewport', deadline)
 
         window = None

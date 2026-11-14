@@ -31,7 +31,8 @@ Unicode/surrogate escapes, duplicate IDs/case-alias paths and unsafe portable sc
 
 Schema 3 additionally requires `animation_clips`, an explicit array of up to 4096 unique nonzero
 Clip UUID strings, alongside the schema-2 fields. The owning session preserves these roots through
-Save/Reload/reopen and unrelated graphical build edits; the current UI has no Clip picker. Empty
+Save/Reload/reopen and unrelated graphical build edits. The graphical Animation assets picker
+edits the same explicit root list using imported ready Clip identities. Empty
 roots normalize to the prior schema-1/2 writer without changing its bytes. UUIDs authorize capture,
 never a scan of every Content Clip; missing or wrong-typed roots reject at Build capture. This is
 immutable asset preparation, not automatic playback or gameplay service negotiation.

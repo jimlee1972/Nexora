@@ -162,7 +162,27 @@ scoped requests; the host owns enrollment, bounded file IO, catalog reconciliati
 publication. `SetProjectBuildSettings` transfers an owning observation, never a workspace borrow.
 The observation also carries up to 4096 immutable animation Clip roots. Oversized handoffs leave
 the previous ready draft untouched. Existing controls and Save/Reload/Build requests preserve that
-list; a graphical Clip picker remains separate work.
+list. Animation assets opens an explicit Clip picker after the existing Build/Run/Stop controls.
+Only that user action captures up to 4096 ready typed Clip UUIDs and bounded display paths from
+the current Content session on the authoring thread. It owns no payload/model borrow and performs
+no filesystem IO. Separate virtualized included/available lists retain missing saved UUIDs visibly
+until deliberate removal; rename changes display paths without changing root identity. Paths are
+drawn literally, including ImGui label markers. The picker changes only the owning settings draft;
+Save/Reload/Build use the existing scoped requests and final source/settings guard.
+
+The open snapshot requires the same Content owner/root/generation/revision and consecutive visible
+frames. Stale/foreign/detached Content, incoming settings or hidden windows discard it; no popup can
+silently capture replacement context without another explicit open. Read-only projects can inspect.
+Mutation additionally requires ready settings, writer and Content access, focus, stopped Play,
+resolved recovery, idle reimport/Build/Run and existing modal/export admission. The TwoD-OFF shell
+retains missing-root inspection with selection unavailable. Oversized choices and root-limit
+addition reject without replacing the draft. Existing Build/Run/Stop positions and zero-root
+settings/package formats stay unchanged. This selects packaged assets, not gameplay playback.
+
+Private test access copies visible control centers/UUIDs and draft roots; it grants no filesystem
+or authoring authority. Actual native input selects roots, saves/reloads/reopens the project and
+builds both SceneOnly and canonical SDK ScriptProject games before source deletion/relocation.
+See the [scoped execution record](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-BuildClipPicker-Linux-2026-11-14.md).
 Read-only projects expose inspection/Reload but disable writes. Recovery, Play and export block
 mutation. Project changes close the settings window and discard pending requests; while open,
 scene/play shortcuts are blocked. Settings do not change the single editable Scene or the Editor's

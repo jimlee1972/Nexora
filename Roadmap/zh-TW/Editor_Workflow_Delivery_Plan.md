@@ -226,7 +226,7 @@ Linux X11 驗證非對稱數值、實際呈現畫面、精確 Undo／Redo／儲�
 幾何、容量及目的地身分均限制寫入；GUI 繪製不新增檔案 IO。已建立但匯入失敗，以及發布不確定
 的結果保持區別。實際 1×／2× 控制與原生 X11 建立／匯入／指派／檢視／儲存／唯讀重開通過，
 產生的 UUID／metadata 正確，既有資產不變，唯讀專案所有檔案逐位元相同。
-完整 Linux **514/514**、Shipping Full、實際 TwoD-OFF／testing-OFF Editor／原生 Player，
+完整 Linux **516/516**、Shipping Full、實際 TwoD-OFF／testing-OFF Editor／原生 Player，
 以及圖形 Monolithic 控制／原生 gates 通過；交付仍須確切提交的 hosted CI。
 見[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceCreation-Linux-2026-11-14.md)。
 工作流程 **5/9**、Editor **0/8**、TwoD **9/11** 不變，完整 ED-WF-07／08 仍開放。
@@ -359,5 +359,11 @@ Clip／來源／Atlas 擷取，以及獨立的遊戲封裝能力版本 4。沒�
 Development／Shipping 原生像素、Monolithic 與 TwoD-OFF 明確拒絕均通過。
 [執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-GameClipRoots-Linux-2026-11-14.md) 記錄所有權與相容性。
 交付前仍須精確提交的最新雲端 CI。主程式來源／動畫／
-物件池服務、即時發布、圖形化 Clip 選擇器與完整 ED-WF-07/08 仍未完成。流程 **5/9**、
+物件池服務、即時發布與完整 ED-WF-07/08 仍未完成。流程 **5/9**、
 Editor **0/8**、TwoD **9/11** 與實體機／乾淨主機驗收維持不變。
+
+## ✅ 圖形化動畫根資產選取（2026-11-14）
+
+支援子任務 `nexora-whr.8.3.2` 透過主編輯器 Build Settings 的 Animation assets 視窗明確加入／移除不可變 Clip 根資產。有界擁有式中繼資料快照與獨立虛擬清單保留失效 UUID，拒絕過期／外來／忙碌／唯讀編輯，維持既有 Build／Run／Stop 位置。實際 1x／2x 控制及原生 X11 儲存／重載／唯讀重開，接上 SceneOnly 與標準 SDK ScriptProject Build；刪除來源並搬移至 Unicode 路徑後，兩種原生模式均驗證 8192 個 Sprite 像素、獨立中央 80x80 的 3D 區域與完整排空。完整 Linux **538/538**、零失敗／跳過、**2273.16 秒**、**13 組本地關卡**、四個實際 GCC15 編譯命令、Shipping 原生、Monolithic 五項 CPU 及實際 TwoD-OFF 拒絕均通過。
+
+[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-BuildClipPicker-Linux-2026-11-14.md) 保留原始失敗與精確範圍；交付前仍須通過確切提交的雲端 CI。主遊戲動畫／物件池／發布／熱重載與完整 ED-WF-07/08 仍未完成；流程 **5/9**、Editor **0/8**、TwoD **9/11** 及實體／乾淨主機驗收維持不變。

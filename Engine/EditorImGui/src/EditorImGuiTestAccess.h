@@ -125,6 +125,12 @@ public:
   AppearancePosition(const EditorImGuiHost &, std::size_t);
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ProjectBuildSettingsPosition(const EditorImGuiHost &, std::size_t);
+  // Open/close and visible asset control centers; copied observations only.
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  BuildAnimationPosition(const EditorImGuiHost &, std::size_t);
+  [[nodiscard]] static std::vector<std::pair<runtime::AssetUuid, std::array<float, 2>>>
+  BuildAnimationAssetPositions(const EditorImGuiHost &, bool remove);
+  [[nodiscard]] static std::vector<runtime::AssetUuid> BuildAnimationRoots(const EditorImGuiHost &);
   [[nodiscard]] static bool ProjectGameBuildBusy(const EditorImGuiHost &);
   [[nodiscard]] static bool ProjectGameRunBusy(const EditorImGuiHost &);
   [[nodiscard]] static std::optional<GameBuildStage> ProjectGameBuildStage(const EditorImGuiHost &);
