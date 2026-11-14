@@ -422,5 +422,9 @@ The existing common extractor limit of 64 resolved Atlases per frame still appli
 data admission checks the candidate before publication.
 Each Atlas receives a monotonic immutable texture ID in [2^57,2^58); the native surface drains
 before the asset owner is replaced/destroyed. Per-frame uploads borrow only for the native call.
-This is packaged reference rendering, not gameplay Sprite/pool APIs, source animation or hot reload.
+Capability-4 catalogs additionally admit immutable legacy/source Clips with exact payload dependencies,
+all legacy Atlas regions and complete source closure. `ResolveClip` returns a shared immutable owner
+that survives catalog destruction. The same asset/byte budgets cover Clips and no playback starts
+implicitly. This is packaged reference rendering and asset admission, not gameplay Sprite/pool APIs,
+live source animation or hot reload.
 See [the Runtime boundary](../Runtime/GameProjectPackage.md#sprite-source-capability-3).

@@ -58,6 +58,9 @@ def main():
     parser = argparse.ArgumentParser()
     for name in ('editor', 'player', 'fixture', 'xvfb', 'xdotool', 'cmake', 'ninja', 'zig'):
         parser.add_argument('--' + name, required=True)
+    parser.add_argument('--animation-roots', action='store_true')
+    parser.add_argument('--shipping', action='store_true',
+                        help='Use Shipping CLI/Player; graphical Play is accepted in Development')
     args = parser.parse_args()
     evidence = Path.cwd() / 'artifacts/editor-sprite-sources' / ('build-' + str(time.time_ns()))
     evidence.mkdir(parents=True)
@@ -65,10 +68,11 @@ def main():
     output = evidence / 'built game'
     moved = evidence / 'moved 遊戲'
     proof = {'passed': False, 'scope': 'main SceneOnly Game Build/source-capable native Player',
-             'captures': [], 'commands': []}
+             'animation_roots': args.animation_roots, 'shipping': args.shipping, 'captures': [], 'commands': []}
     server = process = window = None
     try:
-        command = [args.fixture, '--write-fixture', str(project)]
+        command = [args.fixture, '--write-animation-fixture' if args.animation_roots else
+                   '--write-fixture', str(project)]
         proof['commands'].append(command)
         subprocess.run(command, check=True, capture_output=True, timeout=20)
         scripts = project / 'Scripts'
@@ -95,6 +99,12 @@ def main():
         proof['project_after'] = hashes(project)
         legacy_project = evidence / 'legacy project'
         shutil.copytree(project, legacy_project)
+        if args.animation_roots:
+            settings_path = legacy_project / 'project.build.json'
+            settings = json.loads(settings_path.read_text())
+            settings_path.write_text(json.dumps({key: value for key, value in settings.items()
+                                                 if key in ('schema', 'start_scene', 'scenes')} |
+                                                {'schema': 1}))
         for name in ('Title.scene', 'Level.scene'):
             path = legacy_project / name
             path.write_bytes(b''.join(line for line in path.read_bytes().splitlines(keepends=True)
@@ -119,35 +129,39 @@ def main():
         executable = moved / 'Game'
         require(executable.is_file(), 'canonical runtime-only Game missing')
         initial = hashes(moved)
-        require(not any(p.endswith(('.scene', '.nx2sprite', '.nx2atlas', '.meta')) for p in initial),
+        require(not any(p.endswith(('.scene', '.nx2sprite', '.nx2atlas', '.nx2clip', '.meta'))
+                        for p in initial),
                 'authored source escaped into runtime output')
         verified = subprocess.run([str(executable), '--verify-game-package', str(moved / 'Game.nxgame')],
                                   capture_output=True, text=True, timeout=15)
         require(verified.returncode == 0, verified.stderr)
         report = json.loads(verified.stdout)
-        require(report['capability'] == 3 and report['scene_count'] == 2 and report['asset_count'] == 5,
+        require(report['capability'] == (4 if args.animation_roots else 3) and
+                report['scene_count'] == 2 and report['asset_count'] == (9 if args.animation_roots else 5),
                 'source capability/shared closure missing')
         (evidence / 'verify.stdout.log').write_text(verified.stdout)
         server, display = start_xvfb(args.xvfb, '1024x768x24')
         require(display is not None, 'Xvfb unavailable')
         env = dict(os.environ, DISPLAY=display, NEXORA_LOG_DIR=str(evidence / 'game-logs'))
-        gui_before = hashes(gui_project)
-        gui_command = [args.editor, '--graphical', '--project=' + str(gui_project),
-                       '--read-only', '--play', '--frames=12',
-                       '--recent-projects=' + str(evidence / 'gui-recent')]
-        proof['commands'].append(gui_command)
-        gui = subprocess.run(gui_command, env=dict(env, NEXORA_PACKAGED_SPRITE_UI_TEST_EVIDENCE='1'),
-                             capture_output=True, text=True, timeout=30)
-        (evidence / 'editor-play.stdout.log').write_text(gui.stdout)
-        (evidence / 'editor-play.stderr.log').write_text(gui.stderr)
-        require(gui.returncode == 0 and re.search(
-                r'packaged sprite ui state=1 .*textures=1 visible=2 commits=1 ', gui.stderr),
-                'configured source Play did not prepare its actual native owner: ' + gui.stderr)
-        require('graphical evidence: acquired=12 presented=12' in gui.stderr and
-                re.search(r'pie_ticks=[1-9]\d* ', gui.stderr),
-                'configured source Play did not retain the actual running native Editor')
-        require(gui_before == hashes(gui_project), 'configured Play changed authored files')
-        proof['configured_play_running'] = True
+        if not args.shipping:
+            gui_before = hashes(gui_project)
+            gui_command = [args.editor, '--graphical', '--project=' + str(gui_project),
+                           '--read-only', '--play', '--frames=12',
+                           '--recent-projects=' + str(evidence / 'gui-recent')]
+            proof['commands'].append(gui_command)
+            gui = subprocess.run(gui_command, env=dict(env, NEXORA_PACKAGED_SPRITE_UI_TEST_EVIDENCE='1'),
+                                 capture_output=True, text=True, timeout=30)
+            (evidence / 'editor-play.stdout.log').write_text(gui.stdout)
+            (evidence / 'editor-play.stderr.log').write_text(gui.stderr)
+            require(gui.returncode == 0 and re.search(
+                    rf'packaged sprite ui state=1 .*textures={2 if args.animation_roots else 1} visible=2 commits=1 ',
+                    gui.stderr),
+                    'configured source Play did not prepare its actual native owner: ' + gui.stderr)
+            require('graphical evidence: acquired=12 presented=12' in gui.stderr and
+                    re.search(r'pie_ticks=[1-9]\d* ', gui.stderr),
+                    'configured source Play did not retain the actual running native Editor')
+            require(gui_before == hashes(gui_project), 'configured Play changed authored files')
+            proof['configured_play_running'] = True
         shutil.rmtree(gui_project)
         window = NativeWindow(display)
         def native(exe, tag, source):

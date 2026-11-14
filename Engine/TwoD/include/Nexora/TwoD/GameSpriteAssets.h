@@ -11,6 +11,7 @@ public:
                                                             std::string *error = nullptr);
   [[nodiscard]] std::shared_ptr<const SpriteAsset> Source(AssetId) const;
   [[nodiscard]] std::shared_ptr<const Atlas> ResolveAtlas(AssetId) const;
+  [[nodiscard]] std::shared_ptr<const Clip> ResolveClip(AssetId) const;
   // Resolves authored IDs through each live instance and uses its actual World transforms.
   // Texture identities are stable within this owner; the surface must drain before replacement.
   [[nodiscard]] std::optional<SpriteFrame> Extract(const runtime::GameSceneView &,
@@ -19,6 +20,7 @@ public:
 private:
   std::unordered_map<AssetId, std::shared_ptr<const SpriteAsset>, runtime::AssetUuidHash> sources_;
   std::unordered_map<AssetId, std::shared_ptr<const Atlas>, runtime::AssetUuidHash> atlases_;
+  std::unordered_map<AssetId, std::shared_ptr<const Clip>, runtime::AssetUuidHash> clips_;
   std::unordered_map<AssetId, std::uint64_t, runtime::AssetUuidHash> textures_;
 };
 } // namespace nexora::twod

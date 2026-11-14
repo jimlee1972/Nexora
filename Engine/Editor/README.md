@@ -15,7 +15,7 @@ recoverable directory replacement and the remaining graphical/Play/delivery acce
 
 ## Project build-scene settings
 
-`ProjectBuildSettings.h` supplies the owning schema-1/2 `project.build.json` codec and a project-scoped
+`ProjectBuildSettings.h` supplies the owning schema-1/2/3 `project.build.json` codec and a project-scoped
 `ProjectBuildSettingsSession`. Settings select one enabled startup UUID and a bounded list of
 scene UUIDs, canonical project-relative paths and enabled flags. Schema 2 also records explicit
 SceneOnly/ScriptProject mode, script manifest locator and output directory; all are portable,
@@ -28,6 +28,13 @@ consumers rebuild for the appended settings fields; C/Zig gameplay descriptors a
 The pure codec has no filesystem/UI dependency and is shared by subsequent build producers.
 Limits are 256 KiB, 256 scene records and 1024 UTF-8 path bytes. Unknown/duplicate keys, invalid
 Unicode/surrogate escapes, duplicate IDs/case-alias paths and unsafe portable scene paths reject.
+
+Schema 3 additionally requires `animation_clips`, an explicit array of up to 4096 unique nonzero
+Clip UUID strings, alongside the schema-2 fields. The owning session preserves these roots through
+Save/Reload/reopen and unrelated graphical build edits; the current UI has no Clip picker. Empty
+roots normalize to the prior schema-1/2 writer without changing its bytes. UUIDs authorize capture,
+never a scan of every Content Clip; missing or wrong-typed roots reject at Build capture. This is
+immutable asset preparation, not automatic playback or gameplay service negotiation.
 
 The session borrows one workspace on the authoring thread. Missing settings return an empty
 optional without writes; malformed/unsafe settings block Save. Reload observes exact disk bytes;

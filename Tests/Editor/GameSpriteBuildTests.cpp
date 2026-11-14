@@ -14,6 +14,8 @@
 namespace {
 using namespace nexora;
 constexpr runtime::AssetUuid atlasId{101, 1}, sourceId{102, 1};
+constexpr runtime::AssetUuid otherSourceId{103, 1}, otherAtlasId{104, 1}, clipId{105, 1},
+    legacyClipId{106, 1}, unusedClipId{107, 1};
 static_assert(editor::kSpriteSourceReferenceType == runtime::kGameSpriteSourceReferenceType &&
               editor::kSpriteSourceReferenceName == runtime::kGameSpriteSourceReferenceName);
 void Check(bool value, const char *text) {
@@ -46,7 +48,7 @@ struct Fixture final {
   editor::MeshAssetCatalog meshes;
   editor::MaterialAssetCatalog materials;
   runtime::AssetUuid titleId, levelId;
-  explicit Fixture(const std::filesystem::path &root) {
+  explicit Fixture(const std::filesystem::path &root, bool animations = false) {
     Check(workspace.Create(root, "Sprite Build"), "workspace");
     std::filesystem::create_directories(root / "Content");
     // Asymmetric colors reveal crop, UV direction and negative scale independently.
@@ -61,6 +63,22 @@ struct Fixture final {
     Check(bool(atlas), "Atlas");
     Write(root / "Content/Color.nx2atlas", twod::EncodeAtlas(*atlas));
     Write(root / "Content/Source.nx2sprite", Source());
+    if (animations) {
+      auto other_atlas = *atlas;
+      other_atlas.id = otherAtlasId;
+      auto other_source = *twod::DecodeSpriteAsset(Source(3));
+      other_source.id = otherSourceId;
+      other_source.atlas = otherAtlasId;
+      Write(root / "Content/Other.nx2atlas", twod::EncodeAtlas(other_atlas));
+      Write(root / "Content/Other.nx2sprite", twod::EncodeSpriteAsset(other_source));
+      const twod::Clip clip{
+          clipId, {}, true, {{0, 0.25, "first", sourceId}, {0, 0.25, "other", otherSourceId}}};
+      twod::Clip legacy{legacyClipId, atlasId, true, {{1, 0.25, "legacy"}}};
+      Write(root / "Content/Animation.nx2clip", twod::EncodeClip(clip));
+      Write(root / "Content/Legacy.nx2clip", twod::EncodeClip(legacy));
+      legacy.id = unusedClipId;
+      Write(root / "Content/Unselected.nx2clip", twod::EncodeClip(legacy));
+    }
     constexpr std::string_view obj = "v -0.6 -0.6 0\nv 0.6 -0.6 0\nv 0 0.6 0\nf 1 2 3\n";
     Write(root / "Content/Triangle.obj", std::as_bytes(std::span(obj.data(), obj.size())));
     Check(
@@ -93,8 +111,12 @@ struct Fixture final {
     Check(settings.Reload(), "settings");
     const auto title = settings.Enroll("Title.scene", content.Browser());
     const auto level = settings.Enroll("Level.scene", content.Browser());
-    Check(title && level && settings.Save({title->id, {*title, *level}}, content.Browser()),
-          "scene catalog");
+    editor::ProjectBuildSettings build{title ? title->id : runtime::AssetUuid{}, {}};
+    if (title && level)
+      build.scenes = {*title, *level};
+    if (animations)
+      build.animation_clips = {legacyClipId, clipId};
+    Check(title && level && settings.Save(build, content.Browser()), "scene catalog");
     titleId = title->id;
     levelId = level->id;
   }
@@ -102,6 +124,129 @@ struct Fixture final {
     return editor::CaptureGameBuild(workspace, content.Browser(), meshes, materials, error);
   }
 };
+void AnimationRoots(const std::filesystem::path &root) {
+  std::optional<editor::GameBuildCapture> capture;
+  {
+    Fixture fixture(root, true);
+    std::string error;
+    capture = fixture.Capture(&error);
+    Check(bool(capture), error.c_str());
+    Check(capture->project.sprite_assets.size() == 6 && capture->sources.size() == 20 &&
+              capture->project.animation_clips == std::vector{legacyClipId, clipId} &&
+              std::ranges::none_of(capture->project.sprite_assets,
+                                   [](const auto &blob) { return blob.id == unusedClipId; }) &&
+              editor::GameBuildSourcesCurrent(root, capture->sources),
+          "explicit animation closure or exact source baselines incorrect");
+    editor::ProjectBuildSettingsSession settings(fixture.workspace);
+    Check(settings.Reload(), "animation settings reopen");
+    auto wrong = *settings.Settings();
+    const auto valid = wrong;
+    for (const auto &roots :
+         {std::vector{atlasId}, std::vector{sourceId}, std::vector{runtime::AssetUuid{900, 900}}}) {
+      wrong.animation_clips = roots;
+      Check(settings.Save(wrong, fixture.content.Browser()) && !fixture.Capture(),
+            "missing or wrong-typed root captured");
+    }
+    Check(settings.Save(valid, fixture.content.Browser()) && fixture.Capture().has_value(),
+          "restored roots could not capture");
+    const auto path = root / "Content/Animation.nx2clip";
+    const auto clip =
+        std::ranges::find(capture->project.sprite_assets, clipId, &runtime::RuntimeBlob::id);
+    auto changed = *twod::DecodeClip(clip->payload);
+    changed.frames[0].seconds = 0.5;
+    Write(path, twod::EncodeClip(changed));
+    Check(!fixture.Capture() && !editor::GameBuildSourcesCurrent(root, capture->sources),
+          "unreimported animation escaped capture/final source guard");
+    Write(path, clip->payload);
+    const auto sidecar = root / "Content/Animation.nx2clip.meta";
+    const auto backup = root / "Content/Animation.meta.saved";
+    std::filesystem::rename(sidecar, backup);
+    Check(!fixture.Capture(), "Clip without mandatory identity sidecar captured");
+    std::filesystem::rename(backup, sidecar);
+    Check(fixture.Capture().has_value() && editor::GameBuildSourcesCurrent(root, capture->sources),
+          "restoring exact animation baselines failed");
+  }
+  const auto bytes = editor::CookGameProject(capture->project);
+  auto loaded = bytes ? runtime::DecodeGameProjectPackage(*bytes) : std::nullopt;
+  Check(loaded && loaded->Capability() == 4 && loaded->AnimationClips().size() == 2 &&
+            loaded->SpriteAssets().size() == 6 && loaded->AssetCount() == 9,
+        "source/legacy Clip roots absent from game wire");
+  auto typed = twod::GameSpriteAssets::Load(loaded->SpriteAssets());
+  Check(typed && typed->ResolveClip(clipId) && typed->ResolveClip(legacyClipId) &&
+            !typed->ResolveClip(unusedClipId),
+        "immutable Clip admission/resolution failed");
+  auto reordered = capture->project;
+  std::ranges::reverse(reordered.animation_clips);
+  std::ranges::reverse(reordered.sprite_assets);
+  Check(editor::CookGameProject(reordered) == bytes, "Clip root package is not canonical");
+  auto clip_only = capture->project;
+  for (auto &scene : clip_only.scenes)
+    for (auto &node : scene.capture.nodes)
+      node.opaque.clear();
+  Check(editor::CookGameProject(clip_only).has_value(),
+        "explicit animation roots require unrelated scene source references");
+  clip_only.animation_clips = {legacyClipId};
+  std::erase_if(clip_only.sprite_assets,
+                [](const auto &blob) { return blob.id != atlasId && blob.id != legacyClipId; });
+  const auto legacy_bytes = editor::CookGameProject(clip_only);
+  const auto legacy_only =
+      legacy_bytes ? runtime::DecodeGameProjectPackage(*legacy_bytes) : std::nullopt;
+  Check(legacy_only && legacy_only->Capability() == 4 && legacy_only->SpriteAssets().size() == 2,
+        "legacy-only animation root cannot retain Atlas without authored sources");
+  for (unsigned mutation = 0; mutation < 12; ++mutation) {
+    auto bad = capture->project;
+    auto clip = std::ranges::find(bad.sprite_assets, clipId, &runtime::RuntimeBlob::id);
+    auto legacy = std::ranges::find(bad.sprite_assets, legacyClipId, &runtime::RuntimeBlob::id);
+    if (mutation == 0)
+      bad.animation_clips.clear();
+    if (mutation == 1)
+      bad.animation_clips.push_back(clipId);
+    if (mutation == 2)
+      bad.animation_clips = {atlasId, legacyClipId};
+    if (mutation == 3)
+      clip->payload[0] ^= std::byte{1};
+    if (mutation == 4)
+      clip->dependencies = {sourceId};
+    if (mutation == 5)
+      bad.sprite_assets.erase(
+          std::ranges::find(bad.sprite_assets, otherSourceId, &runtime::RuntimeBlob::id));
+    if (mutation >= 6) {
+      auto payload = *twod::DecodeClip(mutation == 9 ? legacy->payload : clip->payload);
+      if (mutation == 6)
+        payload.frames[1].source = runtime::AssetUuid{900, 900};
+      if (mutation == 7)
+        payload.id = {900, 900};
+      if (mutation == 8)
+        clip->dependencies = {sourceId, sourceId, otherSourceId};
+      if (mutation == 9)
+        payload.frames[0].region = 999;
+      if (mutation == 10)
+        payload.frames[0].source = atlasId;
+      auto &target = mutation == 9 ? *legacy : *clip;
+      if (mutation == 6 || mutation == 10)
+        target.dependencies = twod::ClipDependencies(payload);
+      auto malformed_payload = twod::EncodeClip(payload);
+      if (mutation == 11)
+        malformed_payload[0] ^= std::byte{1};
+      runtime::DerivedDataCache cache;
+      target = *runtime::AssetCooker{}.Cook(
+          {target.id, target.type, target.dependencies, malformed_payload}, "portable",
+          "invalid-animation", cache);
+    }
+    Check(!editor::CookGameProject(bad), "invalid typed/authoritative animation closure cooked");
+  }
+  const auto retained = typed->ResolveClip(clipId);
+  std::filesystem::remove_all(root);
+  loaded.reset();
+  typed.reset();
+  capture.reset();
+  twod::Animator animator;
+  Check(animator.Play(*retained) && animator.SourceId() == sourceId && animator.Advance(0.3) &&
+            animator.SourceId() == otherSourceId,
+        "retained Clip lost source UUID clock after all producer/source owners disappeared");
+  std::cout << "Explicit animation roots, canonical capability4, source closure/baselines and "
+               "retained Clip ownership passed\n";
+}
 void Run(const std::filesystem::path &root) {
   // Frozen against the actual pre-change ac15a642 encoder, built independently in cloud.
   const auto legacy = runtime::EncodeGameProjectPackage(testscene::Package());
@@ -219,7 +364,12 @@ int main(int argc, char **argv) {
       Fixture fixture(root);
       return 0;
     }
+    if (argc == 3 && std::string_view(argv[1]) == "--write-animation-fixture") {
+      Fixture fixture(root, true);
+      return 0;
+    }
     Run(root);
+    AnimationRoots(root);
     return 0;
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';

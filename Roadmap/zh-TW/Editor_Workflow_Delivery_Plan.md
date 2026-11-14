@@ -306,3 +306,15 @@ canonical SDK 替換與128次拒絕；Linux 原生版本在替換、回復與來
 來源動畫／物件池服務、專案監看及完整 ED-WF-07／08 仍開放；Workflow **5/9**、Editor **0/8**、TwoD **9/11** 不變。
 
 [完整本機執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-PlayerGeneration-Linux-2026-11-14.md) 保留初期失敗及完整範圍。
+
+## ✅ 主遊戲明確動畫根資產擷取（2026-11-14）
+
+支援工作 `nexora-whr.8.3.1` 在 Build 設定加入明確且不可變的 Clip 根資產、完整擁有的
+Clip／來源／Atlas 擷取，以及獨立的遊戲封裝能力版本 4。沒有根資產的設定與能力版本 2／3
+封裝維持既有位元組。型別驗證檢查傳統影格區域與完整來源依賴；保留的 Clip 在產生者與
+原始檔移除後仍擁有影格 UUID。完整 Linux **532/532**、零失敗／略過、**2039.81 秒**、13 項本機閘門、
+Development／Shipping 原生像素、Monolithic 與 TwoD-OFF 明確拒絕均通過。
+[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-GameClipRoots-Linux-2026-11-14.md) 記錄所有權與相容性。
+交付前仍須精確提交的最新雲端 CI。主程式來源／動畫／
+物件池服務、即時發布、圖形化 Clip 選擇器與完整 ED-WF-07/08 仍未完成。流程 **5/9**、
+Editor **0/8**、TwoD **9/11** 與實體機／乾淨主機驗收維持不變。

@@ -8868,6 +8868,7 @@ void EditorImGuiHost::SetProjectBuildSettings(const ProjectWorkspace &workspace,
       settings.build.script_manifest.size() > ProjectBuildSettings::kMaximumPathBytes ||
       !foundation::IsValidUtf8(settings.build.output) ||
       !foundation::IsValidUtf8(settings.build.script_manifest) ||
+      settings.animation_clips.size() > 4096 ||
       settings.scenes.size() > ProjectBuildSettings::kMaximumScenes || status.size() > 4096 ||
       !foundation::IsValidUtf8(status) ||
       std::ranges::any_of(settings.scenes, [](const auto &entry) {

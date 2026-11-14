@@ -93,3 +93,25 @@ Player modes reject capability 3 visibly. That layer checks embedded UUIDs, comp
 exact payload dependencies, Atlas regions/trim and the aggregate 64 MiB payload budget. Runtime
 limits remain independently enforced. C++ consumers rebuild; stable C/Zig wires are unchanged.
 The new package capability does not advertise gameplay 2D services or support arbitrary opaque code.
+
+## Explicit animation capability 4
+
+Nonempty `GameProjectPackage::animation_clips` selects schema 1 capability **4**. Immediately after
+the sorted scene records, a u32 root count (1..4096) precedes that many UUID high/low u64 pairs in
+strict ascending order. The existing asset count/NXAB records/checksum follow unchanged. These
+root bytes count toward the 256 MiB package limit. Old consumers reject this capability. Without
+roots, capability-2/3 writers emit their exact prior bytes, including no extra zero-count field.
+
+Each unique nonzero root must name a `sprite_clip`. Its nonempty unique dependencies are either
+all `sprite_source` UUIDs or exactly one `sprite_atlas`, never other Clips, scenes or mixed types.
+Source dependencies keep their existing exact one-Atlas edge. Every Clip must be an explicit root;
+the union of scene dependencies and explicit root closure must account for every asset. Duplicate,
+unresolved, wrong-type, orphan, cyclic or noncanonical wire roots reject before a loaded catalog is
+returned. Runtime checks NXAB framing/integrity/graph without importing TwoD payload codecs.
+
+`LoadedGameProject::AnimationClips()` borrows the sorted owning roots and `Capability()` reports
+the validated catalog capability. `SpriteAssets()` now also owns Clip NXABs. Optional TwoD admission
+validates full Clip codecs/embedded identities, exact payload dependency agreement, every legacy
+region and every source/Atlas/trim edge under the shared 64 MiB payload budget. `ResolveClip` returns
+shared immutable ownership. Feature-OFF Player modes reject these auxiliary assets before callbacks.
+Roots are asset capture authority, not playback commands or a gameplay source/pool service promise.

@@ -27,6 +27,8 @@ std::optional<runtime::ByteBuffer> CookGameProject(const GameProjectExportInput 
 #else
   if (input.scenes.empty() || input.scenes.size() > runtime::kMaximumGameScenes)
     return Reject<runtime::ByteBuffer>(error, "Game export requires 1..256 enabled scenes.");
+  if (input.animation_clips.size() > runtime::kMaximumProjectPackageAssets)
+    return Reject<runtime::ByteBuffer>(error, "Game export animation roots exceed 4096 Clips.");
 #if defined(NEXORA_HAS_2D)
   if (!twod::GameSpriteAssets::Load(input.sprite_assets, error))
     return {};
@@ -52,6 +54,7 @@ std::optional<runtime::ByteBuffer> CookGameProject(const GameProjectExportInput 
   if (!ValidateProjectBuildSettings(admission, error))
     return std::nullopt;
   runtime::GameProjectPackage package{input.project, input.start_scene, {}, {}};
+  package.animation_clips = input.animation_clips;
   std::unordered_map<runtime::AssetUuid, std::size_t, runtime::AssetUuidHash> assets;
   std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> scenes;
   std::size_t snapshots = 0;
@@ -125,6 +128,11 @@ CaptureGameProject(const ProjectWorkspace &workspace, ProjectBuildSettings setti
     return std::nullopt;
   const auto project = workspace.Project().id;
   GameProjectExportInput input{{project.high, project.low}, settings.start_scene, {}, {}, {}, {}};
+  input.animation_clips = settings.animation_clips;
+#if !defined(NEXORA_HAS_2D)
+  if (!input.animation_clips.empty())
+    return Reject<GameProjectExportInput>(error, "Game animation roots require TwoD.");
+#endif
   std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> used_meshes, used_materials;
 #if defined(NEXORA_HAS_2D)
   std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> used_sprites;
@@ -206,6 +214,10 @@ CaptureGameProject(const ProjectWorkspace &workspace, ProjectBuildSettings setti
   if (used_sprites.size() > runtime::kMaximumProjectPackageAssets)
     return Reject<GameProjectExportInput>(error, "Saved Sprite roots exceed 4096 assets.");
   const auto source_roots = used_sprites;
+  for (const auto id : input.animation_clips)
+    used_sprites.insert(id);
+  if (used_sprites.size() > runtime::kMaximumProjectPackageAssets)
+    return Reject<GameProjectExportInput>(error, "Combined Sprite/Clip roots exceed 4096 assets.");
   std::unordered_map<runtime::AssetUuid, const ContentItem *, runtime::AssetUuidHash> indexed;
   for (const auto &item : content.Items())
     if (item.twod)
@@ -228,6 +240,13 @@ CaptureGameProject(const ProjectWorkspace &workspace, ProjectBuildSettings setti
       canonical.dependencies.push_back(source->atlas);
       if (used_sprites.insert(source->atlas).second)
         pending.push_back(source->atlas);
+    } else if (const auto clip = item->twod->Clip()) {
+      canonical.type = "sprite_clip";
+      canonical.payload = twod::EncodeClip(*clip);
+      canonical.dependencies = twod::ClipDependencies(*clip);
+      for (const auto dependency : canonical.dependencies)
+        if (used_sprites.insert(dependency).second)
+          pending.push_back(dependency);
     } else if (const auto atlas = item->twod->Atlas()) {
       canonical.type = "sprite_atlas";
       canonical.payload = twod::EncodeAtlas(*atlas);
@@ -249,6 +268,9 @@ CaptureGameProject(const ProjectWorkspace &workspace, ProjectBuildSettings setti
     if (!typed->Source(root))
       return Reject<GameProjectExportInput>(error,
                                             "Saved Sprite reference does not name a source.");
+  for (const auto root : input.animation_clips)
+    if (!typed->ResolveClip(root))
+      return Reject<GameProjectExportInput>(error, "Animation root does not name a Clip.");
 #endif
   return input;
 }
