@@ -1893,6 +1893,55 @@ int RunGraphical(std::optional<ProjectState> project,
           gameplay, &project->workspace, content.Browser().ProjectGeneration(), play)));
       ui.DrawProductShell(shell, &active_scene(), &project->workspace, &content, &recent_projects,
                           &imports, &console, &play, &profile, &meshes, &materials);
+#if defined(NEXORA_HAS_2D)
+      if (const auto request = ui.TakeSpriteSourceCreationRequest()) {
+        using namespace nexora::editor;
+        const bool authorized = created.surface->Input().focused && source_inspection_allowed &&
+                                scene_authoring_allowed() && !content.ReimportBusy()
+#if NEXORA_ASSET_PIPELINE_ENABLED
+                                && !game_builder.Busy() && !game_runner.Busy()
+#endif
+            ;
+        const auto result =
+            CreateSpriteSourceFile(project->workspace, content, request->creation, authorized);
+        const bool file_created = result.state == SpriteSourceCreationState::Created;
+        std::string message(SpriteSourceCreationMessage(result.error));
+        if (file_created) {
+          try {
+            auto candidate_assets = project->assets;
+            std::string error;
+            if (!candidate_assets.ImportSavedSpriteSource(result.path.lexically_relative("Content"),
+                                                          result.asset, &error))
+              throw std::runtime_error(error);
+            const auto *entry = candidate_assets.Find(result.asset);
+            if (!entry || !entry->twod)
+              throw std::runtime_error("The saved source has no imported payload.");
+            auto browser = content.Browser();
+            auto dependencies = content.Dependencies();
+            if (!browser.Discover({entry->id,
+                                   result.path,
+                                   entry->type,
+                                   entry->artifact_hash,
+                                   ThumbnailState::Ready,
+                                   {},
+                                   {},
+                                   entry->twod}) ||
+                !dependencies.Set(entry->id, std::array{request->creation.source.atlas}))
+              throw std::runtime_error("Content could not admit the saved source.");
+            const auto encoded_path = result.path.generic_u8string();
+            message = "Sprite source created and imported: ";
+            message.append(encoded_path.begin(), encoded_path.end());
+            project->assets = std::move(candidate_assets);
+            content.Browser() = std::move(browser);
+            content.Dependencies() = std::move(dependencies);
+          } catch (const std::exception &error) {
+            message = "Sprite source file created; import failed. Reopen the project to retry: ";
+            message += error.what();
+          }
+        }
+        ui.SetSpriteSourceCreationResult(request->identity, file_created, std::move(message));
+      }
+#endif
       if (const auto request = ui.TakePrefabPlacementSourceRequest()) {
         const auto selection = active_scene().Selection();
         const bool live = source_inspection_allowed && active_files() &&
@@ -4129,6 +4178,21 @@ int RunGraphical(std::optional<ProjectState> project,
       record("sprite_source_first", Access::InspectorSpriteSourcePosition(ui, 1));
       record("sprite_source_clear", Access::InspectorSpriteSourcePosition(ui, 2));
       record("sprite_source_details", Access::InspectorSpriteSourcePosition(ui, 3));
+      record("sprite_create_menu", Access::SpriteSourceCreationMenu(ui));
+#if defined(NEXORA_HAS_2D)
+      if (project)
+        for (const auto &item : content.Browser().Items())
+          if (item.twod && item.twod->Atlas()) {
+            record("sprite_create_atlas", Access::ContentAssetPosition(ui, item.id));
+            break;
+          }
+#endif
+      for (std::size_t index = 0; index < 11; ++index)
+        if (const auto rect = Access::SpriteSourceCreationRect(ui, index)) {
+          const auto name = "sprite_create_" + std::to_string(index);
+          record(name.c_str(),
+                 std::array{((*rect)[0] + (*rect)[2]) * .5F, ((*rect)[1] + (*rect)[3]) * .5F});
+        }
       record("array_add", Access::ReflectedArrayControlPosition(ui, 301, "samples", "Add"));
       record("array_clear", Access::ReflectedArrayControlPosition(ui, 301, "samples", "Clear"));
       record("array_insert_0",

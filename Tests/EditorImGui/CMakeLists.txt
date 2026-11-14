@@ -890,6 +890,12 @@ if(NEXORA_ENABLE_2D)
     endif()
   endif()
   add_executable(NexoraSpriteSourceInspectorTests SpriteSourceInspectorTests.cpp)
+  add_executable(NexoraSpriteSourceCreationUiTests SpriteSourceCreationUiTests.cpp)
+  target_include_directories(NexoraSpriteSourceCreationUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+  target_link_libraries(NexoraSpriteSourceCreationUiTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
+  nexora_apply_defaults(NexoraSpriteSourceCreationUiTests)
+  add_test(NAME editor.sprite_source_creation_ui COMMAND NexoraSpriteSourceCreationUiTests)
+  set_tests_properties(editor.sprite_source_creation_ui PROPERTIES TIMEOUT 90)
   target_include_directories(NexoraSpriteSourceInspectorTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
   target_link_libraries(NexoraSpriteSourceInspectorTests PRIVATE Nexora::EditorImGui)
   nexora_apply_defaults(NexoraSpriteSourceInspectorTests)
@@ -902,6 +908,12 @@ if(NEXORA_ENABLE_2D)
         --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraSpriteSourceInspectorTests>"
         --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
     set_tests_properties(editor.linux_sprite_source_inspector PROPERTIES TIMEOUT 120
+      LABELS "editor;vulkan;virtual-display" WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+    add_test(NAME editor.linux_sprite_source_creation
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxSpriteSourceCreation.py"
+        --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraSpriteSourceCreationUiTests>"
+        --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+    set_tests_properties(editor.linux_sprite_source_creation PROPERTIES TIMEOUT 150
       LABELS "editor;vulkan;virtual-display" WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
   endif()
 endif()

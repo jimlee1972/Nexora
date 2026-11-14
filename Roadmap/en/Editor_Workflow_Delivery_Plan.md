@@ -243,6 +243,24 @@ exact-head hosted CI is required before delivery. See [execution evidence](../..
 Workflow **5/9**, Editor **0/8**, TwoD **9/11**, full ED-WF-07/08, production animation/reload
 and physical/clean-host acceptance remain unchanged/open. PR #786 owns the independent Clip catalog.
 
+### ✅ Main Editor Sprite source creation (2026-11-14)
+
+Supporting `nexora-whr.7.11` creates a new canonical source from an imported Atlas region through
+the actual Content context menu and owning modal. Users set original dimensions, top-left trim,
+bottom-left pixel Pivot and PPU; trim size follows the stable region and borders start at zero.
+The authoring owner exclusively publishes a fresh UUID/file and imports only that saved source,
+preserving existing Content view/history. Scope/version, focus, writer/recovery, stopped Play,
+busy state, names, geometry, capacity and destination identities guard writes. GUI rendering has
+no new file IO. Created-file/import-failure and uncertain-publication outcomes stay distinct.
+Actual 1×/2× controls and native X11 create/import/assign/inspect/Save/read-only reopen pass with
+exact generated UUID/metadata, unchanged existing assets and byte-identical read-only projects.
+Full Linux **514/514**, Shipping Full, actual TwoD-OFF/testing-OFF Editor/native Player,
+and graphical Monolithic controls/native gates pass; exact-head hosted CI remains required.
+See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceCreation-Linux-2026-11-14.md).
+Workflow **5/9**, Editor **0/8**, TwoD **9/11** and full ED-WF-07/08 stay unchanged/open.
+Existing-source editing, Atlas slicing, production animation/reload and physical acceptance remain
+separate; independently owned Clip/reload tasks are preserved.
+
 ## ✅ Source-bearing Studio document persistence (2026-11-13)
 
 Supporting `nexora-whr.7.2` adds immutable source ownership, schema-2 ND2D persistence and source-aware

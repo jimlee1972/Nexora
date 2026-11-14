@@ -245,6 +245,12 @@ public:
   // current in-memory index. No directory scan, OBJ parsing, GPU work, or project-wide refresh.
   // A moved scene UUID retargets its stale entry only when both old source and sidecar are absent.
   bool ImportSavedScene(const std::filesystem::path &relative_path, std::string *error = nullptr);
+#if defined(NEXORA_HAS_2D)
+  // Discovers only one newly saved canonical source. The embedded and sidecar IDs must match
+  // expected; existing indexed IDs/paths are never retargeted. No Atlas/image reread or scan.
+  bool ImportSavedSpriteSource(const std::filesystem::path &relative_path,
+                               runtime::AssetUuid expected, std::string *error = nullptr);
+#endif
   [[nodiscard]] static std::filesystem::path
   IdentitySidecar(const std::filesystem::path &asset_path);
   [[nodiscard]] std::vector<const AssetEntry *> Search(std::string_view query,
