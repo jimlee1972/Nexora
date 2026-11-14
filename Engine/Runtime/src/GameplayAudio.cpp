@@ -72,6 +72,8 @@ struct GameplayAudio::Impl {
   };
   Limits limits;
   const std::thread::id thread{std::this_thread::get_id()};
+  std::shared_ptr<const std::uint8_t> reload_owner{
+      std::make_shared<const std::uint8_t>(std::uint8_t{})};
   std::shared_ptr<Residency> residency{std::make_shared<Residency>()};
   std::uint64_t active_bytes{};
   int registration_result{-1};
@@ -137,6 +139,7 @@ struct GameplayAudio::Impl {
   std::array<float, 8192> mix{};
   Sink sink{};
   void *sink_context{};
+  bool staged_output_available{};
 #if defined(__linux__)
   void *library{}, *device{};
   using Open = int (*)(void **, const char *, int, int, void *);
@@ -203,7 +206,7 @@ struct GameplayAudio::Impl {
     return 0;
   }
   static std::int32_t PlayInternal(Impl &self, const NexoraAudioPlayDesc *d, std::uint64_t *out) {
-    if (!self.sink)
+    if (!self.sink && !self.staged_output_available)
       return -2;
     auto sample = self.assets.find(d->asset);
     if (sample == self.assets.end() || self.next_id == std::numeric_limits<std::uint64_t>::max())
@@ -258,7 +261,8 @@ struct GameplayAudio::Impl {
   static std::int32_t Available(void *ctx, std::uint32_t *out) {
     if (!ctx || !out)
       return -1;
-    *out = static_cast<Impl *>(ctx)->sink ? 1u : 0u;
+    const auto &self = *static_cast<Impl *>(ctx);
+    *out = self.sink || self.staged_output_available ? 1u : 0u;
     return 0;
   }
   static std::int32_t Register(void *ctx, std::uint64_t asset, const void *bytes,
@@ -293,6 +297,59 @@ GameplayAudio::GameplayAudio(std::uint32_t rate, std::uint32_t maximum, Limits l
     : impl_(std::make_unique<Impl>(this, rate >= 8000 && rate <= 192000 ? rate : 48000,
                                    std::min(maximum, 4096u), limits)) {}
 GameplayAudio::~GameplayAudio() { CloseOutput(); }
+std::unique_ptr<GameplayAudio> GameplayAudio::ForkForReload() const {
+  const auto &source = *impl_;
+  if (source.thread != std::this_thread::get_id())
+    return {};
+  auto branch = std::make_unique<GameplayAudio>(
+      source.rate, static_cast<std::uint32_t>(source.voices.size()), source.limits);
+  auto &target = *branch->impl_;
+  target.reload_owner = source.reload_owner;
+  std::unordered_map<const Impl::Sample *, std::shared_ptr<const Impl::Sample>> copies;
+  const auto copy_sample = [&](const std::shared_ptr<const Impl::Sample> &sample) {
+    if (!sample)
+      return std::shared_ptr<const Impl::Sample>{};
+    const auto found = copies.find(sample.get());
+    if (found != copies.end())
+      return found->second;
+    std::shared_ptr<const Impl::Sample> copy = std::make_shared<Impl::Sample>(
+        sample->rate, sample->channels, sample->pcm, target.residency);
+    copies.emplace(sample.get(), copy);
+    return copy;
+  };
+  // PCM is deliberately copied per unique generation. Sharing Sample::residency would let
+  // candidate registration/destruction alter the live owner's diagnostic state before commit.
+  for (const auto &[asset, sample] : source.assets)
+    target.assets.emplace(asset, copy_sample(sample));
+  target.voices = source.voices;
+  for (auto &voice : target.voices)
+    voice.sample = copy_sample(voice.sample);
+  target.active_bytes = source.active_bytes;
+  target.registration_result = source.registration_result;
+  target.next_id = source.next_id;
+  target.gains = source.gains;
+  target.residency->peak = std::max(target.residency->peak, source.residency->peak);
+  target.staged_output_available = source.sink || source.staged_output_available;
+  return branch;
+}
+bool GameplayAudio::SwapReloadMixer(GameplayAudio &branch) noexcept {
+  auto &live = *impl_;
+  auto &other = *branch.impl_;
+  if (live.thread != std::this_thread::get_id() || other.thread != std::this_thread::get_id() ||
+      live.reload_owner != other.reload_owner || live.rate != other.rate ||
+      live.voices.size() != other.voices.size() || live.limits.assets != other.limits.assets ||
+      live.limits.active_bytes != other.limits.active_bytes ||
+      live.limits.live_bytes != other.limits.live_bytes)
+    return false;
+  live.voices.swap(other.voices);
+  live.assets.swap(other.assets);
+  live.residency.swap(other.residency);
+  std::swap(live.active_bytes, other.active_bytes);
+  std::swap(live.registration_result, other.registration_result);
+  std::swap(live.next_id, other.next_id);
+  live.gains.swap(other.gains);
+  return true;
+}
 bool GameplayAudio::RegisterPcm(std::uint64_t asset, std::uint32_t rate, std::uint32_t channels,
                                 std::span<const float> samples) {
   impl_->registration_result = -1;
@@ -377,6 +434,7 @@ void GameplayAudio::SetOutput(Sink sink, void *context) {
 void GameplayAudio::CloseOutput() {
   impl_->sink = nullptr;
   impl_->sink_context = nullptr;
+  impl_->staged_output_available = false;
 #if defined(__linux__)
   if (impl_->device && impl_->close)
     impl_->close(impl_->device);

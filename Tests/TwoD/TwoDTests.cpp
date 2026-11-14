@@ -510,6 +510,53 @@ void Lifecycle() {
   Near(many.Advance(0)->remainder, 0, "remainder");
   Require(!many.Advance(1000) && many.Advance(0)->first == 10, "backlog drops simulation time");
 }
+void PoolReloadIsolation() {
+  InstancePool live(3), foreign(3);
+  Instance value;
+  value.sprite.atlas = {1, 1};
+  value.sprite.region = 1;
+  value.sprite.source = AssetId{2, 3};
+  value.sprite.pivot = {0.25F, 0.75F};
+  value.sprite.order = 17;
+  value.sprite.sortY = true;
+  const auto stable = live.Create(std::array{value})->front();
+  auto rejected = live.ForkForReload();
+  Require(rejected && rejected->Find(stable), "reload branch lost existing handle");
+  rejected->Find(stable)->transform.x = 999;
+  Require(rejected->Destroy(std::array{stable}) && live.Find(stable)->transform.x == 0,
+          "discarded reload branch mutated live state");
+  rejected.reset();
+  Require(!live.SwapReloadState(foreign) && !foreign.Find(stable),
+          "unrelated pool adopted reload identity");
+  std::optional<InstanceHandle> stale;
+  for (unsigned generation = 1; generation <= 32; ++generation) {
+    auto branch = live.ForkForReload();
+    Require(branch && branch->Size() == 1 && branch->Find(stable),
+            "reload branch lost live pool membership");
+    auto &restored = *branch->Find(stable);
+    Require(restored.sprite.source == value.sprite.source && restored.sprite.order == 17 &&
+                restored.sprite.sortY && restored.sprite.pivot.x == .25F &&
+                restored.sprite.pivot.y == .75F,
+            "reload branch lost Sprite source, pivot or sorting metadata");
+    restored.transform.x = generation;
+    const auto added = branch->Create(std::array{value})->front();
+    Require(!live.Find(added) && (!stale || !branch->Find(*stale)),
+            "unpublished or stale pool handle escaped");
+    live.ForEach([&](Instance &) {
+      Require(!live.ForkForReload() && !live.SwapReloadState(*branch) &&
+                  !branch->SwapReloadState(live),
+              "reload swapped pool storage during a live traversal");
+    });
+    Require(live.SwapReloadState(*branch) && live.Size() == 2 &&
+                live.Find(stable)->transform.x == generation && live.Find(added),
+            "reload publication lost stable or newly created handles");
+    Require(branch->Destroy(std::array{stable}) && live.Find(stable) && live.Find(added),
+            "retired pool cleanup destroyed transferred live instances");
+    Require(live.Destroy(std::array{added}) && !live.Find(added),
+            "published pool stopped recycling slot generations");
+    stale = added;
+  }
+}
 } // namespace
 int main() {
   try {
@@ -520,6 +567,7 @@ int main() {
     ExtractionOrdering();
     Scene();
     Lifecycle();
+    PoolReloadIsolation();
     std::cout << "2D runtime contracts passed\n";
     return 0;
   } catch (const std::exception &e) {

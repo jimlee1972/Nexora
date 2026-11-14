@@ -19,7 +19,7 @@ struct Context final {
   runtime::World *world;
   bool candidate{};
 };
-struct Owner final {
+struct Owner {
   runtime::World world{runtime::WorldKind::Play};
   runtime::World staging{runtime::WorldKind::Play}, retired{runtime::WorldKind::Play};
   std::unique_ptr<Context> live{std::make_unique<Context>(Context{this, &world})}, candidate;

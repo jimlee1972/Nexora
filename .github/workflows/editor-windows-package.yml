@@ -6,11 +6,16 @@ on:
     paths:
       - '.github/workflows/editor-windows-package.yml'
       - 'Tools/Editor/**'
+      - 'Tools/SDK/**'
+      - 'Tools/Zig/**'
+      - 'Bindings/Zig/**'
       - 'Tools/Brand/**'
       - 'Assets/Brand/**'
       - 'Apps/Editor/**'
       - 'Apps/ProjectPlayer/**'
       - 'Engine/**'
+      - 'Tests/Editor/**'
+      - 'Tests/EditorImGui/**'
       - 'Config/Modules/**'
       - 'CMake/**'
       - 'CMakeLists.txt'
@@ -20,7 +25,9 @@ permissions:
 jobs:
   package:
     runs-on: windows-latest
-    timeout-minutes: 35
+    timeout-minutes: ${{ (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/build/editor-logo-splash') && 90 || 35 }}
+    env:
+      NEXORA_EDITOR_RELOAD_CYCLES: ${{ (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/build/editor-logo-splash') && '32' || '0' }}
     permissions:
       contents: read
       actions: write
@@ -61,6 +68,8 @@ jobs:
         run: cmake --build build/editor-package --target NexoraEditor NexoraProjectPlayer NexoraWindowsStartupSplashTests --parallel 3
       - name: Verify embedded branding and startup lifecycle
         run: ctest --test-dir build/editor-package --output-on-failure -R '^(editor\.(brand_assets|windows_startup_splash|windows_startup_integration|windows_gui_entry)|runtime\.windows_game_entry)$'
+      - name: Verify owned native launcher input
+        run: python Tests/Editor/WindowsNativeTestDesktop.py build/editor-package/Tests/Editor/native-launcher
       - name: Package and verify relocated CLI and DX12 presentation
         shell: pwsh
         run: |
@@ -82,7 +91,8 @@ jobs:
             --imgui-license build/editor-package/_deps/nexora_imgui-src/LICENSE.txt `
             --game-runtime-profile $profiles[0].FullName --cmake-root $cmakeRoot `
             --ninja $ninja --zig-root $zigRoot --ninja-license $ninjaLicense `
-            --commit $env:GITHUB_SHA --output build/editor-delivery
+            --commit $env:GITHUB_SHA --output build/editor-delivery `
+            --script-reload-cycles=$env:NEXORA_EDITOR_RELOAD_CYCLES
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Upload verified package
         uses: actions/upload-artifact@v4
@@ -94,6 +104,7 @@ jobs:
             build/editor-delivery/verification/
             build/editor-package/Tests/Editor/editor-startup-splash*.bmp
             build/editor-package/Tests/Editor/startup-integration/
+            build/editor-package/Tests/Editor/native-launcher/
             build/editor-package/Tests/Runtime/windows-game-entry/
           if-no-files-found: error
           retention-days: 30
@@ -105,5 +116,6 @@ jobs:
           path: |
             build/editor-delivery/verification/
             build/editor-package/Tests/Editor/startup-integration/
+            build/editor-package/Tests/Editor/native-launcher/
             build/editor-package/Tests/Runtime/windows-game-entry/
           if-no-files-found: ignore

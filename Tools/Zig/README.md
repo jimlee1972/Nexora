@@ -5,6 +5,20 @@ Authored projects contain a `project.json` and gameplay scripts, never copies of
 Build products and caches belong in the caller's binary directory, outside the authored project.
 Editor Build and Build & Run use this same entry; see the [shared producer contract](../../Engine/Editor/GameBuild.md).
 
+On Windows/Linux, the CMake SDK entry compiles `game_entry.zig` directly rather than
+bootstrapping a new Zig build runner for every private source snapshot. It preserves
+ReleaseSafe for all library modules, Debug for both entry/authored test roots, the Windows
+MSVC target and bundled compiler-rt. Both test executables must succeed before reporting
+`NEXORA_SCRIPT_TESTS_PASSED`. Caches and test products stay in the caller's binary directory;
+no shared SDK/cache lifetime is introduced. The standalone `zig build` / `zig build test`
+entry and macOS host-linker workaround remain available with their existing behavior.
+The Windows/Linux Ninja target invokes a short private CMake script. Each compiler/test argv
+vector is serialized as a delimiter-safe bracket literal and dispatched with `execute_process`,
+so long SDK paths do not force Unicode working directories into code-page-dependent batch files.
+The steps remain serial, inherit the same private caches and stop on the first nonzero result;
+the success marker still follows both real test roots. The generated script stays in the caller's
+binary directory and introduces no additional runtime tool or authored build glue.
+
 ```json
 {"schema": 1, "module_name": "MyGame", "script": "scripts/game.zig"}
 ```

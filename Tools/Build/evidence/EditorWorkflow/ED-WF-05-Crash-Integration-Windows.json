@@ -1,0 +1,171 @@
+{
+  "status": "WINDOWS_INTEGRATED_SCOPED_PASS_FULL_IMMUTABLE_GATES_PENDING",
+  "parents": {
+    "sdk_fix": "813c4bcc",
+    "main": "b1671eaa95b0863571a4f8b4a7b636068fdc02fd"
+  },
+  "conflict_resolution": "Both save_state size-query and data-write remain inside the capture_begin/valid/end read-only guard and both invoke the new Gameplay.save_state diagnostic context. Quiescence, reopening and candidate/retirement rollback are preserved.",
+  "build": {
+    "seconds": 511.7752595,
+    "exit": 0
+  },
+  "targets": 14,
+  "test_command": "ctest --test-dir build/editor-workflow-native -C Development --output-on-failure -V -R '^(runtime\\.(gameplay_module_host|gameplay_reload_transaction|zig_reload_transaction|game_scene_session|game_scene_zig_module)|editor\\.(game_build_sdk_bytes|game_script_build|game_script_authored_tests|game_build|game_script_compiler|reloadable_play|packaged_play_services|play_api_proxy)|twod\\.(gameplay_bridge|scene_session))$'",
+  "test_process": {
+    "exit": 0,
+    "seconds": 659.0507719
+  },
+  "tests": {
+    "passed": 15,
+    "failed": 0,
+    "skipped": 0,
+    "ctest_seconds": 658.98,
+    "cases": [
+      {
+        "name": "runtime.gameplay_module_host",
+        "seconds": 0.11
+      },
+      {
+        "name": "runtime.gameplay_reload_transaction",
+        "seconds": 0.12
+      },
+      {
+        "name": "runtime.zig_reload_transaction",
+        "seconds": 18.52
+      },
+      {
+        "name": "runtime.game_scene_session",
+        "seconds": 0.14
+      },
+      {
+        "name": "runtime.game_scene_zig_module",
+        "seconds": 0.11
+      },
+      {
+        "name": "twod.gameplay_bridge",
+        "seconds": 0.13
+      },
+      {
+        "name": "twod.scene_session",
+        "seconds": 0.14
+      },
+      {
+        "name": "editor.game_script_compiler",
+        "seconds": 2.98
+      },
+      {
+        "name": "editor.play_api_proxy",
+        "seconds": 0.15
+      },
+      {
+        "name": "editor.game_build_sdk_bytes",
+        "seconds": 0.05
+      },
+      {
+        "name": "editor.game_build",
+        "seconds": 367.55
+      },
+      {
+        "name": "editor.game_script_build",
+        "seconds": 160.18
+      },
+      {
+        "name": "editor.game_script_authored_tests",
+        "seconds": 105.99
+      },
+      {
+        "name": "editor.reloadable_play",
+        "seconds": 2.05
+      },
+      {
+        "name": "editor.packaged_play_services",
+        "seconds": 0.19
+      }
+    ]
+  },
+  "source_files": [
+    {
+      "path": "Engine/Runtime/src/GameplayModuleHost.cpp",
+      "sha256": "c380671f92398c7ce216d96039f55b91c2fdae3d57bb38961c9422db5b853b33"
+    },
+    {
+      "path": "Engine/Core/src/Diagnostics.cpp",
+      "sha256": "972e023ccf16e71e10dc839dcd6b8186d5ab2d605453fa05d2c5d41112b115d5"
+    },
+    {
+      "path": "Engine/Core/include/Nexora/Core/Diagnostics.h",
+      "sha256": "648e6712b6c9b658930d5cc04876748f6ec2bde4bc140af7525815940749d14a"
+    },
+    {
+      "path": "CMake/Modules/NexoraGameProject.cmake",
+      "sha256": "93733cce9ad5e6ab1b0ac45645ad9b62002b783715e7fd13dfec3b62cb959238"
+    },
+    {
+      "path": "Apps/Editor/main.cpp",
+      "sha256": "10942a98249512ddd0c4f1addbb7440fe8ca44b4c8331ab3a9b2595be414c718"
+    },
+    {
+      "path": "Tests/Editor/GameScriptBuildTests.cpp",
+      "sha256": "2b5d59d68c6e926cec5da4712af30f0b63b3b5e6d4f165881ab874c077539fd1"
+    },
+    {
+      "path": "Tests/Editor/CMakeLists.txt",
+      "sha256": "aa6bf2c3ef2ca0c8dac974df783810379b93eb9f4aa15ca919bc97642b1f547c"
+    }
+  ],
+  "logs": [
+    {
+      "path": "build/editor-workflow-native/ed-wf05-crash-integration-build.log",
+      "sha256": "0b042621401e9de5fc02c0d19faffb9e8741098c5d9ca394f53bb4e4faa83e3b"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-crash-integration-build-exit.json",
+      "sha256": "8ccad9e5dd3d06bc2459aa61bb4a93978a52243c6059e2afc2780a6e37955f86"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-crash-integration-tests.log",
+      "sha256": "4a079959df6294597227765d0726b9b20aea40efe9f88071211facbb3837d2ac"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-crash-integration-tests-exit.json",
+      "sha256": "ee0a5542b130907487b8b1f3ddd8263a1c2e43f07b3e795589251207431b16d0"
+    }
+  ],
+  "binaries": [
+    {
+      "name": "NexoraEditor.exe",
+      "sha256": "868646bad2183b6541a8e8f1cf7967382a9f8fcb77cc5e1a2b17e3d2ac05a5a5"
+    },
+    {
+      "name": "NexoraEditorCore.dll",
+      "sha256": "72bfbba8043d4f24ffb5f975c01e7b49bf1bc123f1f27740e783da2c5748a446"
+    },
+    {
+      "name": "NexoraCore.dll",
+      "sha256": "9ae5c4d4daf68bb6a3f0eddaa4efc15ca9d5d3f10015f33e613ed483f550538c"
+    },
+    {
+      "name": "NexoraRuntime.dll",
+      "sha256": "68b88fa3e37561d97ac37e8dbce0d2094cd395a05a3886349303a9947d698b2e"
+    },
+    {
+      "name": "NexoraGameScriptBuildTests.exe",
+      "sha256": "e6ac0cb1c9712263731d725efcf0bc8c44ae42494a838efcfad821088ce8a46c"
+    },
+    {
+      "name": "NexoraReloadablePlayTests.exe",
+      "sha256": "249eafb36ec914bb8d19088033d2034f9faf1c5c08dcea9bf0c172d353e8b2ed"
+    },
+    {
+      "name": "NexoraGameplayReloadTransactionTests.exe",
+      "sha256": "629bb5c17206645d392be2e60c2dce6d979a3b5a1ddef45219aaf729cc810480"
+    }
+  ],
+  "scope": [
+    "Windows scoped CPU/service/actual SDK/CLI checks; no new GUI/native presentation or physical clean-host acceptance.",
+    "Local configured crypto backend remains NONE/fail-closed, not OpenSSL verification.",
+    "Source was the resolved staged merge before merge commit creation; source/binary hashes retained.",
+    "Full immutable Cloud Development/Shipping, all applicable CI and updated Windows package32/fault/recovery gates remain mandatory.",
+    "ED-WF-05 stays unaccepted;4/9,Editor0/8; Sprite06-09 pending."
+  ]
+}

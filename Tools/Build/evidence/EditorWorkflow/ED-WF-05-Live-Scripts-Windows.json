@@ -1,0 +1,275 @@
+{
+  "status": "LOCAL_SLICE_PASS_FULL_IMMUTABLE_HEAD_ACCEPTANCE_PENDING",
+  "parent_head": "c52d0074cfdd350490fb5d8982a773f605c01016",
+  "source_provenance": "Precommit source snapshot; not an immutable-head full-gate pass.",
+  "profile": {
+    "os": "Windows developer host",
+    "backend": "DX12",
+    "configuration": "Development",
+    "cryptography": "unavailable/fail-closed",
+    "physical_clean_host": "NOT_RUN"
+  },
+  "local": {
+    "three_case_exit": 0,
+    "three_case_passed": 3,
+    "three_case_seconds": 448.64,
+    "reviewed_build_exit": 0,
+    "reviewed_compiler_test_exit": 0,
+    "reviewed_compiler_cases": 1,
+    "reviewed_compiler_seconds": 3.07,
+    "portable_package_tests": 9,
+    "portable_package_exit": 0,
+    "native_smoke": {
+      "cycles": 1,
+      "full_32_cycle_gate": false,
+      "sequence": [
+        {
+          "version": 0,
+          "counter": 0,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 1,
+          "counter": 4359,
+          "scene": 1,
+          "entity": 4
+        }
+      ],
+      "exit": 0,
+      "actual_ctrl_p": true,
+      "observed_children_terminated": [
+        "cmake.exe",
+        "conhost.exe"
+      ],
+      "remaining_owned_job_processes": 0,
+      "authored_baseline": {
+        "Excluded.scene": "5c50c63f615684c28268bb0e736ffb4c27388a67e5008a2889c3b53aafc4e061",
+        "Level01.scene": "49ca8de2ef770c25445b5f4357ab6065654054c929bc63a1628e294e3d517211",
+        "project.build.json": "b4cd497b0b4ae2463c812d93f1a0f81ee51d85d2d36aee0cdce057eab0fd07a4",
+        "project.nexora": "079018cbbb4a61fb266aea7b4e744497cd61ce12b1e69358ecd8d90a702fe83c",
+        "Title.scene": "058d6d5d7495816007a7523e29296dbdce03832a2bbbd0e5cdff79f0f7b3e094",
+        "Content\\Paint.nmaterial": "91c57536ce43d3a90a02be96260eb789dd6efc612e51071fe7845c147968ea6f",
+        "Content\\Paint.nmaterial.meta": "d3a36cbe1985ac7619609a39c12dcde4da1310e1230c459f14a1a0f0e658d1e5",
+        "Content\\Triangle.obj": "69244b0e9ea7fe99d8845a10adc8e413b96606635216764bf42953a533f951b9",
+        "Content\\Triangle.obj.meta": "af18e903de89c794cc8c2770701f1922027e1dbd20efa1a127548f9b752b560b",
+        "Scripts\\project.json": "6601072844cef3d1ef89de304166377b39818cd911972fd655d600c9b8a23222"
+      }
+    }
+  },
+  "full32": {
+    "status": "INTERRUPTED_BY_USER",
+    "wrapper_exit": 1,
+    "completed_replacements": 11,
+    "editor_exit_code": null,
+    "operator_confirmed_manual_close": true,
+    "not_a_product_crash": true,
+    "not_full_acceptance": true
+  },
+  "pending": [
+    "Fresh exact-head Cloud development full gate and supported Shipping",
+    "Windows startup CI failure after first BeginFrame",
+    "Isolated extracted-ZIP 32-source-reload gate",
+    "Remaining native failure/cancellation/project-scope scenarios",
+    "Sprite work orders06-08 and final09 acceptance"
+  ],
+  "source_files": [
+    {
+      "path": ".github/workflows/editor-windows-package.yml",
+      "bytes": 5635,
+      "sha256": "d43da7aa37fb28752d2c318072d88fc6d6521a88ea24aa4b551a0b44833104b8"
+    },
+    {
+      "path": "Apps/Editor/README.md",
+      "bytes": 145170,
+      "sha256": "fabbf753877bf1e4aed2ce1da5da1b5008b15c3de5a5364f6361aa1b3cf0ee00"
+    },
+    {
+      "path": "Apps/Editor/main.cpp",
+      "bytes": 241163,
+      "sha256": "5e41f29003d0c76d995f40f3eaa7f3be351f911bd1c124e0a07b7685825531fc"
+    },
+    {
+      "path": "Apps/Editor/LiveGameScript.h",
+      "bytes": 5452,
+      "sha256": "961e5acf3a06dfd4fc40d5a2575b07a698995a43c50702684e254d0cff4aa34d"
+    },
+    {
+      "path": "Engine/Editor/GameBuild.md",
+      "bytes": 13495,
+      "sha256": "30c9272c67bea2c7f739d2302bda3b784491a8105e8c42b07e15707fb77106c3"
+    },
+    {
+      "path": "Engine/Editor/README.md",
+      "bytes": 234564,
+      "sha256": "ffa2fa190004bc51c5e980c6fe05953f85699285d96ec0f96f13f82d7f4c4271"
+    },
+    {
+      "path": "Engine/Editor/include/Nexora/Editor/GameScriptBuild.h",
+      "bytes": 2844,
+      "sha256": "e465a7dc82dcbd14d378a44711d1ee6b72f34604d5ca40ef241d3c3fff4525e7"
+    },
+    {
+      "path": "Engine/Editor/src/GameBuild.cpp",
+      "bytes": 48000,
+      "sha256": "cf1eb19391ff2911968c6d00626860f31d7d33e67395345e35c5abdd9c152b14"
+    },
+    {
+      "path": "Roadmap/en/Editor_Workflow_Delivery_Plan.md",
+      "bytes": 14315,
+      "sha256": "a20e0ac2c6b55a48aacab718ded113fb7085fbe507aab42a5db37b2068e057be"
+    },
+    {
+      "path": "Roadmap/zh-TW/Editor_Workflow_Delivery_Plan.md",
+      "bytes": 13101,
+      "sha256": "4d46021ff10097575d6df7374fb5213e7534c56a8ebb7ce54f3c6c62a34a3bb7"
+    },
+    {
+      "path": "Tests/Editor/GameScriptBuildTests.cpp",
+      "bytes": 9034,
+      "sha256": "19408df1350d5c25abc4f2d74425a0108bd2afbaa69e5200e56ba30660204b0b"
+    },
+    {
+      "path": "Tests/Editor/GameScriptCompilerTests.cpp",
+      "bytes": 9416,
+      "sha256": "8a375969c015d22916f5c55bf3cb2251eb430463b2db97d8278fa7cdb59ad9a5"
+    },
+    {
+      "path": "Tests/Editor/WindowsScriptReload.py",
+      "bytes": 17648,
+      "sha256": "11f8fe1d46ae18c74c6677106a5aafc4fe2139e4d52641192216e71a3944b684"
+    },
+    {
+      "path": "Tools/Build/evidence/EditorWorkflow/ED-WF-05.md",
+      "bytes": 19961,
+      "sha256": "74f110809923263d5e9bd492699dbf81d66a615b21675bce05e0db39f00e5efb"
+    },
+    {
+      "path": "Tools/Editor/PackageWindowsEditor.py",
+      "bytes": 29178,
+      "sha256": "fff52991d26f3d98bd6c2d5511fabc2a5fdb02672dd0c4ba8feb37b4a4da3ed6"
+    },
+    {
+      "path": "Tools/Editor/README.md",
+      "bytes": 12811,
+      "sha256": "d5a610159d6226cf6482297684a6990141d45ca1513696708318e1c2a13d486e"
+    },
+    {
+      "path": "Tools/Editor/tests/test_windows_package.py",
+      "bytes": 10852,
+      "sha256": "b8b2cea51bc92ad50f4dcce64adc730ddd896139cacba73626825f43fe24357c"
+    }
+  ],
+  "evidence_files": [
+    {
+      "path": "build/editor-workflow-native/ed-wf05-live-script-build.log",
+      "bytes": 7264,
+      "sha256": "e654e8467e16b625674a6bf07f61573f8bbc2b1da1d8a59e897c4835a9896548"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-live-script-build-exit.json",
+      "bytes": 24,
+      "sha256": "75876e0e3f497cad271143ba85bd4f36569cd81195509043f860dab14265b716"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-live-script-test.log",
+      "bytes": 5807,
+      "sha256": "de074262da593c1e47713a2816514fe40e26fb253e6183b6f4aaa93eb84d568e"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-live-script-test-exit.json",
+      "bytes": 24,
+      "sha256": "75876e0e3f497cad271143ba85bd4f36569cd81195509043f860dab14265b716"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-live-script-reviewed-build.log",
+      "bytes": 4507,
+      "sha256": "54dd1368f1fa32d21661e5a2ece32ce8f5935ac88cd1ea59ddd32c89a7d8a0cf"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-live-script-reviewed-build-exit.json",
+      "bytes": 24,
+      "sha256": "75876e0e3f497cad271143ba85bd4f36569cd81195509043f860dab14265b716"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-live-script-reviewed-compiler-test.log",
+      "bytes": 1645,
+      "sha256": "d1aacd555964298d0ea62574b82e98cec4cea4b1cb1f27fe8fad556d45465dcb"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-live-script-reviewed-compiler-test-exit.json",
+      "bytes": 24,
+      "sha256": "75876e0e3f497cad271143ba85bd4f36569cd81195509043f860dab14265b716"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-live-package-unit-reviewed.log",
+      "bytes": 1489,
+      "sha256": "dfcda36568fffc9df9600f12a10335eb7d88e46a795c5884063f97444026f8bd"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-live-script-native-reviewed-smoke.log",
+      "bytes": 1459,
+      "sha256": "9d626af224327285625b0a24b3bddef7d9c5333388224906e784d2a936e65fe4"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-live-script-native-reviewed-smoke-exit.json",
+      "bytes": 24,
+      "sha256": "75876e0e3f497cad271143ba85bd4f36569cd81195509043f860dab14265b716"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-live-script-native-reviewed-smoke/receipt.json",
+      "bytes": 1693,
+      "sha256": "19a61c603f6fa92d5669c43b606f4e45ad3a1d44dea9197dc835935b5cdf8e60"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-live-script-native-reviewed-smoke/stderr.log",
+      "bytes": 8903,
+      "sha256": "e754097deddf8e137a3b2a77baefa6cfdb30ef9cf83cbefc395df8908e06be99"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-live-script-native-32.log",
+      "bytes": 13373,
+      "sha256": "d498a1c61d4912f79b28ac73c4ccff4088d6f173c5777dde3635bca66d8c9b98"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-live-script-native-32-exit.json",
+      "bytes": 24,
+      "sha256": "50d7caf03dd967e4363a5bc7babbf450452b31dd1ec7fb605b2abc6465759571"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-live-script-native-32/stderr.log",
+      "bytes": 100388,
+      "sha256": "9b9d87c7edfa08a0f242a21d8b4b10892661e15fe5b25298bf9989b845c7d261"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-live-script-native-32/source-start.json",
+      "bytes": 1995,
+      "sha256": "aa67123c7490cd58b5a99e3c988481c21b0d4873f122ccc822307bb8cfed7085"
+    }
+  ],
+  "binaries": [
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraEditor.exe",
+      "bytes": 2739200,
+      "sha256": "b5fa2fef5b760818a6e137d82b8d3666e9061b661ecbb14986758a47a3c60c44"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraEditorCore.dll",
+      "bytes": 6549504,
+      "sha256": "8afa0c78c8ced996352ce990709e557272c6773af7ec44a1eadefbc8e89283e1"
+    }
+  ],
+  "commands": {
+    "build": [
+      "cmake --build build/editor-workflow-native --config Development --target NexoraEditor NexoraGameScriptBuildTests NexoraGameScriptCompilerTests --parallel 2",
+      "cmake --build build/editor-workflow-native --config Development --target NexoraEditor NexoraGameScriptCompilerTests --parallel 2"
+    ],
+    "tests": [
+      "ctest --test-dir build/editor-workflow-native -C Development --output-on-failure -V -R ^editor\\.(game_script_compiler|game_script_build|game_build)$",
+      "ctest --test-dir build/editor-workflow-native -C Development --output-on-failure -V -R ^editor\\.game_script_compiler$",
+      "python -m unittest discover -s Tools/Editor/tests -v",
+      "python Tests/Editor/WindowsScriptReload.py --editor build/editor-workflow-native/bin/Development/NexoraEditor.exe --evidence-dir build/editor-workflow-native/ed-wf05-live-script-native-reviewed-smoke --cycles 1"
+    ],
+    "execution_note": "Native GUI/child-tool cases used the authorized elevated execution context. CMake/CTest executable selected from the local Visual Studio CMake installation; exact invocations and real exit records are retained locally."
+  }
+}

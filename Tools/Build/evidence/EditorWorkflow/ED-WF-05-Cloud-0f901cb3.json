@@ -1,0 +1,70 @@
+{
+  "status": "FAIL",
+  "head": "0f901cb3a70c30445382f7b155e49c5bb6f0b1a5",
+  "tree": "b1f76539b7b4e0d844b7a5a9d076ea51c0b88ead",
+  "source": "Existing authorized Codex Cloud task final report and read-only diagnosis; original artifacts unchanged.",
+  "gates": [
+    {
+      "name": "development-configure",
+      "exit": 0,
+      "seconds": 10.147
+    },
+    {
+      "name": "development-build",
+      "exit": 0,
+      "seconds": 680.085
+    },
+    {
+      "name": "development-ctest",
+      "exit": 8,
+      "seconds": 3682.012
+    },
+    {
+      "name": "shipping-configure",
+      "exit": 0,
+      "seconds": 2.265
+    },
+    {
+      "name": "shipping-build",
+      "exit": 0,
+      "seconds": 175.507
+    }
+  ],
+  "tests": {
+    "registered": 499,
+    "passed": 498,
+    "failed": 1,
+    "skipped": 0,
+    "retries": 0,
+    "failed_case": "editor.linux_native_play_pointer_buttons",
+    "case_seconds": 3.78234,
+    "case_numeric_exit": "NOT_RECORDED_SEPARATELY",
+    "observation": "button2 press reached consumer; frame59..66 admitted; no neutral or later draws within original0.15s release interval; no root cause proved"
+  },
+  "archive": {
+    "path": "/workspace/validation-editor-transaction-evidence.tar.gz",
+    "bytes": 532675,
+    "sha256": "fc0ff88d8377596db13c37ef5b9ba29dac33cbaaa583c06476822412565de771"
+  },
+  "postflight": {
+    "source_clean": true,
+    "oom_kills": 0,
+    "residual_validation_processes": 0,
+    "older_archives_unchanged": true
+  },
+  "shipping": {
+    "editor": false,
+    "testing": false
+  },
+  "acceptance": {
+    "work_orders": 4,
+    "total": 9,
+    "editor_milestones": 0,
+    "total_editor_milestones": 8
+  },
+  "limits": [
+    "Linux software Vulkan/Xvfb only",
+    "No Windows/macOS/device acceptance from this result",
+    "Single-case diagnostics cannot replace failed full gate"
+  ]
+}

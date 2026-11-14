@@ -87,6 +87,30 @@ they retain no ImGui/model pointer and neither execute actions nor grant authori
 authority. Native fixtures still send real X11 input and check independent pixels, values, files
 and access rejection. See the [application observer contract](../../Apps/Editor/README.md#native-project-and-asset-workflow-acceptance).
 
+## Main Sprite source creation
+
+An imported Atlas's Content context menu opens **Create Sprite source**. The modal owns only copied
+project/root/version, folder, Atlas label and up to 1024 region records, plus name, original size,
+top-left trim origin, bottom-left pixel Pivot and PPU drafts. Trim size follows the selected stable
+region ID; borders default to zero. It retains no model/Atlas-pixel borrow and performs no file IO.
+One explicit Create emits an owning request; the application repeats authority and publishes the
+new file/import outside Draw. Failure keeps the draft; a created file dismisses it with Content
+feedback even when later import fails. Cancel has no authoring effect. Source edits/Atlas slicing
+are separate work.
+
+Creation requires the current writable, focused, idle project/Content and stopped Play. Scope
+loss discards the draft; revision changes disable it until reopened. Recovery, concurrent file or
+build work, unsafe names and invalid geometry reject. The modal blocks global Scene/Play shortcuts.
+Success never resets the Content view/history.
+Names still retained by Content Undo reject before any new file is created. The authoring owner
+reconciles cached asset paths from current Content, so released names import immediately after
+rename/move. Native acceptance exercises actual renames, reserved-name rejection and name reuse.
+Private test access copies visible widget bounds,
+including disabled controls, and status text; it supplies no queue-injection or write capability.
+`editor.sprite_source_creation_ui` drives actual 1x/2x controls; the native X11 flow creates,
+immediately assigns, inspects, saves and reopens the generated UUID in a byte-identical read-only
+project. See the [file/import contract](../Editor/README.md#new-main-project-sprite-source-files).
+
 ## Main Sprite source Inspector
 
 With `NEXORA_HAS_2D`, the main Inspector selects imported Sprite source UUIDs and clears supported
@@ -853,7 +877,16 @@ inclusion requests coverage; actual missing members are retained from `FindGlyph
 The generated Traditional set still requires its conditional Windows CP950 exact-set comparison.
 
 `NEXORA_EDITOR_FONT_PATHS` precedes bounded host defaults (colon-separated on POSIX;
-semicolon-separated on Windows). Native Unicode filesystem reads own the source data. The
+semicolon-separated on Windows). Native Unicode filesystem reads own the source data. Windows
+host-default system fonts use owned read-only file mappings instead of eagerly copying each
+whole TTC before inspection. The opened file's size must match the bounded admission size;
+in-place writes/truncation are excluded for the mapping lifetime. Delete sharing permits atomic
+replacement/retirement while the old mapped object remains valid. The plan retains the file,
+mapping and view through every DPI rebuild, and releases them together. A mapping/open/size failure
+rejects that candidate through the existing fallback policy. Explicit configured/test sources
+retain owning byte copies by default, including their existing source-removal behavior; POSIX
+reads are unchanged. The pinned ImGui still makes its own admitted per-atlas input copies.
+The 64 MiB source cap counts logical mapped bytes as well as copied bytes, not just heap storage. The
 ordinary process plan is cached on first use; restart to change configuration. Linux/macOS use
 finite installed-font locations. Noto CJK TTC selection checks the TC family name and actual
 outline coverage, instead of assuming face 0 or treating an index as evidence. A TTC's 10 faces
@@ -886,6 +919,13 @@ there is no new GUI font-selection/status flow.
 Coverage subtraction uses actual `FindGlyphNoFallback` results from a process-once independent
 default atlas; it does not assume every scalar in U+0020–U+00FF exists. Reported probe timing
 includes the first baseline-atlas build.
+
+With `NEXORA_EDITOR_FONT_DIAGNOSTICS` enabled, font preparation also flushes bounded stage
+checkpoints for profile/default coverage, the installed-plan cache lock, candidate reads,
+face inspection, outline probes and atlas construction. They contain candidate/face indices
+and monotonic timestamps, never font paths or family names. The Windows startup integration
+gate enables these diagnostics to retain the last reached stage on its original deadline;
+the diagnostic does not change glyph admission, fallback, atlas limits or readiness policy.
 
 `editor.font_glyphs` passed in 0.21 s after baseline correction. Its original geometric
 TrueType/CFF fixtures exercise real non-fallback lookup, ink/UV, missing glyphs, DPI round trips,

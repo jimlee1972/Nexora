@@ -1,0 +1,467 @@
+{
+  "status": "WINDOWS_EXTRACTED_PACKAGE_NATIVE_PASS_FULL_CLOUD_AND_SPRITE_PENDING",
+  "validated_head": "885693dbabdc89bcffba3b6946599311b1766021",
+  "validated_tree": "fcd905d3d7bc9de5af3ab5a8dd4ef43ed8dfdc69",
+  "run": 41669225273,
+  "job": 126032772935,
+  "job_url": "https://github.com/jimlee1972/Nexora/actions/runs/41669225273/job/126032772935",
+  "artifact": {
+    "id": 13250513746,
+    "bytes": 110328976,
+    "sha256": "cad20b2ca9b41999b2f10a7ec489fa1f2631796a059a59c4eb80dc4c8606f292",
+    "crc": "PASS",
+    "entries": 138
+  },
+  "editor_zip": {
+    "filename": "NexoraEditor-Windows-x64-885693dbabdc.zip",
+    "bytes": 115873602,
+    "sha256": "681977f79311ccf4b937a6cd9bf2c445863b08c2a5648635a6a9491d3c6ab66b",
+    "crc": "PASS",
+    "entries": 23783,
+    "inventory_payload_hashes_verified": 22697,
+    "public_root_executables": [
+      "NexoraEditor.exe"
+    ],
+    "source_checkout_present": false
+  },
+  "native_receipts": {
+    "result.json": {
+      "status": "PASS",
+      "platform": "Windows native process",
+      "editor_subsystem": "Windows GUI (2)",
+      "console_attached": false,
+      "game_build": true,
+      "extracted_editor_play": true,
+      "no_argument_startup": true,
+      "no_argument_game": true,
+      "physical_host_acceptance": "NOT_RUN"
+    },
+    "script-reload/receipt.json": {
+      "status": "PASS",
+      "cycles": 32,
+      "full_32_cycle_gate": true,
+      "actual_ctrl_p": true,
+      "preserved_mtime_edits": true,
+      "sequence": [
+        {
+          "version": 0,
+          "counter": 0,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 1,
+          "counter": 1044,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 2,
+          "counter": 2071,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 3,
+          "counter": 3077,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 4,
+          "counter": 4126,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 5,
+          "counter": 5118,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 6,
+          "counter": 6143,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 7,
+          "counter": 7135,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 8,
+          "counter": 8110,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 9,
+          "counter": 9136,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 10,
+          "counter": 10160,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 11,
+          "counter": 11179,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 12,
+          "counter": 12201,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 13,
+          "counter": 13229,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 14,
+          "counter": 14247,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 15,
+          "counter": 15260,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 16,
+          "counter": 16279,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 17,
+          "counter": 17292,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 18,
+          "counter": 18315,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 19,
+          "counter": 19331,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 20,
+          "counter": 20396,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 21,
+          "counter": 21349,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 22,
+          "counter": 22320,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 23,
+          "counter": 23368,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 24,
+          "counter": 24400,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 25,
+          "counter": 25407,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 26,
+          "counter": 26447,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 27,
+          "counter": 27443,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 28,
+          "counter": 28468,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 29,
+          "counter": 29472,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 30,
+          "counter": 30532,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 31,
+          "counter": 31505,
+          "scene": 1,
+          "entity": 4
+        },
+        {
+          "version": 32,
+          "counter": 32570,
+          "scene": 1,
+          "entity": 4
+        }
+      ],
+      "stop_cancelled_real_compilation": true,
+      "exit": 0,
+      "observed_children_terminated": [
+        {
+          "pid": 8452,
+          "name": "cmake.exe"
+        },
+        {
+          "pid": 1636,
+          "name": "conhost.exe"
+        },
+        {
+          "pid": 4212,
+          "name": "ninja.exe"
+        },
+        {
+          "pid": 7996,
+          "name": "cmd.exe"
+        }
+      ],
+      "remaining_owned_job_processes": 0,
+      "active_generation_before_faults": 33,
+      "faults": [
+        {
+          "kind": "compile",
+          "candidate_version": 33,
+          "generation": 33,
+          "counter": 33180,
+          "scene": 1,
+          "entity": 4,
+          "rejected": true,
+          "old_dispatch_continued": true,
+          "diagnostic": "Game build tool failed: Build process returned a nonzero exit code."
+        },
+        {
+          "kind": "restore",
+          "candidate_version": 34,
+          "generation": 33,
+          "counter": 34260,
+          "scene": 1,
+          "entity": 4,
+          "rejected": true,
+          "old_dispatch_continued": true,
+          "diagnostic": "Gameplay replacement rejected; the previous module and state remain active."
+        },
+        {
+          "kind": "initialize",
+          "candidate_version": 35,
+          "generation": 33,
+          "counter": 35280,
+          "scene": 1,
+          "entity": 4,
+          "rejected": true,
+          "old_dispatch_continued": true,
+          "diagnostic": "Gameplay replacement rejected; the previous module and state remain active."
+        },
+        {
+          "kind": "start",
+          "candidate_version": 36,
+          "generation": 33,
+          "counter": 36300,
+          "scene": 1,
+          "entity": 4,
+          "rejected": true,
+          "old_dispatch_continued": true,
+          "diagnostic": "Gameplay replacement rejected; the previous module and state remain active."
+        }
+      ],
+      "recovery": {
+        "version": 40,
+        "counter": 37300,
+        "scene": 1,
+        "entity": 4,
+        "committed": true
+      },
+      "authored_baseline": {
+        "Excluded.scene": "5c50c63f615684c28268bb0e736ffb4c27388a67e5008a2889c3b53aafc4e061",
+        "Level01.scene": "49ca8de2ef770c25445b5f4357ab6065654054c929bc63a1628e294e3d517211",
+        "project.build.json": "b4cd497b0b4ae2463c812d93f1a0f81ee51d85d2d36aee0cdce057eab0fd07a4",
+        "project.nexora": "079018cbbb4a61fb266aea7b4e744497cd61ce12b1e69358ecd8d90a702fe83c",
+        "Title.scene": "058d6d5d7495816007a7523e29296dbdce03832a2bbbd0e5cdff79f0f7b3e094",
+        "Content\\Paint.nmaterial": "91c57536ce43d3a90a02be96260eb789dd6efc612e51071fe7845c147968ea6f",
+        "Content\\Paint.nmaterial.meta": "d3a36cbe1985ac7619609a39c12dcde4da1310e1230c459f14a1a0f0e658d1e5",
+        "Content\\Triangle.obj": "69244b0e9ea7fe99d8845a10adc8e413b96606635216764bf42953a533f951b9",
+        "Content\\Triangle.obj.meta": "af18e903de89c794cc8c2770701f1922027e1dbd20efa1a127548f9b752b560b",
+        "Scripts\\project.json": "6601072844cef3d1ef89de304166377b39818cd911972fd655d600c9b8a23222"
+      },
+      "scope": "Windows native Editor configured 3D Play; no Sprite/device acceptance"
+    },
+    "no-argument-startup/result.json": {
+      "status": "PASS",
+      "launches": [
+        {
+          "argv": [],
+          "normal_recent_store": true,
+          "events": [
+            "splash-show",
+            "main-create-observed",
+            "main-show"
+          ],
+          "splash_responsive_probes": 522,
+          "main_responsive": true,
+          "foreground_input": true,
+          "white_fraction": 0.0,
+          "normal_close_exit": 0,
+          "orphan_windows": false
+        },
+        {
+          "argv": [],
+          "normal_recent_store": true,
+          "events": [
+            "splash-show",
+            "main-create-observed",
+            "main-show"
+          ],
+          "splash_responsive_probes": 500,
+          "main_responsive": true,
+          "foreground_input": true,
+          "white_fraction": 0.0,
+          "normal_close_exit": 0,
+          "orphan_windows": false
+        }
+      ],
+      "startup_timeout_seconds": 35,
+      "message_timeout_ms": 500,
+      "shutdown_timeout_seconds": 10
+    },
+    "no-argument-game/result.json": {
+      "status": "PASS",
+      "argv": [],
+      "creationflags": 0,
+      "subsystem": 2,
+      "private_player_matches": true,
+      "standard_handles_absent": false,
+      "console_attached": false,
+      "response_probes": 3,
+      "window_observations": [
+        {
+          "pid": 1076,
+          "class": "Nexora.Window",
+          "visible_windows": 1
+        }
+      ],
+      "child_processes": [],
+      "normal_close_exit": 0,
+      "runtime": {
+        "status": "RENDERED_GAME_PACKAGE",
+        "native_rendering": true,
+        "start_scene": "00000000-0000-0001-0000-000000000002",
+        "active_scene": "00000000-0000-0001-0000-000000000002",
+        "camera": "2",
+        "gameplay_loaded": true,
+        "gameplay_updates": 7,
+        "scene_commits": 1,
+        "rejected_requests": 0,
+        "scene_records": 1,
+        "instances": 1,
+        "stored_entities": 2,
+        "presented_frames": 8,
+        "scene_draw_calls": 8,
+        "geometry_residency_available": true,
+        "geometry_uploads": 1,
+        "geometry_hits": 7,
+        "geometry_native_bytes": 65536,
+        "geometry_cpu_bytes": 150,
+        "scene_texture_uploads": 3,
+        "software_rasterizer": false,
+        "drained": true
+      }
+    },
+    "no-argument-game-no-streams/result.json": {
+      "status": "PASS",
+      "argv": [],
+      "creationflags": 0,
+      "subsystem": 2,
+      "private_player_matches": true,
+      "standard_handles_absent": true,
+      "console_attached": "entry separately verified",
+      "response_probes": 19,
+      "window_observations": [
+        {
+          "pid": 1428,
+          "class": "Nexora.Window",
+          "visible_windows": 1
+        }
+      ],
+      "child_processes": [],
+      "normal_close_exit": 0,
+      "runtime": {}
+    }
+  },
+  "raw_receipt_hashes": [
+    {
+      "archive_entry": "editor-delivery/verification/extracted/result.json",
+      "sha256": "9e96e32dd93bd21cf95f472bb467ce1c096034b54e3c6d410910c12c201ed960"
+    },
+    {
+      "archive_entry": "editor-delivery/verification/extracted/script-reload/receipt.json",
+      "sha256": "95f5e5bcd2d9263eb83342413315cb4d83f2316e0b823608e6d245f53ca0f627"
+    },
+    {
+      "archive_entry": "editor-delivery/verification/extracted/no-argument-startup/result.json",
+      "sha256": "dbbf878a46acab8a55a5db2e1c8f29c649a7822638be8afa94a8d72cfbc8ae21"
+    },
+    {
+      "archive_entry": "editor-delivery/verification/extracted/no-argument-game/result.json",
+      "sha256": "9915cd5081ca6817f276dfdd83481f20f40889a607da179d7750db861f40315a"
+    },
+    {
+      "archive_entry": "editor-delivery/verification/extracted/no-argument-game-no-streams/result.json",
+      "sha256": "1790df308522d990711e3546443b3b5c752efd05d3a9045a49c2c77f15d01470"
+    }
+  ],
+  "scope": [
+    "GitHub-hosted Windows native Editor/DX12, not physical clean-host acceptance",
+    "Actual extracted ZIP relocated to a separate directory/working directory and compiled/ran a source-free game",
+    "No-argument splash/Ready responsiveness/order/nonwhite/normal-close checks pass twice",
+    "32 actual equal-mtime source edits preserve Scene1/entity4 and increasing counter0->32570; four real rejected candidates keep generation33 dispatching; valid recovery reaches37300",
+    "Actual Stop cancels observed SDK child processes; owning Job has0 processes and Editor exits0",
+    "Logo/startup, GUI subsystem and root executable inventory covered by package admission",
+    "Full Codex Cloud/Shipping/all exact-head CI and Sprite work orders06-09 remain pending;4/9 and Editor0/8 unchanged"
+  ]
+}

@@ -7,7 +7,7 @@ trusted host toolchain and physical temporary parent outside the authored projec
 materializes the canonical embedded SDK in a private operation; no scene capture/cooking or engine
 checkout is required. Game Build uses this same entry with its remaining combined byte/file budget,
 then carries the script baselines into its existing final publication guard and external records.
-There is one CMake/Zig compiler path for installed Build and future Editor Play coordination.
+There is one CMake/Zig compiler path for installed Build and Editor Play coordination.
 Game publication staging retains its output-filesystem ownership for atomic replacement. If that
 staging is inside the authored project, its nested script compiler instead uses the canonical system
 temporary directory and copies the verified library back; compiler sources/tools stay outside the project.
@@ -23,7 +23,20 @@ Preparation is synchronous worker work with owning progress/diagnostic values an
 It uses the existing managed process runner and independent one-worker job pool, with cancellation
 and drain before private cleanup. Ordinary filesystem/allocation/progress-observer exceptions retain
 the existing propagation contract. Publication, source/project/Play epoch admission and strict Runtime
-World/service transaction ownership remain the Editor's responsibility; that integration is pending.
+World/service transaction ownership remain the Editor's responsibility. The main LiveGameScript owner
+now coordinates those boundaries; native workflow and immutable-head acceptance remain required.
+
+`ObserveGameScriptSources` is an owning read-only worker API using the same canonical subtree
+selector as compilation. It detects same-size/time edits, additions, removals and renames by sorted
+relative paths, size and FNV content fingerprints. It also observes the project descriptor and saved
+build settings (including absence for SDK-only callers). Script files are bounded by the request
+file/byte limits (at most 16384 files and 256 MiB); the two descriptor observations share the byte
+budget and have individual 256 KiB limits. Recursive enumeration admits at most 32768 visited
+entries, including directories, so empty directory trees cannot grow unbounded. Zig/cache/Git
+subtrees remain excluded. Enumeration and per-file reads check cooperative cancellation between
+entries. Inventory is checked again after observation. Concurrent edit snapshots are not publication
+capabilities: the main owner must still recheck prepared bytes/artifact and project/Play/source keys.
+No compiler, workspace borrow, source write or World access occurs in observation.
 
 ## Game capture and publication
 
@@ -46,6 +59,19 @@ dedicated project-relative script source directory. No configured script is sile
 The entire bounded source subtree is frozen, excluding `.git`, `.zig-cache` and `zig-out`; file
 additions/removals and byte changes reject final publication. Compilation consumes that snapshot
 through the canonical `nexora_add_game_module` CMake/Zig adapter and runs its entry/authored tests.
+On Windows/Linux this invokes Zig's compiler directly on the canonical SDK roots, avoiding
+per-snapshot build-runner bootstrap. Library modules keep ReleaseSafe, entry/authored tests
+keep Debug, the Windows target remains MSVC and compiler-rt remains bundled. A failing authored
+test rejects preparation even if library compilation succeeded. SDK/caches remain private and
+owned exactly as before; no cross-project compiler state or authored build glue is introduced.
+The Windows/Linux Ninja command remains short and runs a private generated CMake script, rather
+than joining expanded compiler/test commands into a code-page-sensitive Windows batch file.
+Delimiter-safe bracket literals preserve native argv data (including Unicode and shell characters)
+without variable/shell reinterpretation. `execute_process` runs library, entry tests and authored
+tests in order; a nonzero or launch error stops before the original stdout success marker.
+Each step has the original private cache/CWD, and descendants remain inside the existing managed
+process cancellation/drain boundary. The generated script is private binary-directory state,
+outside authored input and published game inventories. The macOS host-linker branch is unchanged.
 SDK glue is embedded as data in EditorCore from canonical configure dependencies, materialized
 only in the private build operation. No engine checkout is required at runtime or in a game output.
 Configured CMake/Ninja/Zig executables and authored script tests are authorized code, not sandboxed;

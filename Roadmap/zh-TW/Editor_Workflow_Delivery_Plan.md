@@ -71,6 +71,10 @@ PR #762 首版 Linux CI 在 runner 改為 Ubuntu 26／GNU 15.2 後未通過：�
 [原生輸入修正](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Input-CI-Failure.md)
 改用已驗證的 X11 實體功能鍵代碼，保留全部 Runtime／畫面／期限斷言；仍須重跑修正版原生與
 完整 gate，不增加已驗收數。
+PR #762 已合併為 `f7537be874d8`，tree 與 `d093841b` 相同。
+[Cloud 收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Cloud-d093841b.json)記錄496/496
+及五個 gate 均 exit0；[CI 清單](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-CI-d093841b.json)
+記錄41項成功檢查／三個 workflow。此基礎修正不代表 ED-WF-05 已驗收，完成度維持4/9。
 [ED-WF-02 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02.md)及[雲端收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02-Cloud.json)記錄已驗收的 PR #754：42 項 CI 成功、雲端 490/490 與 Shipping 建置通過，保留初次環境／本機畫面擷取失敗。Beads 已安全採用既有歷史並恢復同步；Epic `nexora-whr` 與 `.1`～`.9` 對應連結的 GitHub 工單。
 已驗收的 [ED-WF-03 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03.md)、[雲端收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03-Cloud.json)及[CI 清單](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03-CI.json)記錄 PR #756：原生 GUI／核心通過、雲端 490/490 與 Shipping、42 項 CI 全數通過，且合併 tree 相同。ED-WF-04 已由 PR #758 驗收。
 已驗收的 [ED-WF-04 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04.md)、
@@ -215,6 +219,22 @@ Linux X11 驗證非對稱數值、實際呈現畫面、精確 Undo／Redo／儲�
 交付仍須確切提交的 hosted CI。見[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceDetails-Linux-2026-11-14.md)。
 工作流程 **5/9**、Editor **0/8**、TwoD **9/11** 不變；完整 ED-WF-07／08、正式動畫／重載與實體／
 乾淨主機驗收仍開放。獨立 Clip 目錄工作由 PR #786 負責。
+
+### ✅ 主 Editor Sprite 來源建立（2026-11-14）
+
+支援工作 `nexora-whr.7.11` 透過實際 Content 右鍵選單與擁有草稿的對話框，從已匯入 Atlas 區域
+建立新的標準來源。使用者可設定原始尺寸、左上起算裁切、左下起算像素 Pivot 與 PPU；裁切尺寸
+依穩定區域 ID 決定，邊框初始為零。編輯擁有者排他發布新的 UUID／檔案，只匯入該已儲存來源，
+保留既有 Content 檢視與歷史。Undo 保留的名稱與大小寫別名在寫入前拒絕；重新命名／移動後已釋放
+的路徑會依目前 Content 校正索引並立即匯入。範圍／版本、焦點、寫入權限／復原、停止 Play、忙碌狀態、名稱、
+幾何、容量及目的地身分均限制寫入；GUI 繪製不新增檔案 IO。已建立但匯入失敗，以及發布不確定
+的結果保持區別。實際 1×／2× 控制與原生 X11 建立／匯入／指派／檢視／儲存／唯讀重開通過，
+產生的 UUID／metadata 正確，既有資產不變，唯讀專案所有檔案逐位元相同。
+完整 Linux **516/516**、Shipping Full、實際 TwoD-OFF／testing-OFF Editor／原生 Player，
+以及圖形 Monolithic 控制／原生 gates 通過；交付仍須確切提交的 hosted CI。
+見[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceCreation-Linux-2026-11-14.md)。
+工作流程 **5/9**、Editor **0/8**、TwoD **9/11** 不變，完整 ED-WF-07／08 仍開放。
+既有來源編輯、Atlas 切片、正式動畫／重載與實體驗收仍為獨立工作；保留其他擁有者的 Clip／重載任務。
 
 ## ✅ Studio source 文件持久化（2026-11-13）
 

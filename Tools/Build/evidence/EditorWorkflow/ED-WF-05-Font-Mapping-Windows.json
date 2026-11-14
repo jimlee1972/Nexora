@@ -1,0 +1,268 @@
+{
+  "schema": "nexora.editor.workflow.font-mapping.v1",
+  "base_commit": "cc282e0dbce6540e4028adf2d6362a2db6470465",
+  "base_tree": "750aa5610ae4dc15ff296cdb606b68a3b4d0ade7",
+  "status": "SCOPED_WINDOWS_PASS_FULL_ACCEPTANCE_PENDING",
+  "failed_ci": {
+    "run": 41858203077,
+    "job": 126672486717,
+    "artifact_id": 13338144021,
+    "artifact": {
+      "path": "build/editor-workflow-native/pr763-cc282e-package-failure.zip",
+      "bytes": 26421,
+      "sha256": "ead45c7f3106c4286e1860d21f4f926e5b9a02c45a3da1a6db6d4c5fb72ecc32"
+    },
+    "artifact_crc": "PASS",
+    "startup_case": "FAIL 37.54s, original readiness deadline35s; splash responsive, main hidden",
+    "first_source_read_seconds": 23.668898,
+    "last_phase": {
+      "phase": "source-read-begin",
+      "candidate": 2,
+      "face": -1,
+      "monotonic_us": 702328660
+    },
+    "checkpoints": [
+      {
+        "phase": "display-fonts-begin",
+        "candidate": 0,
+        "face": -1,
+        "monotonic_us": 678444154
+      },
+      {
+        "phase": "profile-begin",
+        "candidate": 0,
+        "face": -1,
+        "monotonic_us": 678444804
+      },
+      {
+        "phase": "profile-end",
+        "candidate": 0,
+        "face": -1,
+        "monotonic_us": 678450670
+      },
+      {
+        "phase": "plan-cache-lock-begin",
+        "candidate": 0,
+        "face": -1,
+        "monotonic_us": 678450696
+      },
+      {
+        "phase": "plan-cache-lock-end",
+        "candidate": 0,
+        "face": -1,
+        "monotonic_us": 678450710
+      },
+      {
+        "phase": "default-coverage-begin",
+        "candidate": 0,
+        "face": -1,
+        "monotonic_us": 678450914
+      },
+      {
+        "phase": "default-coverage-end",
+        "candidate": 0,
+        "face": -1,
+        "monotonic_us": 678455047
+      },
+      {
+        "phase": "source-begin",
+        "candidate": 1,
+        "face": -1,
+        "monotonic_us": 678455262
+      },
+      {
+        "phase": "source-read-begin",
+        "candidate": 1,
+        "face": -1,
+        "monotonic_us": 678461601
+      },
+      {
+        "phase": "source-read-end",
+        "candidate": 1,
+        "face": -1,
+        "monotonic_us": 702130499
+      },
+      {
+        "phase": "face-inspection-end",
+        "candidate": 1,
+        "face": -1,
+        "monotonic_us": 702246776
+      },
+      {
+        "phase": "outline-begin",
+        "candidate": 1,
+        "face": 0,
+        "monotonic_us": 702246810
+      },
+      {
+        "phase": "outline-end",
+        "candidate": 1,
+        "face": 0,
+        "monotonic_us": 702323609
+      },
+      {
+        "phase": "source-begin",
+        "candidate": 2,
+        "face": -1,
+        "monotonic_us": 702323936
+      },
+      {
+        "phase": "source-read-begin",
+        "candidate": 2,
+        "face": -1,
+        "monotonic_us": 702328660
+      }
+    ],
+    "cause_boundary": "Eager source-file read dominates this observation. Cache lock/default coverage/first-face inspection and outline return. Underlying filesystem delay is not established."
+  },
+  "implementation": {
+    "windows_defaults": "Owned read-only mappings with open-object size recheck and write/truncation exclusion; delete sharing permits old-object retirement. Views/handles retained through plan/DPI lifetime.",
+    "other_sources": "Explicit configured/test sources default to original owning copies. POSIX still reads owning copies.",
+    "limits": "Original16 candidates/4 faces/32MiB per file/64MiB logical admitted bytes/8192 scalars/4096-square atlas; unchanged.",
+    "imgui": "Pinned ImGui still copies admitted per-atlas input; this does not claim zero-copy rasterization."
+  },
+  "validation": {
+    "commands": [
+      "cmake --build build/editor-workflow-native --config Development --target NexoraEditor NexoraFontGlyphTests --parallel 2",
+      "cmake --build build/editor-workflow-native --config Development --target NexoraFontGlyphTests --parallel 2",
+      "ctest --test-dir build/editor-workflow-native -C Development -R ^editor.font_glyphs$ -V (font diagnostics enabled)",
+      "NexoraFontGlyphTests.exe --system-compare (font diagnostics enabled)"
+    ],
+    "build": {
+      "log": "C:\\Users\\Jim-PC\\.codex\\worktrees\\editor-workflow\\Nexora\\build\\editor-workflow-native\\ed-wf05-font-mapping-build.log",
+      "seconds": 107.7102787,
+      "exit_code": 0
+    },
+    "final_test_build": {
+      "exit_code": 0,
+      "log": "C:\\Users\\Jim-PC\\.codex\\worktrees\\editor-workflow\\Nexora\\build\\editor-workflow-native\\ed-wf05-font-parity-build.log",
+      "seconds": 45.3295716
+    },
+    "unit_test": {
+      "command": "ctest --test-dir build/editor-workflow-native -C Development -R ^editor.font_glyphs$ -V",
+      "seconds": 3.4316933,
+      "exit_code": 0,
+      "log": "C:\\Users\\Jim-PC\\.codex\\worktrees\\editor-workflow\\Nexora\\build\\editor-workflow-native\\ed-wf05-font-mapping-tests.log"
+    },
+    "real_system_comparison": {
+      "scope": "Headless local Windows actual-system mapped versus copied full-profile raster comparison; no GUI/cold-host acceptance",
+      "exit_code": 0,
+      "command": "NexoraFontGlyphTests.exe --system-compare",
+      "seconds": 6.2817311
+    },
+    "system_parity": "7182 profile scalars: present/UV/ink/raster hash identical, missing/faces/families/atlas extent identical between mapped defaults and original owning-copy reads.",
+    "system_profile": 7182,
+    "system_missing": 35,
+    "system_owned_logical_bytes": 45633620,
+    "system_atlas": "4096x256",
+    "lifetime_regression": "Writable-source rejection; live write/truncation exclusion; Unicode source rename/delete and DPI2->1 rebuild retaining original glyph raster."
+  },
+  "sources": [
+    {
+      "path": "Engine/EditorImGui/src/EditorSystemFont.h",
+      "bytes": 2948,
+      "sha256": "ee24b9964fe0b916c01eab4d24e837862896fb22596a3b45564d3789db4b807e"
+    },
+    {
+      "path": "Engine/EditorImGui/src/EditorSystemFont.cpp",
+      "bytes": 16187,
+      "sha256": "4286e3b7cbf56d2479f2d85d8e9f4576d85da5365a55bc5920d19824213e8703"
+    },
+    {
+      "path": "Engine/EditorImGui/src/EditorImGui.cpp",
+      "bytes": 532981,
+      "sha256": "95b04f158c1faf1006c794cb27758f14bfd74c95f4e69840a24539d2bd3a2ca9"
+    },
+    {
+      "path": "Engine/EditorImGui/src/EditorImGuiTestAccess.h",
+      "bytes": 32215,
+      "sha256": "bc3453deeb7ef42fdfa45f3ac09a71acdd37777d5fa12183acab0067e3c151fc"
+    },
+    {
+      "path": "Tests/EditorImGui/FontGlyphTests.cpp",
+      "bytes": 15616,
+      "sha256": "aa586fe81ee9db120e2c7dcae4d981a8e0cb288fbc4156834def11d6339bfb9b"
+    }
+  ],
+  "logs": [
+    {
+      "path": "build/editor-workflow-native/ed-wf05-font-mapping-build.log",
+      "bytes": 5172,
+      "sha256": "4a4319de21b1c2ed1625a9db71e3ce0834fbe45c7b21cfceb9706b3cde9cfa8f"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-font-mapping-build-exit.json",
+      "bytes": 189,
+      "sha256": "af0245c9a7172a64d8b0edbbacf8fb115c3f4b7f9835ead4780b951e3655066b"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-font-parity-build.log",
+      "bytes": 2050,
+      "sha256": "65f34fc41b3ba808238f09ed6df3e4d6c92270a6bd9f59301685e9a20665fcc1"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-font-parity-build-exit.json",
+      "bytes": 187,
+      "sha256": "883ae36e510285851659c2f3eb6617e13e29f41f507662ba96cb87703c747c3e"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-font-mapping-tests.log",
+      "bytes": 47102,
+      "sha256": "ece7008c0c56a2112fa2f284e3e2b2a0c12a7c1882c117323a1ade0ca53335b0"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-font-mapping-tests-exit.json",
+      "bytes": 292,
+      "sha256": "5da0faf39a573b8bf11b75fa5049bbf05e40fe4240061ec48bf16c748be6587b"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-font-mapping-system.stdout.log",
+      "bytes": 1601,
+      "sha256": "629335a1bf6ca5335bce29010a047330921ce4d81c4dc6f844eee54b62d5128a"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-font-mapping-system.stderr.log",
+      "bytes": 8370,
+      "sha256": "e91ba8ce6e00831811af60a2de9fc0551d67e20299e5a7d622aece16e7ef1529"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-font-mapping-system-exit.json",
+      "bytes": 241,
+      "sha256": "aeff92300988437e87c7e2fc7ea38aa327454a7c64990b8904967ddef809d306"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-font-system-receipt.json",
+      "bytes": 3783,
+      "sha256": "59fae0e12cfe7d3152cd26959d5f4e63e1daf2a54dc669c6802dc798ef45f880"
+    },
+    {
+      "path": "build/editor-workflow-native/pr763-cc282e-package-job.log",
+      "bytes": 154559,
+      "sha256": "1e578225be834665bcbf45a46d11d7bcfbcb270f67fe2abb69b2b081633ff1e4"
+    }
+  ],
+  "binaries": [
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraEditor.exe",
+      "bytes": 2743808,
+      "sha256": "4776274cedf330f3e32d26dd154580486e4caa70ef1dde695633a0895a491fa4"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraEditorImGui.dll",
+      "bytes": 2818560,
+      "sha256": "b9a06014d3f6802c0400677cc3f2c1f05977f63399ff03fa459d3eaef8cb8003"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraFontGlyphTests.exe",
+      "bytes": 482304,
+      "sha256": "d84666500d16e9c48caa6d5211db97b08022ea995003e29ca2e0fc28a98b55f4"
+    }
+  ],
+  "limitations": [
+    "No new desktop Editor repetitions or physical clean-host acceptance.",
+    "Local font timings are warm-host diagnostics, not proof of cold CI improvement.",
+    "New-source full Cloud/Shipping/CI and original native startup/package gates remain required.",
+    "Original cc282e0d startup failure and all historical gates remain failures.",
+    "Orders4/9; ED-WF-05/PR763 unaccepted/draft; final ZIP not delivered."
+  ]
+}

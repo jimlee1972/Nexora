@@ -8,6 +8,7 @@
 #include <array>
 #include <cmath>
 #include <limits>
+#include <memory>
 
 namespace nexora::editor::preview {
 // Serialized game-thread services. Bind only a Play clone; clear after module destruction and
@@ -17,6 +18,8 @@ public:
   PlaySceneServices() = default;
   PlaySceneServices(const PlaySceneServices &) = delete;
   PlaySceneServices &operator=(const PlaySceneServices &) = delete;
+  PlaySceneServices(PlaySceneServices &&) noexcept = default;
+  PlaySceneServices &operator=(PlaySceneServices &&) noexcept = default;
   static constexpr std::uint32_t kMaximumNameBytes = 256;
   static constexpr std::size_t kMaximumScenes = 32, kMaximumSpawns = 4096;
   static constexpr std::size_t kMaximumColliders = 256;
@@ -31,6 +34,37 @@ public:
     world_ = nullptr;
     scenes_ = spawns_ = 0;
     collider_count_ = 0;
+  }
+  // Serialized by the embedding after actual module work drains. Preserve scene/spawn quotas
+  // and collider identities over an identical unpublished Play World; never Bind/reset here.
+  [[nodiscard]] std::unique_ptr<PlaySceneServices> ForkForReload(runtime::World &world) const {
+    if (!world_ || &world == world_ || world_->Kind() != runtime::WorldKind::Play)
+      return {};
+    auto branch = std::make_unique<PlaySceneServices>();
+    branch->scenes_ = scenes_;
+    branch->spawns_ = spawns_;
+    branch->colliders_ = colliders_;
+    branch->collider_count_ = collider_count_;
+    if (!branch->RebindForReload(world))
+      return {};
+    return branch;
+  }
+  // Retarget only when identical storage has moved at retirement/publication. Validate before
+  // changing the pointer. Stale colliders remain harmless and are pruned by ordinary queries.
+  [[nodiscard]] bool RebindForReload(runtime::World &world) noexcept {
+    if (world.Kind() != runtime::WorldKind::Play)
+      return false;
+    for (std::size_t i = 0; i < collider_count_; ++i) {
+      const auto &collider = colliders_[i];
+      const auto *entity = world.FindEntity(collider.entity);
+      const auto *scene = world.FindScene(collider.scene);
+      if (entity && (!scene || std::ranges::none_of(scene->entities, [&](const auto &value) {
+            return value.id == collider.entity;
+          })))
+        return false;
+    }
+    world_ = &world;
+    return true;
   }
   int32_t Load(const char *name, std::uint32_t length, std::uint32_t persistent,
                std::uint64_t *output) noexcept {

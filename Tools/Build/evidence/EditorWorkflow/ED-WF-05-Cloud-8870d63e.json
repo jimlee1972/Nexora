@@ -1,0 +1,393 @@
+{
+  "status": "FAIL",
+  "evidence_root": "/workspace/validation-8870d63e",
+  "source_commit": "8870d63e107a829ee17e873c30fdbec4e2d3b6a7",
+  "source_tree": "26e6cae6ef65afae2fac1c57f81f66e4f88bccfc",
+  "source_clean_at_gate_completion": true,
+  "command_cwd": "/workspace/Nexora-validation-8870d63e",
+  "gates": [
+    {
+      "name": "development-configure",
+      "argv": [
+        "cmake",
+        "--preset",
+        "linux-development",
+        "-DNEXORA_ENABLE_ZIG_GAMEPLAY=ON",
+        "-DNEXORA_ENABLE_SLANG=ON",
+        "-DNEXORA_ENABLE_VULKAN_BACKEND=ON",
+        "-DNEXORA_BUILD_PROJECT_PLAYER=ON",
+        "-DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON",
+        "-DNEXORA_CRYPTOGRAPHY_BACKEND=OPENSSL",
+        "-DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON",
+        "-DFETCHCONTENT_SOURCE_DIR_NEXORA_IMGUI=/workspace/Nexora/build/linux-development/_deps/nexora_imgui-src",
+        "-DFETCHCONTENT_SOURCE_DIR_NEXORA_VULKAN_HEADERS=/workspace/Nexora/build/linux-development/_deps/nexora_vulkan_headers-src"
+      ],
+      "start": 1793718266.7037325,
+      "end": 1793718283.0061762,
+      "exit_code": 0,
+      "duration_seconds": 16.302443742752075
+    },
+    {
+      "name": "development-build",
+      "argv": [
+        "cmake",
+        "--build",
+        "--preset",
+        "linux-development"
+      ],
+      "start": 1793718283.8564365,
+      "end": 1793720639.652091,
+      "exit_code": 0,
+      "duration_seconds": 2355.7956545352936
+    },
+    {
+      "name": "development-ctest",
+      "argv": [
+        "ctest",
+        "--preset",
+        "linux-development",
+        "-V",
+        "--output-junit",
+        "/workspace/validation-8870d63e/development-junit.xml"
+      ],
+      "start": 1793720639.655106,
+      "end": 1793725312.4227192,
+      "exit_code": 8,
+      "duration_seconds": 4672.767613172531
+    },
+    {
+      "name": "shipping-configure",
+      "argv": [
+        "cmake",
+        "--preset",
+        "linux-shipping",
+        "-DNEXORA_ENABLE_ZIG_GAMEPLAY=ON",
+        "-DNEXORA_ENABLE_SLANG=ON",
+        "-DNEXORA_ENABLE_VULKAN_BACKEND=ON",
+        "-DNEXORA_BUILD_PROJECT_PLAYER=ON",
+        "-DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON",
+        "-DNEXORA_CRYPTOGRAPHY_BACKEND=OPENSSL",
+        "-DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=OFF",
+        "-DFETCHCONTENT_SOURCE_DIR_NEXORA_IMGUI=/workspace/Nexora/build/linux-development/_deps/nexora_imgui-src",
+        "-DFETCHCONTENT_SOURCE_DIR_NEXORA_VULKAN_HEADERS=/workspace/Nexora/build/linux-development/_deps/nexora_vulkan_headers-src"
+      ],
+      "start": 1793725312.4246283,
+      "end": 1793725315.3087773,
+      "exit_code": 0,
+      "duration_seconds": 2.8841490745544434
+    },
+    {
+      "name": "shipping-build",
+      "argv": [
+        "cmake",
+        "--build",
+        "--preset",
+        "linux-shipping"
+      ],
+      "start": 1793725315.3116243,
+      "end": 1793725630.4409072,
+      "exit_code": 0,
+      "duration_seconds": 315.129282951355
+    }
+  ],
+  "tests": {
+    "registered": 502,
+    "executed": 502,
+    "passed": 491,
+    "failed": 11,
+    "skipped": 0,
+    "retries": 0,
+    "ctest_reported_seconds": 4672.35,
+    "added_since_51bd8a16": [
+      "twod.scene_project_native",
+      "twod.scene_project_zig",
+      "twod.scene_session"
+    ],
+    "removed": [],
+    "failures": [
+      {
+        "name": "showcase.linux_vulkan_interaction",
+        "seconds": 26.103,
+        "ctest_status": "Failed",
+        "kind": "assertion",
+        "source_location": "LinuxShowcaseInteraction.py:359 -> :132",
+        "original_failure": "No shadow-off pixel difference within original 5s; courtyard-shadow-off.png",
+        "registered_timeout_seconds": 180
+      },
+      {
+        "name": "showcase.linux_vulkan_virtual_display",
+        "seconds": 37.277,
+        "ctest_status": "Failed",
+        "kind": "child_timeout",
+        "source_location": "LinuxVirtualDisplaySmoke.py:134",
+        "original_failure": "Interactive Vulkan/static child --frames=4 --resize=960x540 --no-reload exceeded original 30s; outer 45s not exhausted",
+        "registered_timeout_seconds": 45
+      },
+      {
+        "name": "editor.game_build",
+        "seconds": 476.44,
+        "ctest_status": "Failed",
+        "kind": "worker_deadline",
+        "source_location": "GameBuildTests.cpp:119-143",
+        "original_failure": "graphical build worker deadline exceeded; original 3min coordinator deadline; total includes earlier phases",
+        "registered_timeout_seconds": 600
+      },
+      {
+        "name": "editor.game_script_build",
+        "seconds": 299.855,
+        "ctest_status": "Timeout",
+        "kind": "ctest_timeout",
+        "source_location": null,
+        "original_failure": "Original 300s CTest timeout; two GameModule operations completed in 176.048s and 94.660s; third intentional invalid-source operation had no terminal compiler output",
+        "registered_timeout_seconds": 300
+      },
+      {
+        "name": "editor.linux_native_play_soak",
+        "seconds": 101.442,
+        "ctest_status": "Failed",
+        "kind": "child_timeout",
+        "source_location": "LinuxNativePlaySoak.py:283 -> :160 -> :117",
+        "original_failure": "Cycle 28 capture acquisition: xdotool mousedown 1 exceeded remaining 1.379173981s phase budget; not a full 32-cycle pass",
+        "registered_timeout_seconds": 240
+      },
+      {
+        "name": "editor.linux_prefab_isolation",
+        "seconds": 180.019,
+        "ctest_status": "Timeout",
+        "kind": "ctest_timeout",
+        "source_location": null,
+        "original_failure": "Original 180s CTest timeout; retained output includes acquired=3459 and presented=3459",
+        "registered_timeout_seconds": 180
+      },
+      {
+        "name": "editor.linux_scene_merge_candidate",
+        "seconds": 28.7162,
+        "ctest_status": "Failed",
+        "kind": "ack_deadline",
+        "source_location": "LinuxSceneComparison.py:164 -> NativeSceneInput.py:90/:56",
+        "original_failure": "GUI did not observe Control_L up; final observation frame=222 focused=1 keys=100000000",
+        "registered_timeout_seconds": 120
+      },
+      {
+        "name": "editor.linux_scene_merge_publication",
+        "seconds": 12.8715,
+        "ctest_status": "Failed",
+        "kind": "environment_readiness",
+        "source_location": "LinuxSceneComparison.py:45",
+        "original_failure": "Xvfb did not become ready; failure before Editor launch",
+        "registered_timeout_seconds": 120
+      },
+      {
+        "name": "editor.linux_native_scene_center",
+        "seconds": 45.0505,
+        "ctest_status": "Timeout",
+        "kind": "ctest_timeout",
+        "source_location": null,
+        "original_failure": "Original 45s CTest timeout; no assertion traceback before termination",
+        "registered_timeout_seconds": 45
+      },
+      {
+        "name": "editor.linux_play_host_memory",
+        "seconds": 10.0169,
+        "ctest_status": "Failed",
+        "kind": "child_timeout",
+        "source_location": "LinuxPlayHostMemory.py:144 -> :106 -> :84",
+        "original_failure": "xdotool keyup 071 exceeded original 5s child-command timeout",
+        "registered_timeout_seconds": 90
+      },
+      {
+        "name": "editor.linux_packaged_play",
+        "seconds": 9.56467,
+        "ctest_status": "Failed",
+        "kind": "x11_error",
+        "source_location": "LinuxPackagedPlay.py:215 -> :41",
+        "original_failure": "X_SetInputFocus BadMatch; xdotool windowfocus --sync 2097153 exited 1",
+        "registered_timeout_seconds": 300
+      }
+    ]
+  },
+  "parallelism": {
+    "build": 2,
+    "ctest": 1,
+    "stages_overlap": false
+  },
+  "oom": 0,
+  "oom_kill": 0,
+  "residuals_at_gate_completion": {
+    "live_count": 0,
+    "zombie_count": 10,
+    "zombies": [
+      {
+        "pid": 17049,
+        "comm": "Xvfb"
+      },
+      {
+        "pid": 17337,
+        "comm": "ninja"
+      },
+      {
+        "pid": 17339,
+        "comm": "cmake"
+      },
+      {
+        "pid": 17609,
+        "comm": "cmake"
+      },
+      {
+        "pid": 17610,
+        "comm": "ninja"
+      },
+      {
+        "pid": 17612,
+        "comm": "cmake"
+      },
+      {
+        "pid": 19309,
+        "comm": "Xvfb"
+      },
+      {
+        "pid": 19868,
+        "comm": "NexoraEditor"
+      },
+      {
+        "pid": 22721,
+        "comm": "Xvfb"
+      },
+      {
+        "pid": 22724,
+        "comm": "NexoraEditor"
+      }
+    ],
+    "check_exit_code": 0
+  },
+  "stdout_stderr_hashes": {
+    "development-configure.stdout.log": {
+      "bytes": 1598,
+      "sha256": "3b391bd3f1d0cbef06450c5dcd569b1578123751c21ffca93686f0a7a301b2fc"
+    },
+    "development-configure.stderr.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "development-build.stdout.log": {
+      "bytes": 127157,
+      "sha256": "2a3d5c5113c00ae800b90ab81088abfe4fc62e9b60aa6005927ab4e83b5a4b26"
+    },
+    "development-build.stderr.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "development-ctest.stdout.log": {
+      "bytes": 3422685,
+      "sha256": "40cc8f16421de393347e726ad87509fadf3fbd4165ec8e44ed9dcb2a973d2147"
+    },
+    "development-ctest.stderr.log": {
+      "bytes": 27,
+      "sha256": "18e00877dc1071c85cd4f479d451bebeef8309022e46cf8c63b0bed5151984a4"
+    },
+    "shipping-configure.stdout.log": {
+      "bytes": 1295,
+      "sha256": "6b4a6ab0a7709f5c48acd7a84a23af33dab0d5884fe8f45b2b0bb57fc69ad208"
+    },
+    "shipping-configure.stderr.log": {
+      "bytes": 165,
+      "sha256": "64fd51bb9e4233a84ff9352c165dcd98dfac757213d0d66a155f4dd87c31a262"
+    },
+    "shipping-build.stdout.log": {
+      "bytes": 29879,
+      "sha256": "350386d62725d92ebaf8cf2573377ee9afd81ff42659729bfb13232e46b17d06"
+    },
+    "shipping-build.stderr.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "receipt_manifest_hashes": {
+    "result.json": {
+      "bytes": 311086,
+      "sha256": "eb52383b557dd84de9d77e0442352feb5f98dce6842595eea17559360b28f0b8"
+    },
+    "commands.txt": {
+      "bytes": 2940,
+      "sha256": "bd348c25c4d6a83cf367c03e82e74c46996aba33ad9aa628ea91e9bf2fa8f237"
+    },
+    "registered-tests.json": {
+      "bytes": 336982,
+      "sha256": "79e42556fafc8c8c384557a8ebd59ec93793b0d43e9a4700852c681fa53c7e72"
+    },
+    "development-junit.xml": {
+      "bytes": 501292,
+      "sha256": "b574fb3245b418dd543ba68b80d0266ae3058dbe487ddef6527dec89685ef195"
+    },
+    "Testing/Temporary/LastTest.log": {
+      "bytes": 3218990,
+      "sha256": "f413021e0f181743d35ceb008a3a82e2e64e753e9f7e07220f3d406fa852000b"
+    },
+    "native-evidence/manifest.json": {
+      "bytes": 10847,
+      "sha256": "0db9be1b2f8321524c3d383b1c7ce0b5a8a2a713f0792135ca7252088e2cb8e7"
+    },
+    "failure-fixtures-manifest.json": {
+      "bytes": 1226580,
+      "sha256": "9e20ad8a425ff5cd2ccfe96f88767f126dbf6e5c9c73a84b4dba7cddcde88bc4"
+    },
+    "game-build-failure-diagnosis.json": {
+      "bytes": 1054171,
+      "sha256": "6ed17be52ea0fed935c5c42ab53770dc3b85c574b85b54729864de6aedadaf45"
+    },
+    "showcase-failure-diagnosis.json": {
+      "bytes": 10944,
+      "sha256": "8e064bd5998506b9fc984e2436ebf3f6476fbca7ba5498e1fb511cc18a8376c1"
+    }
+  },
+  "archive": {
+    "path": "/workspace/validation-8870d63e-evidence.tar.gz",
+    "bytes": 151335970,
+    "sha256": "bbc9d9509ffff4ac684e3ea64633d7067a8f29f5afad8a74356b14a5be901d2f",
+    "unchanged": true
+  },
+  "prior_archives_verified": 17,
+  "prior_archives_unchanged": true,
+  "diagnostic": {
+    "scope": "DIAGNOSTIC_ONLY; does not replace or change full-gate FAIL",
+    "attempts": 1,
+    "source_commit": "8870d63e107a829ee17e873c30fdbec4e2d3b6a7",
+    "source_tree": "26e6cae6ef65afae2fac1c57f81f66e4f88bccfc",
+    "exit_code": 1,
+    "duration_seconds": 10.127707242965698,
+    "outer_timeout_seconds": 90,
+    "command_timeout_seconds": 5,
+    "outcome": "TARGET_NOT_REACHED: Xvfb readiness failed before Editor or xdotool; no reproduction of original keyup timeout",
+    "xdotool_invocations": 0,
+    "trace_samples_for_target": 0,
+    "strace_preflight_exit_code": 1,
+    "strace_error": "PTRACE_TRACEME: Operation not permitted",
+    "execution_context": {
+      "diagnostic_exec": "default restricted-network sandbox",
+      "original_full_gate_exec": "with_additional_permissions network.enabled=true",
+      "limitation": "Different sandbox context; no evidence this caused Xvfb readiness failure; not a same-context reproduction"
+    },
+    "source_clean": true,
+    "original_archive_unchanged": true,
+    "result_json": "/workspace/diagnose-play-memory-8870d63e/result.json",
+    "result_json_hash": {
+      "bytes": 2808,
+      "sha256": "030772f743470b27161183e49ff059ff19715bc110032d81ac5eec2c5d2fb843"
+    },
+    "archive": {
+      "path": "/workspace/diagnose-play-memory-8870d63e-evidence.tar.gz",
+      "bytes": 9143,
+      "sha256": "2f91fbfd5b6e0ea720719a27adfef0cd8cc6d387c0a9b8b40f6d7e069bfc1419"
+    }
+  },
+  "current_checkout": {
+    "commit": "90e9b92ce95a5919a9404eaf4df1777768dd01fa",
+    "tree": "9eb0b6daded6e35f536e37c583df379d73650822",
+    "clean": true,
+    "90e9_full_gate": "NOT_STARTED",
+    "state": "WAITING_FOR_ROOT_IMMUTABLE_SDK_FIX"
+  },
+  "platform_scope": "Linux x86_64/Debian13/GNU14.2/Xvfb/software Vulkan; null/headless audio only; no Windows/macOS acceptance",
+  "shipping_scope": "Editor/testing OFF; no Shipping CTest",
+  "actions_this_turn": "READ_ONLY; no gate/diagnostic rerun, source edit, archive modification, PR or Beads operation"
+}

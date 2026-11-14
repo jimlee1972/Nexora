@@ -94,7 +94,7 @@ NexoraTwoDSourceInstanceV1 EncodeSource(const Instance &v) {
 } // namespace
 
 struct GameplayBridge::State {
-  runtime::World &world;
+  runtime::World *world;
   SpriteScene *scene{};
   SceneSession *session{};
   GameSpriteSession *game{};
@@ -116,11 +116,11 @@ struct GameplayBridge::State {
   std::array<bool, 2> ready{};
 
   State(runtime::World &w, SpriteScene &s, ClipResolver resolve, Tilemap *t, InstancePool *p)
-      : world(w), scene(&s), clips(std::move(resolve)), tiles(t), pool(p),
+      : world(&w), scene(&s), clips(std::move(resolve)), tiles(t), pool(p),
         indices{SpatialIndex{4}, SpatialIndex{4}} {}
 
   State(runtime::World &w, SceneSession &s, ClipResolver resolve, InstancePool *p)
-      : world(w), session(&s), revision(s.Revision()), primary(s.Primary()),
+      : world(&w), session(&s), revision(s.Revision()), primary(s.Primary()),
         clips(std::move(resolve)), tiles(nullptr), pool(p),
         indices{SpatialIndex{4}, SpatialIndex{4}} {}
   State(runtime::World &w, GameSpriteSession &s, ClipResolver resolve, InstancePool *p)
@@ -132,7 +132,7 @@ struct GameplayBridge::State {
   Tilemap *Tiles() const { return session ? session->PrimaryTiles() : tiles; }
   bool Live(runtime::Id entity) const {
     const auto *metadata = Scene(entity);
-    const auto *s = metadata ? world.FindScene(metadata->SceneId()) : nullptr;
+    const auto *s = metadata ? world->FindScene(metadata->SceneId()) : nullptr;
     return s && s->state != runtime::SceneState::Unloading &&
            s->state != runtime::SceneState::Unloaded &&
            std::any_of(s->entities.begin(), s->entities.end(),
@@ -670,15 +670,23 @@ GameplayBridge::GameplayBridge(runtime::World &world, GameSpriteSession &session
 bool GameplayBridge::CanStage() const noexcept {
   return state_->thread == std::this_thread::get_id() && !state_->entered;
 }
-void GameplayBridge::CopyStagedState(GameplayBridge &destination) const {
-  auto &target = *destination.state_;
-  target.clips = state_->clips;
-  target.revision = state_->revision;
-  target.primary = state_->primary;
-  target.camera = state_->camera;
-  target.animations = state_->animations;
-  target.indices = state_->indices;
-  target.ready = state_->ready;
+bool GameplayBridge::RebindForReload(runtime::World &world, SpriteScene &scene, Tilemap *tiles,
+                                     InstancePool *pool) noexcept {
+  if (state_->thread != std::this_thread::get_id() || state_->entered || state_->session)
+    return false;
+  const auto *record = world.FindScene(scene.SceneId());
+  if (state_->world->Kind() != runtime::WorldKind::Play ||
+      world.Kind() != runtime::WorldKind::Play || &scene.WorldOwner() != &world ||
+      scene.SceneId() != state_->scene->SceneId() || bool(tiles) != bool(state_->tiles) ||
+      bool(pool) != bool(state_->pool) || (pool && pool->owner_ != state_->pool->owner_) ||
+      !record || record->state == runtime::SceneState::Unloaded ||
+      record->state == runtime::SceneState::Unloading)
+    return false;
+  state_->world = &world;
+  state_->scene = &scene;
+  state_->tiles = tiles;
+  state_->pool = pool;
+  return true;
 }
 int32_t GameplayBridge::GetApi(NexoraTwoDApiV1 *output) noexcept {
   return State::Call(state_.get(), [&](auto &s) -> int32_t {

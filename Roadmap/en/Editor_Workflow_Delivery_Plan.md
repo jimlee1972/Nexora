@@ -77,6 +77,10 @@ gate remains unaccepted (231/247 pass,16 fail): injected F5 also carries Alt and
 The [native input repair](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Input-CI-Failure.md)
 uses validated physical X11 function-key codes and retains all original runtime/pixel/deadline
 checks. Repaired-head native/full gates remain required; no accepted-count change.
+PR #762 is now merged as `f7537be874d8`, with the same tree as `d093841b`.
+The [Cloud receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-Cloud-d093841b.json)
+records496/496 and all five gates exit0; the [CI inventory](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05-CI-d093841b.json)
+records41 successful checks/three workflows. This foundation does not accept ED-WF-05 or change4/9.
 The [ED-WF-02 evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02.md) and [Cloud receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02-Cloud.json) record accepted PR #754: 42 successful CI checks, 490/490 Cloud tests and Shipping build, with initial environment/local-capture failures retained. Beads synchronization recovered by adopting existing history; Epic `nexora-whr` and children `.1` through `.9` map to the linked GitHub work orders.
 The accepted [ED-WF-03 evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03.md), [Cloud receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03-Cloud.json) and [CI inventory](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03-CI.json) record PR #756: native GUI/core passes, 490/490 Cloud tests and Shipping, all 42 CI checks and unchanged merged tree. ED-WF-04 is accepted in PR #758.
 The accepted [ED-WF-04 evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04.md),
@@ -242,6 +246,27 @@ Full Linux **511/511**, Shipping, TwoD-OFF/testing-OFF and graphical Monolithic 
 exact-head hosted CI is required before delivery. See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceDetails-Linux-2026-11-14.md).
 Workflow **5/9**, Editor **0/8**, TwoD **9/11**, full ED-WF-07/08, production animation/reload
 and physical/clean-host acceptance remain unchanged/open. PR #786 owns the independent Clip catalog.
+
+### ✅ Main Editor Sprite source creation (2026-11-14)
+
+Supporting `nexora-whr.7.11` creates a new canonical source from an imported Atlas region through
+the actual Content context menu and owning modal. Users set original dimensions, top-left trim,
+bottom-left pixel Pivot and PPU; trim size follows the stable region and borders start at zero.
+The authoring owner exclusively publishes a fresh UUID/file and imports only that saved source,
+preserving existing Content view/history. Undo-reserved names and case aliases reject before writing;
+released paths reconcile from current Content and immediately import after rename/move.
+Scope/version, focus, writer/recovery, stopped Play,
+busy state, names, geometry, capacity and destination identities guard writes. GUI rendering has
+no new file IO. Created-file/import-failure and uncertain-publication outcomes stay distinct.
+Actual 1×/2× controls and native X11 create/import/assign/inspect/Save/read-only reopen pass with
+exact generated UUID/metadata, reserved-name rejection, released-path reuse, unchanged existing
+asset bytes and byte-identical read-only projects.
+Full Linux **516/516**, Shipping Full, actual TwoD-OFF/testing-OFF Editor/native Player,
+and graphical Monolithic controls/native gates pass; exact-head hosted CI remains required.
+See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceCreation-Linux-2026-11-14.md).
+Workflow **5/9**, Editor **0/8**, TwoD **9/11** and full ED-WF-07/08 stay unchanged/open.
+Existing-source editing, Atlas slicing, production animation/reload and physical acceptance remain
+separate; independently owned Clip/reload tasks are preserved.
 
 ## ✅ Source-bearing Studio document persistence (2026-11-13)
 

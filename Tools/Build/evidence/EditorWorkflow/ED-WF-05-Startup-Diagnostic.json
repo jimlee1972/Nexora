@@ -1,0 +1,69 @@
+{
+  "status": "DIAGNOSTIC_FOLLOWUP_NOT_A_CI_FIX",
+  "base_head": "0f901cb3a70c30445382f7b155e49c5bb6f0b1a5",
+  "failed_job": 125338978442,
+  "failed_run": 41463713541,
+  "artifact_id": 13149503886,
+  "artifact_sha256": "ff9a08724e45e91dbf41863d928cc9c4555188e04203153dd89c06f016df9831",
+  "observed": {
+    "events": [
+      "splash-show",
+      "main-create-observed"
+    ],
+    "callback_errors": [],
+    "last_stage": 4,
+    "main_frame_ready": false,
+    "main_window_shown": false,
+    "console_attached": false,
+    "deadline_seconds": 35,
+    "root_cause": "UNDETERMINED"
+  },
+  "local": {
+    "build_exit": 0,
+    "test_exit": 0,
+    "launches": 2,
+    "original_deadlines_and_assertions_retained": true
+  },
+  "files": [
+    {
+      "path": "Apps/Editor/main.cpp",
+      "bytes": 233989,
+      "sha256": "3d84d99b6881199deef13bb63be28fba6918317854a39d80f040e4bb8fff2ed3"
+    },
+    {
+      "path": "Tests/Editor/WindowsStartupIntegration.py",
+      "bytes": 18857,
+      "sha256": "d9a9cbd5079552b5f528a40a59263cbe2be5032a74ec8c405b3aad2210d734f7"
+    },
+    {
+      "path": "build/editor-workflow-native/pr763-startup-failure.zip",
+      "bytes": 19824,
+      "sha256": "ff9a08724e45e91dbf41863d928cc9c4555188e04203153dd89c06f016df9831"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-startup-checkpoint-build.log",
+      "bytes": 2737,
+      "sha256": "98bcf1b15028f3012aa2e85f2b0c8db63006c63a2d246baf210591a911a2fa57"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-startup-checkpoint-build-exit.json",
+      "bytes": 24,
+      "sha256": "75876e0e3f497cad271143ba85bd4f36569cd81195509043f860dab14265b716"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-startup-checkpoint-test.log",
+      "bytes": 89,
+      "sha256": "1ad4a091459d98372012840598041b182ea2e8d3864777e0ef06e9ba75236143"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-startup-checkpoint-test-exit.json",
+      "bytes": 24,
+      "sha256": "75876e0e3f497cad271143ba85bd4f36569cd81195509043f860dab14265b716"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-startup-checkpoint-native/result.json",
+      "bytes": 897,
+      "sha256": "5eec451ba2c8770e795cf325d1a150aea05b8da09a7a11f049bee7ebe4a4e2cb"
+    }
+  ]
+}

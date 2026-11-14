@@ -61,9 +61,11 @@ def native_point(driver, name):
     return tuple(round(float(axis)) for axis in value[name].split(','))
 
 
-def wait_native_pixels(driver, display, window, name, icon=True):
+def wait_native_pixels(driver, display, window, name, icon=True, deadline=None):
     """Require actual X11 artwork at a copied control position before physical input."""
-    deadline = time.monotonic() + 10
+    # A containing gesture owns one budget, including pixel admission and layout settling.
+    # Never give a nested pixel wait a fresh ten seconds after the gesture already started.
+    deadline = time.monotonic() + 10 if deadline is None else deadline
     observed = []
     while time.monotonic() < deadline:
         value = driver.observation()

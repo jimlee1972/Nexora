@@ -563,6 +563,30 @@ struct EditorImGuiHost::State final {
   std::string inspector_sprite_details;
   std::array<std::optional<std::array<float, 2>>, 4> inspector_sprite_positions{};
   std::vector<std::pair<runtime::AssetUuid, std::array<float, 2>>> inspector_sprite_choices;
+  struct SpriteSourceCreator final {
+    foundation::Uuid project;
+    std::filesystem::path root, folder;
+    SpriteSourceContentVersion version;
+    runtime::AssetUuid atlas;
+    std::string atlas_label, status;
+    std::vector<twod::Region> regions;
+    std::size_t region{};
+    std::array<char, 129> name{'S', 'p', 'r', 'i', 't', 'e', 0};
+    std::array<int, 2> canvas{}, trim{};
+    std::array<float, 2> pivot{};
+    float ppu{100};
+    std::uint64_t submitted{};
+    bool dismiss{};
+  };
+  std::optional<SpriteSourceCreator> sprite_creator;
+  std::optional<runtime::AssetUuid> sprite_creator_open;
+  std::optional<SpriteSourceCreationUiRequest> sprite_creator_request;
+  std::uint64_t sprite_creator_next{1};
+  bool sprite_creator_allowed{};
+  std::string sprite_creator_status;
+  std::filesystem::path sprite_creator_scope;
+  std::array<std::optional<std::array<float, 4>>, 11> sprite_creator_controls{};
+  std::optional<std::array<float, 2>> sprite_creator_menu;
 #endif
   std::uint32_t inspector_selection = 0;
   std::vector<OpaqueComponentInfo> inspector_opaque_info;
@@ -4908,6 +4932,16 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
         if (ImGui::MenuItem("Delete", "Delete", false, commands_allowed && content.Writable()))
           delete_assets = {item->id};
         capture_context(1);
+#if defined(NEXORA_HAS_2D)
+        if (item->twod && item->twod->Atlas()) {
+          if (ImGui::MenuItem("Create Sprite source...", nullptr, false,
+                              state.sprite_creator_allowed))
+            state.sprite_creator_open = item->id;
+          const auto lo = ImGui::GetItemRectMin(), hi = ImGui::GetItemRectMax();
+          if (!ImGui::GetCurrentWindow()->Hidden && ImGui::IsItemVisible())
+            state.sprite_creator_menu = std::array{(lo.x + hi.x) * .5F, (lo.y + hi.y) * .5F};
+        }
+#endif
         ImGui::EndPopup();
       }
       ImGui::PopID();
@@ -5140,6 +5174,10 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   if (!content.LastError().empty())
     ImGui::TextWrapped("Content error: %.*s", static_cast<int>(content.LastError().size()),
                        content.LastError().data());
+#if defined(NEXORA_HAS_2D)
+  if (!state.sprite_creator_status.empty())
+    ImGui::TextWrapped("%s", state.sprite_creator_status.c_str());
+#endif
   ImGui::End();
 }
 
@@ -5279,6 +5317,7 @@ void EditorImGuiHost::SetDisplay(float width, float height, float dpi_scale) {
   ImGui::GetIO().DisplayFramebufferScale = {dpi_scale, dpi_scale};
   const float bucket = DpiBucket(dpi_scale);
   if (bucket != state_->dpi_bucket) {
+    Nexora::EditorImGuiDetail::FontDiagnosticCheckpoint("display-fonts-begin");
     state_->dpi_bucket = bucket;
     auto &fonts = *ImGui::GetIO().Fonts;
     fonts.Clear();
@@ -5286,18 +5325,21 @@ void EditorImGuiHost::SetDisplay(float width, float height, float dpi_scale) {
     config.SizePixels = 13.0F * bucket;
     fonts.AddFontDefault(&config);
     if (!state_->font_plan) {
+      Nexora::EditorImGuiDetail::FontDiagnosticCheckpoint("profile-begin");
       const auto *simplified = fonts.GetGlyphRangesChineseSimplifiedCommon();
       std::size_t length = 0;
       while (simplified[length] != 0)
         ++length;
       state_->font_profile = Nexora::EditorImGuiDetail::BuildFontProfile(
           std::span<const std::uint32_t>{simplified, length});
+      Nexora::EditorImGuiDetail::FontDiagnosticCheckpoint("profile-end");
       // Planning subtracts the built-in atlas's actual configured glyphs, never an assumed
       // Latin range. Keep the complete profile for truthful final-atlas missing diagnostics.
       state_->font_plan = state_->font_sources
                               ? Nexora::EditorImGuiDetail::PrepareFontPlan(state_->font_profile,
                                                                            *state_->font_sources)
                               : Nexora::EditorImGuiDetail::InstalledFontPlan(state_->font_profile);
+      Nexora::EditorImGuiDetail::FontDiagnosticCheckpoint("plan-end");
     }
     const auto started = std::chrono::steady_clock::now();
     state_->font_atlas_fallback = state_->font_plan->faces.empty();
@@ -5317,7 +5359,9 @@ void EditorImGuiHost::SetDisplay(float width, float height, float dpi_scale) {
         break;
       }
     }
+    Nexora::EditorImGuiDetail::FontDiagnosticCheckpoint("atlas-build-begin");
     const bool built = !state_->font_atlas_fallback && fonts.Build();
+    Nexora::EditorImGuiDetail::FontDiagnosticCheckpoint("atlas-build-end");
     if (!built || fonts.TexWidth <= 0 || fonts.TexHeight <= 0 || fonts.TexWidth > 4096 ||
         fonts.TexHeight > 4096 ||
         std::uint64_t(fonts.TexWidth) * fonts.TexHeight * 4 >
@@ -5327,8 +5371,10 @@ void EditorImGuiHost::SetDisplay(float width, float height, float dpi_scale) {
       fonts.Clear();
       fonts.TexDesiredWidth = 0;
       fonts.AddFontDefault(&config);
+      Nexora::EditorImGuiDetail::FontDiagnosticCheckpoint("fallback-atlas-begin");
       if (!fonts.Build())
         throw std::runtime_error("Default Editor font atlas could not be built");
+      Nexora::EditorImGuiDetail::FontDiagnosticCheckpoint("fallback-atlas-end");
       state_->font_atlas_fallback = true;
     }
     state_->missing_font_scalars.clear();
@@ -5354,6 +5400,7 @@ void EditorImGuiHost::SetDisplay(float width, float height, float dpi_scale) {
     fonts.SetTexID(static_cast<ImTextureID>(TextureId(0, 1)));
     ImGui::GetIO().FontGlobalScale = 1.0F / bucket;
     ++state_->font_generation;
+    Nexora::EditorImGuiDetail::FontDiagnosticCheckpoint("display-fonts-end");
   }
   state_->dpi_scale = dpi_scale;
   detail::ApplyTheme(state_->color_theme);
@@ -5822,6 +5869,7 @@ std::optional<ProjectUpgradeObservation> EditorImGuiHost::ProjectUpgradePreview(
 }
 
 #include "ExtensionManagerPanel.inl"
+#include "SpriteSourceCreatorPanel.inl"
 
 void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene,
                                        ProjectWorkspace *workspace, ProjectContentSession *content,
@@ -5836,6 +5884,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->inspector_sprite_details.clear();
   state_->inspector_sprite_positions = {};
   state_->inspector_sprite_choices.clear();
+  state_->sprite_creator_controls = {};
+  state_->sprite_creator_menu.reset();
 #endif
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
   state_->game_canvas_hovered = state_->game_canvas_clicked = state_->game_capture_allowed = false;
@@ -6178,11 +6228,18 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     capture_decision(2);
     ImGui::EndPopup();
   }
+  const bool sprite_creation_open =
+#if defined(NEXORA_HAS_2D)
+      state_->sprite_creator.has_value();
+#else
+      false;
+#endif
   const bool file_shortcuts_allowed =
-      !state_->saved_game_decision_pending && file_context_valid && state_->app_focused &&
-      !file_external_block && !tab_modal && !state_->prefab_override_confirm &&
-      !state_->prefab_rebase_confirm && state_->scene_file_dialog == State::FileDialog::None &&
-      !state_->scene_file_output && !state_->content_rename_target && !ImGui::GetIO().WantTextInput;
+      !sprite_creation_open && !state_->saved_game_decision_pending && file_context_valid &&
+      state_->app_focused && !file_external_block && !tab_modal &&
+      !state_->prefab_override_confirm && !state_->prefab_rebase_confirm &&
+      state_->scene_file_dialog == State::FileDialog::None && !state_->scene_file_output &&
+      !state_->content_rename_target && !ImGui::GetIO().WantTextInput;
   const bool comparison_shortcut_allowed = file_shortcuts_allowed && !game_running &&
                                            state_->scene_file_path &&
                                            !state_->scene_comparison_busy;
@@ -6216,9 +6273,10 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   const bool rename_editable = !reference_scene && (!workspace || workspace->Writable()) &&
                                !external_modal_open && !state_->content_rename_target;
   const bool rename_open = state_->hierarchy_rename_target.has_value();
-  const bool interaction_blocked = external_modal_open || rename_open ||
-                                   state_->content_rename_target ||
-                                   state_->prefab_override_confirm || state_->prefab_rebase_confirm;
+  const bool other_interaction_blocked =
+      external_modal_open || rename_open || state_->content_rename_target ||
+      state_->prefab_override_confirm || state_->prefab_rebase_confirm;
+  const bool interaction_blocked = other_interaction_blocked || sprite_creation_open;
   state_->mesh_capture_allowed = profile && workspace && !workspace->Root().empty() &&
                                  state_->app_focused && !interaction_blocked &&
                                  !state_->close_prompt_requested;
@@ -7679,6 +7737,13 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     if (!state_->chrome_trace_open)
       state_->chrome_trace_request.reset();
   }
+#if defined(NEXORA_HAS_2D)
+  state_->sprite_creator_allowed =
+      workspace && workspace->Writable() && content && content->Writable() &&
+      !content->ReimportBusy() && state_->app_focused && !game_running &&
+      !other_interaction_blocked && !file_busy && !state_->close_prompt_requested &&
+      !state_->static_export_busy && !state_->game_build_busy && !state_->game_run_busy;
+#endif
   if (content != nullptr)
     DrawContentBrowser(*state_, *content, imports, scene, meshes, scene_editable,
                        file_context_valid && state_->app_focused && !game_running &&
@@ -7686,6 +7751,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                        state_->app_focused && !external_modal_open && !rename_open &&
                            (!workspace || workspace->Writable()),
                        state_->app_focused && !interaction_blocked && !state_->game_input_focused);
+#if defined(NEXORA_HAS_2D)
+  DrawSpriteSourceCreator(*state_, workspace, content);
+#endif
   DrawProjectPanel(*state_, workspace, recent_projects, scene,
                    file_context_valid && state_->app_focused && !game_running &&
                        !interaction_blocked && !file_busy && !state_->content_rename_target);
@@ -9930,14 +9998,14 @@ EditorImGuiTestAccess::SceneShortcutInput(const EditorImGuiHost &host) noexcept 
 }
 
 void EditorImGuiTestAccess::FontSources(EditorImGuiHost &host, std::span<const std::string> paths,
-                                        bool require_traditional_face) {
+                                        bool require_traditional_face, bool map_installed_file) {
   Activate(host.state_->context);
   auto &state = *host.state_;
   ImGui::GetIO().Fonts->Clear(); // Retire atlas input copies and borrowed ranges first.
   state.font_plan.reset();
   state.font_sources.emplace();
   for (const auto &path : paths)
-    state.font_sources->push_back({path, require_traditional_face});
+    state.font_sources->push_back({path, require_traditional_face, map_installed_file});
   state.dpi_bucket = 0;
 }
 EditorFontTestState EditorImGuiTestAccess::FontState(const EditorImGuiHost &host) {
@@ -10102,6 +10170,37 @@ EditorImGuiTestAccess::InspectorSpriteSourceChoicePosition(const EditorImGuiHost
   static_cast<void>(asset);
 #endif
   return std::nullopt;
+}
+
+std::optional<std::array<float, 4>>
+EditorImGuiTestAccess::SpriteSourceCreationRect(const EditorImGuiHost &host,
+                                                std::size_t index) noexcept {
+#if defined(NEXORA_HAS_2D)
+  if (index < host.state_->sprite_creator_controls.size())
+    return host.state_->sprite_creator_controls[index];
+#else
+  static_cast<void>(host);
+  static_cast<void>(index);
+#endif
+  return std::nullopt;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::SpriteSourceCreationMenu(const EditorImGuiHost &host) noexcept {
+#if defined(NEXORA_HAS_2D)
+  return host.state_->sprite_creator_menu;
+#else
+  static_cast<void>(host);
+  return std::nullopt;
+#endif
+}
+std::string_view
+EditorImGuiTestAccess::SpriteSourceCreationStatus(const EditorImGuiHost &host) noexcept {
+#if defined(NEXORA_HAS_2D)
+  return host.state_->sprite_creator_status;
+#else
+  static_cast<void>(host);
+  return {};
+#endif
 }
 
 void EditorImGuiTestAccess::ConfigureSyntheticInput(EditorImGuiHost &host,

@@ -1,0 +1,136 @@
+{
+  "status": "SCOPED_POST_MERGE_WINDOWS_PASS_FULL_GATES_PENDING",
+  "implementation_parent": "8502b28a6543dbcb085d74f4fdcfa9969c707555",
+  "upstream_main": "1df6ab357da69ee3257097a9b5176695b7c96b9a",
+  "upstream_pr": 765,
+  "build": {
+    "exit": 0,
+    "targets": [
+      "NexoraEditor",
+      "NexoraTwoDGameplayTests",
+      "NexoraTwoDSceneSessionTests",
+      "NexoraReloadablePlayTests",
+      "NexoraGameScriptCompilerTests",
+      "NexoraPackagedPlayServicesTests",
+      "NexoraPlayApiProxyTests",
+      "NexoraGameBuildTests",
+      "NexoraGameScriptBuildTests"
+    ]
+  },
+  "ctest": {
+    "exit": 0,
+    "passed": 6,
+    "failed": 0,
+    "seconds": 5.64,
+    "regex": "^(twod\\.(gameplay_bridge|scene_session)|editor\\.(reloadable_play|game_script_compiler|packaged_play_services|play_api_proxy))$"
+  },
+  "resolution": "Preserve catalog per-entity routing and World-pointer legacy rebinding. Catalog bridges reject single-scene fork/rebind before dereferencing absent single-scene state; regression preserves World/primary/revision/API.",
+  "scope": "Windows developer CPU/SDK-DLL tests only. No new native GUI, Linux or full catalog migration acceptance. Prior failed gates retained; work orders4/9, Editor0/8.",
+  "files": [
+    {
+      "path": "Engine/TwoD/src/GameplayBridge.cpp",
+      "bytes": 22853,
+      "sha256": "c47e66a070538ce500465ef91eee9be1282f0cc1ed2c4c4595b921a16f07e279"
+    },
+    {
+      "path": "Engine/TwoD/include/Nexora/TwoD/GameplayBridge.h",
+      "bytes": 2577,
+      "sha256": "4fe8b20219d04648f5f953981a178fb370f9e5b7ab3b8355094424c89a90bb6d"
+    },
+    {
+      "path": "Tests/TwoD/SceneSessionTests.cpp",
+      "bytes": 8701,
+      "sha256": "20c4456d0220c9e3171c10e7dc309b5831668c0091b274b6d2b78ff7ee6c73a8"
+    },
+    {
+      "path": "Engine/Runtime/src/Runtime.cpp",
+      "bytes": 46544,
+      "sha256": "57165aa96e40912aed2f522a9a8496a520a021f2d7728264cd9737319710c1af"
+    },
+    {
+      "path": "Engine/Runtime/include/Nexora/Runtime/Runtime.h",
+      "bytes": 18918,
+      "sha256": "493a742898ffffc5bac25dad4ec159ac2d2589543aa2a316361df0d70c20e688"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-upstream-scene-build.log",
+      "bytes": 20789,
+      "sha256": "b40504cf0e37584d72db53f4df13096b3523598cd83eb069b79a39f20c045a11"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-upstream-scene-build-exit.json",
+      "bytes": 24,
+      "sha256": "75876e0e3f497cad271143ba85bd4f36569cd81195509043f860dab14265b716"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-upstream-scene-test.log",
+      "bytes": 4415,
+      "sha256": "c4e31592e0ef63c1ffa780c45f3e925d265dbccbbdb732c4b76d43f05a5bb729"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-upstream-scene-test-exit.json",
+      "bytes": 24,
+      "sha256": "75876e0e3f497cad271143ba85bd4f36569cd81195509043f860dab14265b716"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-post-merge-package-unit.log",
+      "bytes": 1489,
+      "sha256": "e1e8db4612560847fcc8f4374505c634c09c67989d6eefe50c0e88a5edad149a"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-post-merge-package-unit-exit.json",
+      "bytes": 24,
+      "sha256": "75876e0e3f497cad271143ba85bd4f36569cd81195509043f860dab14265b716"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraRuntime.dll",
+      "bytes": 4269568,
+      "sha256": "2ae0656b31c40f2f1dfb6a57ae339b0b898179c9c439871a4a174f14db259de5"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraTwoD.dll",
+      "bytes": 1669120,
+      "sha256": "20ef948140219d544336eb97db9e959f3633655a37d910760c907006c641dbac"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraTwoDSceneSessionTests.exe",
+      "bytes": 141824,
+      "sha256": "2e03a2defb57e2002b751bab4ab0df420994bf95cc3ebacd82adf13b0d7ca2b6"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraTwoDGameplayTests.exe",
+      "bytes": 158720,
+      "sha256": "9ef3455058b0a93503a4cf1e734ed86a31dbe07215643d19b2705665c99869e5"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraReloadablePlayTests.exe",
+      "bytes": 1054720,
+      "sha256": "b30777e874f59b66cadcc07dfda81181f495645de6e65fc4f36e3f4d95ab76bb"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraGameScriptCompilerTests.exe",
+      "bytes": 680960,
+      "sha256": "d23dd0e9ec5948004446f320e58249b6dd7f16b783f537797b6f7063f29e596a"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraPlayApiProxyTests.exe",
+      "bytes": 228352,
+      "sha256": "8a0f4189b2e0c7e3c66927789c72a7b9f2f9e4cd01b767a985c18a29d8e1ffa9"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraPackagedPlayServicesTests.exe",
+      "bytes": 844288,
+      "sha256": "8a509ed33b5c5945a208df9e1b2c6126e3242ff7ec910a1512aecc8a1c16d94a"
+    },
+    {
+      "path": "build/editor-workflow-native/Tests/Runtime/game-scene-script/bin/GameSceneFixture.dll",
+      "bytes": 592384,
+      "sha256": "7c5f9b0c69d1f1c9e1c8cc9dc92537e916b1c0c8ce211a41f6a384c81db32120"
+    }
+  ],
+  "portable_admission": {
+    "exit": 0,
+    "passed": 9,
+    "seconds": 0.304
+  }
+}
