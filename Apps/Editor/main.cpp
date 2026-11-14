@@ -24,6 +24,7 @@
 #endif
 #if defined(NEXORA_HAS_2D)
 #include "GameTwoDTextures.h"
+#include "SceneSpriteTextures.h"
 #endif
 #include "MaterialScenePreview.h"
 #include "Nexora/Editor/AdditiveSceneComposition.h"
@@ -348,7 +349,7 @@ NativeScenePickHit PickNativeSceneProxy(const nexora::editor::SceneDocument &sce
       continue;
     const auto authored = meshes.entities.find(candidate.entity);
     const auto matrix = scene.WorldMatrix(candidate.entity);
-    const auto distance =
+    auto distance =
         authored != meshes.entities.end()
             ? (matrix ? nexora::editor::preview::PickMesh(*ray, *authored->second.geometry, *matrix)
                       : std::nullopt)
@@ -356,6 +357,16 @@ NativeScenePickHit PickNativeSceneProxy(const nexora::editor::SceneDocument &sce
                   *ray, {pose->x, pose->y + 0.5, pose->z},
                   {std::abs(pose->sx) * 0.45, std::abs(pose->sy) * 0.45, std::abs(pose->sz) * 0.45},
                   {pose->qx, pose->qy, pose->qz, pose->qw}, 500.0);
+#if defined(NEXORA_HAS_2D)
+    if (meshes.sprites && meshes.sprite_ranges.contains(candidate.entity) && matrix) {
+      const auto source_distance = nexora::editor::preview::PickSceneSprite(
+          *ray, *meshes.sprites->entities.at(candidate.entity), *matrix);
+      if (authored == meshes.entities.end())
+        distance = source_distance;
+      else if (source_distance && (!distance || *source_distance < *distance))
+        distance = source_distance;
+    }
+#endif
     if (distance && (!proxy || *distance < proxy->distance ||
                      (*distance == proxy->distance && candidate.entity < proxy->entity)))
       proxy = nexora::editor::PickHit{candidate.entity, *distance};
@@ -573,14 +584,41 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
     nexora::editor::imgui::NativeSceneTool tool, std::optional<std::array<double, 3>> drag_preview,
     std::optional<std::pair<nexora::editor::ViewportVector, double>> rotation_preview,
     std::optional<std::pair<std::size_t, double>> scale_preview, const NativeSceneMeshes &meshes,
-    const nexora::editor::MaterialAssetCatalog &materials, std::uint64_t generation) {
+    const nexora::editor::MaterialAssetCatalog &materials, std::uint64_t generation,
+    bool sampled = false
+#if defined(NEXORA_HAS_2D)
+    ,
+    const nexora::editor::preview::SceneSpriteTextures *sprite_textures = nullptr
+#endif
+) {
   const auto candidates = NativeSceneProxyCandidates(scene, &meshes);
   std::vector<nexora::runtime::Id> material_entities;
   for (const auto &candidate : candidates)
     if (meshes.entities.contains(candidate.entity))
       material_entities.push_back(candidate.entity);
-  const auto palette = nexora::editor::preview::PrepareMaterialPalette(scene, materials, generation,
-                                                                       material_entities);
+  auto palette = nexora::editor::preview::PrepareMaterialPalette(scene, materials, generation,
+                                                                 material_entities);
+  std::vector<Nexora::Presentation::UiTextureUpload> sprite_uploads;
+#if defined(NEXORA_HAS_2D)
+  std::unordered_map<std::uint64_t, std::uint32_t> sprite_materials;
+  if (sprite_textures) {
+    sprite_uploads = sprite_textures->Uploads();
+    for (const auto &upload : sprite_uploads) {
+      if (palette.materials.size() == 64)
+        return Nexora::Presentation::SurfaceStatus::Unsupported;
+      Nexora::Presentation::SceneMaterial material;
+      material.textureId = material.emissionTextureId = upload.textureId;
+      material.emission = {1, 1, 1};
+      material.unlit = true;
+      material.castsShadow = false;
+      material.alphaCutoff = .5F;
+      sprite_materials.emplace(upload.textureId,
+                               static_cast<std::uint32_t>(palette.materials.size()));
+      palette.materials.push_back(material);
+      palette.authored = true;
+    }
+  }
+#endif
   const auto handles =
       (tool == nexora::editor::imgui::NativeSceneTool::Select ||
        tool == nexora::editor::imgui::NativeSceneTool::Hand)
@@ -647,6 +685,14 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
     Nexora::Presentation::SceneInstance instance;
   };
   std::vector<AuthoredInstance> authored_instances;
+#if defined(NEXORA_HAS_2D)
+  struct SpriteInstance final {
+    nexora::runtime::Id entity;
+    Nexora::Presentation::SceneInstance instance;
+    std::uint32_t material{};
+  };
+  std::vector<SpriteInstance> source_instances;
+#endif
   for (const auto &candidate : candidates) {
     const auto pose = preview ? std::optional{preview->at(candidate.entity)}
                               : scene.WorldTransform(candidate.entity);
@@ -679,8 +725,23 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
         std::fill(std::begin(exact->color), std::end(exact->color), 1.0F);
       authored_instances.push_back({authored->second.resource, candidate.entity, *exact});
     } else {
-      instances.push_back(instance);
+#if defined(NEXORA_HAS_2D)
+      if (!sprite_textures || !meshes.sprite_ranges.contains(candidate.entity))
+#endif
+        instances.push_back(instance);
     }
+#if defined(NEXORA_HAS_2D)
+    if (sprite_textures && meshes.sprites && meshes.sprite_ranges.contains(candidate.entity)) {
+      const auto &plane = *meshes.sprites->entities.at(candidate.entity);
+      const auto texture = sprite_textures->Resolve(*plane.assets.atlas);
+      const auto matrix = matrix_preview ? std::optional{matrix_preview->at(candidate.entity)}
+                                         : scene.WorldMatrix(candidate.entity);
+      const auto exact = matrix ? nexora::editor::preview::AffineInstance(*matrix) : std::nullopt;
+      if (!texture || !sprite_materials.contains(texture) || !exact)
+        return Nexora::Presentation::SurfaceStatus::InvalidDescriptor;
+      source_instances.push_back({candidate.entity, *exact, sprite_materials.at(texture)});
+    }
+#endif
   }
   for (const auto &handle : handles) {
     auto instance = handle.instance;
@@ -698,6 +759,16 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
                        palette.entities.at(entity)});
     instances.push_back(instance);
   }
+#if defined(NEXORA_HAS_2D)
+  for (const auto &source : source_instances) {
+    const auto range = meshes.sprite_ranges.at(source.entity);
+    batches.push_back({range.firstIndex, range.indexCount,
+                       static_cast<std::uint32_t>(instances.size()), 1, source.material});
+    instances.push_back(source.instance);
+  }
+#endif
+  if (instances.size() > 4096 || batches.size() > 4096)
+    return Nexora::Presentation::SurfaceStatus::Unsupported;
   const nexora::math::Vector3 target{static_cast<float>(camera.x),
                                      static_cast<float>(orbit.target_y),
                                      static_cast<float>(camera.z)};
@@ -723,7 +794,9 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
   draw.indices = meshes.geometry.indices;
   draw.batches = batches;
   draw.instances = instances;
-  draw.viewport = viewport;
+  draw.textureUploads = sprite_uploads;
+  draw.viewport = sampled ? Nexora::Presentation::SceneViewport{} : viewport;
+  draw.offscreen = draw.sampledByUi = sampled;
   std::memcpy(draw.model_view_projection, mvp.values.data(), sizeof(draw.model_view_projection));
   return surface.DrawScene(draw);
 }
@@ -965,6 +1038,9 @@ int RunGraphical(std::optional<ProjectState> project,
   nexora::editor::ProfileSession profile{240};
   std::optional<Nexora::Presentation::SceneViewport> native_scene_viewport_reported;
   std::optional<NativeSceneMeshes> native_scene_meshes;
+#if defined(NEXORA_HAS_2D)
+  nexora::editor::preview::SceneSpriteTextures scene_sprite_textures;
+#endif
   std::shared_ptr<const nexora::editor::MeshAssetCatalog> play_meshes;
   std::optional<nexora::editor::preview::MaterialPalette> play_materials;
   std::optional<Nexora::Presentation::SceneViewport> native_game_viewport_reported;
@@ -995,6 +1071,39 @@ int RunGraphical(std::optional<ProjectState> project,
     }
     core_logs.Write(level, std::move(category), std::move(message));
   };
+#if defined(NEXORA_HAS_2D)
+  std::pair<std::uint64_t, std::string> scene_sprite_reported;
+  std::optional<std::pair<std::uint64_t, Nexora::Presentation::SurfaceStatus>>
+      scene_sprite_native_rejection;
+  const auto stage_scene_sprites = [&](NativeSceneMeshes &prepared) {
+    auto unavailable = prepared.sprites ? prepared.sprites->unavailable : 1;
+    bool admitted{};
+    try {
+      admitted = scene_sprite_textures.Prepare(prepared);
+    } catch (const std::exception &) {
+      admitted = false;
+    }
+    if (!admitted) {
+      unavailable += prepared.sprite_ranges.size();
+      static_cast<void>(scene_sprite_textures.Clear());
+      prepared.sprite_ranges.clear();
+      prepared.sprites.reset();
+    }
+    std::string message;
+    if (!prepared.sprite_ranges.empty())
+      message = "Sprite sources use cutout alpha.";
+    if (unavailable) {
+      if (!message.empty())
+        message += " ";
+      message += std::to_string(unavailable) + " source previews unavailable; see Console.";
+    }
+    ui.SetSceneSpriteStatus(message);
+    const auto observation = std::pair{project_generation, message};
+    if (scene_sprite_reported != observation && unavailable)
+      log(nexora::runtime::RuntimeLogSeverity::Warning, "Scene", message);
+    scene_sprite_reported = observation;
+  };
+#endif
   nexora::editor::preview::PlayGameplayModule gameplay(
       [&](std::uint32_t level, std::string message) {
         core_logs.Write(static_cast<nexora::core::LogLevel>(level), "Gameplay", std::move(message));
@@ -1484,6 +1593,13 @@ int RunGraphical(std::optional<ProjectState> project,
     const auto retired_two_d = gameplay.TakeRetiredTwoDTextures();
     if (!retired_two_d.empty() && created.surface->ReleaseSpriteTextures(retired_two_d) !=
                                       Nexora::Presentation::SurfaceStatus::Ready) {
+      result = 1;
+      break;
+    }
+#endif
+#if defined(NEXORA_HAS_2D)
+    if (scene_sprite_textures.Retire(*created.surface) !=
+        Nexora::Presentation::SurfaceStatus::Ready) {
       result = 1;
       break;
     }
@@ -2957,6 +3073,9 @@ int RunGraphical(std::optional<ProjectState> project,
       if (const auto viewport = ui.NativeScenePreviewViewport()) {
         native_scene_meshes =
             PrepareNativeSceneMeshes(active_scene(), meshes, content, project_generation);
+#if defined(NEXORA_HAS_2D)
+        stage_scene_sprites(*native_scene_meshes);
+#endif
         const std::array geometry_counts{native_scene_meshes->entities.size(),
                                          native_scene_meshes->geometry.vertices.size(),
                                          native_scene_meshes->geometry.indices.size()};
@@ -3689,6 +3808,123 @@ int RunGraphical(std::optional<ProjectState> project,
       return true;
     };
 #endif
+    const auto draw_authoring = [&](bool sampled
+#if defined(NEXORA_HAS_2D)
+                                    ,
+                                    const nexora::editor::preview::SceneSpriteTextures *textures
+#endif
+                                ) {
+      const auto viewport = ui.NativeScenePreviewViewport();
+      if (!viewport || !project || !native_scene_meshes)
+        return Nexora::Presentation::SurfaceStatus::InvalidDescriptor;
+      std::optional<std::array<double, 3>> drag_preview;
+      std::optional<std::pair<nexora::editor::ViewportVector, double>> rotation_preview;
+      std::optional<std::pair<std::size_t, double>> scale_preview;
+      if (const auto drag = ui.NativeSceneDragPreview();
+          drag && !active_scene().Selection().empty()) {
+        const auto pose = NativeSceneGizmoFrame(active_scene(), ui.NativeSceneCenterPivot());
+        if (pose) {
+          if (native_scene_drag_scale_axis && native_scene_drag_axis) {
+            const auto factor =
+                *native_scene_drag_scale_axis == 3
+                    ? NativeSceneDragUniformScaleFactor(*viewport, *drag)
+                    : NativeSceneDragScaleFactor(*viewport, ui.GetSceneOverviewCamera(),
+                                                 ui.GetNativeSceneOrbit(), *drag, *pose,
+                                                 *native_scene_drag_axis);
+            if (factor)
+              scale_preview = std::pair{*native_scene_drag_scale_axis,
+                                        NativeSceneScaleFactorWithSnap(*factor, drag->vertical)};
+          } else if (native_scene_drag_rotate && native_scene_drag_axis) {
+            if (const auto angle = NativeSceneDragAngle(*viewport, ui.GetSceneOverviewCamera(),
+                                                        ui.GetNativeSceneOrbit(), *drag, *pose,
+                                                        *native_scene_drag_axis))
+              rotation_preview =
+                  std::pair{*native_scene_drag_axis,
+                            NativeSceneRotationAngleWithSnap(*angle, drag->vertical)};
+          } else if (ui.GetNativeSceneTool() == nexora::editor::imgui::NativeSceneTool::Move) {
+            drag_preview = NativeSceneDragDelta(*viewport, ui.GetSceneOverviewCamera(),
+                                                ui.GetNativeSceneOrbit(), *drag, *pose,
+                                                native_scene_drag_axis, native_scene_drag_plane);
+          }
+        }
+      }
+      return DrawNativeScenePreview(
+          *created.surface, active_scene(), *viewport, ui.GetSceneOverviewCamera(),
+          ui.GetNativeSceneOrbit(), ui.NativeSceneLocalAxes(), ui.NativeSceneCenterPivot(),
+          ui.GetNativeSceneTool(), drag_preview, rotation_preview, scale_preview,
+          *native_scene_meshes, materials, project_generation, sampled
+#if defined(NEXORA_HAS_2D)
+          ,
+          textures
+#endif
+      );
+    };
+    const auto finish_authoring = [&](Nexora::Presentation::SurfaceStatus scene_status,
+                                      Nexora::Presentation::SceneViewport viewport) {
+      ui.SetNativeScenePreviewAvailable(scene_status !=
+                                        Nexora::Presentation::SurfaceStatus::Unsupported);
+      if (fallback_scene_overview &&
+          scene_status == Nexora::Presentation::SurfaceStatus::Unsupported) {
+        ui.SetNativeScenePreview(false);
+        fallback_scene_overview = false;
+      }
+      if (scene_status == Nexora::Presentation::SurfaceStatus::Ready &&
+          (!native_scene_viewport_reported || native_scene_viewport_reported->x != viewport.x ||
+           native_scene_viewport_reported->y != viewport.y ||
+           native_scene_viewport_reported->width != viewport.width ||
+           native_scene_viewport_reported->height != viewport.height)) {
+        std::cerr << "native scene viewport: " << viewport.x << ' ' << viewport.y << ' '
+                  << viewport.width << ' ' << viewport.height << '\n';
+        native_scene_viewport_reported = viewport;
+      }
+    };
+    bool authoring_scene_composed{};
+#if defined(NEXORA_HAS_2D)
+    if (!project || !ui.NativeScenePreviewViewport()) {
+      static_cast<void>(scene_sprite_textures.Clear());
+      ui.SetSceneSpriteStatus({});
+      if (native_scene_meshes) {
+        native_scene_meshes->sprite_ranges.clear();
+        native_scene_meshes->sprites.reset();
+      }
+    } else {
+      if (!native_scene_meshes || !native_scene_meshes->sprites ||
+          !nexora::editor::preview::SceneSpritePlanesMatch(*native_scene_meshes->sprites,
+                                                           active_scene(), content.Browser())) {
+        native_scene_meshes =
+            PrepareNativeSceneMeshes(active_scene(), meshes, content, project_generation);
+        stage_scene_sprites(*native_scene_meshes);
+      }
+      if (!native_scene_meshes->sprite_ranges.empty()) {
+        const auto scene_status = draw_authoring(true, &scene_sprite_textures);
+        if (scene_status == Nexora::Presentation::SurfaceStatus::Ready) {
+          const auto image = created.surface->SceneTexture();
+          if (!image || !ui.DrawSceneImage(*image)) {
+            result = 1;
+            break;
+          }
+          authoring_scene_composed = true;
+          scene_sprite_native_rejection.reset();
+          finish_authoring(scene_status, *ui.NativeScenePreviewViewport());
+        } else if (nexora::sceneview::CanRedrawRetainedScene(scene_status)) {
+          static_cast<void>(scene_sprite_textures.Clear());
+          native_scene_meshes->sprites.reset();
+          native_scene_meshes->sprite_ranges.clear();
+          ui.SetSceneSpriteStatus("Sprite source preview is unavailable; see Console.");
+          const auto rejection = std::pair{project_generation, scene_status};
+          if (scene_sprite_native_rejection != rejection)
+            log(nexora::runtime::RuntimeLogSeverity::Warning, "Scene",
+                "Native Sprite cutout admission rejected; retained the source-free proxy view.");
+          scene_sprite_native_rejection = rejection;
+        } else {
+          if (surface_recoverable(scene_status))
+            continue;
+          result = 1;
+          break;
+        }
+      }
+    }
+#endif
     std::optional<Nexora::Presentation::SurfaceStatus> packaged_ui_status;
 #if NEXORA_ASSET_PIPELINE_ENABLED && defined(NEXORA_HAS_2D)
     if (packaged_play && packaged_sprite_textures && play.PlayWorld()) {
@@ -4078,60 +4314,15 @@ int RunGraphical(std::optional<ProjectState> project,
       result = created.surface->CloseRequested() ? 0 : 1;
       break;
     }
-    if (project) {
+    if (project && !authoring_scene_composed) {
       if (const auto viewport = ui.NativeScenePreviewViewport()) {
-        std::optional<std::array<double, 3>> drag_preview;
-        std::optional<std::pair<nexora::editor::ViewportVector, double>> rotation_preview;
-        std::optional<std::pair<std::size_t, double>> scale_preview;
-        if (const auto drag = ui.NativeSceneDragPreview();
-            drag && !active_scene().Selection().empty()) {
-          const auto pose = NativeSceneGizmoFrame(active_scene(), ui.NativeSceneCenterPivot());
-          if (pose) {
-            if (native_scene_drag_scale_axis && native_scene_drag_axis) {
-              const auto factor =
-                  *native_scene_drag_scale_axis == 3
-                      ? NativeSceneDragUniformScaleFactor(*viewport, *drag)
-                      : NativeSceneDragScaleFactor(*viewport, ui.GetSceneOverviewCamera(),
-                                                   ui.GetNativeSceneOrbit(), *drag, *pose,
-                                                   *native_scene_drag_axis);
-              if (factor)
-                scale_preview = std::pair{*native_scene_drag_scale_axis,
-                                          NativeSceneScaleFactorWithSnap(*factor, drag->vertical)};
-            } else if (native_scene_drag_rotate && native_scene_drag_axis) {
-              if (const auto angle = NativeSceneDragAngle(*viewport, ui.GetSceneOverviewCamera(),
-                                                          ui.GetNativeSceneOrbit(), *drag, *pose,
-                                                          *native_scene_drag_axis))
-                rotation_preview =
-                    std::pair{*native_scene_drag_axis,
-                              NativeSceneRotationAngleWithSnap(*angle, drag->vertical)};
-            } else if (ui.GetNativeSceneTool() == nexora::editor::imgui::NativeSceneTool::Move) {
-              drag_preview = NativeSceneDragDelta(*viewport, ui.GetSceneOverviewCamera(),
-                                                  ui.GetNativeSceneOrbit(), *drag, *pose,
-                                                  native_scene_drag_axis, native_scene_drag_plane);
-            }
-          }
-        }
-        const auto scene_status = DrawNativeScenePreview(
-            *created.surface, active_scene(), *viewport, ui.GetSceneOverviewCamera(),
-            ui.GetNativeSceneOrbit(), ui.NativeSceneLocalAxes(), ui.NativeSceneCenterPivot(),
-            ui.GetNativeSceneTool(), drag_preview, rotation_preview, scale_preview,
-            *native_scene_meshes, materials, project_generation);
-        ui.SetNativeScenePreviewAvailable(scene_status !=
-                                          Nexora::Presentation::SurfaceStatus::Unsupported);
-        if (fallback_scene_overview &&
-            scene_status == Nexora::Presentation::SurfaceStatus::Unsupported) {
-          ui.SetNativeScenePreview(false);
-          fallback_scene_overview = false;
-        }
-        if (scene_status == Nexora::Presentation::SurfaceStatus::Ready &&
-            (!native_scene_viewport_reported || native_scene_viewport_reported->x != viewport->x ||
-             native_scene_viewport_reported->y != viewport->y ||
-             native_scene_viewport_reported->width != viewport->width ||
-             native_scene_viewport_reported->height != viewport->height)) {
-          std::cerr << "native scene viewport: " << viewport->x << ' ' << viewport->y << ' '
-                    << viewport->width << ' ' << viewport->height << '\n';
-          native_scene_viewport_reported = *viewport;
-        }
+        const auto scene_status = draw_authoring(false
+#if defined(NEXORA_HAS_2D)
+                                                 ,
+                                                 nullptr
+#endif
+        );
+        finish_authoring(scene_status, *viewport);
         if (scene_status != Nexora::Presentation::SurfaceStatus::Ready &&
             scene_status != Nexora::Presentation::SurfaceStatus::Unsupported) {
           if (surface_recoverable(scene_status))
@@ -4251,6 +4442,58 @@ int RunGraphical(std::optional<ProjectState> project,
       observation << "native game draw admitted frame=" << static_cast<std::uint64_t>(frames) + 1
                   << " x=" << *game_draw_admitted_test_x;
       std::cerr << observation.str() << '\n';
+    }
+#endif
+#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS) && defined(NEXORA_HAS_2D)
+    if (std::getenv("NEXORA_SCENE_SPRITE_UI_TEST_EVIDENCE")) {
+      using Access = nexora::editor::imgui::EditorImGuiTestAccess;
+      const auto input = Access::SceneShortcutInput(ui);
+      const auto camera = ui.GetSceneOverviewCamera();
+      const auto orbit = ui.GetNativeSceneOrbit();
+      std::ostringstream observation;
+      observation.precision(12);
+      observation << "scene sprite ui state=" << static_cast<unsigned>(play.State()) << " sources="
+                  << (native_scene_meshes ? native_scene_meshes->sprite_ranges.size() : 0)
+                  << " atlases=" << scene_sprite_textures.Size()
+                  << " composed=" << authoring_scene_composed << " focused=" << input.focused
+                  << " admitted=" << input.play_allowed << " camera=" << camera.x << ',' << camera.z
+                  << ',' << orbit.yaw << ',' << orbit.pitch << ',' << orbit.distance << ','
+                  << orbit.target_y << " selected=";
+      for (const auto id : active_scene().Selection())
+        observation << id << ',';
+      observation << " keys=";
+      for (const bool down : Access::ScenePreviewKeys(ui))
+        observation << down;
+      observation << " pointer=" << input.pointer[0] * dpi << ',' << input.pointer[1] * dpi
+                  << " down=" << input.buttons[0] << " right=" << input.buttons[1]
+                  << " history=" << input.history_allowed << " dirty=" << active_scene().Dirty();
+      if (!active_scene().Selection().empty())
+        if (const auto pose = active_scene().Transform(active_scene().Selection().front()))
+          observation << " pose=" << pose->x << ',' << pose->y << ',' << pose->z;
+
+      if (const auto viewport = ui.NativeScenePreviewViewport())
+        observation << " viewport=" << viewport->x << ',' << viewport->y << ',' << viewport->width
+                    << ',' << viewport->height;
+      for (const auto &upload : scene_sprite_textures.Uploads())
+        observation << " texture=" << upload.textureId;
+      observation << " revision=" << content.Browser().Revision();
+      const auto point = [&](const char *name, std::optional<std::array<float, 2>> value) {
+        if (value)
+          observation << ' ' << name << '=' << (*value)[0] * dpi << ',' << (*value)[1] * dpi;
+      };
+      point("reimport", Access::ContentWorkflowPosition(ui, true));
+      point("search", Access::ContentSearchPosition(ui));
+      for (const auto &item : content.Browser().Items())
+        if (item.path.extension() == ".nx2atlas") {
+          point("atlaspoint", Access::ContentAssetPosition(ui, item.id));
+          break;
+        }
+
+      static std::string previous;
+      if (observation.str() != previous) {
+        previous = observation.str();
+        std::cerr << previous << '\n';
+      }
     }
 #endif
     static_cast<void>(profile.Add(
@@ -4439,6 +4682,11 @@ int RunGraphical(std::optional<ProjectState> project,
                                   &nexora::editor::AdditiveDocumentView::owned)
             << " pie_ticks=" << play.Stats().fixed_ticks
             << " pie_steps=" << play.Stats().manual_steps << '\n';
+#if defined(NEXORA_HAS_2D)
+  if (!scene_sprite_textures.Clear() ||
+      scene_sprite_textures.Retire(*created.surface) != Nexora::Presentation::SurfaceStatus::Ready)
+    result = 1;
+#endif
   if (created.surface->DrainAndDestroy() != Nexora::Presentation::SurfaceStatus::Ready)
     result = 1;
   return result;

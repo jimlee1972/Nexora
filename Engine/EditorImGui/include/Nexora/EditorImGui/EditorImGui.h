@@ -577,9 +577,13 @@ public:
   // reserved.
   bool DrawGameScene(Nexora::Presentation::SceneTextureReference,
                      const Nexora::Presentation::UiDrawData &);
+  // Owning native Scene canvas image, appended before EndFrame. Copies only a complete typed
+  // acquired-frame reference; preserves ImGui window order alongside the separate Game image.
+  bool DrawSceneImage(Nexora::Presentation::SceneTextureReference);
   void SetConcurrentNativeViews(bool available) noexcept;
   void SetNativeScenePreview(bool enabled) noexcept;
   void SetNativeScenePreviewAvailable(bool available) noexcept;
+  void SetSceneSpriteStatus(std::string message);
   [[nodiscard]] NativeSceneOrbit GetNativeSceneOrbit() const noexcept;
   [[nodiscard]] NativeSceneTool GetNativeSceneTool() const noexcept;
   [[nodiscard]] bool NativeSceneLocalAxes() const noexcept;

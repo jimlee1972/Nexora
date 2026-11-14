@@ -1,6 +1,6 @@
 # Offscreen Scene composition in UI
 
-`SceneDrawData::sampledByUi` explicitly prepares one offscreen LDR Scene for the acquired frame's
+`SceneDrawData::sampledByUi` explicitly prepares up to two offscreen LDR Scenes for the acquired frame's
 single `RenderUi` submission. The default is false: ordinary scenes, UI texture IDs, HDR composition
 and existing exclusive workflows keep their existing behavior. This is a native compositor
 boundary; packaged Editor source admission and gameplay reload remain embedding responsibilities.
@@ -9,7 +9,7 @@ boundary; packaged Editor source admission and gameplay reload remain embedding 
 
 Set `offscreen = true` and `sampledByUi = true` before `DrawScene`. The producer uses the existing
 full-surface offscreen target, with the default viewport. A direct or HDR sampled request rejects.
-After a successful draw, `SceneTexture()` returns an opaque `SceneTextureReference` containing a
+After each successful draw, `SceneTexture()` returns the latest an opaque `SceneTextureReference` containing a
 surface domain, acquired-frame serial and view identity. The value owns no renderer pointer or
 image. It is available only on the render owner thread before the frame's UI submission.
 
@@ -52,13 +52,17 @@ resource transition and retains the sampled target/cache through a later direct 
 encoder samples the owned texture with its normal command-buffer resource lifetime. Submitted
 frame waits protect reuse, resizing and destruction. No gameplay module owns GPU references.
 
-Sampling completes that offscreen Scene once; `sceneComposites` increments once for the prepared
+Sampling completes each referenced offscreen Scene once; `sceneComposites` increments once for the prepared
 view, while `nativeUiDrawCalls` counts its actual indexed image and other UI commands separately.
 Multiple image commands may reference the same prepared Scene in the one packet.
 
 An opt-in sampled LDR/non-shadow view conservatively reserves the union of its image commands'
-clip rectangles. One disjoint explicit direct LDR/non-shadow Scene may follow UI using the existing
-second view upload slot; overlapping and third views reject. Ordinary offscreen/full-surface and
+clip rectangles. A second sampled LDR/non-shadow view can be prepared before the same UI packet;
+both references remain valid and each view owns its fenced color target. Their images follow GUI
+window order, including floating-window occlusion. There are still at most two Scene draws.
+Alternatively, one disjoint explicit direct LDR/non-shadow Scene may follow UI using the second
+view upload slot; overlapping direct and third views reject. Publishing the same view slot twice
+rejects without replacing a prepared reference. Ordinary offscreen/full-surface and
 shadow/HDR workflows retain their exclusive admission rules. A wider GUI clip can conservatively
 block a second view even when its image triangles cover less area.
 

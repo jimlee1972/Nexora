@@ -2108,3 +2108,16 @@ Scene images as font textures. All per-frame image metadata clears at `BeginFram
 The application owns source admission, GUI completion/submission and World publication; the host
 retains no gameplay, source or renderer pointer. See [configured Play ownership](../../Apps/Editor/README.md#configured-packaged-sprite-play)
 and [native acceptance](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-ConfiguredSpritePlay-Linux-2026-11-14.md).
+
+## Owning authoring Scene images
+
+`DrawSceneImage(reference)` adds one typed native image to the current Scene canvas before
+`EndFrame`. Scene and Game independently retain their owning draw-list/index/clip ranges for the
+current frame; flattening splits merged commands around up to two ordered image ranges and
+preserves floating Inspector/window order. Missing, overlapping, duplicate or partial ranges
+reject before native submission. Hidden first-use sizing windows provide no native viewport.
+The headless RHI overload rejects either typed image instead of treating it as a font texture.
+`SetSceneSpriteStatus` copies an application caption; it retains no asset/model pointers.
+The host owns no source or GPU texture lifecycle. Existing Scene/Game overlap suppression remains;
+this supports two disjoint canvases and floating auxiliary-window occlusion, not arbitrary native
+Scene/Game overlap. See [authoring source ownership](../../Apps/Editor/README.md#native-scene-sprite-sources).

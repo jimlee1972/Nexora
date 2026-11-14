@@ -25,6 +25,9 @@ public:
       return false;
     if (!count_)
       return true;
+    if (count_ == 1 && sample_pair_eligible_ && !after_ui && data.sampledByUi && data.offscreen &&
+        !data.hdr && !data.shadow)
+      return true;
     return count_ < kMaximumViews && pair_allowed_ && PairEligible(data, after_ui) &&
            !SceneViewportsOverlap(first_, *viewport);
   }

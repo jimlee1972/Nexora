@@ -112,6 +112,11 @@ SurfaceStatus RenderSurface::RenderUi(const UiDrawData &draw_data) {
                                       : state_->surface->RenderUi(draw_data);
 }
 
+SurfaceStatus RenderSurface::ReleaseSceneTextures(std::span<const std::uint64_t> ids) {
+  return !state_ || state_->destroyed ? SurfaceStatus::SurfaceLost
+                                      : state_->surface->ReleaseSceneTextures(ids);
+}
+
 SurfaceStatus RenderSurface::ReleaseSpriteTextures(std::span<const std::uint64_t> ids) {
   return !state_ || state_->destroyed ? SurfaceStatus::SurfaceLost
                                       : state_->surface->ReleaseSpriteTextures(ids);

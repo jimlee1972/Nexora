@@ -16,7 +16,7 @@ void References() {
   Require(!owner.Reference() && !owner.Publish(0), "unacquired view published");
   owner.Begin(7);
   foreign.Begin(7);
-  Require(owner.Publish(0) && foreign.Publish(0) && !owner.Publish(1),
+  Require(owner.Publish(0) && foreign.Publish(0) && !owner.Publish(0),
           "duplicate scene publication admitted");
   const auto reference = *owner.Reference();
   Require(reference != *foreign.Reference(), "surface domains alias");
@@ -119,6 +119,45 @@ void References() {
               !ValidateTwoDLinearDraws(linear, 320, 240),
           "Scene reference entered an unsupported Sprite/linear path");
 }
+void DualReferences() {
+  detail::SceneUiComposition owner;
+  owner.Begin(19);
+  Require(owner.Publish(0), "first dual reference rejected");
+  const auto first = *owner.Reference();
+  Require(owner.Publish(1), "second dual reference rejected");
+  const auto second = *owner.Reference();
+  Require(first != second && first.surface == second.surface && first.frame == second.frame &&
+              !owner.Publish(0) && !owner.Publish(1) && !owner.Publish(2),
+          "duplicate/out-of-budget dual publication admitted");
+  const std::array<UiVertex, 3> vertices{
+      {{{0, 0}, {0, 0}, UINT32_MAX}, {{20, 0}, {1, 0}, UINT32_MAX}, {{0, 20}, {0, 1}, UINT32_MAX}}};
+  const std::array<std::uint16_t, 3> indices{0, 1, 2};
+  std::array<UiDrawCommand, 2> commands{{{0, 0, 20, 20, 0, 3}, {20, 0, 20, 20, 0, 3}}};
+  commands[0].sceneTexture = first;
+  commands[1].sceneTexture = second;
+  UiDrawData packet{vertices, std::as_bytes(std::span(indices)), commands, {}};
+  auto plan = owner.Validate(packet, 40, 20);
+  Require(plan.valid && plan.sampled && plan.views[0] && plan.views[1] && plan.bounds.width == 40,
+          "two owning images did not produce two explicit sampled views");
+  commands[1].sceneTexture.view = 2;
+  Require(!owner.Validate(packet, 40, 20).valid, "unpublished third view admitted");
+  commands[1].sceneTexture = second;
+  owner.Complete();
+  Require(!owner.Validate(packet, 40, 20).valid, "dual submission was replayed");
+  owner.Begin(20);
+  Require(owner.Publish(0) && owner.Publish(1) && !owner.Validate(packet, 40, 20).valid,
+          "dual references survived a frame boundary");
+  detail::SceneViewAdmission views;
+  SceneDrawData sample;
+  sample.sampledByUi = sample.offscreen = true;
+  Require(views.Commit(sample, 40, 20, false), "first sampled view rejected");
+  auto shadowed = sample;
+  shadowed.shadow = SceneDirectionalShadow{};
+  Require(!views.CanSubmit(shadowed, 40, 20, false) && !views.CanSubmit(sample, 40, 20, true) &&
+              views.Commit(sample, 40, 20, false) && views.Count() == 2 &&
+              !views.Commit(sample, 40, 20, false),
+          "dual sampled admission lost shadow/phase/two-view bounds");
+}
 void Views() {
   detail::SceneViewAdmission views;
   SceneDrawData offscreen, right;
@@ -150,6 +189,7 @@ void Views() {
 int main() {
   try {
     References();
+    DualReferences();
     Views();
     std::cout << "PASS fenced Scene/UI references and view admission\n";
   } catch (const std::exception &error) {
