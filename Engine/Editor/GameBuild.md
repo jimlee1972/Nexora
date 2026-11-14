@@ -192,3 +192,9 @@ bytes. The C/Zig ABI and Clip/Atlas/source codecs are unchanged; C++ consumers r
 
 This delivers asset capture/admission. There is no implicit animation start, packaged main gameplay
 2D/source/pool service, live source publication or completed strict Editor reload acceptance.
+
+The graphical Build Settings Animation assets popup edits these same roots. Its bounded owning
+UUID/path snapshot comes from typed ready Content metadata; it reads no source files. Save/Reload
+and SceneOnly/ScriptProject Build retain the existing exact settings/source publication guards.
+Missing roots remain visible, and Content rename keeps UUID identity. Selection alone neither
+writes settings nor starts playback; the GUI ownership contract is in [EditorImGui](../EditorImGui/README.md#project-build-settings).

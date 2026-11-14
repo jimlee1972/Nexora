@@ -4069,6 +4069,8 @@ int RunGraphical(std::optional<ProjectState> project,
                << " play_requests=" << shortcut.play_shortcut_requests
                << " play_command=" << static_cast<int>(shortcut.play_command)
                << " play_state=" << static_cast<int>(play.State());
+      // Copied digit state acknowledges native Ctrl+1 delivery without invoking panel focus.
+      geometry << " scene_key=" << Access::ScenePreviewKeys(ui)[4];
       geometry << " file_keys=";
       for (const bool key : shortcut.file_keys)
         geometry << key;
@@ -4226,6 +4228,15 @@ int RunGraphical(std::optional<ProjectState> project,
         if (const auto position = Access::ProjectBuildSettingsPosition(ui, index))
           observation << " p" << index << '=' << (*position)[0] * dpi << ','
                       << (*position)[1] * dpi;
+      observation << " animation_count=" << Access::BuildAnimationRoots(ui).size();
+      for (std::size_t index = 0; index < 2; ++index)
+        if (const auto position = Access::BuildAnimationPosition(ui, index))
+          observation << " clip_" << (index == 0 ? "open" : "close") << '=' << (*position)[0] * dpi
+                      << ',' << (*position)[1] * dpi;
+      for (const bool remove : {false, true})
+        for (const auto &[id, position] : Access::BuildAnimationAssetPositions(ui, remove))
+          observation << " clip_" << (remove ? "remove_" : "add_") << id.ToString() << '='
+                      << position[0] * dpi << ',' << position[1] * dpi;
       if (observation.str() != previous_build_observation) {
         previous_build_observation = observation.str();
         std::cerr << previous_build_observation << '\n';

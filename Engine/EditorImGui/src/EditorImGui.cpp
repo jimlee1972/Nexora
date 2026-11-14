@@ -197,6 +197,23 @@ struct EditorImGuiHost::State final {
   std::array<std::optional<std::array<float, 2>>, 3> saved_game_decision_positions{};
   std::array<std::optional<std::array<float, 2>>, 16 + ProjectBuildSettings::kMaximumScenes * 3>
       build_settings_positions{};
+  struct BuildAnimationPicker final {
+    struct Choice final {
+      runtime::AssetUuid id;
+      std::string path;
+    };
+    std::uintptr_t owner{};
+    std::filesystem::path root;
+    std::uint64_t generation{}, revision{};
+    int frame{};
+    std::vector<Choice> choices;
+    std::unordered_map<runtime::AssetUuid, std::size_t, runtime::AssetUuidHash> index;
+    std::string error;
+  };
+  std::optional<BuildAnimationPicker> build_animation_picker;
+  std::array<std::optional<std::array<float, 2>>, 2> build_animation_positions{};
+  std::vector<std::pair<runtime::AssetUuid, std::array<float, 2>>> build_animation_add_positions,
+      build_animation_remove_positions;
   SceneComparisonSnapshot scene_comparison;
   std::optional<SceneFileToken> scene_comparison_request;
   bool scene_comparison_busy{}, scene_comparison_open{}, scene_comparison_in_overwrite{};
@@ -4136,17 +4153,26 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
     ImGui::TextWrapped("%s", state.inspector_error.c_str());
 }
 
+#include "BuildAnimationPicker.inl"
+
 template <typename StateT>
 void DrawProjectBuildSettings(StateT &state, const ProjectWorkspace *workspace,
-                              const SceneDocument *scene, bool blocked) {
+                              const SceneDocument *scene, ProjectContentSession *content,
+                              bool blocked) {
+  state.build_animation_positions = {};
+  state.build_animation_add_positions.clear();
+  state.build_animation_remove_positions.clear();
   for (std::size_t i = 2; i < state.build_settings_positions.size(); ++i)
     state.build_settings_positions[i].reset();
-  if (!state.build_settings_open)
+  if (!state.build_settings_open) {
+    state.build_animation_picker.reset();
     return;
+  }
   if (!workspace || workspace->Root() != state.build_settings_root ||
       workspace->Project().id != state.build_settings_project) {
     state.build_settings_open = false;
     state.build_settings_request.reset();
+    state.build_animation_picker.reset();
     return;
   }
   const auto capture = [&](std::size_t index) {
@@ -4302,6 +4328,8 @@ void DrawProjectBuildSettings(StateT &state, const ProjectWorkspace *workspace,
                                   : ProjectBuildSettingsAction::CancelBuild);
     capture(14);
     ImGui::EndDisabled();
+    ImGui::SameLine();
+    DrawBuildAnimationPicker(state, *workspace, content, blocked);
     ImGui::TextDisabled("Build uses saved settings and scenes; output contains no project source.");
     if (state.game_build_progress_available) {
       const auto label = GameBuildStageLabel(state.game_build_progress.stage);
@@ -4331,7 +4359,8 @@ void DrawProjectBuildSettings(StateT &state, const ProjectWorkspace *workspace,
         ImGui::EndChild();
       }
     }
-  }
+  } else
+    state.build_animation_picker.reset();
   ImGui::End();
 }
 
@@ -6118,7 +6147,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     ImGui::EndMainMenuBar();
   }
   state_->build_settings_positions[0] = state_->static_export_positions[0];
-  DrawProjectBuildSettings(*state_, workspace, scene,
+  DrawProjectBuildSettings(*state_, workspace, scene, content,
                            recovery_available || game_running || state_->static_export_busy ||
                                close_confirmation_open || state_->play_apply_open);
   if (state_->saved_game_decision_pending && !ImGui::IsPopupOpen("Saved project scenes"))
@@ -8914,6 +8943,7 @@ void EditorImGuiHost::SetProjectBuildSettings(const ProjectWorkspace &workspace,
   std::copy(settings.build.script_manifest.begin(), settings.build.script_manifest.end(),
             std::begin(state_->game_build_manifest));
   state_->build_settings = std::move(settings);
+  state_->build_animation_picker.reset();
   state_->build_settings_ready = ready;
   state_->build_settings_status = std::move(status);
 }
@@ -8977,6 +9007,21 @@ EditorImGuiTestAccess::ProjectBuildSettingsPosition(const EditorImGuiHost &host,
   return index < host.state_->build_settings_positions.size()
              ? host.state_->build_settings_positions[index]
              : std::nullopt;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::BuildAnimationPosition(const EditorImGuiHost &host, std::size_t index) {
+  return index < host.state_->build_animation_positions.size()
+             ? host.state_->build_animation_positions[index]
+             : std::nullopt;
+}
+std::vector<std::pair<runtime::AssetUuid, std::array<float, 2>>>
+EditorImGuiTestAccess::BuildAnimationAssetPositions(const EditorImGuiHost &host, bool remove) {
+  return remove ? host.state_->build_animation_remove_positions
+                : host.state_->build_animation_add_positions;
+}
+std::vector<runtime::AssetUuid>
+EditorImGuiTestAccess::BuildAnimationRoots(const EditorImGuiHost &host) {
+  return host.state_->build_settings.animation_clips;
 }
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::SavedGameDecisionPosition(const EditorImGuiHost &host, std::size_t index) {
