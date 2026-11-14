@@ -67,6 +67,9 @@ block a second view even when its image triangles cover less area.
 Prepare the complete unpublished World, immutable assets, Scene target/reference and every
 Sprite/Atlas admission before committing a host candidate. Native failure follows the surface
 recovery policy; CPU failure keeps the prior World and owners. This API does not by itself make
-Editor publication transactional. In particular, it does not remove the configured source-package
-Play guard. That parent workflow still requires actual mixed Scene/source pixels, scene remapping,
-Play lifecycle and retirement acceptance.
+Editor publication transactional. The
+[configured Editor Play owner](../../Apps/Editor/README.md#configured-packaged-sprite-play) performs
+its complete Scene/Sprite/GUI submission inside candidate preparation before World publication,
+with immutable whole-package Atlas registration and exact frame remapping. Its native acceptance
+covers mixed pixels, lifecycle, scene remapping, window occlusion and resizing; the surface primitive
+alone does not establish those embedding contracts.

@@ -281,3 +281,17 @@ GNU 15.2 前後對照重現原始 benchmark 暫存值警告，並驗證全部 17
 [補充證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SceneUiComposition-EditorTag-Linux-2026-11-14.md) 保留原始兩份原生證據與實際重現失敗。
 這尚未實作有擁有者的 ImGui Scene 綁定或受保護的封裝來源 Play；`nexora-whr.7.8`、正式重載、
 完整 ED-WF-07／08、**5/9**、**0/8**、**9/11** 及實體／乾淨主機驗收仍未完成／維持不變。
+
+
+## ✅ 設定式套件 Sprite Play（2026-11-14）
+
+支援工作 `nexora-whr.7.8` 將已交付的 Build 目錄與受柵欄保護的 Scene 影像整合進實際主 Editor。
+Play 前先准入全部套件 Atlas；候選場景的重映射來源與完整 Scene／Sprite／GUI 單次提交成功後，
+才發布 World 並執行初始回呼。唯讀原生驗收重複32次操作，檢查完整裁切／Pivot／鏡像遮罩及未變的
+底層3D像素，再以實際 SDK Zig 驗證 Additive／Replace／返回、浮動視窗遮擋、縮放與模組 Start 前
+拒絕過期來源。保留無來源的直接3D路徑及 TwoD-OFF 明確拒絕。
+[契約](../../Apps/Editor/README.md#configured-packaged-sprite-play) 與
+[執行紀錄](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-ConfiguredSpritePlay-Linux-2026-11-14.md)。
+前述底層基礎紀錄描述各自交付範圍；設定式 Play 現由本獨立消費端完成。Scene View 製作畫面、
+正式來源發布／重載與完整 ED-WF-07／08 仍未完成。Workflow **5/9**、完整圖形 Editor **0/8**、
+TwoD **9/11** 及實體／乾淨主機驗收維持不變。
