@@ -4,6 +4,7 @@
 import argparse
 import ctypes
 import functools
+import json
 import os
 from pathlib import Path
 import re
@@ -11,8 +12,10 @@ import select
 import shutil
 import signal
 import subprocess
+import sys
 import tempfile
 import time
+import traceback
 
 
 @functools.lru_cache(maxsize=32)
@@ -353,6 +356,10 @@ def finish_recovery_choice(
 
 
 def main() -> int:
+    # Local import avoids a module-import cycle for the many existing fixture clients that
+    # import collect_output/physical_key_arguments from this file.
+    from NativeSceneInput import NativeSceneInput
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--editor", required=True)
     parser.add_argument("--xvfb", required=True)
@@ -364,6 +371,8 @@ def main() -> int:
     xvfb, display = start_xvfb(args.xvfb, "1600x900x24")
     environment = os.environ.copy()
     editor = None
+    driver = None
+    passed = False
     try:
         if display is None:
             raise RuntimeError("Xvfb did not become ready")
@@ -412,8 +421,18 @@ def main() -> int:
         identity_sidecar = Path(str(source_asset) + ".meta")
         (root / "project.nexora").write_text("schema=1\nname=Display Acceptance\n")
         (root / ".nexora/workspace").write_text("schema=1\n")
-        editor = launch(args.editor, root, recent_projects, environment)
+        editor = launch(args.editor, root, recent_projects,
+                        dict(environment, NEXORA_SCENE_MERGE_UI_TEST_GEOMETRY="1"), binary=True)
         window = wait_for_window(args.xdotool, environment)
+        driver = NativeSceneInput(editor, args.xdotool, environment, window, user_state, 1,
+                                  minimum_wait=0, phase_wait=.05)
+
+        def pause(seconds):
+            # Preserve the existing input pacing while the sole binary reader drains both
+            # streams. Diagnostic observation cannot fill the pipe and stall the application.
+            until = time.monotonic() + seconds
+            while time.monotonic() < until:
+                driver.drain(min(.05, max(0, until - time.monotonic())))
 
         # The live Editor owns the only writer lease. A second writer must fail with an actionable
         # diagnostic, while an explicit read-only process can render the same project without
@@ -429,47 +448,46 @@ def main() -> int:
         if observer.returncode != 0 or "access=read-only" not in observer_stderr:
             raise RuntimeError(f"read-only graphical open failed: {observer_stderr}")
 
-        subprocess.run([args.xdotool, "windowfocus", window], env=environment, check=True)
-        subprocess.run([args.xdotool, "windowsize", window, "1024", "640"], env=environment,
-                       check=True)
-        subprocess.run([args.xdotool, "mousemove", "200", "160", "click", "1"],
-                       env=environment, check=True)
-        subprocess.run([args.xdotool, "mousemove", "640", "300", "click", "4"],
-                       env=environment, check=True)
+        driver.raw("windowfocus", window)
+        driver.raw("windowsize", window, "1024", "640")
+        driver.raw("mousemove", "200", "160", "click", "1")
+        driver.raw("mousemove", "640", "300", "click", "4")
         # Resize may move the earlier sidebar click onto an editable widget. Explicitly give
         # the central Scene canvas keyboard focus before authoring shortcuts, as a user would.
-        subprocess.run([args.xdotool, "click", "1"], env=environment, check=True)
-        time.sleep(0.5)
-        subprocess.run([args.xdotool, "key", "--delay", "100", "ctrl+shift+n"], env=environment, check=True)
-        time.sleep(0.2)
-        subprocess.run([args.xdotool, *physical_key_arguments(("key", "--delay", "100", "F5"), environment)],
-                       env=environment, check=True)
-        time.sleep(0.3)
-        subprocess.run([args.xdotool, *physical_key_arguments(("key", "--delay", "100", "F6"), environment)],
-                       env=environment, check=True)
-        time.sleep(0.2)
-        subprocess.run([args.xdotool, *physical_key_arguments(("key", "--delay", "100", "F10"), environment)],
-                       env=environment, check=True)
-        time.sleep(0.2)
-        subprocess.run([args.xdotool, *physical_key_arguments(("key", "--delay", "100", "F5"), environment)],
-                       env=environment, check=True)
-        time.sleep(0.2)
+        driver.raw("click", "1")
+        pause(0.5)
+        driver.raw("key", "--delay", "100", "ctrl+shift+n")
+        pause(0.2)
+        driver.raw("key", "--delay", "100", "F5")
+        pause(0.3)
+        driver.raw("key", "--delay", "100", "F6")
+        pause(0.2)
+        driver.raw("key", "--delay", "100", "F10")
+        pause(0.2)
+        driver.raw("key", "--delay", "100", "F5")
+        pause(0.2)
         # The initial Scene Root is unsaved. Native close must keep the window alive until the
         # user decides; Escape cancels the prompt and permits subsequent editing and saving.
+        with (user_state / "input.jsonl").open("a", encoding="utf-8") as log:
+            log.write(json.dumps({"time": time.monotonic(), "input": ["native_window_close", window]}) + "\n")
         request_window_close(window, environment)
-        time.sleep(0.5)
+        pause(0.5)
         if editor.poll() is not None or (root / ".nexora/scenes/Main.scene").exists():
             raise RuntimeError(
                 f"unsaved close dismissed the Editor ({editor.poll()}) or wrote the scene "
                 f"({(root / '.nexora/scenes/Main.scene').exists()})"
             )
-        subprocess.run([args.xdotool, "key", "--delay", "100", "Escape"], env=environment, check=True)
-        time.sleep(0.2)
-        subprocess.run([args.xdotool, "key", "--delay", "100", "ctrl+s"], env=environment, check=True)
         scene_file = root / ".nexora/scenes/Main.scene"
+        # One original five-second save bound now includes modal readiness and every processed
+        # real Ctrl/S phase. No retry or direct Scene save API substitutes for native delivery.
         deadline = time.monotonic() + 5
+        driver.raw("key", "--delay", "100", "Escape", deadline=deadline)
+        driver.wait(lambda value: value['focused'] == '1' and value['text_input'] == '0'
+                    and value['play_state'] == '0' and value['file_open_admitted'] == '1',
+                    "Close cancellation did not restore file shortcut admission", deadline)
+        driver.chord("ctrl+s", deadline)
         while time.monotonic() < deadline and not scene_file.is_file():
-            time.sleep(0.1)
+            driver.drain(min(.1, max(0, deadline - time.monotonic())))
         if not scene_file.is_file():
             raise RuntimeError("scene save after cancelling close did not finish")
         saved_scene = scene_file.read_text()
@@ -477,17 +495,17 @@ def main() -> int:
             raise RuntimeError("Hierarchy shortcut did not save the created root")
         # Select Hierarchy through real input before shutdown. First-appearance focus used to
         # replace this selection with Project in a fresh process, despite retaining the dock tree.
-        subprocess.run([args.xdotool, "key", "--delay", "100", "ctrl+4"],
-                       env=environment, check=True)
-        time.sleep(0.2)
+        driver.raw("key", "--delay", "100", "ctrl+4")
+        pause(0.2)
         # A real close event must stop the unbounded loop and still drain/persist cleanly.
-        subprocess.run([args.xdotool, "windowclose", window], env=environment, check=True)
-        _, stderr = collect_output(editor, 30)
+        driver.raw("windowclose", window)
+        _, stderr = driver.finish(30)
         if editor.returncode != 0 or "graphical evidence:" not in stderr:
             raise RuntimeError(f"close-event shutdown failed: {stderr}")
         if "pie_steps=1" not in stderr:
             raise RuntimeError(f"PIE play/pause/step/stop did not complete: {stderr}")
         editor = None
+        driver = None
         camera_path = root / ".nexora/scenes/Main.overview.camera"
         camera_lines = camera_path.read_text().splitlines()
         if (len(camera_lines) != 2 or camera_lines[0] != "NEXORA_SCENE_CAMERA 1" or
@@ -605,15 +623,36 @@ def main() -> int:
             raise RuntimeError("asset identity changed across Editor process reopen")
         if Path(str(identity_sidecar) + ".meta").exists():
             raise RuntimeError("asset identity sidecar was indexed as a source asset")
+        passed = True
         return 0
     finally:
-        if editor is not None and editor.poll() is None:
-            editor.kill()
-            editor.wait(timeout=5)
+        if not passed:
+            (user_state / "failure.traceback.log").write_text(traceback.format_exc())
+            error = sys.exc_info()[1]
+            detail = getattr(error, "stderr", None) or ""
+            if isinstance(detail, bytes):
+                detail = detail.decode("utf-8", errors="replace")
+            (user_state / "failure.json").write_text(json.dumps(
+                {"exception": str(error), "native_command_stderr": detail}, indent=2) + "\n")
+            print(f"Failed native display project retained: {root}", flush=True)
+            print(f"Failed native display input/output/state retained: {user_state}", flush=True)
+        if driver is not None:
+            driver.abort()
+            if not passed:
+                print(f"Last processed native display UI: {driver.observation()}", flush=True)
+        elif editor is not None:
+            if editor.poll() is None:
+                editor.kill()
+            if editor.stdout is not None and not editor.stdout.closed:
+                stdout, stderr = editor.communicate(timeout=5)
+                for name, data in (("stdout", stdout), ("stderr", stderr)):
+                    path = user_state / ("failed-editor." + name + ".log")
+                    path.write_bytes(data if isinstance(data, bytes) else (data or '').encode('utf-8'))
         xvfb.terminate()
         xvfb.wait(timeout=5)
-        shutil.rmtree(root, ignore_errors=True)
-        shutil.rmtree(user_state, ignore_errors=True)
+        if passed:
+            shutil.rmtree(root, ignore_errors=True)
+            shutil.rmtree(user_state, ignore_errors=True)
 
 
 if __name__ == "__main__":

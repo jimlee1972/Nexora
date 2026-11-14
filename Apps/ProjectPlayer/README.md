@@ -237,13 +237,18 @@ references plus a deduplicated cooked source/Atlas closure. Both `--verify-game-
 The Runtime-only loader's structural checks alone do not establish typed Sprite validity.
 Source-free games retain capability 2 and prior bytes. No authored paths are accessed at runtime.
 
-`--run-game-package` and zero-argument installed-game execution draw the remapped references with
-the common source-aware extractor, default white Sprite style and actual live World transforms.
+`--run-game-package` and zero-argument installed-game execution initialize remapped references with
+default white Sprite style, then render current owning gameplay metadata and actual World transforms.
 Source crop/Pivot and negative scale retain their geometry. The centered vertical-size-20 2D camera
 projects an overlay after existing 3D drawing. Scene transitions prepare the candidate Sprite frame
 before native submission/World commit; failed candidates keep the existing transaction policy.
-Gameplay may change World transforms or destroy authored entities, while the frozen source assets
-remain immutable. This does not advertise optional gameplay 2D/animation/pool services.
+Games with auxiliary typed assets negotiate the existing optional 2D/source/animation/pool APIs.
+Their `GameSpriteSession` augments the same Runtime World/session, retaining gameplay edits,
+animator clocks and global pool handles across Replace/Additive/unload. Source assets remain
+immutable; no animation starts implicitly and the host adds no second clock. Tilemap/content
+registration is unavailable. Source-free and StaticView hosts retain the original API table.
+See the [ownership/preparation contract](../../Engine/TwoD/GameSpriteSession.md). Configured Editor
+Play adoption, source publication and complete strict reload remain open.
 
 `RENDERED_GAME_PACKAGE` adds actual `sprite_draw_calls` and last-frame `visible_sprites`; zero is
 reported for source-free games. All module callbacks finish and the surface drains before asset

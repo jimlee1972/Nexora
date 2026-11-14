@@ -3,6 +3,7 @@
 #include "Nexora/Runtime/GameSceneSession.h"
 #if defined(NEXORA_PROJECT_PLAYER_2D)
 #include "Nexora/TwoD/GameSpriteAssets.h"
+#include "Nexora/TwoD/GameSpriteSession.h"
 #endif
 #if defined(_WIN32)
 #ifndef NOMINMAX
@@ -19,7 +20,12 @@ struct PreparedGameView final : runtime::GameScenePresentation {
   std::shared_ptr<StaticView> &published;
   PreparedGameView(std::shared_ptr<StaticView> view, std::shared_ptr<StaticView> &active)
       : candidate(std::move(view)), published(active) {}
-  void Commit() noexcept override { published.swap(candidate); }
+  std::unique_ptr<runtime::GameScenePresentation> sprite_metadata;
+  void Commit() noexcept override {
+    if (sprite_metadata)
+      sprite_metadata->Commit();
+    published.swap(candidate);
+  }
 };
 
 inline int RunNativeGame(std::shared_ptr<const runtime::LoadedGameProject> project,
@@ -45,6 +51,14 @@ inline int RunNativeGame(std::shared_ptr<const runtime::LoadedGameProject> proje
   }
   runtime::GameSceneSession session(gameplay.world, project);
   gameplay.services.scene = session.Api();
+#if defined(NEXORA_PROJECT_PLAYER_2D)
+  std::unique_ptr<twod::GameSpriteSession> sprite_session;
+  if (!project->SpriteAssets().empty()) {
+    sprite_session =
+        std::make_unique<twod::GameSpriteSession>(gameplay.world.InternalWorld(), *sprite_assets);
+    gameplay.get_twod = [&](NexoraTwoDApiV1 *api) { return sprite_session->Bridge().GetApi(api); };
+  }
+#endif
   runtime::GameplayModuleHost module(gameplay.Host());
   std::uint64_t startup{};
   if (session.RequestLoad(project->StartupScene(), runtime::GameSceneLoadMode::Replace, false,
@@ -128,6 +142,13 @@ inline int RunNativeGame(std::shared_ptr<const runtime::LoadedGameProject> proje
       }
     }
     gameplay.world.EndFrame();
+#if defined(NEXORA_PROJECT_PLAYER_2D)
+    if (sprite_session && !sprite_session->Reconcile()) {
+      std::cerr << "Live game Sprite metadata reconciliation failed\n";
+      failed = true;
+      break;
+    }
+#endif
     const auto extent = surface.FrameInfo();
     const auto aspect = static_cast<float>(extent.width) / static_cast<float>(extent.height);
     bool drawn{};
@@ -142,7 +163,15 @@ inline int RunNativeGame(std::shared_ptr<const runtime::LoadedGameProject> proje
           if (!palette)
             return {};
 #if defined(NEXORA_PROJECT_PLAYER_2D)
-          const auto sprites = sprite_assets->Extract(view, extent.width, extent.height);
+          std::unique_ptr<twod::GameSpriteSession::Prepared> metadata;
+          std::optional<twod::SpriteFrame> sprites;
+          if (sprite_session) {
+            metadata = sprite_session->Prepare(view, &error);
+            if (!metadata)
+              return {};
+            sprites = metadata->Extract(view.world, extent.width, extent.height);
+          } else
+            sprites.emplace();
           if (!sprites || sprites->statistics.unavailable) {
             error = "Candidate game Sprite extraction failed.";
             return {};
@@ -150,6 +179,9 @@ inline int RunNativeGame(std::shared_ptr<const runtime::LoadedGameProject> proje
 #endif
           auto staged = std::make_shared<StaticView>(std::move(*palette));
           auto prepared = std::make_unique<PreparedGameView>(staged, published);
+#if defined(NEXORA_PROJECT_PLAYER_2D)
+          prepared->sprite_metadata = std::move(metadata);
+#endif
           auto data = staged->DrawData(view.world, aspect);
           if (!data) {
             error = "Candidate camera projection failed.";
@@ -211,7 +243,8 @@ inline int RunNativeGame(std::shared_ptr<const runtime::LoadedGameProject> proje
         break;
       }
 #if defined(NEXORA_PROJECT_PLAYER_2D)
-      const auto sprites = sprite_assets->Extract(session.View(), extent.width, extent.height);
+      const auto sprites = sprite_session ? sprite_session->Extract(extent.width, extent.height)
+                                          : std::optional<twod::SpriteFrame>{std::in_place};
       if (!sprites || sprites->statistics.unavailable) {
         std::cerr << "Live game Sprite extraction failed\n";
         failed = true;

@@ -6,6 +6,7 @@
 
 namespace nexora::twod {
 class SceneSession;
+class GameSpriteSession;
 using ClipResolver = std::function<std::shared_ptr<const Clip>(AssetId)>;
 // Borrowed scene/World/Tilemap must outlive this owner and every module using its API.
 // API callbacks serialize on the construction thread and never expose C++ storage.
@@ -16,6 +17,10 @@ public:
   // Catalog mode routes entity access/queries across all live instances; Tilemap operations
   // address the primary scene. Session and World must outlive this stable API context.
   GameplayBridge(runtime::World &, SceneSession &, ClipResolver = {}, InstancePool * = nullptr);
+  // Main packaged games retain the Runtime scene service and the same World. This optional
+  // metadata router provides no second scene loader or Tilemap capability.
+  GameplayBridge(runtime::World &, GameSpriteSession &, ClipResolver = {},
+                 InstancePool * = nullptr);
   ~GameplayBridge();
   GameplayBridge(const GameplayBridge &) = delete;
   GameplayBridge &operator=(const GameplayBridge &) = delete;

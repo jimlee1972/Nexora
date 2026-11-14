@@ -1229,7 +1229,7 @@ package writers retain their prior bytes. Typed admission validates legacy regio
 source closure; retained Clips own their frame UUIDs after producer/source removal. Full Linux **536/536**, zero failures/skips, **2184.80 s**, 13 local gates,
 Development/Shipping native pixels, Monolithic and TwoD-OFF refusal pass.
 [Execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-GameClipRoots-Linux-2026-11-14.md) records ownership and compatibility.
-Fresh exact-head hosted CI is required before delivery. Main gameplay source/animation/pool services, live
+Fresh exact-head hosted CI is required before delivery. Configured Editor source/animation/pool integration, live
 publication and complete ED-WF-07/08 remain open. Workflow **5/9**,
 Editor **0/8**, TwoD **9/11** and physical/clean-host acceptance are unchanged.
 
@@ -1237,4 +1237,10 @@ Editor **0/8**, TwoD **9/11** and physical/clean-host acceptance are unchanged.
 
 Supporting `nexora-whr.8.3.2` selects/removes explicit immutable Clip roots through the main Build Settings Animation assets popup. A bounded owning metadata snapshot and separate virtualized lists preserve missing UUIDs, reject stale/foreign/busy/read-only edits and retain existing Build/Run/Stop layout. Actual 1x/2x controls and native X11 Save/Reload/read-only reopen feed both SceneOnly and canonical SDK ScriptProject Build; deleted-source Unicode relocation checks 8192 Sprite pixels, an independent central 80x80 3D region and native drain in each mode. Full Linux **538/538**, zero failures/skips, **2273.16 s**, all **13 local gates**, four actual GCC15 commands, Shipping native, Monolithic five CPU cases and actual TwoD-OFF refusal pass.
 
-[Execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-BuildClipPicker-Linux-2026-11-14.md) records original failures and precise scope. Exact-head hosted CI is required before delivery. Main gameplay animation/pool/publication/reload and complete ED-WF-07/08 remain open; Workflow **5/9**, Editor **0/8**, TwoD **9/11** and physical/clean-host acceptance are unchanged.
+[Execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-BuildClipPicker-Linux-2026-11-14.md) records original failures and precise scope. Exact-head hosted CI is required before delivery. Configured Editor animation/pool integration, publication/reload and complete ED-WF-07/08 remain open; Workflow **5/9**, Editor **0/8**, TwoD **9/11** and physical/clean-host acceptance are unchanged.
+
+## ✅ Main native Game Player source services (2026-11-14)
+
+Supporting `nexora-whr.8.3.4` provides main native Player Sprite/collider state and existing optional 2D/source/animation/pool APIs on the same Runtime World. Candidate metadata/native frames prepare before World publication; retained styles, animator clocks and global pool handles survive Replace/Additive/unload. Missing sources, stale mappings, outstanding preparation and foreign-thread calls reject. Source-free/StaticView tables and C/Zig/package/asset formats remain compatible. There is no automatic playback/clock, Tilemap or mutable content registration.
+
+Full Linux **540/540**, zero failures/skips, **2671.41 s**, all **14 local gates** and **13 actual GNU15 compile commands** pass. Development/Shipping canonical SDK main Build, deleted-source Unicode relocation and five native input phases verify **65,536** independent Sprite/pool pixels, stable second captures, exact central 80x80 3D pixels, preserved pool identity and actual SDK shutdown. Monolithic graphical Editor/Player plus seven CPU cases and actual TwoD-OFF refusal pass. [Execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-MainGameServices-Linux-2026-11-14.md) preserves scope/history; exact-head hosted CI is required before delivery. Configured Editor adoption, source watching/publication, complete strict reload/32 replacements and ED-WF-07/08 remain open. Workflow **5/9**, Editor **0/8**, TwoD **9/11** and physical/clean-host acceptance are unchanged.
