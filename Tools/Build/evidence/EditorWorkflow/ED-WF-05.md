@@ -36,6 +36,19 @@ This accepts the local scoped compiler gate, not integrated Editor hot reload. I
 scoped Runtime/SDK receipt above and does not accept
 Editor compile coordination or the work order.
 
+## Verified foundation checkpoint
+
+[PR #762](https://github.com/jimlee1972/Nexora/pull/762) is squash-merged as
+`f7537be874d83b5bcc50c2140c30089623c56749`. The merged tree is identical to validated
+`d093841b032376f98ccfef4766289a176418341a`: `4c8b642abd3e0209246a0f16142a0c7d9e6386fa`.
+The [complete Cloud receipt](ED-WF-05-Cloud-d093841b.json) records five actual exit0 gates,
+496/496 Development CTests with zero failures/skips/retries, and supported Shipping linkage
+(Editor/testing OFF). The [CI inventory](ED-WF-05-CI-d093841b.json) records all41 successful
+checks/three completed workflows and exact-head/merged-tree proof. Original failed sources,
+compiler/XKB logs and earlier Cloud archives remain retained. This verifies the common compiler,
+explicit restored Zig lifecycle and harness repairs only. It does not accept ED-WF-05, include
+local uncommitted integration, accept physical devices or provide a final Editor ZIP.
+
 ## First Cloud/CI candidate
 
 PR #762 candidate `de0204cfc8d0f2c612ae141ef8ccf6ed258c62d4` is unaccepted: multiple Linux
@@ -136,4 +149,226 @@ tests; integrated Sprite animation/pool continuity remains required in ED-WF-08/
 
 Run the full Codex Cloud `linux-development` configure/build/CTest and applicable supported
 `linux-shipping` configure/build, followed by exact-head CI and separate native platform checks.
-No implementation, full gate or native acceptance result has been earned by this baseline.
+The foundation checkpoint above has full-gate evidence; the remaining integrated Editor workflow
+has not earned those gates or native acceptance.
+
+## Local integration prework (historical checkpoint before main transaction)
+
+[Scoped Windows receipt](ED-WF-05-Integration-Windows.json) retains exact local source/log hashes.
+Runtime capture protection/final candidate validation builds and passes the existing C++/real Zig
+reload cases (2/2,exit0,18.32s), including a real old-code work lease before capture and rejection
+of ignored save-phase writes. Private pool branches pass 32 commit/retirement cycles.
+SpriteScene/GameplayBridge branches copy metadata, camera, owned animation clocks and queries,
+then rebind moved Play World state without resetting IDs or allowing old cleanup into live state.
+UI branches preserve focus/capture/navigation and immutable resource ownership, including cached
+C API contexts through state exchange. Final resource target build and three CTests pass (exit0,
+zero skips/failures). Original final-fixture compile and concurrently locked DLL failures are kept.
+
+This is separate local prework, excluded from the currently validating PR source. The later
+local follow-up below supplies generation proxies and resource branches. Editor watcher/epoch
+admission, complete World transaction wiring and real source-edit reload acceptance remain open.
+The compiler coordinator unit uses an injected producer; its pass is not an actual GUI build.
+Keep ED-WF-05 unaccepted and the nine-order progress at 4/9.
+
+Local follow-up adds input branches and independently accounted PCM mixer branches; source
+usage/peak and the existing native output remain unchanged during candidate preparation. Their
+32-cycle regression pairs pass (exit0,2/2,0.37s). The initial byte-type warning/build failure and
+unbuilt audio executable/NotRun are retained and are not counted as passes. Generation-owned
+proxies now cover the actual main Play Host and its optional 2D/Input/UI/Audio/Storage tables.
+Cached callbacks cannot bypass capture or external-write guards; raw table prefixes and Storage
+error codes remain distinct. Final relevant targets build and all18 scoped CTests pass (exit0,
+zero skips/failures,23.04s), including actual Host/2D wiring and original Play regressions.
+Strict World generation transfer, reload phase transitions, automatic watcher/compiler UI and
+real native source-edit acceptance still remain; this is uncommitted prework excluded from PR762.
+
+Coordinated production Play resource branches now preserve pool handles, animation phase, camera,
+query snapshots, input edges, UI frames and existing texture identities over identical staged Worlds.
+Commit transfers the existing native audio owner while rerouting both cached proxies before old
+cleanup; exact parent-generation identity rejects obsolete branches. No new native output or
+texture registration is created during candidate preparation. Scene-service branches also retain
+scene/spawn quotas instead of resetting via Bind. Source/destination World ownership, failed
+branches, retired cleanup and final texture retirement are exercised locally; complete main
+transaction hooks and source-edit reload still remain unimplemented and unaccepted.
+
+The final coordinated-service regression rebuild passes ten targets;18 scoped native Windows
+CTests pass (exit0,zero failures/skips,24.45s). The new fixture initially omitted the existing
+query-source argument; the failed build remains retained and was corrected without API or
+assertion changes. This local source remains outside the merged foundation.
+
+## Current main transaction batch
+
+The [main transaction checkpoint](ED-WF-05-Transaction-Windows.md) supersedes the implementation
+gaps in the earlier uncommitted local checkpoint: the main facade now installs strict generation
+World/resource/scene-service hooks. Fourteen affected targets build and23 scoped cases pass
+(exit0,58.31s); its main C++ fixture has96 successful replacements/576 expected rejections.
+Two real no-argument Windows GUI launches also pass with the original visibility/response/order
+assertions; isolated-desktop failures are retained. Automatic source-edit/compiler/watcher
+admission and full immutable-head Cloud/Shipping/CI remain pending. Work-order acceptance stays4/9.
+
+## Live script workflow checkpoint (unaccepted)
+
+The main configured ScriptProject Play path now connects the existing source-only SDK compiler
+to owning background content observation, watcher debouncing and strict prepared-generation
+admission. Stop cancels and drains observation/compiler workers before releasing World/module
+owners. SceneOnly/manual DLL behavior remains available. Compiler phases use readable stage
+labels and sanitized output reaches Console; paused Play can admit current results.
+
+The local three-case gate passed with real exit 0: compiler/coordinator 2.97s, actual SDK game
+build/publication 289.26s and script-only compilation/source guards 156.27s (448.64s total,
+zero failures). Its observer tests cover equal-size/time edits, generated-cache exclusion,
+addition/rename/deletion, saved settings changes, content budget and cancellation.
+
+A real Windows Editor Ctrl+P smoke admitted one authored Zig replacement while old code continued
+ticking: counter4027, Scene1/entity4 retained, ordinary close exit0 and authored baseline unchanged.
+Its original receipt describes cancellation as real compilation, but the retained log only proves
+ScriptSnapshot-stage preparation cancellation; active compiler-child termination was not observed
+in that smoke. The strengthened 32-cycle harness now waits for CompileAndTest and retains handles
+to owned compiler descendants to verify they terminate after Stop. That original run was interrupted after11 replacements during the next compile. The operator
+subsequently confirmed in this chat that they manually closed the Editor. Classify this as
+operator-interrupted, not a product crash/regression; it is still not a32-cycle pass. The original
+logs/exit1 remain preserved, and no child numeric exit code was recorded in that older harness.
+New harness failure receipts record the actual child exit code and the main opt-in diagnostic
+records its loop-exit reason. Source/binary snapshot and logs remain under
+`build/editor-workflow-native/ed-wf05-live-script-*`.
+
+The diagnostic PR763 Windows CI still fails the unchanged 35-second startup gate. At `c3a65497`,
+the splash responds to6478 probes, BeginFrame returns, and no first-UI checkpoint follows. The
+root cause is not established. Additional opt-in checkpoints narrow display/event/metrics work;
+no deadline/assertion is relaxed. These live-script results were captured as uncommitted local work and must still
+pass immutable-head Cloud/Shipping/CI, remaining native scenarios and final package acceptance.
+Accepted work stays4/9 and Editor0/8.
+
+A packaging follow-up enables the actual32-cycle harness against the extracted ZIP on explicit
+Windows package workflow runs and automatically on the active implementation branch. It owns the Editor/SDK process tree, preserves timeout/failure
+output and rejects partial receipts; it cannot publish a ZIP after that gate fails. Portable
+package admission now passes9/9 synthetic tests, which do not establish native GUI acceptance.
+
+The immutable `0f901cb3` Cloud run is complete and FAIL: Development configure/build exit0,
+full CTest exit8 (498/499 pass,zero skip/retry), supported Shipping configure/build exit0. The
+sole failure is pointer_buttons: after a successful button2 press and drawframes59..66, the
+original0.15-second release window received no new consumer/draw bytes. Existing evidence cannot
+distinguish input delay, frame stall and observation scheduling; no deadline/assertion is relaxed.
+The archive is532675 bytes, SHA256 `fc0ff88d8377596db13c37ef5b9ba29dac33cbaaa583c06476822412565de771`.
+All old archives remain unchanged. This blocks merge; it does not erase the local slice evidence.
+
+Operator clarification: the11-replacement local run was deliberately closed by the user. This
+explains the interruption; it does not change its retained wrapper exit1 or supply the remaining
+21 replacements. Full32-cycle acceptance moves to isolated hosted Windows.
+
+[Live-script Windows receipt](ED-WF-05-Live-Scripts-Windows.json) records the scoped/native
+commands, source/binary/log hashes, real cancellation/job drain and the operator interruption.
+[Cloud0f901cb3 receipt](ED-WF-05-Cloud-0f901cb3.json) records the failed full gate separately.
+
+
+## Extracted Windows package and rejection coverage checkpoint (unaccepted)
+
+The immutable885693db Windows package job126032772935 now passes the extracted ZIP's
+real32-source-edit gate: counter0→32570, Scene1/entity4 unchanged, actual Ctrl+P and equal
+mtime edits. Four actual compile/restore/initialize/start failures retain generation33 and
+old dispatch/state; valid recovery commits counter37300. Stop cancels observed CMake/Ninja/
+shell children, the owning Job ends at0 processes and Editor exits0. Two no-argument launches
+retain responsive splash-before-main ordering, no white frame, no orphan windows and normal
+exit0. The relocated built game runs without arguments or console, including absent standard
+handles. Downloaded outer/nested CRC, artifact SHA-256 and all22697 inventory payload hashes
+are verified; the only public root executable is NexoraEditor.exe, with no source checkout.
+[Complete scoped receipt](ED-WF-05-Package-885693db.json). This hosted Windows evidence does
+not accept the full Cloud gate, physical clean host, Sprite integration or final work order09.
+
+[51bd8a16 package receipt](ED-WF-05-Package-51bd8a16.json) records the hosted Windows startup and extracted-ZIP32-cycle PASS, downloaded artifact/ZIP hashes and retained CI/Cloud failures. The full Cloud gate is FAIL495/499 (four Prefab GUI cases); required CI aggregates also fail on abandoned/cancelled macOS/iOS jobs. No merge, ED-WF-05 acceptance or nine-order progress increase follows from the Windows pass.
+
+The supplemental real-Editor harness now injects compiler, state-load, candidate-create and candidate-start failures, including a candidate World write before failed start. Every old update verifies its retained World first. The harness requires unchanged active generation/handles and an increasing counter after each rejection, then a valid recovery commit, old compiler cancellation/drain and normal close. The packager refuses incomplete fault/recovery receipts. Its original local attempt observed all four rejections but has no terminal exit/receipt after interruption during recovery compilation; it is not a successful test or product crash finding. The original stderr and interruption-observed.json remain in the unique evidence directory. New IN_PROGRESS checkpoints are explicitly insufficient for package admission. Updated native/immutable-head gates remain required.
+
+Readiness follow-up (pending): Linux now shares hidden-main first-frame reveal and X11 search requires actual visibility within the original15-second acquisition budget. Source-apply uses one10-second gesture/pixel budget and retains failure fixtures. This corrects phase ownership without claiming every Cloud failure root cause is proven. The worker-budget candidate is not adopted (its historical CTest also fails493/499). Windows startup/reload share existing-input-desktop selection and a foreground parent per process launch; no keys are sent to foreign windows. The first extracted-ZIP local fault attempt stopped before Play because foreground ownership was absent, and a separate local startup attempt rejected occlusion. Their original logs/exit codes remain retained; new exact-head native/full gates are still required.
+
+Upstream integration includes main `1df6ab357da69ee3257097a9b5176695b7c96b9a` (PR #765). The bridge conflict preserves the World pointer needed by legacy generation rebinding and the new catalog-per-entity routing. Catalog bridges refuse the legacy single-scene branch/rebind path before dereferencing its absent scene pointer. The added regression preserves World bytes, primary, revision and usable Sprite API after refusal. Complete catalog-session migration remains a later integration gate, not an accepted replacement by this guard. Original startup/Cloud/CI failures and all accepted-count boundaries remain.
+
+[Post-merge Windows receipt](ED-WF-05-Main-Integration-Windows.json): all9 targets build(exit0), and6 scoped CTests pass(exit0,5.64s), including the catalog/legacy guard regression and strict reload/packaged DLL lifetimes. These are CPU/service checks, not a new GUI or full-gate pass.
+
+## SDK build-runner follow-up (unaccepted)
+
+The original8870 Cloud five gates are now terminal: Development configure/build0/0,
+complete CTest exit8(491/502 pass,11 failures,zero skips/retries), supported Shipping
+configure/build0/0. [Complete original receipt](ED-WF-05-Cloud-8870d63e.json) retains exact
+commands, failed assertions, output hashes, ten zombies and the151335970-byte archive
+SHA-256 `bbc9d9509ffff4ac684e3ea64633d7067a8f29f5afad8a74356b14a5be901d2f`.
+The archive was verified in Cloud and was not downloaded locally. Its one diagnostic attempt
+failed Xvfb readiness before Editor/input in a different sandbox; it cannot explain the original
+keyup failure or replace the full failed gate.
+
+SDK diagnosis retains two completed operations176.048/94.660s before an intentional invalid
+source operation exhausts the old300s outer case. A scoped Windows experiment measures
+private SDK/cache83.36/81.29s, shared cache alone122.05/79.25s(not adopted), and stable SDK
+52.27/42.62s with no extra build-runner cache entry for the second generation. Direct compilation
+of the same canonical SDK entry takes42.15/40.25s with fresh private SDK/cache; both entry and
+authored tests run, actual DLL loading/ABI null negotiation passes, and invalid source rejects
+without changing the two prior DLL hashes. These timing samples do not establish Linux causality.
+
+The smaller implementation uses direct Zig build-lib/test/test in the shared CMake SDK entry,
+preserving per-module optimization/target, compiler-rt and private ownership. Standalone
+build.zig and the macOS host-linker path remain unchanged. Windows rebuild exits0; the original
+four scoped tests pass4/4(374.33s), including real source-free game publication. The independent
+authored-test-failure regression and original script case then pass2/2(181.53s); neither original
+case workload nor deadline is extended. [Scoped receipt](ED-WF-05-SDK-Direct-Windows.json).
+Latest main crash-logging integration and all immutable full/native gates remain required;
+no new work-order acceptance or final ZIP claim follows.
+
+Resolved integration with main `b1671eaa`(PR764) now builds all14 selected Windows targets
+and passes all15 scoped CTests(658.98s,zero failures/skips). Both save-state calls retain the
+read-only capture guard and the new gameplay diagnostic scope, with quiescence, rollback and
+retired-resource isolation preserved. [Integrated source/binary/log receipt](ED-WF-05-Crash-Integration-Windows.json).
+This is scoped native compiler/service/CLI evidence; fresh immutable Cloud/Shipping/CI and
+Windows extracted-package/native32 acceptance remain required. No count or final-delivery claim.
+
+## Linux Showcase failure evidence follow-up (unaccepted)
+
+The immutable `885693db` GitHub Linux Editor display job126033478227 succeeds:
+250/250 Editor tests in1406.98 seconds, plus scoped native Player4/4, Editor validation3/3,
+and renderer20/20 suites. Original Prefab cases, pointer-button release, and packaged Play
+pass; `editor.game_build` takes118.30 seconds and `editor.game_script_build`63.62 seconds.
+Downloaded artifact13248684943 is147788 bytes, CRC-clean, SHA-256
+`a88b4f7b92dc048d8212ac90c709cc0f9cc6c7eaad3331e86ef7382184d16a29`.
+[Exact scope and four retained log hashes](ED-WF-05-Linux-CI-885693db.json).
+These hosted CI results do not replace the complete Codex Cloud gate, resolve the cause
+of another host's failures, or accept Windows delivery. No work-order count changes.
+
+All42 exact885693db CI checks and all4 workflows now succeed, including both Build events,
+Windows Editor package and the Windows2D SDK candidate. [Complete CI receipt](ED-WF-05-CI-885693db.json).
+The original8870 Codex Cloud run has since reached at least10 failures; its full terminal
+inventory and Shipping remain pending. Hosted CI success does not satisfy that separate gate.
+
+The original Cloud gate for `8870d63e` reported failures in
+`showcase.linux_vulkan_interaction` (the original shadow-off pixel comparison) and
+`showcase.linux_vulkan_virtual_display` (the original 30-second child deadline).
+These remain original failures; its complete terminal inventory and successful Shipping build
+are retained above. Neither input mapping nor CPU scheduling is established as the cause.
+The same run later reports `editor.game_build` failing its original coordinator worker
+deadline (476.44 seconds including unwinding; CTest limit600), and
+`editor.game_script_build` hitting its registered300-second CTest limit. Their original
+fixtures are being retained for SDK command/stage diagnosis; no timeout has been waived.
+
+Inspection found a separate evidence gap: `TimeoutExpired` discarded the smoke child's
+partial stdout/stderr and launch receipt, while the forced Xvfb cleanup did not reap after
+kill. The follow-up retains both partial streams, writes `acceptance_passed=false` with
+`timed_out=true`/unknown exit code, and drains/reaps Xvfb with retained diagnostics.
+The original 30-second child deadline, four-frame/resize/presentation assertions and CTest
+45-second limit remain intact. The interaction harness additionally preserves failed temporary
+screenshots and logs, writes child stdout/stderr directly to files rather than an undrained
+pipe, and journals command timestamps/results. Command completion does not prove native
+input consumption. Thirteen portable evidence-policy tests pass locally; those
+tests do not execute Linux native rendering or establish a fix for either observed failure.
+See [scoped receipt](ED-WF-05-Showcase-Diagnostics.json). Full immutable Cloud/Shipping/CI
+validation and native package acceptance remain required; work orders stay4/9, Editor0/8.
+
+## 8870 native harness failures and owned launch follow-up (unaccepted)
+
+The hosted Windows job passes its original five startup cases, then fails the package's launcher
+foreground precondition before source-edit acceptance. Its artifact73590B SHA256
+`514f5edab3313d3e04476f331a45f9dcb23d8361c32c8d2ed870650cc6986081` and complete log are retained.
+The new32×32 Button launcher occupies a primary-work-area interior and uses physical coordinates,
+bounded foreground acknowledgement and, when necessary, an actual guarded own-window mouse click.
+It rejects foreign hit targets, capture/menu state and held buttons, and waits for its mouse-up
+before pointer restoration. Three local native launcher-only trials pass with zero surviving
+windows; they do not establish Editor/32-cycle acceptance. Initial one-pixel guard failures remain.
+The Linux hosted display gate rejects packaged Play's X_SetInputFocus with BadMatch because its
+private searches still admitted unmapped windows. Both now require onlyvisible, retaining all
+existing waits/assertions. [Receipt](ED-WF-05-Launcher-Windows.json). Fresh immutable gates are required.

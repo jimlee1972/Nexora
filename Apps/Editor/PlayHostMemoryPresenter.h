@@ -7,10 +7,10 @@ namespace nexora::editor::preview {
 // A scope change hides the provider's older teardown; widgets receive only owning values.
 class PlayHostMemoryPresenter final {
 public:
-  std::optional<imgui::PlayHostMemoryObservation> Observe(const PlayGameplayModule &module,
-                                                          const ProjectWorkspace *workspace,
-                                                          std::uint64_t generation,
-                                                          runtime::PlaySession &play) {
+  template <class Module>
+  std::optional<imgui::PlayHostMemoryObservation>
+  Observe(const Module &module, const ProjectWorkspace *workspace, std::uint64_t generation,
+          runtime::PlaySession &play) {
     if (!workspace || !generation) {
       scope_.reset();
       return {};

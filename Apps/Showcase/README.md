@@ -890,6 +890,15 @@ the recorded runtime/movie production freeze remains unchanged.
 
 ### Linux animation acceptance sequencing
 
+The Linux virtual-display smoke retains partial stdout/stderr and a rejected launch receipt
+when its original 30-second child deadline expires. It also drains Xvfb diagnostics and reaps
+the server after forced termination. The interaction harness keeps failed temporary screenshots,
+file-backed child streams and command timestamps/results, with the original input/pixel
+deadlines and comparisons. Command completion alone does not establish native input consumption.
+The evidence-policy tests do not prove that native rendering, the four-frame contract or interaction acceptance
+passes. Current Editor integration gate failures and pending native revalidation are recorded
+in [ED-WF-05](../../Tools/Build/evidence/EditorWorkflow/ED-WF-05.md).
+
 The native interaction fixture acknowledges a changed animated frame before sending Pause,
 then requires repeated stable changed frames and exact reset/replay. This prevents two queued
 Space toggles from being consumed before slow software rendering presents motion. Capture

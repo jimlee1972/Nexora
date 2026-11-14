@@ -3,6 +3,7 @@
 #include "PlayInputForwarding.h"
 #include <iostream>
 #include <stdexcept>
+#include <thread>
 
 namespace {
 using namespace nexora;
@@ -79,6 +80,18 @@ int main() {
                 play.PlayWorld()->FindEntity(target)->transform.x == 0.5 &&
                 world.FindEntity(target)->transform.x == 0,
             "fixed callbacks did not mutate only the Play clone");
+    const auto before_worker = module.Allocations();
+    std::thread worker([&] {
+      const game::GameplayTransformWire changed{999, 0, 0};
+      Require(host.write_component(host.context, target, game::TransformComponentType(), &changed,
+                                   sizeof(changed)) == NEXORA_GAMEPLAY_ERROR_LIFECYCLE &&
+                  !host.allocate(host.context, 8, 32, 16),
+              "Cached host proxy admitted foreign-thread World/allocation writes");
+    });
+    worker.join();
+    Require(play.PlayWorld()->FindEntity(target)->transform.x == .5 &&
+                module.Allocations().live_allocations == before_worker.live_allocations,
+            "Rejected cached host calls changed live World or allocation ownership");
     Require(!host.allocate(host.context, 1, 32, 3) && !host.allocate(host.context, 1, 16777217, 16),
             "invalid allocation admitted");
     // Wrong-owner frees are ignored, and the correct free remains safe.

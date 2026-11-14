@@ -1,0 +1,129 @@
+{
+  "status": "LOCAL_NATIVE_PASS_IMMUTABLE_HEAD_CI_PENDING",
+  "parent_head": "62f4259ccad4120bd5b7a9879f5238dffaec3cdb",
+  "scope": "Windows developer desktop; no clean-host/physical device acceptance",
+  "ci_failure": {
+    "head": "62f4259ccad4120bd5b7a9879f5238dffaec3cdb",
+    "job": 125403644172,
+    "run": 41482339908,
+    "artifact": 13159939425,
+    "archive_bytes": 20018,
+    "sha256": "51e29f7d87ead3d40ee1957214587f6cec68583d176d24ed3af8223d91d14bc4",
+    "observed": "Hidden frame completed; splash closed; main shown. First-show pixel capture rejected occlusion. Not a new35-second deadline failure."
+  },
+  "changes": [
+    "Fit hidden Editor outer bounds to monitor work area, preserving hidden/activation/Z-order policy",
+    "Actual Win32 oversized hidden HWND geometry regression",
+    "Owned one-pixel foreground launcher for controlled interactive-parent test setup; never an Editor substitute",
+    "Preserve all pixel/input/NoActivate/owner/topmost/time assertions; add geometry to occlusion failure output",
+    "Watch SDK/Bindings/native-test changes in package workflow"
+  ],
+  "local": {
+    "fit_build_exit": 0,
+    "launcher_build_exit": 0,
+    "tests_exit": 0,
+    "passed": 5,
+    "failed": 0,
+    "seconds": 26.58,
+    "commands": [
+      "cmake --build build/editor-workflow-native --config Development --target NexoraEditor NexoraWindowsStartupSplashTests --parallel 2",
+      "ctest --test-dir build/editor-workflow-native -C Development --output-on-failure -V -R ^(editor\\.(brand_assets|windows_startup_splash|windows_startup_integration|windows_gui_entry)|runtime\\.windows_game_entry)$"
+    ],
+    "environment": {
+      "NEXORA_NATIVE_TEST_INPUT_DESKTOP": "1"
+    }
+  },
+  "historical_local_failure": {
+    "exit": 8,
+    "passed": 3,
+    "failed": 2,
+    "reason": "Splash pixel exposure failed on uncontrolled foreground desktop; no relaxation. Original logs and startup directory backup retained."
+  },
+  "files": [
+    {
+      "path": "Apps/Editor/StartupSplash.cpp",
+      "bytes": 12454,
+      "sha256": "a68162a3f989690f20bd124f74c50f36af2bb9babdcb4006f2376d8c18ec499d"
+    },
+    {
+      "path": "Apps/Editor/README.md",
+      "bytes": 145873,
+      "sha256": "32a7c625bddbabfc52317162836461968b79f51f83bb142b9ab787d34b780a6a"
+    },
+    {
+      "path": "Tests/Editor/WindowsNativeTestDesktop.py",
+      "bytes": 1578,
+      "sha256": "1716272b62a035ea4a7c874f0f746b59ac35d4e1b0af9740d9776fadcc337ee1"
+    },
+    {
+      "path": "Tests/Editor/WindowsStartupIntegration.py",
+      "bytes": 19206,
+      "sha256": "133198e348d04f64555211257139012bdc2d321d2e56ccb9e5fc9532535c370e"
+    },
+    {
+      "path": "Tests/Editor/WindowsStartupSplashTests.cpp",
+      "bytes": 11026,
+      "sha256": "18de95212b40c1f056085ffc557843eee4c35467a12d6edd70e3ad8e2b04a031"
+    },
+    {
+      "path": "Tools/Editor/README.md",
+      "bytes": 13385,
+      "sha256": "7b39a7c0cd538cf39762578f625b175c6182dd3cab9665610ea681993f1510b1"
+    },
+    {
+      "path": ".github/workflows/editor-windows-package.yml",
+      "bytes": 5769,
+      "sha256": "bbd6b0cd6da825b2ec38fb0369869539bb42f36dbfcf6107feb9bc24d18f23c7"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-startup-fit-build.log",
+      "bytes": 3089,
+      "sha256": "e1e4677bbf60d1988020f06dc6c7f6defdd03f6d88381cf074cfba429e9a43a5"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-startup-fit-build-exit.json",
+      "bytes": 24,
+      "sha256": "75876e0e3f497cad271143ba85bd4f36569cd81195509043f860dab14265b716"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-startup-fit-test.log",
+      "bytes": 8742,
+      "sha256": "51f2915adc81492eae22c5156a2ced8c98bc72aa516b9b28b06cfc46049cf042"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-startup-fit-test-exit.json",
+      "bytes": 24,
+      "sha256": "a1b6dfab7791f9f438c944ae52617e3cbd95dffb9b0293a0aa56c0e37b1a7f6a"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-startup-launcher-build.log",
+      "bytes": 295,
+      "sha256": "e44d29fd4942a11543a3a29702d618786d642b83677891c087853fad9e1d9417"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-startup-launcher-build-exit.json",
+      "bytes": 24,
+      "sha256": "75876e0e3f497cad271143ba85bd4f36569cd81195509043f860dab14265b716"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-startup-launcher-test.log",
+      "bytes": 4625,
+      "sha256": "6c717339e8ec3f810ca969e782679d24df6f443e830e1f28b5ff8abe436cb974"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-startup-launcher-test-exit.json",
+      "bytes": 24,
+      "sha256": "75876e0e3f497cad271143ba85bd4f36569cd81195509043f860dab14265b716"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraEditor.exe",
+      "bytes": 2739200,
+      "sha256": "ac9ea36bc6093123e722242a8ae93fbdb697d93ccdcd25fdfaf7ff2da4d835e4"
+    },
+    {
+      "path": "build/editor-workflow-native/bin/Development/NexoraWindowsStartupSplashTests.exe",
+      "bytes": 241664,
+      "sha256": "262e116c5654da2018690102b51b6784f5bbc4019b825f7f1c8a08d5fa2e39cd"
+    }
+  ]
+}

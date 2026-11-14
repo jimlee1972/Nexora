@@ -1,0 +1,73 @@
+{
+  "schema": "nexora.editor.workflow.prefab-input-policy.v1",
+  "base_commit": "5775744e29f64d83838c005dd3b5d9aa1af696dc",
+  "status": "PROCESS_POLICY_PASS_NATIVE_ACCEPTANCE_PENDING",
+  "original_failure_receipt": "ED-WF-05-Cloud-0c82cf37.json",
+  "original_observation": {
+    "scope": "Original sealed0c82 failure, not a retry",
+    "inputs": 456,
+    "input_span_seconds": 176.39700442899994,
+    "stderr_bytes": 278457,
+    "ui_records": 482,
+    "last_action": "action=12 applied=1 revision=13",
+    "last_input": "keydown Return during late readonly edit attempt",
+    "original_outer_seconds": 180,
+    "interpretation": "First455 returned commands each included fixed200ms settle before additional observed ACKs. Original lacks completion rows, so command blockage/exclusive timeout cause is not proven."
+  },
+  "change": {
+    "observed_inputs": "Key and pointer transports immediately followed by unchanged actual post-EndFrame wait_ui predicates skip only fixed pre-ACK settle.",
+    "unobserved_inputs": "Original200ms settle retained, including scene shortcuts and text/resize/focus commands.",
+    "bounds": "Transport timeout=min(8s,remaining original8s phase); no added phase/outer time or retries.",
+    "trace": "input start records retained; new separate input_result records journal return code/timeout/stderr/completion time."
+  },
+  "scenario_verification": {
+    "main_ast_equal_after_transport_normalization": true,
+    "exclusions": [
+      "Nested send implementation",
+      "Only deadline/awaiting_ack keywords on send calls"
+    ],
+    "scope": "All remaining main scenario actions/assertions/GUI wait predicates/history/asset/read-only/publication/cleanup syntax unchanged; this is structural evidence, not native execution."
+  },
+  "local_validation": {
+    "platform": "win32",
+    "python": "3.14.5",
+    "command": "python Tests/EditorImGui/LinuxDisplayAcceptanceTests.py -v",
+    "exit_code": 0,
+    "tests": 10,
+    "seconds": 3.141,
+    "new_cases": [
+      "ACK-bound transport trace with no blind settle",
+      "Unobserved native-frame settle retained",
+      "Real child failure remains failed with stderr/exit evidence",
+      "Real child timeout uses remaining phase and remains failed"
+    ],
+    "python_compile": "PASS both touched Python files",
+    "documentation": "PASS Apps/Editor README and both delivery plans",
+    "native_x11_editor_run": false
+  },
+  "files": [
+    {
+      "path": "Tests/EditorImGui/LinuxPrefabIsolation.py",
+      "bytes": 34939,
+      "sha256": "e32937eef6b28b0ea057f53d26759368a2a57985c43cc8db5b0ded38bf3f99fd"
+    },
+    {
+      "path": "Tests/EditorImGui/LinuxDisplayAcceptanceTests.py",
+      "bytes": 7984,
+      "sha256": "41ef2da197274f4242948b7dcf5a340560586e8d6d615e93ea8aebd0068cf841"
+    }
+  ],
+  "logs": [
+    {
+      "path": "build/editor-workflow-native/ed-wf05-prefab-transport.tests.log",
+      "bytes": 1558,
+      "sha256": "8c777dfc9ffa532a63953fd44bf84c864c0aeddca1e8bb5452b54a1c9dd57033"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-prefab-transport.exit.json",
+      "bytes": 195,
+      "sha256": "65a3cef8f096a4383df0fc9b8c0e4c2c15a6d9057ca47e5b689179f1e54ee26d"
+    }
+  ],
+  "acceptance": "Full latest-source Cloud/Shipping/CI/native Prefab and package/native32/fault/recovery required.4of9 unchanged; PR763 draft; no final ZIP."
+}

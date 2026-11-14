@@ -73,6 +73,15 @@ public:
     void (*rollback)(void *) noexcept {};
     void (*retire)(void *) noexcept {};
     void (*commit)(void *) noexcept {};
+    // Optional all-or-none capture group. After real work drains, protect the live host before
+    // either save_state call. end runs even after partial begin, save failure or allocation
+    // failure, before candidate begin/rollback/retire. valid rejects ignored host-side-effect
+    // errors.
+    bool (*capture_begin)(void *) noexcept {};
+    bool (*capture_valid)(void *) noexcept {};
+    void (*capture_end)(void *) noexcept {};
+    // Optional final admission of staged services after candidate start, before old retirement.
+    bool (*validate)(void *) noexcept {};
   };
 
   struct FailureState final {

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Exercise native room controls and retain screenshots/reports from a real Xvfb window."""
 import ctypes
+import contextlib
 import json
 import os
 from pathlib import Path
@@ -12,6 +13,21 @@ import tempfile
 import time
 import zlib
 from LinuxVirtualDisplaySmoke import start_xvfb, unavailable
+
+
+@contextlib.contextmanager
+def interaction_workspace():
+    """Keep failed native images and child logs available to the gate collector."""
+    temporary = Path(tempfile.mkdtemp(prefix='nexora-showcase-controls-'))
+    passed = False
+    try:
+        yield str(temporary)
+        passed = True
+    finally:
+        if passed:
+            shutil.rmtree(temporary)
+        else:
+            print(f'fixtures retained: {temporary}', file=sys.stderr)
 
 
 def screenshot(window: int, width: int, height: int, output: Path) -> bytes:
@@ -257,7 +273,7 @@ def main():
     if not xvfb or not xdotool:
         return unavailable('Xvfb or xdotool is not installed')
     executable = str(Path(sys.argv[1]).resolve())
-    with tempfile.TemporaryDirectory(prefix='nexora-showcase-controls-') as temporary:
+    with interaction_workspace() as temporary, contextlib.ExitStack() as streams:
         output = Path(os.environ.get('NEXORA_SHOWCASE_EVIDENCE_DIR', temporary))
         output.mkdir(parents=True, exist_ok=True)
         server, display = start_xvfb(xvfb, '1280x720x24')
@@ -268,18 +284,31 @@ def main():
             environment = os.environ.copy()
             environment['DISPLAY'] = display
             report, markdown = output / 'interactive.json', output / 'interactive.md'
+            stdout = streams.enter_context((output/'stdout.log').open('wb'))
+            stderr = streams.enter_context((output/'stderr.log').open('wb'))
+            input_log = streams.enter_context((output/'input.jsonl').open('w', encoding='utf-8'))
             app = subprocess.Popen([executable, '--mode=interactive', '--scene=hub', '--backend=vulkan',
                 '--gameplay-module=static', '--no-reload', f'--report={report}',
-                f'--markdown={markdown}'], env=environment, stdout=subprocess.DEVNULL,
-                stderr=subprocess.PIPE, text=True, cwd=temporary)
+                f'--markdown={markdown}'], env=environment, stdout=stdout,
+                stderr=stderr, text=True, cwd=temporary)
             def tool(*args):
-                return subprocess.run([xdotool, *map(str,args)], env=environment, check=True,
-                    capture_output=True, text=True, timeout=5).stdout.strip()
+                command = [xdotool, *map(str,args)]
+                event = {'command':command, 'started_monotonic':time.monotonic(), 'exit_code':None}
+                try:
+                    completed = subprocess.run(command, env=environment, check=False,
+                        capture_output=True, text=True, timeout=5)
+                    event.update(exit_code=completed.returncode, stdout=completed.stdout, stderr=completed.stderr)
+                    completed.check_returncode()
+                    return completed.stdout.strip()
+                finally:
+                    event['finished_monotonic'] = time.monotonic()
+                    input_log.write(json.dumps(event)+'\n')
+                    input_log.flush()
             deadline = time.monotonic() + 10
             window = None
             while time.monotonic() < deadline:
                 if app.poll() is not None:
-                    raise RuntimeError(app.stderr.read())
+                    raise RuntimeError((output/'stderr.log').read_text(errors='replace'))
                 result = subprocess.run([xdotool, 'search', '--name', '^Nexora Showcase$'],
                     env=environment, capture_output=True, text=True, timeout=3)
                 if result.returncode == 0 and result.stdout.strip():
@@ -293,7 +322,7 @@ def main():
             deadline = time.monotonic() + 25
             while True:
                 if app.poll() is not None:
-                    raise RuntimeError(app.stderr.read())
+                    raise RuntimeError((output/'stderr.log').read_text(errors='replace'))
                 hub = screenshot(window,1280,720,output/'hub.png')
                 if len(set(hub)) >= 8:  # Wait for rendered pixels, not merely the mapped black window.
                     break
@@ -473,7 +502,8 @@ def main():
             tool('windowsize',window,960,540)
             resize_proof = resized_screenshot(window,960,540,output/'resized-hub.png',samples)
             request_window_close(window, display)
-            _, errors = app.communicate(timeout=10)
+            app.wait(timeout=10)
+            errors = (output/'stderr.log').read_text(errors='replace')
             assert app.returncode == 0, errors
             assert "Validation Error" not in errors and "SYNC-HAZARD" not in errors, errors
             evidence = json.loads(report.read_text())
@@ -501,8 +531,14 @@ def main():
                 app.terminate()
                 try: app.wait(timeout=3)
                 except subprocess.TimeoutExpired: app.kill();app.wait(timeout=3)
-            server.terminate()
-            server.wait(timeout=3)
+            if server.poll() is None:
+                server.terminate()
+            try:
+                _, errors = server.communicate(timeout=3)
+            except subprocess.TimeoutExpired:
+                server.kill()
+                _, errors = server.communicate(timeout=3)
+            (output/'xvfb.stderr.log').write_text(errors or '', encoding='utf-8')
 
 if __name__ == '__main__':
     raise SystemExit(main())

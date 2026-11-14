@@ -6,8 +6,8 @@
 namespace nexora::editor::preview {
 // Forward each native batch once, including deferred/zero-extent frames. No tick or GUI frame is
 // needed to revoke capture or release held controls; native client-pixel coordinates stay intact.
-inline void ForwardPlayInput(runtime::PlaySession &play, PlayGameplayModule &gameplay,
-                             bool canvas_focused,
+template <class Module>
+inline void ForwardPlayInput(runtime::PlaySession &play, Module &gameplay, bool canvas_focused,
                              std::span<const Nexora::Window::WindowEvent> events,
                              const PlayInputBindings &bindings = {}, std::uint32_t user = 0) {
   const bool selected = gameplay.SetInputUser(user);

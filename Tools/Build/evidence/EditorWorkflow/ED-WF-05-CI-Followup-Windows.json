@@ -1,0 +1,170 @@
+{
+  "schema": "nexora.editor.workflow.ci-followup.v1",
+  "base_commit": "0c82cf373d5fc6f7ea870ff01e2795dca7401610",
+  "status": "PARTIAL_NOT_ACCEPTED",
+  "failed_ci": [
+    {
+      "job": 126640320411,
+      "run": 41849114552,
+      "scope": "Windows Editor package startup",
+      "last_checkpoint": "prepare-display",
+      "missing_checkpoint": "prepare-display-returned",
+      "main_hidden": true,
+      "cause": "Unproven; inside first SetDisplay font preparation. New checkpoints are diagnostic, not a claimed fix.",
+      "original_ready_seconds": 35
+    },
+    {
+      "job": 126640653715,
+      "run": 41849114575,
+      "scope": "Windows Vulkan Showcase",
+      "failure": "Seven-step guided tour did not complete.",
+      "observed_tour": {
+        "step": 6,
+        "seconds": 210.028,
+        "paused": true
+      },
+      "cause": "Reader admitted file existence while producer had opened but not finished writing final state."
+    }
+  ],
+  "artifacts": [
+    {
+      "file": {
+        "path": "build/editor-workflow-native/pr763-0c82-package-failure.zip",
+        "bytes": 26181,
+        "sha256": "d5dfef804eb4864e8d1533952fc7564689aa9002cefa0e012fc6c16236a76e1b"
+      },
+      "crc": "PASS",
+      "entries": 23
+    },
+    {
+      "file": {
+        "path": "build/editor-workflow-native/pr763-0c82-vulkan-failure.zip",
+        "bytes": 110707645,
+        "sha256": "188c8dd62482af7cb97a2839b82bbf2cedc1a081cc4dc9ba8448f1473eee892c"
+      },
+      "crc": "PASS",
+      "entries": 144,
+      "final_tour_export": {
+        "entry": "artifacts/showcase-windows-v1/tour-state.json",
+        "bytes": 0
+      }
+    }
+  ],
+  "local_validation": {
+    "build": {
+      "exit_code": 0,
+      "seconds": 111.9925049,
+      "log": "C:\\Users\\Jim-PC\\.codex\\worktrees\\editor-workflow\\Nexora\\build\\editor-workflow-native\\ed-wf05-font-checkpoints-build.log"
+    },
+    "font_test": {
+      "log": "C:\\Users\\Jim-PC\\.codex\\worktrees\\editor-workflow\\Nexora\\build\\editor-workflow-native\\ed-wf05-font-checkpoints-tests.log",
+      "exit_code": 0,
+      "seconds": 1.5100304
+    },
+    "export_regression": {
+      "original_exit_code": 1,
+      "fixed_exit_code": 0,
+      "original_failure_expected": true,
+      "scope": "Actual production Export-State functions, delayed write race and original bounded incomplete-output rejection; no GUI acceptance"
+    },
+    "python_compile": "PASS Tests/Editor/WindowsStartupIntegration.py",
+    "documentation": "PASS both delivery plans and EditorImGui README",
+    "scope": "Windows native targeted build/font coverage and real-function PowerShell regression only; no desktop Editor repetition, complete cloud/CI or final package acceptance.",
+    "commands": [
+      "cmake --build build/editor-workflow-native --config Development --target NexoraEditor NexoraFontGlyphTests --parallel 2",
+      "ctest --test-dir build/editor-workflow-native -C Development -R ^editor.font_glyphs$ -V (NEXORA_EDITOR_FONT_DIAGNOSTICS=1)",
+      "powershell -NoProfile -ExecutionPolicy Bypass -File Tests/Showcase/WindowsStateExportTests.ps1 -AcceptanceScript build/editor-workflow-native/export-before-fix.ps1 (original HEAD implementation; expected exit 1)",
+      "powershell -NoProfile -ExecutionPolicy Bypass -File Tests/Showcase/WindowsStateExportTests.ps1 (fixed implementation; exit 0)",
+      "python -m py_compile Tests/Editor/WindowsStartupIntegration.py"
+    ]
+  },
+  "source_files": [
+    {
+      "path": "Apps/Showcase/CMakeLists.txt",
+      "bytes": 16360,
+      "sha256": "a77c8e5d94c974d60aa291702242f0b155f723d887f3ed6362bb319718dd8822"
+    },
+    {
+      "path": "Tools/Package/AcceptShowcaseWindows.ps1",
+      "bytes": 34462,
+      "sha256": "9b372e0e0b9848f9bf8a2f2ad8b68feeeff65b59d299bc29626a3a927053562d"
+    },
+    {
+      "path": "Tests/Showcase/WindowsStateExportTests.ps1",
+      "bytes": 3608,
+      "sha256": "da83cac2e1c2788453cf21339f8a8279d9621077d0a9875b0435832eb199269e"
+    },
+    {
+      "path": "Engine/EditorImGui/src/EditorImGui.cpp",
+      "bytes": 532936,
+      "sha256": "0ea26848cc84c3a7abd49c813aea7dae090bfd3478e0fa2074d0e113a86fe7ee"
+    },
+    {
+      "path": "Engine/EditorImGui/src/EditorSystemFont.cpp",
+      "bytes": 14117,
+      "sha256": "ef332f53024db9812e94409dc3a57e5437ccd1a55b897833617111d2d27b905f"
+    },
+    {
+      "path": "Engine/EditorImGui/src/EditorSystemFont.h",
+      "bytes": 2605,
+      "sha256": "f41a515606dee2283ddf5bb8ae1b21d632355ccc85a1a690dd47d878f848d226"
+    },
+    {
+      "path": "Tests/Editor/WindowsStartupIntegration.py",
+      "bytes": 16668,
+      "sha256": "1b0f16ea69b5ff57336b1d0d0d3bfd0705807f53786e4691339f63f58844a9a7"
+    }
+  ],
+  "logs": [
+    {
+      "path": "build/editor-workflow-native/pr763-0c82-package-job.log",
+      "bytes": 152303,
+      "sha256": "2013fafc24b80554b75b4468ea926ca73b82f3f280715b2600845d9ce4c445a3"
+    },
+    {
+      "path": "build/editor-workflow-native/pr763-0c82-vulkan-job.log",
+      "bytes": 234581,
+      "sha256": "97d350bd9e73bd8cef62ed0687286c5be023a76716ece4e04e4bfc88965ecd34"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-font-checkpoints-build.log",
+      "bytes": 4959,
+      "sha256": "c48302e0815a4136fe257c365474849a86de869d72a86c962a27a0a31d9e5de6"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-font-checkpoints-tests.log",
+      "bytes": 42862,
+      "sha256": "e4de9ade7d0367d8d9faf2cb471f45e1d2e754bf93e29c791248f244f3813a2e"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-export-original.log",
+      "bytes": 492,
+      "sha256": "eea0db813e99c1a210ce3c4bae175943cdb7c39c83a20a6bd3859e653c83d666"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-export-fixed.log",
+      "bytes": 52,
+      "sha256": "07b293f944aaa7977019317f6a20b76bd4eace4e59bd1e1f9cbf78061e0cc04c"
+    },
+    {
+      "path": "build/editor-workflow-native/ed-wf05-export-exit.json",
+      "bytes": 240,
+      "sha256": "f875abaf45102750065ca6d80100c8c5a0ce0a05c1ee058a3cb19dfb7c4e0962"
+    }
+  ],
+  "invariants": [
+    "Original five-second export deadline and all semantic tour assertions unchanged.",
+    "Reader retains accepted strings; stale outputs are cleared.",
+    "Original startup 35-second bound, glyph coverage, admission/fallback and readiness behavior unchanged.",
+    "Prior user-confirmed manual Editor exit remains operator-interrupted, not a crash or completed 32-reload gate.",
+    "Work orders remain 4/9; PR763 draft; full new-source Cloud/CI/native acceptance pending."
+  ],
+  "base_ci_snapshot": {
+    "total_checks": 40,
+    "success": 35,
+    "failure": 2,
+    "in_progress": 3,
+    "all_passed": false,
+    "note": "Pre-publication observation, not final inventory. New source requires fresh CI."
+  }
+}

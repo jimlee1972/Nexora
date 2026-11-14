@@ -5,9 +5,11 @@ import contextlib
 import copy
 import importlib.util
 import io
+import json
 import os
 from pathlib import Path
 import sys
+import subprocess
 import tempfile
 import unittest
 from unittest import mock
@@ -34,7 +36,7 @@ class EvidencePolicyTests(unittest.TestCase):
     def test_unavailable_rerun_removes_stale_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary)
-            for name in ("windowed.json", "stdout.log", "stderr.log", "launch.json"):
+            for name in ("windowed.json", "stdout.log", "stderr.log", "launch.json", "xvfb.stderr.log"):
                 (output / name).write_text("stale PASS", encoding="utf-8")
             with mock.patch.object(sys, "argv", [str(SCRIPT), "unused", "--evidence-dir", temporary]), \
                     mock.patch.object(MODULE.shutil, "which", return_value=None), \
@@ -42,6 +44,54 @@ class EvidencePolicyTests(unittest.TestCase):
                     contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(MODULE.main(), 1)
             self.assertEqual(list(output.iterdir()), [])
+
+    def test_timeout_retains_partial_streams_and_never_accepts_stale_pass(self) -> None:
+        for stdout, stderr in ((b"startup\n", b"driver \xff\n"), ("startup\n", None)):
+            with self.subTest(stdout=stdout), tempfile.TemporaryDirectory() as temporary:
+                output = Path(temporary)
+                (output / "launch.json").write_text('{"acceptance_passed":true}', encoding="utf-8")
+                server = mock.Mock()
+                server.poll.return_value = None
+                server.communicate.return_value = (None, "Xvfb diagnostics\n")
+                timeout = subprocess.TimeoutExpired(["showcase"], 30, output=stdout, stderr=stderr)
+                with mock.patch.object(sys, "argv", [str(SCRIPT), "showcase", "--evidence-dir", temporary]), \
+                        mock.patch.object(MODULE.shutil, "which", return_value="Xvfb"), \
+                        mock.patch.object(MODULE, "start_xvfb", return_value=(server, ":7")), \
+                        mock.patch.object(MODULE.subprocess, "run", side_effect=timeout) as run, \
+                        contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(MODULE.main(), 1)
+                receipt = json.loads((output / "launch.json").read_text(encoding="utf-8"))
+                self.assertFalse(receipt["acceptance_passed"])
+                self.assertTrue(receipt["timed_out"])
+                self.assertIsNone(receipt["exit_code"])
+                self.assertEqual(receipt["timeout_seconds"], 30)
+                self.assertEqual(run.call_args.kwargs["timeout"], 30)
+                self.assertFalse((output / "windowed.json").exists())
+                self.assertEqual((output / "stdout.log").read_text(encoding="utf-8"), "startup\n")
+                self.assertEqual((output / "stderr.log").read_text(encoding="utf-8"),
+                                 "driver \ufffd\n" if stderr is not None else "")
+                self.assertEqual((output / "xvfb.stderr.log").read_text(encoding="utf-8"), "Xvfb diagnostics\n")
+                server.terminate.assert_called_once_with()
+                server.communicate.assert_called_once_with(timeout=3)
+                server.kill.assert_not_called()
+
+    def test_unresponsive_xvfb_is_killed_drained_and_reaped(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            server = mock.Mock()
+            server.poll.return_value = None
+            server.communicate.side_effect = [subprocess.TimeoutExpired(["Xvfb"], 3), (None, "stopped\n")]
+            with mock.patch.object(sys, "argv", [str(SCRIPT), "showcase", "--evidence-dir", temporary]), \
+                    mock.patch.object(MODULE.shutil, "which", return_value="Xvfb"), \
+                    mock.patch.object(MODULE, "start_xvfb", return_value=(server, ":7")), \
+                    mock.patch.object(MODULE.subprocess, "run", return_value=subprocess.CompletedProcess(
+                        ["showcase"], 2, "startup\n", "failed\n")), \
+                    contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(MODULE.main(), 2)
+            server.terminate.assert_called_once_with()
+            server.kill.assert_called_once_with()
+            self.assertEqual(server.communicate.call_args_list, [mock.call(timeout=3), mock.call(timeout=3)])
+            self.assertFalse(json.loads((Path(temporary) / "launch.json").read_text())["acceptance_passed"])
+            self.assertEqual((Path(temporary) / "xvfb.stderr.log").read_text(), "stopped\n")
 
 
 class NativeEvidenceTests(unittest.TestCase):
@@ -114,6 +164,31 @@ class ResizePresentationTests(unittest.TestCase):
                                        sw, sh, width, height)
         with self.assertRaises(AssertionError):
             interaction.resize_match_count(blank[:-1], width, height, samples)
+
+
+class InteractionEvidenceTests(unittest.TestCase):
+    def test_failed_workspace_retains_frames_and_child_output(self) -> None:
+        import LinuxShowcaseInteraction as interaction
+        with tempfile.TemporaryDirectory() as parent:
+            retained = Path(parent) / 'interaction'
+            retained.mkdir()
+            with mock.patch.object(interaction.tempfile, 'mkdtemp', return_value=str(retained)), \
+                    contextlib.redirect_stderr(io.StringIO()) as errors:
+                with self.assertRaisesRegex(AssertionError, 'original comparison failed'):
+                    with interaction.interaction_workspace() as temporary:
+                        (Path(temporary) / 'stderr.log').write_text('driver output')
+                        (Path(temporary) / 'frame.png').write_bytes(b'frame')
+                        raise AssertionError('original comparison failed')
+            self.assertEqual((retained / 'stderr.log').read_text(), 'driver output')
+            self.assertEqual((retained / 'frame.png').read_bytes(), b'frame')
+            self.assertIn(f'fixtures retained: {retained}', errors.getvalue())
+
+    def test_successful_workspace_is_removed(self) -> None:
+        import LinuxShowcaseInteraction as interaction
+        with interaction.interaction_workspace() as temporary:
+            workspace = Path(temporary)
+            self.assertTrue(workspace.is_dir())
+        self.assertFalse(workspace.exists())
 
 
 class LabExportSynchronizationTests(unittest.TestCase):

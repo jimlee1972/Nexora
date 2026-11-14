@@ -2,10 +2,9 @@
 #include "../Common/NativeSceneView.h"
 #include "Nexora/Presentation/RenderSurface.h"
 #include "Nexora/Runtime/GameSceneSession.h"
+#include "PlayWorldReload.h"
 #include <stdexcept>
-#if defined(NEXORA_HAS_2D)
-#include "Nexora/TwoD/GameSpriteAssets.h"
-#endif
+#include <type_traits>
 
 namespace nexora::editor::preview {
 // Owner-thread isolated packaged game. This owner outlives the PlaySession borrow and module;
@@ -21,27 +20,45 @@ public:
     std::string error;
   };
   explicit PackagedPlayContext(std::shared_ptr<const runtime::LoadedGameProject> project)
-      : project_(std::move(project)), scenes_(world_, project_) {
-#if defined(NEXORA_HAS_2D)
-    std::string error;
-    sprite_assets_ = twod::GameSpriteAssets::Load(project_->SpriteAssets(), &error);
-    if (!sprite_assets_)
-      throw std::runtime_error(error);
-#else
-    if (!project_->SpriteAssets().empty())
-      throw std::runtime_error("Configured Sprite Play requires TwoD support.");
-#endif
+      : project_(std::move(project)),
+        scenes_(std::make_unique<runtime::GameSceneSession>(world_, project_)) {
     std::uint64_t request{};
-    if (scenes_.RequestLoad(project_->StartupScene(), runtime::GameSceneLoadMode::Replace, false,
-                            request) != runtime::GameSceneError::None)
+    if (scenes_->RequestLoad(project_->StartupScene(), runtime::GameSceneLoadMode::Replace, false,
+                             request) != runtime::GameSceneError::None)
       throw std::runtime_error("Configured startup scene could not be queued.");
   }
   PackagedPlayContext(const PackagedPlayContext &) = delete;
   PackagedPlayContext &operator=(const PackagedPlayContext &) = delete;
   [[nodiscard]] game::GameWorld &World() noexcept { return world_; }
-  [[nodiscard]] runtime::GameSceneSession &Scenes() noexcept { return scenes_; }
+  [[nodiscard]] runtime::GameSceneSession &Scenes() noexcept { return *scenes_; }
   [[nodiscard]] bool Ready() const noexcept { return bool(published_); }
   [[nodiscard]] std::uint64_t Commits() const noexcept { return commits_; }
+  [[nodiscard]] PlayWorldReload ReloadHooks() noexcept {
+    return {this,
+            [](void *p, runtime::World *&world, NexoraGameplaySceneApiV1 &api) noexcept {
+              return static_cast<PackagedPlayContext *>(p)->BeginReload(world, api);
+            },
+            [](void *p) noexcept {
+              auto &self = *static_cast<PackagedPlayContext *>(p);
+              return self.staged_scenes_ &&
+                     self.staged_scenes_->RebindForReload(*self.staged_world_);
+            },
+            [](void *p, runtime::World *&retired) noexcept {
+              static_cast<PackagedPlayContext *>(p)->RetireReload(retired);
+            },
+            [](void *p) noexcept {
+              auto &self = *static_cast<PackagedPlayContext *>(p);
+              self.scenes_ = std::move(self.staged_scenes_);
+              self.staged_world_.reset();
+              self.retired_world_.reset();
+            },
+            [](void *p) noexcept {
+              auto &self = *static_cast<PackagedPlayContext *>(p);
+              self.staged_scenes_.reset();
+              self.staged_world_.reset();
+              self.retired_world_.reset();
+            }};
+  }
 
   [[nodiscard]] bool HasSprites() const noexcept { return !project_->SpriteAssets().empty(); }
 #if defined(NEXORA_HAS_2D)
@@ -124,9 +141,9 @@ private:
       return status;
     };
     bool native_failed{};
-    const auto processed =
-        scenes_.Process([&](const runtime::GameSceneView &view,
-                            std::string &error) -> std::unique_ptr<runtime::GameScenePresentation> {
+    const auto processed = scenes_->Process(
+        [&](const runtime::GameSceneView &view,
+            std::string &error) -> std::unique_ptr<runtime::GameScenePresentation> {
           const auto items = runtime::CaptureGameSceneRenderItems(view, &error);
           auto palette =
               items ? sceneview::PrepareSceneView(*items, view.world, view.primary, &error, true)
@@ -151,7 +168,7 @@ private:
     if (!processed) {
       result.rejected = true;
       result.committed = false;
-      result.error = scenes_.ErrorText();
+      result.error = scenes_->ErrorText();
       if (!published_ || (native_failed && !sceneview::CanRedrawRetainedScene(result.status))) {
         if (result.status == SurfaceStatus::Ready)
           result.status = SurfaceStatus::Unsupported;
@@ -159,7 +176,7 @@ private:
       }
     }
     if (!result.drawn) {
-      const auto view = scenes_.View();
+      const auto view = scenes_->View();
       const auto items = runtime::CaptureGameSceneRenderItems(view, &result.error);
       const auto live =
           items ? sceneview::PrepareSceneView(*items, view.world, view.primary, &result.error, true)
@@ -175,6 +192,30 @@ private:
   }
 
 private:
+  bool BeginReload(runtime::World *&world, NexoraGameplaySceneApiV1 &api) noexcept try {
+    if (!scenes_->Owner() || !Ready() || staged_world_ || staged_scenes_ || retired_world_)
+      return false;
+    // GameWorld is CPU state: this copies existing audio/physics/character bindings and their
+    // clocks. It has no native audio device or renderer owner. Native palette remains retained.
+    retired_world_ = std::make_unique<game::GameWorld>(runtime::WorldKind::Play);
+    staged_world_ = std::make_unique<game::GameWorld>(world_);
+    staged_scenes_ = scenes_->ForkForReload(*staged_world_);
+    if (!staged_scenes_)
+      return false;
+    world = &staged_world_->InternalWorld();
+    api = staged_scenes_->Api();
+    return true;
+  } catch (...) {
+    return false;
+  }
+  void RetireReload(runtime::World *&retired) noexcept {
+    static_assert(std::is_nothrow_move_assignable_v<game::GameWorld>);
+    *retired_world_ = std::move(world_);
+    world_ = std::move(*staged_world_);
+    if (!scenes_->RebindForReload(*retired_world_) || !staged_scenes_->RebindForReload(world_))
+      std::terminate();
+    retired = &retired_world_->InternalWorld();
+  }
   struct Presentation final : runtime::GameScenePresentation {
     PackagedPlayContext &owner;
     std::shared_ptr<sceneview::StaticView> palette;
@@ -187,7 +228,10 @@ private:
   };
   game::GameWorld world_{runtime::WorldKind::Play};
   std::shared_ptr<const runtime::LoadedGameProject> project_;
-  runtime::GameSceneSession scenes_;
+  std::unique_ptr<runtime::GameSceneSession> scenes_;
+  // Staged/retired session destruction precedes the World it borrows.
+  std::unique_ptr<game::GameWorld> staged_world_, retired_world_;
+  std::unique_ptr<runtime::GameSceneSession> staged_scenes_;
   std::shared_ptr<sceneview::StaticView> published_;
   std::uint64_t commits_{};
 #if defined(NEXORA_HAS_2D)
