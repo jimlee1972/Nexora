@@ -13,6 +13,9 @@
 #include "GameViewPreview.h"
 #if NEXORA_ASSET_PIPELINE_ENABLED
 #include "PackagedPlayContext.h"
+#if defined(NEXORA_HAS_2D)
+#include "PackagedSpriteTextures.h"
+#endif
 #endif
 #include "StarterSceneStorage.h"
 #if defined(_WIN32)
@@ -1000,6 +1003,12 @@ int RunGraphical(std::optional<ProjectState> project,
 #if NEXORA_ASSET_PIPELINE_ENABLED
   std::unique_ptr<nexora::editor::preview::PackagedPlayContext> packaged_play;
   bool packaged_module_pending{};
+#if defined(NEXORA_HAS_2D)
+  std::unique_ptr<nexora::editor::preview::PackagedSpriteTextures> packaged_sprite_textures;
+#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+  std::size_t packaged_sprite_visible{};
+#endif
+#endif
 #endif
   const auto stop_play = [&] {
 #if NEXORA_ASSET_PIPELINE_ENABLED
@@ -1010,6 +1019,12 @@ int RunGraphical(std::optional<ProjectState> project,
     if (play.State() != nexora::runtime::PlayState::Stopped)
       static_cast<void>(play.Stop());
 #if NEXORA_ASSET_PIPELINE_ENABLED
+#if defined(NEXORA_HAS_2D)
+    packaged_sprite_textures.reset();
+#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+    packaged_sprite_visible = 0;
+#endif
+#endif
     packaged_play.reset();
     packaged_module_pending = false;
 #endif
@@ -2740,28 +2755,52 @@ int RunGraphical(std::optional<ProjectState> project,
               capture ? nexora::editor::CookGameProject(capture->project, &error) : std::nullopt;
           auto loaded =
               bytes ? nexora::runtime::DecodeGameProjectPackage(*bytes, &error) : std::nullopt;
+#if !defined(NEXORA_HAS_2D)
           if (loaded && !loaded->SpriteAssets().empty()) {
-            error =
-                "Configured Play does not yet support Sprite source packages. Use Build and Run.";
-#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
-            if (std::getenv("NEXORA_SPRITE_BUILD_UI_TEST_EVIDENCE"))
-              std::cerr << "sprite package Play rejected: state="
-                        << static_cast<unsigned>(play.State()) << '\n';
-#endif
+            error = "Configured Sprite Play requires TwoD support.";
             loaded.reset();
           }
+#endif
           if (!loaded) {
             ui.SetGameplayStatus(error);
             log(nexora::runtime::RuntimeLogSeverity::Error, "PIE", error);
             break;
           }
-          auto context = std::make_unique<nexora::editor::preview::PackagedPlayContext>(
-              std::make_shared<const nexora::runtime::LoadedGameProject>(std::move(*loaded)));
+          std::unique_ptr<nexora::editor::preview::PackagedPlayContext> context;
+#if defined(NEXORA_HAS_2D)
+          std::unique_ptr<nexora::editor::preview::PackagedSpriteTextures> textures;
+#endif
+          try {
+            const auto package =
+                std::make_shared<const nexora::runtime::LoadedGameProject>(std::move(*loaded));
+            context = std::make_unique<nexora::editor::preview::PackagedPlayContext>(package);
+#if defined(NEXORA_HAS_2D)
+            if (context->HasSprites()) {
+              textures = std::make_unique<nexora::editor::preview::PackagedSpriteTextures>(ui);
+              if (!textures->Prepare(*package, context->SpriteAssets()))
+                throw std::runtime_error(
+                    "Configured Play Sprite textures exceed preview capacity.");
+            }
+#endif
+          } catch (const std::exception &failure) {
+            ui.SetGameplayStatus(failure.what());
+            log(nexora::runtime::RuntimeLogSeverity::Error, "PIE", failure.what());
+            break;
+          }
+          if (context->HasSprites() && !nexora::editor::GameBuildSourcesCurrent(
+                                           project->workspace.Root(), capture->sources, &error)) {
+            ui.SetGameplayStatus(error);
+            log(nexora::runtime::RuntimeLogSeverity::Error, "PIE", error);
+            break;
+          }
           if (play.StartExternal(context->World().InternalWorld(), 1.0 / 60.0,
                                  [&](nexora::runtime::World &, double seconds) {
                                    return gameplay.FixedUpdate(seconds);
                                  })) {
             packaged_play = std::move(context);
+#if defined(NEXORA_HAS_2D)
+            packaged_sprite_textures = std::move(textures);
+#endif
             packaged_module_pending = !ui.GameplayLibrary().empty();
             play_meshes.reset();
             play_materials.reset();
@@ -3602,7 +3641,111 @@ int RunGraphical(std::optional<ProjectState> project,
       }
     }
 #endif
-    static_cast<void>(ui.EndFrame());
+    // A surface-level loss (the window vanished, the swapchain went out of date) is recoverable and
+    // is resolved by the next BeginFrame, which also pumps a pending close request. Anything else,
+    // device loss included, is a real failure.
+    const auto surface_recoverable = [](Nexora::Presentation::SurfaceStatus status) {
+      const auto recovery = Nexora::Presentation::RecoveryAction(status);
+      return recovery == Nexora::Presentation::SurfaceAction::RecreateSurface ||
+             recovery == Nexora::Presentation::SurfaceAction::Suspend;
+    };
+#if NEXORA_ASSET_PIPELINE_ENABLED
+    const auto finish_packaged_frame = [&](const auto &packaged_frame,
+                                           Nexora::Presentation::SceneViewport viewport) {
+      if (packaged_frame.rejected)
+        log(nexora::runtime::RuntimeLogSeverity::Warning, "PIE", packaged_frame.error);
+      if (packaged_frame.status != Nexora::Presentation::SurfaceStatus::Ready) {
+        ui.SetGameplayStatus(packaged_frame.error);
+        if (surface_recoverable(packaged_frame.status))
+          return false;
+        stop_play();
+      } else {
+        ui.SetNativeGameStatus({});
+        if (!native_game_viewport_reported || native_game_viewport_reported->x != viewport.x ||
+            native_game_viewport_reported->y != viewport.y ||
+            native_game_viewport_reported->width != viewport.width ||
+            native_game_viewport_reported->height != viewport.height) {
+          std::cerr << "native game viewport: " << viewport.x << ' ' << viewport.y << ' '
+                    << viewport.width << ' ' << viewport.height << '\n';
+          native_game_viewport_reported = viewport;
+        }
+        if (packaged_frame.committed)
+          std::cerr << "packaged play scene committed: " << packaged_play->Scenes().View().primary
+                    << " camera=" << packaged_play->Scenes().View().camera << '\n';
+        if (packaged_module_pending && packaged_play->Ready()) {
+          std::string error;
+          packaged_module_pending = false;
+          if (!gameplay.LoadRelative(*play.PlayWorld(), project->workspace.Root(),
+                                     ui.GameplayLibrary(), error, {}, {},
+                                     packaged_play->Scenes().Api())) {
+            stop_play();
+            ui.SetGameplayStatus(error);
+          } else
+            ui.SetGameplayStatus("Configured scene and gameplay module running.");
+        } else if (packaged_frame.committed && ui.GameplayLibrary().empty()) {
+          ui.SetGameplayStatus("Configured scene running without a gameplay module.");
+        }
+      }
+      return true;
+    };
+#endif
+    std::optional<Nexora::Presentation::SurfaceStatus> packaged_ui_status;
+#if NEXORA_ASSET_PIPELINE_ENABLED && defined(NEXORA_HAS_2D)
+    if (packaged_play && packaged_sprite_textures && play.PlayWorld()) {
+      const auto visible = ui.NativeGameViewport();
+      const auto viewport = visible.value_or(Nexora::Presentation::SceneViewport{0, 0, 1, 1});
+      const auto composed = packaged_play->RenderComposed(
+          viewport, created.surface->SupportsSceneGeometryResidency(),
+          [&](const Nexora::Presentation::SceneDrawData &scene,
+              const nexora::twod::SpriteFrame &sprites) {
+            using Nexora::Presentation::SurfaceStatus;
+            // A rejected native UI submission cannot be appended/replayed in this ImGui frame.
+            if (packaged_ui_status)
+              return *packaged_ui_status;
+            auto mapped = packaged_sprite_textures->Remap(sprites);
+            if (!mapped)
+              return SurfaceStatus::Unsupported;
+            if (visible) {
+              Nexora::Presentation::SceneTextureReference image;
+              if (!scene.instances.empty()) {
+                auto offscreen = scene;
+                offscreen.viewport = {};
+                offscreen.offscreen = offscreen.sampledByUi = true;
+                const auto prepared = created.surface->DrawScene(offscreen);
+                if (prepared != SurfaceStatus::Ready)
+                  return prepared;
+                const auto reference = created.surface->SceneTexture();
+                if (!reference)
+                  return SurfaceStatus::Unsupported;
+                image = *reference;
+              }
+              const Nexora::Presentation::UiDrawData packet{
+                  mapped->vertices,
+                  std::as_bytes(std::span(mapped->indices)),
+                  mapped->batches,
+                  {},
+                  true};
+              if (!ui.DrawGameScene(image, packet))
+                return SurfaceStatus::InvalidDescriptor;
+            }
+            // Registers every package Atlas, including culled/hidden sources, before publication.
+            // Native RenderUi owns the texture copies and the single Scene/Sprite/GUI pass.
+            // Mark the attempt before either fallible operation: an allocation exception must
+            // never cause a second EndFrame or replay of a rejected candidate's GUI packet.
+            packaged_ui_status = SurfaceStatus::Unsupported;
+            static_cast<void>(ui.EndFrame());
+            packaged_ui_status = ui.Render(*created.surface, frame.width, frame.height);
+            return *packaged_ui_status;
+          });
+#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+      packaged_sprite_visible = composed.drawn ? composed.visible_sprites : 0;
+#endif
+      if (!finish_packaged_frame(composed, viewport))
+        continue;
+    }
+#endif
+    if (!packaged_ui_status)
+      static_cast<void>(ui.EndFrame());
     if (const auto theme = ui.TakeColorThemeRequest()) {
       appearance_status.clear();
       if (!nexora::editor::SaveEditorColorTheme(appearance_path, *theme, &appearance_status)) {
@@ -3858,6 +4001,27 @@ int RunGraphical(std::optional<ProjectState> project,
     }
 
 #if defined(NEXORA_HAS_2D)
+#if NEXORA_ASSET_PIPELINE_ENABLED
+    if (std::getenv("NEXORA_PACKAGED_SPRITE_UI_TEST_EVIDENCE")) {
+      const auto input = nexora::editor::imgui::EditorImGuiTestAccess::SceneShortcutInput(ui);
+      std::ostringstream value;
+      value << "packaged sprite ui state=" << static_cast<unsigned>(play.State())
+            << " steps=" << play.Stats().manual_steps
+            << " textures=" << (packaged_sprite_textures ? packaged_sprite_textures->Size() : 0)
+            << " visible=" << packaged_sprite_visible
+            << " commits=" << (packaged_play ? packaged_play->Commits() : 0)
+            << " module=" << gameplay.IsLoaded() << " focused=" << input.focused
+            << " admitted=" << input.play_allowed;
+      if (const auto viewport = ui.NativeGameViewport())
+        value << " viewport=" << viewport->x << ',' << viewport->y << ',' << viewport->width << ','
+              << viewport->height;
+      static std::string previous;
+      if (value.str() != previous) {
+        previous = value.str();
+        std::cerr << previous << '\n';
+      }
+    }
+#endif
     if (std::getenv("NEXORA_GAME_TWOD_UI_TEST_EVIDENCE")) {
       using Access = nexora::editor::imgui::EditorImGuiTestAccess;
       std::ostringstream observation;
@@ -3905,15 +4069,9 @@ int RunGraphical(std::optional<ProjectState> project,
       }
     }
 #endif
-    // A surface-level loss (the window vanished, the swapchain went out of date) is recoverable and
-    // is resolved by the next BeginFrame, which also pumps a pending close request. Anything else,
-    // device loss included, is a real failure.
-    const auto surface_recoverable = [](Nexora::Presentation::SurfaceStatus status) {
-      const auto recovery = Nexora::Presentation::RecoveryAction(status);
-      return recovery == Nexora::Presentation::SurfaceAction::RecreateSurface ||
-             recovery == Nexora::Presentation::SurfaceAction::Suspend;
-    };
-    if (const auto render_status = ui.Render(*created.surface, frame.width, frame.height);
+    if (const auto render_status = packaged_ui_status
+                                       ? *packaged_ui_status
+                                       : ui.Render(*created.surface, frame.width, frame.height);
         render_status != Nexora::Presentation::SurfaceStatus::Ready) {
       if (surface_recoverable(render_status))
         continue;
@@ -3987,7 +4145,11 @@ int RunGraphical(std::optional<ProjectState> project,
     std::optional<float> game_draw_admitted_test_x;
 #endif
 #if NEXORA_ASSET_PIPELINE_ENABLED
-    if (packaged_play && play.PlayWorld()) {
+    if (packaged_play && play.PlayWorld()
+#if defined(NEXORA_HAS_2D)
+        && !packaged_play->HasSprites()
+#endif
+    ) {
       const auto viewport =
           ui.NativeGameViewport().value_or(Nexora::Presentation::SceneViewport{0, 0, 1, 1});
       const auto packaged_frame =
@@ -3995,40 +4157,8 @@ int RunGraphical(std::optional<ProjectState> project,
                                 [&](const Nexora::Presentation::SceneDrawData &draw) {
                                   return created.surface->DrawScene(draw);
                                 });
-      if (packaged_frame.rejected)
-        log(nexora::runtime::RuntimeLogSeverity::Warning, "PIE", packaged_frame.error);
-      if (packaged_frame.status != Nexora::Presentation::SurfaceStatus::Ready) {
-        ui.SetGameplayStatus(packaged_frame.error);
-        if (surface_recoverable(packaged_frame.status))
-          continue;
-        stop_play();
-      } else {
-        ui.SetNativeGameStatus({});
-        if (!native_game_viewport_reported || native_game_viewport_reported->x != viewport.x ||
-            native_game_viewport_reported->y != viewport.y ||
-            native_game_viewport_reported->width != viewport.width ||
-            native_game_viewport_reported->height != viewport.height) {
-          std::cerr << "native game viewport: " << viewport.x << ' ' << viewport.y << ' '
-                    << viewport.width << ' ' << viewport.height << '\n';
-          native_game_viewport_reported = viewport;
-        }
-        if (packaged_frame.committed)
-          std::cerr << "packaged play scene committed: " << packaged_play->Scenes().View().primary
-                    << " camera=" << packaged_play->Scenes().View().camera << '\n';
-        if (packaged_module_pending && packaged_play->Ready()) {
-          std::string error;
-          packaged_module_pending = false;
-          if (!gameplay.LoadRelative(*play.PlayWorld(), project->workspace.Root(),
-                                     ui.GameplayLibrary(), error, {}, {},
-                                     packaged_play->Scenes().Api())) {
-            stop_play();
-            ui.SetGameplayStatus(error);
-          } else
-            ui.SetGameplayStatus("Configured scene and gameplay module running.");
-        } else if (packaged_frame.committed && ui.GameplayLibrary().empty()) {
-          ui.SetGameplayStatus("Configured scene running without a gameplay module.");
-        }
-      }
+      if (!finish_packaged_frame(packaged_frame, viewport))
+        continue;
     }
 #endif
     if (const auto viewport = ui.NativeGameViewport();

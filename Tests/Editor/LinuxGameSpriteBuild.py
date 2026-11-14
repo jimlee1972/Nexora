@@ -136,16 +136,18 @@ def main():
                        '--read-only', '--play', '--frames=12',
                        '--recent-projects=' + str(evidence / 'gui-recent')]
         proof['commands'].append(gui_command)
-        gui = subprocess.run(gui_command, env=dict(env, NEXORA_SPRITE_BUILD_UI_TEST_EVIDENCE='1'),
+        gui = subprocess.run(gui_command, env=dict(env, NEXORA_PACKAGED_SPRITE_UI_TEST_EVIDENCE='1'),
                              capture_output=True, text=True, timeout=30)
         (evidence / 'editor-play.stdout.log').write_text(gui.stdout)
         (evidence / 'editor-play.stderr.log').write_text(gui.stderr)
-        require(gui.returncode == 0 and 'sprite package Play rejected: state=0' in gui.stderr,
-                'unsupported configured Play was not rejected gracefully: ' + gui.stderr)
-        require('graphical evidence: acquired=12 presented=12' in gui.stderr and 'pie_ticks=0' in gui.stderr,
-                'unsupported configured Play did not retain the actual stopped native Editor')
-        require(gui_before == hashes(gui_project), 'unsupported Play changed authored files')
-        proof['configured_play_rejected'] = True
+        require(gui.returncode == 0 and re.search(
+                r'packaged sprite ui state=1 .*textures=1 visible=2 commits=1 ', gui.stderr),
+                'configured source Play did not prepare its actual native owner: ' + gui.stderr)
+        require('graphical evidence: acquired=12 presented=12' in gui.stderr and
+                re.search(r'pie_ticks=[1-9]\d* ', gui.stderr),
+                'configured source Play did not retain the actual running native Editor')
+        require(gui_before == hashes(gui_project), 'configured Play changed authored files')
+        proof['configured_play_running'] = True
         shutil.rmtree(gui_project)
         window = NativeWindow(display)
         def native(exe, tag, source):

@@ -1820,10 +1820,51 @@ actual native pixels: complete crop/Pivot/mirrored color masks and exact underly
 against an independently built source-free SceneOnly baseline. WM close verifies gameplay
 Stop/Destroy and native drain; authored and runtime file hashes remain unchanged. Attempts,
 logs, screenshots and receipts live under `artifacts/editor-sprite-sources/build-*`.
-Configured packaged Play uses a separate one-UI-pass compositor and explicitly rejects source
-catalogs until its preview owner is integrated. Scene View, animation/pool/reload and full ED-WF-07
-acceptance remain separate. See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-Linux-2026-11-13.md).
+Configured packaged Play now owns a separate one-UI-pass source compositor, documented below.
+Scene View, animation/pool/reload and full ED-WF-07 acceptance remain separate. See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-Linux-2026-11-13.md).
 
 The [main integration evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-MainIntegration-Linux-2026-11-13.md)
 validates this producer together with the independently delivered module-free preview on main2e900.
 It retains the original execution record and documents the exact native readiness/chord test repairs.
+
+
+## Configured packaged Sprite Play
+
+A saved `project.build.json` with capability-3 source references now runs in the main Game View.
+The existing Build producer supplies owning source/Atlas closure; `PackagedPlayContext` performs
+canonical typed admission before requesting its startup scene. `PackagedSpriteTextures` registers
+all package Atlases, including hidden/culled sources, within the existing **64 registrations /
+16 MiB combined GUI pixel** budget. Failed staging releases only its own registrations. Frames
+require the exact immutable Atlas owner, not just an equal UUID, before remapping native IDs.
+The application rechecks every captured source/sidecar baseline immediately before borrowing the
+Play World. Invalid/stale data or preview capacity failure leaves Play stopped and logs the reason.
+
+After callbacks and `GameWorld::EndFrame`, each unpublished candidate supplies its actual remapped
+World poses. The host prepares its offscreen LDR 3D Scene, obtains a typed current-frame image,
+and adds that image followed by source quads to the owning Game ImGui draw list. It then ends and
+submits the **complete GUI once, before candidate World publication or initial module callbacks**.
+Thus native Sprite/Atlas uploads must succeed before commit. Empty/hidden canvases submit the
+ordinary GUI and complete Atlas uploads without inventing an on-screen viewport. Candidates with
+no mesh geometry use a Sprite-only canvas. CPU/admission rejection retains the old World/palette;
+native failures follow the existing surface recovery/teardown policy. An already ended GUI frame
+is never replayed for a second UI submission.
+
+Source quads use the canonical default 2D camera (center0, vertical20), trim/Pivot and live affine
+poses, including negative scale, over the primary 3D camera image. This adds static authored source
+composition; it does not add camera controls, depth-aware Sprite rendering, pool styling, live
+source publication or hot reload. Ordinary GUI stacking preserves floating-window occlusion.
+Every acquired frame obtains a new Scene reference; resize/Stop never reuses an old image. Module
+Stop/Destroy and the Play borrow finish before releasing the context/texture owner. Native uploads
+retire behind surface fences and the surface drains at shutdown. Authoring World/history/files stay
+unchanged. Source-free packages retain the existing direct 3D path, and TwoD-OFF still rejects
+source-bearing packages explicitly. C/Zig V1 layouts, package/asset codecs and module graph stay
+unchanged; consumers of the added C++ ImGui API rebuild.
+
+`editor.packaged_sprite_play` checks pre-publication World conservation, complete texture admission,
+foreign same-UUID owners, typed malformed closure, capacity rejection, Additive/Replace remapping
+and 32 clean owners. `editor.linux_packaged_sprites` drives the actual read-only Editor through32
+Play/Pause/Step/Resume/Stop sessions, checks complete native crop/Pivot/mirror masks and exact
+underlying 3D pixels against an independent source-free Editor, then exercises a real SDK Zig
+Additive/Replace/return sequence, floating Inspector occlusion, resize and external stale-source
+rejection before callbacks. Full native captures, original fixture failures and exact verification
+commands are in the [execution record](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-ConfiguredSpritePlay-Linux-2026-11-14.md).
