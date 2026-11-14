@@ -2363,11 +2363,14 @@ Supporting `nexora-whr.7.11` creates a new canonical source from an imported Atl
 the actual Content context menu and owning modal. Users set original dimensions, top-left trim,
 bottom-left pixel Pivot and PPU; trim size follows the stable region and borders start at zero.
 The authoring owner exclusively publishes a fresh UUID/file and imports only that saved source,
-preserving existing Content view/history. Scope/version, focus, writer/recovery, stopped Play,
+preserving existing Content view/history. Undo-reserved names and case aliases reject before writing;
+released paths reconcile from current Content and immediately import after rename/move.
+Scope/version, focus, writer/recovery, stopped Play,
 busy state, names, geometry, capacity and destination identities guard writes. GUI rendering has
 no new file IO. Created-file/import-failure and uncertain-publication outcomes stay distinct.
 Actual 1×/2× controls and native X11 create/import/assign/inspect/Save/read-only reopen pass with
-exact generated UUID/metadata, unchanged existing assets and byte-identical read-only projects.
+exact generated UUID/metadata, reserved-name rejection, released-path reuse, unchanged existing
+asset bytes and byte-identical read-only projects.
 Full Linux **514/514**, Shipping Full, actual TwoD-OFF/testing-OFF Editor/native Player,
 and graphical Monolithic controls/native gates pass; exact-head hosted CI remains required.
 See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceCreation-Linux-2026-11-14.md).

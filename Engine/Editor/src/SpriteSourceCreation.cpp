@@ -104,6 +104,8 @@ std::string_view SpriteSourceCreationMessage(Error e) noexcept {
     return "Source dimensions, trim, Pivot or PPU are invalid.";
   case Error::Capacity:
     return "The project asset or Sprite source capacity is exhausted.";
+  case Error::Content:
+    return "Content cannot admit this source. A pending Undo may reserve its name or capacity.";
   case Error::Exists:
     return "A source or identity with this name already exists. Choose another name.";
   case Error::Storage:
@@ -195,6 +197,21 @@ SpriteSourceCreationResult CreateSpriteSourceFile(const ProjectWorkspace &worksp
     const auto encoded = twod::EncodeSpriteAsset(source);
     if (encoded.size() != 96)
       return fail(Error::Geometry);
+    {
+      // Validate the live and retained Undo sets before any primary file is published.
+      // Discover stages only this private copy; it never changes the owner's view/history.
+      auto admission = browser;
+      const auto imported = ImportTwoDAsset(".nx2sprite", encoded, source.id);
+      if (!imported.payload || !admission.Discover({source.id,
+                                                    result.path,
+                                                    ".nx2sprite",
+                                                    {},
+                                                    ThumbnailState::Ready,
+                                                    {},
+                                                    {},
+                                                    imported.payload}))
+        return fail(Error::Content);
+    }
     const auto metadata = request.root / ".nexora";
     const auto staging = metadata / "source-staging";
     if (!PlainDirectory(metadata))

@@ -28,6 +28,7 @@
 
 namespace nexora::editor {
 class TwoDAssetPayload;
+class ProjectContentSession;
 
 struct GizmoOperation;
 enum class GizmoPivot;
@@ -247,9 +248,11 @@ public:
   bool ImportSavedScene(const std::filesystem::path &relative_path, std::string *error = nullptr);
 #if defined(NEXORA_HAS_2D)
   // Discovers only one newly saved canonical source. The embedded and sidecar IDs must match
-  // expected; existing indexed IDs/paths are never retargeted. No Atlas/image reread or scan.
+  // expected. Reconciles the cached index from the current same-root Content owner first,
+  // including renames/moves/deletions/reimports; no Atlas/image reread or filesystem scan.
   bool ImportSavedSpriteSource(const std::filesystem::path &relative_path,
-                               runtime::AssetUuid expected, std::string *error = nullptr);
+                               runtime::AssetUuid expected, const ProjectContentSession &current,
+                               std::string *error = nullptr);
 #endif
   [[nodiscard]] static std::filesystem::path
   IdentitySidecar(const std::filesystem::path &asset_path);

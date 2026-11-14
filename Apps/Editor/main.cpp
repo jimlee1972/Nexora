@@ -1911,7 +1911,7 @@ int RunGraphical(std::optional<ProjectState> project,
             auto candidate_assets = project->assets;
             std::string error;
             if (!candidate_assets.ImportSavedSpriteSource(result.path.lexically_relative("Content"),
-                                                          result.asset, &error))
+                                                          result.asset, content, &error))
               throw std::runtime_error(error);
             const auto *entry = candidate_assets.Find(result.asset);
             if (!entry || !entry->twod)
@@ -4186,7 +4186,17 @@ int RunGraphical(std::optional<ProjectState> project,
             record("sprite_create_atlas", Access::ContentAssetPosition(ui, item.id));
             break;
           }
+      if (project)
+        for (const auto &item : content.Browser().Items())
+          if (item.twod && item.twod->SpriteSource()) {
+            record("sprite_create_source", Access::ContentAssetPosition(ui, item.id));
+            break;
+          }
 #endif
+      for (std::size_t index = 0; index < 3; ++index) {
+        const auto name = "sprite_content_rename_" + std::to_string(index);
+        record(name.c_str(), Access::ContentRenamePosition(ui, index));
+      }
       for (std::size_t index = 0; index < 11; ++index)
         if (const auto rect = Access::SpriteSourceCreationRect(ui, index)) {
           const auto name = "sprite_create_" + std::to_string(index);
@@ -4268,6 +4278,12 @@ int RunGraphical(std::optional<ProjectState> project,
         if (details != previous_details) {
           std::cerr << "sprite inspector details=" << std::quoted(std::string(details)) << '\n';
           previous_details = details;
+        }
+        const auto status = Access::SpriteSourceCreationStatus(ui);
+        static std::string previous_creation_status;
+        if (status != previous_creation_status) {
+          std::cerr << "sprite creation status=" << std::quoted(std::string(status)) << '\n';
+          previous_creation_status = status;
         }
       }
     }

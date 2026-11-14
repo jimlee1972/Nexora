@@ -1890,6 +1890,9 @@ origin, bottom-left pixel Pivot and pixels per unit. Trim size follows the regio
 at zero. **Create source** writes a new canonical `.nx2sprite` beside that Atlas and immediately
 imports its new UUID. It becomes available in the existing Inspector source picker without a
 project rescan. Existing Content selection, folder/filter and file-move Undo are preserved.
+A name still reserved by the pending Content Undo rejects before writing. Once a later Content
+operation replaces that reservation, the vacated name can be reused and immediately imported;
+cached index paths are reconciled from current Content without a filesystem rescan.
 
 The modal requires stopped Play and an idle, focused project writer. Existing source/identity
 filenames, stale Content versions and invalid geometry reject; no overwrite prompt is offered.

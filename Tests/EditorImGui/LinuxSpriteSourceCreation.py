@@ -92,6 +92,15 @@ def main():
             driver.raw('type', '--clearmodifiers', '--delay', '20', text)
             driver.raw('key', 'Return')
 
+        def rename_source(name):
+            driver.click(point('sprite_create_source'))
+            driver.raw('key', 'F2')
+            driver.click(point('sprite_content_rename_0'))
+            driver.chord('ctrl+a')
+            driver.raw('type', '--clearmodifiers', '--delay', '20', name)
+            driver.click(point('sprite_content_rename_1'))
+            driver.wait(lambda v: 'sprite_content_rename_0' not in v, 'Content rename did not close')
+
         open_host()
         old_content = {p.name: p.read_bytes() for p in (root / 'Content').iterdir() if p.is_file()}
         open_creator()
@@ -105,12 +114,33 @@ def main():
         source_path = root / 'Content/Created.nx2sprite'
         driver.wait(lambda v: 'sprite_create_0' not in v, 'created source dialog did not close')
         require(source_path.is_file() and source_path.stat().st_size == 96, 'canonical source absent')
+        first_source = source_path.read_bytes()
+        first_uuid = struct.unpack_from('<QQ', first_source, 8)
+        rename_source('Moved.nx2sprite')
+        require(not source_path.exists() and (root / 'Content/Moved.nx2sprite').read_bytes() == first_source,
+                'actual source rename failed')
+        open_creator()
+        field(0, 'Created')
+        driver.click(point('sprite_create_9'))
+        driver.wait(lambda v: b'pending Undo' in driver.stderr, 'Undo reservation was not reported')
+        require(not source_path.exists() and not (root / 'Content/Created.nx2sprite.meta').exists(),
+                'Undo-reserved destination published a source or identity')
+        driver.click(point('sprite_create_10'))
+        rename_source('MovedAgain.nx2sprite')
+        open_creator()
+        for index, text in ((0, 'Created'), (2, '19'), (3, '23'), (4, '3'), (5, '5'),
+                            (6, '4.5'), (7, '8.25'), (8, '2')):
+            field(index, text)
+        driver.click(point('sprite_create_9'))
+        driver.wait(lambda v: 'sprite_create_0' not in v, 'reused source dialog did not close')
+        require((root / 'Content/MovedAgain.nx2sprite').read_bytes() == first_source,
+                'reused path changed the prior source bytes')
         source = source_path.read_bytes()
         # Codec layout is independently inspected, never used to create the successful source.
         require(source[:4] == b'ND2P' and struct.unpack_from('<I', source, 4) == (1,),
                 'unexpected Sprite source schema')
         high, low = struct.unpack_from('<QQ', source, 8)
-        require((high, low) != (0, 0) and (high, low) != (101, 1), 'new UUID missing')
+        require((high, low) not in ((0, 0), (101, 1), first_uuid), 'new UUID missing')
         require(struct.unpack_from('<QQ7I3f4I', source, 24) ==
                 (101, 1, 7, 19, 23, 3, 5, 7, 9, 4.5, 8.25, 2, 0, 0, 0, 0),
                 'created asymmetric geometry differs from native inputs')
@@ -156,7 +186,10 @@ def main():
         proof.update(passed=True, asset_uuid=f'{high:016x}{low:016x}', source_bytes=96,
                      source_sha256=hashlib.sha256(source).hexdigest(),
                      read_only_all_file_hashes={p: hashlib.sha256(b).hexdigest() for p, b in saved.items()},
-                     same_uuid_after_save_reopen=True, existing_sources_unchanged=True)
+                     same_uuid_after_save_reopen=True, existing_sources_unchanged=True,
+                     undo_reserved_name_rejected_before_write=True,
+                     released_name_immediately_imported=True,
+                     renamed_source_sha256=hashlib.sha256(first_source).hexdigest())
     finally:
         if driver:
             driver.abort()

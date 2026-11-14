@@ -1596,7 +1596,7 @@ association; ordinary Save retains it. Read-only
 sessions may track paths but still cannot write. Bootstrap load protection remains independent.
 
 `ContentBrowserModel::Discover` publishes one already-saved owning item without recording a content
-edit. It rejects duplicate ID/path, including collisions in the retained Undo snapshot, preserves
+edit. It rejects duplicate ID/path, including ASCII case aliases in the retained Undo snapshot, preserves
 folder/filter/selection, and carries the new item into that snapshot so an earlier content Undo cannot
 hide it. Application scene saves compose `AssetWorkspace::ImportSavedScene` with discovery/artifact
 publication. That operation reads only the saved `.scene` and its bounded identity sidecar, hashes
@@ -2896,6 +2896,9 @@ Sprite metadata. It grants no write authority. The serialized authoring owner ca
 writer/recovery/external-change, exact scope/version, ordinary Content folder, portable UTF-8 name,
 typed Atlas/region/geometry, asset/path/payload capacity and destination/sidecar collision checks.
 Names admit at most 128 UTF-8 bytes; case-alias inspection admits at most 65536 directory entries.
+Before staging, a private browser copy must admit the candidate through `Discover`, including its
+retained Undo paths (with ASCII case aliases) and payload budgets. A reserved name rejects before
+creating the source or sidecar; the live browser/history never changes during this preflight.
 It assigns a fresh nonzero UUID and stages the existing canonical 96-byte codec in an owned
 `.nexora/source-staging` directory. Publication never replaces an existing file: Windows uses a
 non-replacing move, POSIX an exclusive hard link followed by owned staging cleanup. This is a local
@@ -2909,8 +2912,13 @@ file bytes; only owned temporary files/directories are removed. Empty staging pa
 
 `AssetWorkspace::ImportSavedSpriteSource` reads only that newly saved `.nx2sprite`, checks its exact
 embedded UUID and existing identity (or creates the ordinary matching sidecar), and stages a new
-index without scanning Content or reading the Atlas. It requires a persistent writer index and
-ordinary, non-aliased source paths. The application stages a copied browser's `Discover` and copied
+index without scanning Content or reading the Atlas. It requires a persistent writer index,
+ordinary non-aliased source paths, and the current writable, idle, same-root `ProjectContentSession`.
+That owner's browser supplies current paths, rows and immutable imported owners; the initial cache
+may predate Rename/Move/Delete/reimport. The new candidate index reconciles those in-memory values
+before checking destination conflicts. It never retargets an existing identity to the new source.
+Once a later Content command replaces an earlier Undo reservation, its vacated path can be reused
+and imported immediately despite the old cached path. The application stages browser `Discover` and copied
 dependency graph before replacing the three in-memory owners. Discovery preserves selection,
 folder/filter and pending Content Undo, which also retains the newly created asset. A post-creation
 import/admission failure preserves the created source and last good live catalog, reports both

@@ -101,7 +101,11 @@ are separate work.
 Creation requires the current writable, focused, idle project/Content and stopped Play. Scope
 loss discards the draft; revision changes disable it until reopened. Recovery, concurrent file or
 build work, unsafe names and invalid geometry reject. The modal blocks global Scene/Play shortcuts.
-Success never resets the Content view/history. Private test access copies visible widget bounds,
+Success never resets the Content view/history.
+Names still retained by Content Undo reject before any new file is created. The authoring owner
+reconciles cached asset paths from current Content, so released names import immediately after
+rename/move. Native acceptance exercises actual renames, reserved-name rejection and name reuse.
+Private test access copies visible widget bounds,
 including disabled controls, and status text; it supplies no queue-injection or write capability.
 `editor.sprite_source_creation_ui` drives actual 1x/2x controls; the native X11 flow creates,
 immediately assigns, inspects, saves and reopens the generated UUID in a byte-identical read-only

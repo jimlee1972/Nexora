@@ -346,10 +346,12 @@ bool ContentBrowserModel::Discover(ContentItem item) {
   next.push_back(item);
   if (!WithinMeshBudget(next) || !WithinMaterialBudget(next) || !WithinTwoDBudget(next))
     return false;
-  // Discovery is not an authoring command. Preserve the earlier command's Undo snapshot too.
+  // Discovery is not an authoring command. Preserve the earlier command's Undo snapshot too;
+  // its retained paths also reserve ASCII case aliases so Undo stays portable.
   if (!undo_.empty()) {
+    const auto destination = Lower(PathUtf8(item.path));
     if (std::ranges::any_of(undo_, [&](const ContentItem &old) {
-          return old.id == item.id || old.path == item.path;
+          return old.id == item.id || Lower(PathUtf8(old.path)) == destination;
         }))
       return false;
     auto previous = undo_;

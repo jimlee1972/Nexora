@@ -16,7 +16,11 @@ uncertain-publication outcomes remain explicit. See [file/import contract](../..
 and [GUI contract](../../../../Engine/EditorImGui/README.md#main-sprite-source-creation).
 
 The serialized application stages single saved-source import, browser Discover and dependencies
-before replacing live in-memory owners. No whole-project rescan or project-generation reset occurs.
+before replacing live in-memory owners. It first reconciles cached paths/rows/imported owners from
+the current same-root Content session. Private discovery preflight rejects Undo-reserved names,
+ASCII case aliases and retained-budget conflicts before creating a source/sidecar. A later ordinary
+Content command can release the original name, which then imports immediately after Rename/Move.
+No whole-project rescan or project-generation reset occurs.
 Existing Content selection, folder/filter and pending file-move Undo survive; Undo retains the new
 asset. Creating an asset does not assign it or dirty Scene/Runtime. Existing-source editing, slicing,
 source animation/reload and full ED-WF07/08 remain separate, open work. Independent task claims are
@@ -25,7 +29,7 @@ preserved. This is a cooperative local-filesystem operation, without power-loss 
 ## Acceptance
 
 Complete Development Modular configure/all-build and unfiltered **514/514** tests pass,
-zero failures/skips, **1740.31 seconds**. The full gate records all 15 frozen source hashes.
+zero failures/skips, **1793.69 seconds**. All 16 frozen source hashes match.
 Shipping Full, actual TwoD-OFF/testing-OFF graphical Editor/native Player, graphical Monolithic
 TwoD-ON model/control tests and the actual native creation flow pass. Exact-head hosted CI is
 required before actual delivery; PR/Beads record its final result. No local Windows/macOS/mobile
@@ -39,8 +43,10 @@ input, owning one-shot requests, rejection/retry, focus, stale content, writer/P
 modal F5 blocking, success dismissal and unchanged Scene/Runtime/files. The 2× fixture uses Atlas
 UUID1:1 to ensure the validation witness cannot collide with its dependency.
 
-Real X11 input creates the successful file, immediately assigns it to two selected entities,
-checks Source details, saves the generated UUID and reopens read-only. The source is never patched
+Real X11 input creates a source, renames it, verifies no-write rejection of its Undo-reserved name, renames again to release that
+name, and recreates/immediately imports a distinct UUID into the vacated path. It assigns the
+new UUID to two entities, checks Source details, saves and reopens read-only. The renamed source
+bytes remain exact. The source is never patched
 by the test. Its independent oracle reads the existing ND2P schema-1 layout: original19×23,
 trim(3,5;7×9), Pivot(4.5,8.25), PPU2, Atlas region7 at(3,4;7×9). Every pre-existing Content file
 remains exact. After read-only operations and shutdown, all project files match the saved snapshot.
@@ -55,16 +61,19 @@ errors were corrected before this frozen acceptance gate; no admission guard or 
 The initial native oracle expected a different magic, although the product created canonical bytes;
 the oracle now checks the existing codec's exact magic/schema and complete metadata.
 
-## Test-only canonical-root follow-up
+## Review follow-up and provenance
 
-The full gate above ran at `9c17c45c`. A subsequent one-line UI-test correction compares the
-request root with `ProjectWorkspace.Root()` rather than the temporary input path. macOS temporary
-directories can use aliases; the production owner correctly emits the canonical workspace root.
-All other 14 frozen files, including every product implementation/build file, remain byte identical.
-The updated actual 1×/2× UI test passes both ordinary TMPDIR (**1.79 s**) and a real symlink TMPDIR
-(**1.85 s**) on Linux. This is targeted portability validation, not a new local full-gate or local
-macOS claim. The machine receipt preserves the original full-gate hash and the current test hash;
-updated-head hosted CI remains required. No runtime behavior, admission or deadline changed.
+The initial proposal at `9c17c45c` passed its own full local gate (514/514, 1740.31 s).
+[Automated review](https://github.com/jimlee1972/Nexora/pull/789#discussion_r4574356631)
+then identified that a cached index could still occupy a path vacated through Content Rename/Move.
+The current implementation preflights live/Undo admission before publication and reconciles the
+index from current same-root Content. Model regressions cover both Rename and Move, including
+ASCII case aliases, no-write Undo reservation rejection, released-path import and preserved Undo.
+The extended native flow performs real renames and recreates a distinct UUID in that released path.
+The full gate recorded here reruns all product and test changes, including the earlier test-only
+canonical-root correction for aliased temporary directories. All 16 current source hashes match.
+The previous receipt and raw logs are retained separately; current acceptance does not substitute
+old-head CI or a targeted test for this fresh complete gate.
 
 ## Exact commands
 

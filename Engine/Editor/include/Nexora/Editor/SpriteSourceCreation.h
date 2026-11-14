@@ -22,6 +22,7 @@ enum class SpriteSourceCreationError {
   Atlas,
   Geometry,
   Capacity,
+  Content,
   Exists,
   Storage,
   Publication

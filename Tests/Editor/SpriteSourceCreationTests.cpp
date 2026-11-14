@@ -178,10 +178,16 @@ void Run() {
     Check(Read(root / p) == value, "existing file overwritten");
   auto imported = assets;
   const auto saved_files = Files(root);
-  Check(!imported.ImportSavedSpriteSource(result.path.lexically_relative("Content"), {999, 1}) &&
+  Check(!imported.ImportSavedSpriteSource(result.path.lexically_relative("Content"), result.asset,
+                                          readonly) &&
+            Files(root) == saved_files,
+        "read-only Content authorized saved-source import");
+  Check(!imported.ImportSavedSpriteSource(result.path.lexically_relative("Content"), {999, 1},
+                                          content) &&
             imported.Entries().size() == assets.Entries().size() && Files(root) == saved_files,
         "wrong embedded identity import changed files or index");
-  Check(imported.ImportSavedSpriteSource(result.path.lexically_relative("Content"), result.asset),
+  Check(imported.ImportSavedSpriteSource(result.path.lexically_relative("Content"), result.asset,
+                                         content),
         "single saved-source import");
   const auto *entry = imported.Find(result.asset);
   Check(entry && entry->twod && *entry->twod->SpriteSource() == expected,
@@ -212,10 +218,100 @@ void Run() {
   std::cout << "Source creation: exclusive canonical file, asymmetric metadata, guarded failures, "
                "single-file import, preserved Undo and read-only reopen passed\n";
 }
+void ReusedPath(bool move) {
+  const auto root = std::filesystem::temp_directory_path() /
+                    ("nexora-source-reuse-" +
+                     std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+  editor::test::TemporaryDirectoryCleanup cleanup(root);
+  editor::ProjectWorkspace workspace;
+  Check(workspace.Create(root, "Source path reuse"), "reuse workspace");
+  constexpr runtime::AssetUuid atlasId{101, 1}, oldId{102, 1};
+  twod::Atlas atlas{
+      atlasId, 16, 16, 1, false, {{7, 3, 4, 7, 9}}, twod::Bytes(16 * 16 * 4, std::byte{255})};
+  twod::SpriteAsset old;
+  old.id = oldId;
+  old.atlas = atlasId;
+  old.region = 7;
+  old.sourceWidth = old.trimWidth = 7;
+  old.sourceHeight = old.trimHeight = 9;
+  Write(root / "Content/Atlas.nx2atlas", twod::EncodeAtlas(atlas));
+  Write(root / "Content/Created.nx2sprite", twod::EncodeSpriteAsset(old));
+  std::filesystem::create_directory(root / "Content/Moved");
+  editor::AssetWorkspace assets;
+  Check(assets.ImportTree(root / "Content", {}, {}, editor::AssetIdentityMode::PersistentReadWrite),
+        "reuse import");
+  editor::ProjectContentSession content;
+  Check(content.Open(workspace, assets, 5), "reuse Content");
+  Check(move ? content.Move(std::array{oldId}, "Content/Moved")
+             : content.Rename(oldId, "Moved.nx2sprite"),
+        "vacate source path");
+  Check(assets.Find(oldId)->relative_path == "Created.nx2sprite", "stale index fixture");
+  editor::SpriteSourceCreationRequest request{workspace.Project().id,
+                                              workspace.Root(),
+                                              "Content",
+                                              {5, content.Browser().Revision()},
+                                              "Created",
+                                              old};
+  request.source.id = {};
+  const auto before = Files(root);
+  for (const auto *name : {"Created", "cReAtEd"}) {
+    request.name = name;
+    const auto rejected = editor::CreateSpriteSourceFile(workspace, content, request, true);
+    Check(rejected.state == editor::SpriteSourceCreationState::Rejected &&
+              rejected.error == editor::SpriteSourceCreationError::Content &&
+              Files(root) == before && content.CanUndo(),
+          "Undo-reserved source name published a file");
+  }
+  // A subsequent ordinary authoring command replaces the single Content Undo snapshot. The
+  // original name is now reusable, but the initial AssetWorkspace still contains that old path.
+  Check(content.Rename(atlasId, "MovedAtlas.nx2atlas"), "replace pending Undo");
+  request.name = "Created";
+  request.version.content_revision = content.Browser().Revision();
+  const auto created = editor::CreateSpriteSourceFile(workspace, content, request, true);
+  Check(created.state == editor::SpriteSourceCreationState::Created, "released path creation");
+  auto candidate = assets;
+  Check(candidate.ImportSavedSpriteSource("Created.nx2sprite", created.asset, content),
+        "stale-index source import");
+  const auto expected_old_path = move ? "Moved/Created.nx2sprite" : "Moved.nx2sprite";
+  Check(candidate.Find(oldId)->relative_path == expected_old_path &&
+            candidate.Find(atlasId)->relative_path == "MovedAtlas.nx2atlas" &&
+            candidate.Find(created.asset)->relative_path == "Created.nx2sprite" &&
+            *candidate.Find(oldId)->twod->SpriteSource() == old &&
+            Read(root / "Content" / expected_old_path) ==
+                before.at("Content" / std::filesystem::path(expected_old_path)),
+        "current paths/owners or old source bytes were lost during reconciliation");
+  const auto *entry = candidate.Find(created.asset);
+  auto browser = content.Browser();
+  auto graph = content.Dependencies();
+  Check(browser.Discover({entry->id,
+                          created.path,
+                          entry->type,
+                          entry->artifact_hash,
+                          editor::ThumbnailState::Ready,
+                          {},
+                          {},
+                          entry->twod}) &&
+            graph.Set(created.asset, std::array{atlasId}),
+        "reused-path publication");
+  content.Browser() = std::move(browser);
+  content.Dependencies() = std::move(graph);
+  Check(content.Undo() && content.Browser().Find(created.asset) &&
+            content.Browser().Find(oldId)->path ==
+                std::filesystem::path("Content") / expected_old_path &&
+            content.Browser().Find(atlasId)->path == "Content/Atlas.nx2atlas",
+        "reused source broke pending Undo");
+  editor::AssetWorkspace reopened;
+  Check(reopened.ImportTree(root / "Content", {}, {},
+                            editor::AssetIdentityMode::PersistentReadOnly) &&
+            reopened.Find(created.asset) && reopened.Find(oldId),
+        "reused source read-only reopen");
+}
 } // namespace
 int main() {
   try {
     Run();
+    ReusedPath(false);
+    ReusedPath(true);
     return 0;
   } catch (const std::exception &e) {
     std::cerr << e.what() << '\n';
