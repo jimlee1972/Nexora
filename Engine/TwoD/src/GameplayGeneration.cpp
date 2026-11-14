@@ -9,14 +9,21 @@ GameplayGeneration::~GameplayGeneration() = default;
 std::unique_ptr<GameplayGeneration>
 GameplayGeneration::CreateSingleScene(std::string name, std::size_t capacity,
                                       ClipResolver clips) noexcept {
+  return CreateSingleScene(std::move(name), capacity, std::move(clips), true);
+}
+std::unique_ptr<GameplayGeneration>
+GameplayGeneration::CreateSingleScene(std::string name, std::size_t capacity, ClipResolver clips,
+                                      bool enableTilemap) noexcept {
   try {
     if (name.empty() || name.size() > 256 || name.find('\0') != std::string::npos)
       return {};
     auto result = std::unique_ptr<GameplayGeneration>(new GameplayGeneration(capacity));
+    result->has_tiles_ = enableTilemap;
     const auto scene = result->world_.LoadScene(std::move(name));
     result->single_ = std::make_unique<SpriteScene>(result->world_, scene);
-    result->bridge_ = std::make_unique<GameplayBridge>(
-        result->world_, *result->single_, std::move(clips), &result->tiles_, &result->pool_);
+    result->bridge_ =
+        std::make_unique<GameplayBridge>(result->world_, *result->single_, std::move(clips),
+                                         enableTilemap ? &result->tiles_ : nullptr, &result->pool_);
     return result;
   } catch (...) {
     return {};
@@ -36,12 +43,13 @@ GameplayGeneration::CreateCatalog(std::vector<SceneEntry> catalog, std::size_t c
   }
 }
 GameplayGeneration::GameplayGeneration(const GameplayGeneration &source, StagedCopy)
-    : world_(source.world_), tiles_(source.tiles_),
-      pool_(source.pool_, InstancePool::StagedCopy{}) {
+    : world_(source.world_), tiles_(source.tiles_), pool_(source.pool_, InstancePool::StagedCopy{}),
+      has_tiles_(source.has_tiles_) {
   if (source.single_) {
     single_ = std::make_unique<SpriteScene>(*source.single_);
     single_->world_ = &world_;
-    bridge_ = std::make_unique<GameplayBridge>(world_, *single_, ClipResolver{}, &tiles_, &pool_);
+    bridge_ = std::make_unique<GameplayBridge>(world_, *single_, ClipResolver{},
+                                               has_tiles_ ? &tiles_ : nullptr, &pool_);
   } else {
     catalog_ = source.catalog_->StageInto(world_);
     if (!catalog_)

@@ -1026,3 +1026,15 @@ GNU 15.2 前後對照重現原始 benchmark 暫存值警告，並驗證全部 17
 [補充證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SceneUiComposition-EditorTag-Linux-2026-11-14.md) 保留原始兩份原生證據與實際重現失敗。
 這尚未實作有擁有者的 ImGui Scene 綁定或受保護的封裝來源 Play；`nexora-whr.7.8`、正式重載、
 完整 ED-WF-07／08、**5/9**、**0/8**、**9/11** 及實體／乾淨主機驗收仍未完成／維持不變。
+
+## ✅ 獨立 Player 嚴格重載整合（2026-11-14）
+
+支援子項 `nexora-whr.8.2.2` 已在正式 Player 主機採用隔離 TwoD 世代，包含穩定位址的快取服務
+context、唯讀存狀態階段，以及候選／退役世代的外部服務准入。聚焦的正式主機 fixture 通過32次
+canonical SDK 替換與128次拒絕；Linux 原生版本在替換、回復與來源重新匯入／重打包過程中，
+驗證192次有呈現識別標記的來源／物件池畫面。另一個完整原生 Player 範例行程回歸亦通過。
+[所有權契約](../../Apps/TwoDPlayer/README.md#strict-generation-ownership) 區分 fixture 與完整行程範圍。
+完整529/529、14本機 gates 與十組實際 GCC15 編譯命令皆通過；交付仍須確切提交的雲端 CI。主程式封裝 Editor／Player
+服務、專案監看及完整 ED-WF-07／08 仍開放；Workflow **5/9**、Editor **0/8**、TwoD **9/11** 不變。
+
+[完整本機執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-PlayerGeneration-Linux-2026-11-14.md) 保留初期失敗及完整範圍。

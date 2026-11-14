@@ -1,4 +1,5 @@
 const nx = @import("nexora");
+const builtin = @import("builtin");
 
 pub const Mode = enum { normal, prepare_fail, restore_fail, reloaded_fail, schema_change };
 fn check(result: i32) !void {
@@ -8,6 +9,16 @@ fn check(result: i32) !void {
 // Real SDK fixture for the isolated TwoD generation transaction. Production hosts own admission.
 var job_state: ?*anyopaque = null;
 var job_call: ?*const fn (?*anyopaque) void = null;
+var final_storage: nx.storage.Api = .{};
+fn finalize() callconv(.c) void {
+    if (final_storage.remove) |remove| _ = remove(final_storage.context, "generation-guard", 16);
+}
+var linux_finalizer: *const fn () callconv(.c) void linksection(".fini_array") = finalize;
+var mac_finalizer: *const fn () callconv(.c) void linksection("__DATA,__mod_term_func") = finalize;
+comptime {
+    if (builtin.os.tag == .linux) @export(&linux_finalizer, .{ .name = "NexoraSourceReloadFinalizer" });
+    if (builtin.os.tag == .macos) @export(&mac_finalizer, .{ .name = "NexoraSourceReloadFinalizer" });
+}
 
 // A host work lease retains this exact library until the call returns.
 export fn NexoraSourceReloadFixtureJob() callconv(.c) void {
@@ -29,6 +40,11 @@ pub fn Script(comptime mode: Mode) type {
         frames: u64 = 0,
         ticks: u64 = 0,
         jobs: u64 = 0,
+        external_input: nx.input.Api = .{},
+        external_storage: nx.storage.Api = .{},
+        external_audio: nx.audio.Api = .{},
+        external_display: nx.display.Api = .{},
+        external_ui: nx.ui.Api = .{},
 
         fn bind(self: *Self, context: *const nx.game.Context) !void {
             job_state = @ptrCast(self);
@@ -36,6 +52,27 @@ pub fn Script(comptime mode: Mode) type {
             self.host = context.host;
             self.twod = nx.getTwoD(&context.host) orelse return error.Unsupported;
             self.sources = nx.getTwoDSources(self.twod) orelse return error.Unsupported;
+            // Optional: the original pure-TwoD owner supplies no services. The production
+            // Player test supplies real/counted services and checks cached-context quarantine.
+            if (nx.getServices(&context.host)) |services| {
+                if (services.get_input_api) |get| _ = get(services.context, &self.external_input);
+                if (services.get_storage_api) |get| _ = get(services.context, &self.external_storage);
+                if (services.get_audio_api) |get| _ = get(services.context, &self.external_audio);
+                if (services.get_display_api) |get| _ = get(services.context, &self.external_display);
+                if (services.get_ui_api) |get| _ = get(services.context, &self.external_ui);
+                final_storage = self.external_storage;
+            }
+        }
+        fn probeExternal(self: *const Self, expected: ?i32) !void {
+            var results: [5]i32 = @splat(-2);
+            if (self.external_input.clear_bindings) |call| results[0] = call(self.external_input.context, 0, 250);
+            if (self.external_storage.remove) |call| results[1] = call(self.external_storage.context, "generation-guard", 16);
+            if (self.external_audio.stop_all) |call| results[2] = call(self.external_audio.context);
+            if (self.external_display.request_window) |call| results[3] = call(self.external_display.context, &.{ .width = 640, .height = 480 });
+            if (self.external_ui.begin_frame) |call| results[4] = call(self.external_ui.context, 640, 480);
+            if (expected) |value| for (results) |result| {
+                if (result != value) return error.ExternalServiceEscaped;
+            };
         }
         fn instance() nx.TwoDSourceInstanceV1 {
             return .{
@@ -63,6 +100,7 @@ pub fn Script(comptime mode: Mode) type {
         }
         pub fn prepareReload(self: *Self, context: *const nx.game.Context) !void {
             try self.bind(context);
+            try self.probeExternal(-2);
             if (mode == .prepare_fail) {
                 try check(self.twod.set_camera.?(self.twod.context, &.{ .vertical_size = 17 }));
                 const instances = [_]nx.TwoDSourceInstanceV1{instance()};
@@ -129,6 +167,15 @@ pub fn Script(comptime mode: Mode) type {
             try self.verify();
         }
         pub fn saveState(self: *const Self, writer: *nx.game.StateWriter) !void {
+            if (nx.getServices(&self.host) != null) {
+                try self.probeExternal(-2);
+                const position = nx.Vec3{ .x = 999 };
+                if (self.host.write_component.?(self.host.context, self.counter_entity, nx.componentType("Nexora.Transform"), &position, @sizeOf(nx.Vec3)) != -2 or
+                    self.twod.set_camera.?(self.twod.context, &.{ .vertical_size = 17 }) != -2) return error.SaveMutatedLiveWorld;
+                const handles = [_]nx.TwoDInstanceHandle{self.handle};
+                const instances = [_]nx.TwoDSourceInstanceV1{instance()};
+                if (self.sources.write_instances.?(self.sources.context, &handles, 1, &instances) != -2) return error.SaveMutatedLivePool;
+            }
             try writer.int(u64, self.frames);
             try writer.int(u64, self.ticks);
             try writer.int(u64, self.jobs);
@@ -163,12 +210,14 @@ pub fn Script(comptime mode: Mode) type {
             self.jobs += 100; // Module-only data; World/TwoD stay on their owning thread.
         }
         pub fn deinit(self: *Self, _: *const nx.game.Context) void {
+            self.probeExternal(null) catch {};
             if (job_state == @as(?*anyopaque, @ptrCast(self))) {
                 job_state = null;
                 job_call = null;
             }
         }
         pub fn stop(self: *Self, _: *const nx.game.Context) void {
+            self.probeExternal(null) catch {};
             const handles = [_]nx.TwoDInstanceHandle{self.handle};
             _ = self.twod.destroy_instances.?(self.twod.context, &handles, 1);
             _ = self.host.despawn_entity.?(self.host.context, self.entity);

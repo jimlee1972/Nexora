@@ -324,7 +324,10 @@ configurable content/pool capacities. Games own transition and event policy in Z
 The optional [gameplay generation owner](GameplayGeneration.md) stages complete mutable TwoD
 values for strict Runtime transactions, retaining source clocks, queries, scene requests and exact
 pool handles. Embeddings own callback quiescence, candidate/retired contexts and isolation of other
-services. Production Player/Editor reload and native acceptance remain separate integration work.
+services. The standalone [Player embedding](../../Apps/TwoDPlayer/README.md#strict-generation-ownership)
+adds stable generation contexts, read-only save capture and candidate/retired external-service
+admission. Main packaged Player/Editor services and complete source-animation reload acceptance
+remain separate integration work.
 
 ## HD2D effects snapshots
 

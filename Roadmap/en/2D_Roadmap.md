@@ -1161,3 +1161,17 @@ gates pass. [Supplementary evidence](../../Tools/Build/evidence/EditorWorkflow/E
 both original native evidence files and the reproduced failure. This does not implement owning
 ImGui Scene bindings or guarded packaged source Play; parent `nexora-whr.7.8`, production reload,
 full ED-WF-07/08, **5/9**, **0/8**, **9/11** and physical/clean-host acceptance remain open/unchanged.
+
+## ✅ Standalone Player strict reload integration (2026-11-14)
+
+Supporting `nexora-whr.8.2.2` adopts isolated TwoD generations in the production Player host,
+including stable cached service contexts, read-only state capture and candidate/retired external
+service admission. The focused production-host fixture passes32 canonical SDK replacements and
+128 rejects; its Linux native companion verifies192 acknowledged source/pool presentations across
+replacement, rollback and source reimport/repack. The separate complete native Player sample
+regression also passes. [Ownership contract](../../Apps/TwoDPlayer/README.md#strict-generation-ownership)
+distinguishes these fixture/loop scopes. Full529/529,14local gates and ten actual GCC15 command variants pass; exact-head hosted
+CI is required before delivery. Main packaged Editor/Player services, project watching and complete ED-WF-07/08
+remain open; Workflow **5/9**, Editor **0/8**, TwoD **9/11** are unchanged.
+
+[Full local execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-PlayerGeneration-Linux-2026-11-14.md) retains initial failures and complete scope.

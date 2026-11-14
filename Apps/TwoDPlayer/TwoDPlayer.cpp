@@ -1,4 +1,5 @@
 #include "TwoDPlayer.h"
+#include "GenerationHost.h"
 #include "Nexora/Core/Diagnostics.h"
 #include "Nexora/Core/Engine.h"
 #include "Nexora/Game/GameplayHostBridge.h"
@@ -39,26 +40,32 @@ void Check(bool ok, const char *message) {
   if (!ok)
     throw std::runtime_error(message);
 }
-struct Context {
-  runtime::World &world;
-  twod::GameplayBridge &bridge;
-  runtime::Id scene;
-  runtime::GameplayServices &services;
-  NexoraInputSnapshot input{};
-  std::size_t allocated{}, freed{};
-  std::string_view scene_name{"Zig 2D"};
-  twod::SceneSession *scenes{};
-};
+} // namespace
+
+namespace nexora::player::detail {
+using Context = PlayerContext;
 template <class F> int32_t Call(void *p, F &&f) noexcept {
   if (!p)
     return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
   try {
-    return f(*static_cast<Context *>(p));
+    auto &context = *static_cast<Context *>(p);
+    if (std::this_thread::get_id() != context.admission.thread)
+      return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
+    return f(context);
   } catch (...) {
     return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
   }
 }
-NexoraGameplayHostV3 Host(Context &c) {
+template <class F> int32_t Write(void *p, F &&f) noexcept {
+  return Call(p, [&](auto &context) -> std::int32_t {
+    if (context.admission.phase == GenerationPhase::Capture) {
+      ++context.admission.stats.capture_rejections;
+      return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+    }
+    return f(context);
+  });
+}
+NexoraGameplayHostV3 CreatePlayerHost(Context &c) {
   NexoraGameplayHostV3 h{};
   h.struct_size = sizeof(h);
   h.abi_version = NEXORA_GAMEPLAY_ABI_VERSION;
@@ -102,7 +109,7 @@ NexoraGameplayHostV3 Host(Context &c) {
     return Call(p, [&](auto &s) { return s.services.GetApi(api); });
   };
   h.get_twod_api = [](void *p, NexoraTwoDApiV1 *api) {
-    return Call(p, [&](auto &s) { return s.bridge.GetApi(api); });
+    return Call(p, [&](auto &s) { return s.GetTwoD(api); });
   };
   h.allocate = [](void *p, uint64_t owner, uint64_t size, uint64_t alignment) -> void * {
     if (!p || owner != NEXORA_ALLOCATION_OWNER_GAMEPLAY_STATE || !size || size > 16 * 1024 * 1024 ||
@@ -126,7 +133,7 @@ NexoraGameplayHostV3 Host(Context &c) {
         p, [&](auto &s) { return game::ReadGameplayComponent(s.world, id, type, data, size); });
   };
   h.write_component = [](void *p, uint64_t id, uint64_t type, const void *data, uint32_t size) {
-    return Call(
+    return Write(
         p, [&](auto &s) { return game::WriteGameplayComponent(s.world, id, type, data, size); });
   };
   h.load_scene = [](void *p, const char *name, uint32_t length, uint32_t persistent, uint64_t *id) {
@@ -142,14 +149,14 @@ NexoraGameplayHostV3 Host(Context &c) {
     });
   };
   h.activate_scene = [](void *p, uint64_t id) {
-    return Call(p, [&](auto &s) -> int32_t {
+    return Write(p, [&](auto &s) -> int32_t {
       return !s.scenes && id == s.scene && s.world.Activate(id)
                  ? NEXORA_GAMEPLAY_OK
                  : NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
     });
   };
   h.spawn_entity = [](void *p, uint64_t scene, const NexoraEntitySpawnDescriptor *d, uint64_t *id) {
-    return Call(p, [&](auto &s) -> int32_t {
+    return Write(p, [&](auto &s) -> int32_t {
       if (!d || !id ||
           (s.scenes ? std::none_of(s.scenes->Instances().begin(), s.scenes->Instances().end(),
                                    [scene](const auto &i) { return i.sprites.SceneId() == scene; })
@@ -167,7 +174,7 @@ NexoraGameplayHostV3 Host(Context &c) {
     });
   };
   h.despawn_entity = [](void *p, uint64_t id) {
-    return Call(p, [&](auto &s) -> int32_t {
+    return Write(p, [&](auto &s) -> int32_t {
       runtime::WorldCommandBuffer commands;
       commands.DestroyEntity(id);
       if (!commands.Apply(s.world))
@@ -187,7 +194,7 @@ NexoraGameplayHostV3 Host(Context &c) {
   };
   return h;
 }
-} // namespace
+} // namespace nexora::player::detail
 
 namespace nexora::player {
 static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn builtin) {
@@ -281,13 +288,8 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
       configuration.content_root = validationPackage;
     }
     engine.Initialize(configuration);
-    runtime::World world(runtime::WorldKind::Play);
-    const auto sceneId = world.LoadScene(project ? project->scene : "Zig 2D");
-    twod::SpriteScene scene(world, sceneId);
-    twod::Tilemap tiles;
-    tiles.atlas = project ? project->tile_atlas : twod::AssetId{1, 2};
-    const bool hasTiles = !project || tiles.atlas.high || tiles.atlas.low;
-    twod::InstancePool pool(project ? project->pool_instances : 1024);
+    const auto tileAtlas = project ? project->tile_atlas : twod::AssetId{1, 2};
+    const bool hasTiles = !project || tileAtlas.high || tileAtlas.low;
     std::shared_ptr<const twod::Atlas> atlas;
     std::shared_ptr<const twod::Clip> clip;
     if (!project) {
@@ -431,31 +433,44 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
         sceneCatalog.push_back({entry.path, entry.id, source});
       }
     }
-    std::unique_ptr<twod::SceneSession> scenes;
-    if (!sceneCatalog.empty()) {
-      scenes = std::make_unique<twod::SceneSession>(world, std::move(sceneCatalog));
-      const auto api = scenes->Api();
+    const twod::ClipResolver clipResolver = [&content](auto id) { return content.ResolveClip(id); };
+    const auto poolCapacity = project ? project->pool_instances : 1024;
+    auto initialGeneration =
+        sceneCatalog.empty()
+            ? twod::GameplayGeneration::CreateSingleScene(project ? project->scene : "Zig 2D",
+                                                          poolCapacity, clipResolver, hasTiles)
+            : twod::GameplayGeneration::CreateCatalog(std::move(sceneCatalog), poolCapacity,
+                                                      clipResolver);
+    Check(bool(initialGeneration), "Player generation admission");
+    runtime::GameplayServices services;
+    nexora::player::detail::GenerationHost generations(std::move(initialGeneration), services,
+                                                       project ? project->scene : "Zig 2D",
+                                                       detail::CreatePlayerHost);
+    // Resolve each borrow from the published generation. No World/bridge/pool reference is kept
+    // across Reload; native extraction below starts only after the transaction has completed.
+    const auto world = [&]() -> runtime::World & { return generations.Values().World(); };
+    const auto scene = [&]() -> twod::SpriteScene & { return *generations.Values().Sprites(); };
+    const auto tiles = [&]() -> twod::Tilemap & { return *generations.Values().Tiles(); };
+    const auto pool = [&]() -> twod::InstancePool & { return generations.Values().Pool(); };
+    const auto bridge = [&]() -> twod::GameplayBridge & { return generations.Values().Bridge(); };
+    const auto scenes = [&]() { return generations.Values().Scenes(); };
+    const auto sceneId = scenes() ? runtime::Id{} : scene().SceneId();
+    if (scenes()) {
+      const auto api = scenes()->Api();
       std::uint64_t high{}, low{}, request{};
       Check(api.resolve_scene(api.context, project->scene.data(), uint32_t(project->scene.size()),
                               &high, &low) == 0 &&
-                api.request_load(api.context, high, low, 0, 0, &request) == 0 && scenes->Process(),
+                api.request_load(api.context, high, low, 0, 0, &request) == 0 &&
+                scenes()->Process(),
             "authored startup scene load");
-      Check(world.RequestUnload(sceneId), "legacy placeholder retirement");
-      world.EndFrame();
-      world.CollectUnloadedScenes();
-    }
-    Check(!hasTiles || !project || bool(content.ResolveAtlas(tiles.atlas)) ||
+    } else
+      tiles().atlas = tileAtlas;
+    Check(!hasTiles || !project || bool(content.ResolveAtlas(tileAtlas)) ||
               std::any_of(project->assets.begin(), project->assets.end(),
                           [](const auto &a) { return a.deferred && a.kind == "atlas"; }),
           "project tile atlas is unavailable");
-    const twod::ClipResolver clipResolver = [&content](auto id) { return content.ResolveClip(id); };
-    auto bridgeOwner =
-        scenes ? std::make_unique<twod::GameplayBridge>(world, *scenes, clipResolver, &pool)
-               : std::make_unique<twod::GameplayBridge>(world, scene, clipResolver,
-                                                        hasTiles ? &tiles : nullptr, &pool);
-    auto &bridge = *bridgeOwner;
     const auto findSprite = [&](runtime::Id id) -> const twod::Sprite * {
-      const auto *metadata = scenes ? scenes->FindEntity(id) : &scene;
+      const auto *metadata = scenes() ? scenes()->FindEntity(id) : &scene();
       return metadata ? metadata->Find(id) : nullptr;
     };
     runtime::GameplayInput input;
@@ -507,12 +522,9 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
           return std::move(result.bytes);
         },
         project ? project->staging_bytes : 64ULL * 1024 * 1024);
-    runtime::GameplayServices services;
     services.assets.struct_size = sizeof(services.assets);
     services.assets.abi_version = 1;
     Check(assets.GetApi(&services.assets) == 0, "asset service negotiation");
-    if (scenes)
-      services.scene = scenes->Api();
     services.content = contentApi;
     services.sprite_content.struct_size = sizeof(services.sprite_content);
     Check(content.GetSpriteApi(&services.sprite_content) == 0, "Sprite source service negotiation");
@@ -615,7 +627,7 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
                   (surface.surface->SupportsTwoDBloom() ? NEXORA_TWOD_EFFECTS_BLOOM : 0)
             : 0,
         [&](uint32_t kind, uint64_t handle) {
-          return kind == NEXORA_TWOD_EFFECTS_ENTITY && world.FindEntity(handle) &&
+          return kind == NEXORA_TWOD_EFFECTS_ENTITY && world().FindEntity(handle) &&
                  findSprite(handle);
         },
         [&](uint64_t high, uint64_t low, uint32_t region) {
@@ -623,7 +635,7 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
           return binding && !binding->atlas->nearest && binding->atlas->Find(region);
         },
         [&](twod::EffectsPoolIdentity h) {
-          return pool.Find({h.owner, h.index, h.generation}) != nullptr;
+          return pool().Find({h.owner, h.index, h.generation}) != nullptr;
         },
         [&](NexoraTwoDEffectsDiagnosticsV1 &out) {
           if (!native)
@@ -674,23 +686,21 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
     };
     updateDisplay();
     services.display = display.Api();
-    Context context{world, bridge, sceneId, services};
-    context.scenes = scenes.get();
-    if (project)
-      context.scene_name = project->scene;
-    runtime::GameplayModuleHost module(Host(context));
+    const auto context = [&]() -> detail::PlayerContext & { return generations.Context(); };
+    runtime::GameplayModuleHost module(generations.Host(), {}, generations.Transaction());
     Check(library.empty() ? (builtin && module.Load(builtin))
-                          : module.Load(nexora::player::GamePath(library)),
+                          : generations.Load(module, nexora::player::GamePath(library)),
           "Zig module load");
     if (!project)
-      Check(scene.Sprites().size() == 1 && pool.Size() == 32, "Zig authored content");
-    const auto entity = scene.Sprites().empty() ? runtime::Id{} : scene.Sprites().begin()->first;
+      Check(scene().Sprites().size() == 1 && pool().Size() == 32, "Zig authored content");
+    const auto entity =
+        scenes() || scene().Sprites().empty() ? runtime::Id{} : scene().Sprites().begin()->first;
     const auto restorePosition = [&](const std::array<double, 2> &xy) {
-      twod_validation::Restore(world, entity, xy);
+      twod_validation::Restore(world(), entity, xy);
       NexoraTwoDApiV1 api{};
       api.struct_size = sizeof(api);
       api.abi_version = 1;
-      Check(bridge.GetApi(&api) == 0 && api.rebuild_queries(api.context, 0) == 0,
+      Check(bridge().GetApi(&api) == 0 && api.rebuild_queries(api.context, 0) == 0,
             "validation restored query snapshot");
     };
     double initialX{};
@@ -887,16 +897,16 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
       logicalInput.pointer_x /= displayState.dpi_scale;
       logicalInput.pointer_y /= displayState.dpi_scale;
       ui.BeginInput(logicalInput);
-      ++context.input.sequence;
+      ++context().input.sequence;
       const auto held = [&](Nexora::Window::Key key) {
         return keys[static_cast<std::size_t>(key)] ? 1.0 : 0.0;
       };
-      context.input.move_x = interactive || project ? actionState(250).value : 1.0;
-      context.input.move_y = interactive || project ? actionState(251).value : 0.0;
-      if (!focused && (context.input.move_x || context.input.move_y))
+      context().input.move_x = interactive || project ? actionState(250).value : 1.0;
+      context().input.move_y = interactive || project ? actionState(251).value : 0.0;
+      if (!focused && (context().input.move_x || context().input.move_y))
         ++unfocusedMovementFrames;
-      context.input.buttons = actionState(252).held ? 1U : 0U;
-      if (context.input.move_x || context.input.move_y)
+      context().input.buttons = actionState(252).held ? 1U : 0U;
+      if (context().input.move_x || context().input.move_y)
         ++movementFrames;
       const auto now = std::chrono::steady_clock::now();
       const double delta =
@@ -911,9 +921,14 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
           Check(module.FixedUpdate(step.StepSeconds()), "gameplay fixed update");
       Check(module.Update(delta), "Zig variable update");
       if (!project && frames && frame == frames / 2) {
-        Check(library.empty() ? (builtin && module.Reload(builtin)) : module.Reload(library),
-              "Zig reload");
-        Check(scene.Sprites().size() == 1 && pool.Size() == 32, "reload duplicated content");
+        const bool replaced = library.empty()
+                                  ? (builtin && generations.Reload(module, builtin))
+                                  : generations.Reload(module, nexora::player::GamePath(library));
+        if (!replaced)
+          std::cerr << "Player reload failure=" << static_cast<unsigned>(module.GetReloadFailure())
+                    << '\n';
+        Check(replaced, "Zig reload");
+        Check(scene().Sprites().size() == 1 && pool().Size() == 32, "reload duplicated content");
         reloaded = true;
         if (validation) {
           const auto before = content.ResolveAtlas(atlas->id);
@@ -934,9 +949,9 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
       if (lifecycle.ExitRequested())
         break;
       if (native && !canPresent) {
-        world.EndFrame();
-        if (scenes)
-          static_cast<void>(scenes->Process()); // Failure is reported through Scene V1 status.
+        world().EndFrame();
+        if (scenes())
+          static_cast<void>(scenes()->Process()); // Failure is reported through Scene V1 status.
         continue;
       }
       const auto width = displayState.pixel_width;
@@ -947,7 +962,7 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
             twod_validation::Draw(ui, displayState.logical_width, displayState.logical_height);
         ++uiFrames;
         if (buttons.save) {
-          const auto value = world.WorldTransform(entity);
+          const auto value = world().WorldTransform(entity);
           Check(bool(value), "validation UI save entity");
           twod_validation::Save(services.storage, value->x, value->y);
           ++uiSaves;
@@ -959,20 +974,21 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
           }
         }
       }
-      const auto camera = bridge.RenderCamera(uint32_t(viewport.width), uint32_t(viewport.height));
+      const auto camera =
+          bridge().RenderCamera(uint32_t(viewport.width), uint32_t(viewport.height));
       // One extraction preserves transparent sorting across entities, transient instances and
       // tiles.
       std::vector<twod::SpriteInstance> instances;
       std::optional<std::vector<runtime::SceneWorldPose>> poses;
-      if (scenes) {
+      if (scenes()) {
         poses.emplace();
-        for (const auto &instance : scenes->Instances()) {
-          auto values = world.SceneWorldPoses(instance.sprites.SceneId());
+        for (const auto &instance : scenes()->Instances()) {
+          auto values = world().SceneWorldPoses(instance.sprites.SceneId());
           Check(bool(values), "authored World poses");
           poses->insert(poses->end(), values->begin(), values->end());
         }
       } else {
-        poses = world.SceneWorldPoses(sceneId);
+        poses = world().SceneWorldPoses(sceneId);
       }
       Check(bool(poses), "World poses");
       std::unordered_map<const twod::Sprite *, const NexoraTwoDEffectsSpriteV1 *> effectStyles;
@@ -981,11 +997,11 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
         for (const auto &style : effectsState->sprites) {
           const twod::Sprite *sprite{};
           if (style.kind == NEXORA_TWOD_EFFECTS_ENTITY) {
-            if (world.FindEntity(style.handle))
+            if (world().FindEntity(style.handle))
               sprite = findSprite(style.handle);
           } else if (const auto handle = effects.ResolvePoolIdentity(style.handle)) {
             if (const auto *instance =
-                    pool.Find({handle->owner, handle->index, handle->generation}))
+                    pool().Find({handle->owner, handle->index, handle->generation}))
               sprite = &instance->sprite;
           }
           if (sprite)
@@ -1018,7 +1034,7 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
         if (const auto *v = findSprite(pose.id))
           instances.push_back(
               {++identity, *v, pose.matrix, {}, lightingStyle(v), emissionStyle(v)});
-      pool.ForEach([&](auto &v) {
+      pool().ForEach([&](auto &v) {
         instances.push_back({++identity,
                              v.sprite,
                              runtime::ToMatrix(v.transform),
@@ -1036,11 +1052,11 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
           instances.push_back(value);
         }
       };
-      if (scenes) {
-        for (const auto &instance : scenes->Instances())
+      if (scenes()) {
+        for (const auto &instance : scenes()->Instances())
           appendTiles(instance.tiles);
       } else if (hasTiles) {
-        appendTiles(tiles);
+        appendTiles(tiles());
       }
       auto extracted = twod::ExtractSprites(instances, camera, resolver, sourceResolver);
       Check(bool(extracted), "2D extraction");
@@ -1108,15 +1124,15 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
           submittedAudioFrames += count;
         }
       }
-      world.EndFrame();
-      if (scenes)
-        static_cast<void>(scenes->Process());
+      world().EndFrame();
+      if (scenes())
+        static_cast<void>(scenes()->Process());
       if (!project && interactive && held(Nexora::Window::Key::Escape))
         break;
       if (interactive && frames)
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
-    auto transform = world.WorldTransform(entity);
+    auto transform = world().WorldTransform(entity);
     if (project && !transform)
       transform = runtime::Transform{};
     Check(bool(transform), "Zig entity survives reload");
@@ -1126,12 +1142,12 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
       Check(std::abs(transform->x - initialX - double(frames) / 60) < 1e-8,
             "Zig Transform control");
     (void)lifecycle.Stop();
-    module.Unload();
+    generations.Unload(module);
     NexoraAssetUsageV1 assetUsage{};
     assetUsage.struct_size = sizeof(assetUsage);
     Check(services.assets.get_usage(services.assets.context, &assetUsage) == 0, "asset usage");
     assets.Shutdown();
-    Check(context.allocated == context.freed, "Zig state allocation leak");
+    Check(context().allocated == context().freed, "Zig state allocation leak");
     NexoraAudioUsageV1 audioUsage{};
     audioUsage.struct_size = sizeof(audioUsage);
     Check(services.audio_state.get_usage(services.audio_state.context, &audioUsage) == 0,
