@@ -375,5 +375,11 @@ source closure; retained Clips own their frame UUIDs after producer/source remov
 Development/Shipping native pixels, Monolithic and TwoD-OFF refusal pass.
 [Execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-GameClipRoots-Linux-2026-11-14.md) records ownership and compatibility.
 Fresh exact-head hosted CI is required before delivery. Main gameplay source/animation/pool services, live
-publication, the graphical Clip picker and complete ED-WF-07/08 remain open. Workflow **5/9**,
+publication and complete ED-WF-07/08 remain open. Workflow **5/9**,
 Editor **0/8**, TwoD **9/11** and physical/clean-host acceptance are unchanged.
+
+## ✅ Graphical animation root selection (2026-11-14)
+
+Supporting `nexora-whr.8.3.2` selects/removes explicit immutable Clip roots through the main Build Settings Animation assets popup. A bounded owning metadata snapshot and separate virtualized lists preserve missing UUIDs, reject stale/foreign/busy/read-only edits and retain existing Build/Run/Stop layout. Actual 1x/2x controls and native X11 Save/Reload/read-only reopen feed both SceneOnly and canonical SDK ScriptProject Build; deleted-source Unicode relocation checks 8192 Sprite pixels, an independent central 80x80 3D region and native drain in each mode. Full Linux **538/538**, zero failures/skips, **2330.19 s**, all **13 local gates**, four actual GCC15 commands, Shipping native, Monolithic five CPU cases and actual TwoD-OFF refusal pass.
+
+[Execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-BuildClipPicker-Linux-2026-11-14.md) records original failures and precise scope. Exact-head hosted CI is required before delivery. Main gameplay animation/pool/publication/reload and complete ED-WF-07/08 remain open; Workflow **5/9**, Editor **0/8**, TwoD **9/11** and physical/clean-host acceptance are unchanged.

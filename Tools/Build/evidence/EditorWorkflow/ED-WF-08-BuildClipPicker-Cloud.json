@@ -1,0 +1,744 @@
+{
+  "status": "local_gates_and_metadata_passed_ci_pending",
+  "base": "72d20c516904302742002c01aca9edde788b4e11",
+  "validation_parent": "72d20c516904302742002c01aca9edde788b4e11",
+  "scope": "main graphical explicit Clip selection; no main gameplay animation/pool/publication/reload acceptance",
+  "frozen_sources": {
+    "Apps/Editor/main.cpp": "602e3cdb6a26dbba5cf39ed3b747ae23404216eb6b1d8000b157ba97b98b7092",
+    "Engine/EditorImGui/src/EditorImGui.cpp": "b56950eb3afe7f150997e8cea92f24d412e1bb3cb46c423bdea506e33a6718ac",
+    "Engine/EditorImGui/src/EditorImGuiTestAccess.h": "c1012487eeda19764eb31c98659e17d2371f73301400a54fd9c098eb7532821b",
+    "Engine/EditorImGui/src/BuildAnimationPicker.inl": "954713a66d5238f30b0f0376fff4549dcf898b0bfbac186fc5da04aa188201b5",
+    "Tests/Editor/CMakeLists.txt": "a190272f7dbbaa9c9e7c1004fb889eef14bd22c6090ed52456959f1b0a927298",
+    "Tests/EditorImGui/CMakeLists.txt": "526b02ebf314252cac443d9217a65a1f183cf78ff19268a4412f07152674bf04",
+    "Tests/Editor/LinuxBuildAnimationPicker.py": "79bbe49be10ca5458ad50ac4c1960f74768863915fbf488194d30ce0a577fcfd",
+    "Tests/EditorImGui/BuildAnimationPickerTests.cpp": "250a68a12af4d189ea83e63b7ecc54ed279af4a086a6163ca91aa8c27233a80b"
+  },
+  "full": {
+    "passed": 538,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 2330.19,
+    "last_test_sha256": "63566fdb9b42c1158bd2a71ff6df33d9ada0f79042e663630db6d550c9040767"
+  },
+  "gates": [
+    {
+      "name": "development-configure",
+      "command": [
+        "cmake",
+        "--preset",
+        "linux-development",
+        "-DNEXORA_BUILD_SHOWCASE=ON",
+        "-DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON",
+        "-DNEXORA_ENABLE_SLANG=ON",
+        "-DNEXORA_ENABLE_ZIG_GAMEPLAY=ON",
+        "-DNEXORA_ZIG_EXECUTABLE=/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/ziglang/zig",
+        "-DNEXORA_BUILD_PROJECT_PLAYER=ON",
+        "-DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON"
+      ],
+      "exit": 0,
+      "log_bytes": 183,
+      "log_sha256": "1b29b33056a330dac333542cc20871b975153e6ad63095bd4f360937930217c9"
+    },
+    {
+      "name": "development-build",
+      "command": [
+        "cmake",
+        "--build",
+        "--preset",
+        "linux-development"
+      ],
+      "exit": 0,
+      "log_bytes": 65630,
+      "log_sha256": "a076b653d8184b2809b3ec9e9c3d0c3c16366f8cac7b0f50f0c0f00bdc0a581a"
+    },
+    {
+      "name": "development-gcc15",
+      "command": [
+        "python3",
+        "/workspace/work/engine-goal-20261112/authoring/build-clip-picker/compile-gcc15.py",
+        "build/linux-development",
+        "development"
+      ],
+      "exit": 0,
+      "log_bytes": 192,
+      "log_sha256": "345acceac4b446d87d9befed8d38ee1f4e21fac940ca7ac1b7764d63810d3478"
+    },
+    {
+      "name": "development-test",
+      "command": [
+        "ctest",
+        "--preset",
+        "linux-development",
+        "--output-on-failure"
+      ],
+      "exit": 0,
+      "log_bytes": 81318,
+      "log_sha256": "c9f73fae8d313ad20857b5649c988be9da8ba058432141da3db69dbcd37c8468"
+    },
+    {
+      "name": "shipping-configure",
+      "command": [
+        "cmake",
+        "--preset",
+        "linux-shipping",
+        "-DNEXORA_SHIPPING_PROFILE=Full",
+        "-DNEXORA_BUILD_SHOWCASE=ON",
+        "-DNEXORA_ENABLE_2D=ON",
+        "-DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=OFF",
+        "-DNEXORA_ENABLE_EDITOR_SDK=ON",
+        "-DNEXORA_ENABLE_SLANG=ON",
+        "-DNEXORA_ENABLE_ZIG_GAMEPLAY=ON",
+        "-DNEXORA_ZIG_EXECUTABLE=/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/ziglang/zig",
+        "-DNEXORA_BUILD_PROJECT_PLAYER=ON",
+        "-DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON"
+      ],
+      "exit": 0,
+      "log_bytes": 142,
+      "log_sha256": "8b77b36cb81249437d3d64360964a173b30dff6fada5a7568e9d9991e716f75d"
+    },
+    {
+      "name": "shipping-build",
+      "command": [
+        "cmake",
+        "--build",
+        "--preset",
+        "linux-shipping"
+      ],
+      "exit": 0,
+      "log_bytes": 919,
+      "log_sha256": "70463a083180b5a35efc5fcda172dc184fdcd14123db17db121261047de585ff"
+    },
+    {
+      "name": "shipping-animation-native",
+      "command": [
+        "python3",
+        "Tests/Editor/LinuxGameSpriteBuild.py",
+        "--animation-roots",
+        "--shipping",
+        "--editor",
+        "/workspace/Nexora-delivery-773/build/linux-development/Apps/Editor/NexoraEditor",
+        "--player",
+        "/workspace/Nexora-delivery-773/build/linux-shipping/Apps/ProjectPlayer/NexoraProjectPlayer",
+        "--fixture",
+        "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+        "--xvfb",
+        "/workspace/work/engine-goal-20261112/sysroot/usr/bin/Xvfb",
+        "--xdotool",
+        "/workspace/work/engine-goal-20261112/sysroot/usr/bin/xdotool",
+        "--cmake",
+        "/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/cmake/data/bin/cmake",
+        "--ninja",
+        "/workspace/work/engine-goal-20261112/tools/bin/ninja",
+        "--zig",
+        "/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/ziglang/zig"
+      ],
+      "exit": 0,
+      "log_bytes": 96,
+      "log_sha256": "771aeaf9b28e61f8f049cc401cb8a5b7135e7f29549e5934f47fe439a9da7088"
+    },
+    {
+      "name": "monolithic-configure",
+      "command": [
+        "cmake",
+        "--preset",
+        "linux-development",
+        "-B",
+        "build/source-reload-monolithic",
+        "-DNEXORA_LINK_MODE=Monolithic",
+        "-DNEXORA_ENABLE_2D=ON",
+        "-DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON",
+        "-DNEXORA_ENABLE_SLANG=OFF",
+        "-DNEXORA_ENABLE_ZIG_GAMEPLAY=ON",
+        "-DNEXORA_ZIG_EXECUTABLE=/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/ziglang/zig"
+      ],
+      "exit": 0,
+      "log_bytes": 190,
+      "log_sha256": "bd820ed592cfcadb481b075aaa8569817e39b029e822b26d532caa92e381fd07"
+    },
+    {
+      "name": "monolithic-build",
+      "command": [
+        "cmake",
+        "--build",
+        "build/source-reload-monolithic",
+        "--target",
+        "NexoraBuildAnimationPickerTests",
+        "NexoraProjectBuildSettingsUiTests",
+        "NexoraGameSpriteBuildTests",
+        "NexoraProjectBuildSettingsTests",
+        "NexoraGameProjectPackageTests"
+      ],
+      "exit": 0,
+      "log_bytes": 1122,
+      "log_sha256": "38c16b5ad90055fd22a2baf54a2415d1dd0869fb0f9236ec983c30c7d5fedf1e"
+    },
+    {
+      "name": "monolithic-test",
+      "command": [
+        "ctest",
+        "--test-dir",
+        "build/source-reload-monolithic",
+        "-R",
+        "^(editor\\.(build_animation_picker|project_build_settings_ui|project_build_settings|game_sprite_build)|runtime.game_project_package)$",
+        "--output-on-failure"
+      ],
+      "exit": 0,
+      "log_bytes": 727,
+      "log_sha256": "d917a8474734a23423b4a2f9b1ec343da7d0cd777e1c87f0e6ad03be49939f8f"
+    },
+    {
+      "name": "feature-off-configure",
+      "command": [
+        "cmake",
+        "--preset",
+        "linux-development",
+        "-B",
+        "build/source-reload-feature-off",
+        "-DNEXORA_ENABLE_2D=OFF",
+        "-DBUILD_TESTING=OFF",
+        "-DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON",
+        "-DNEXORA_ENABLE_SLANG=OFF",
+        "-DNEXORA_ENABLE_ZIG_GAMEPLAY=OFF",
+        "-DNEXORA_BUILD_PROJECT_PLAYER=ON",
+        "-DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON"
+      ],
+      "exit": 0,
+      "log_bytes": 191,
+      "log_sha256": "f30092bc76cd6cd313a1195fee6c7773f2a6d8ff2dd3f9c035c052f72593fc4a"
+    },
+    {
+      "name": "feature-off-build",
+      "command": [
+        "cmake",
+        "--build",
+        "build/source-reload-feature-off",
+        "--target",
+        "NexoraEditor",
+        "NexoraProjectPlayer"
+      ],
+      "exit": 0,
+      "log_bytes": 1159,
+      "log_sha256": "374e58e39801b2dc1d5331e10adeb7136611a7ad67d9393a9909feccabf5a505"
+    },
+    {
+      "name": "feature-off-refusal",
+      "command": [
+        "python3",
+        "/workspace/work/engine-goal-20261112/authoring/build-clip-picker/verify-off.py"
+      ],
+      "exit": 0,
+      "log_bytes": 516,
+      "log_sha256": "ec654438114a63fb65b70bf00bac0e8f5d6fbd7ae2948b714913449fecf98120"
+    }
+  ],
+  "gcc15": {
+    "compiler": "x86_64-linux-gnu-g++-15 (Ubuntu 15.2.0-4ubuntu4) 15.2.0",
+    "results": [
+      {
+        "file": "Apps/Editor/main.cpp",
+        "exit": 0,
+        "command": [
+          "/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/bin/x86_64-linux-gnu-g++-15",
+          "-B/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/lib/gcc/x86_64-linux-gnu/15/",
+          "-DNEXORA_ASSET_PIPELINE_ENABLED=1",
+          "-DNEXORA_BUILD_DEVELOPMENT=1",
+          "-DNEXORA_CAPTURE_ENCODER_ENABLED=0",
+          "-DNEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS=1",
+          "-DNEXORA_EDITOR_GRAPHICAL_SHELL=1",
+          "-DNEXORA_EDITOR_SDK_ENABLED=1",
+          "-DNEXORA_GAMEPLAY_SIMULATION_ENABLED=1",
+          "-DNEXORA_HAS_2D=1",
+          "-DNEXORA_LARGE_WORLD_ENABLED=1",
+          "-DNEXORA_MEDIA_DRM_ENABLED=0",
+          "-DNEXORA_PLATFORM_ENABLED=1",
+          "-DNEXORA_PRESENTATION_ENABLED=1",
+          "-DNEXORA_SCENE_RENDERING_ENABLED=1",
+          "-DNEXORA_SHIPPING_ENABLED=1",
+          "-I/workspace/Nexora-delivery-773/build/linux-development/Apps/Editor/generated/Development",
+          "-I/workspace/Nexora-delivery-773/Engine/EditorImGui/src",
+          "-I/workspace/Nexora-delivery-773/Engine/Editor/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Core/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Foundation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/API/include",
+          "-I/workspace/Nexora-delivery-773/build/linux-development/Engine/Foundation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Runtime/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Renderer/include",
+          "-I/workspace/Nexora-delivery-773/Engine/RHI/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Cryptography/include",
+          "-I/workspace/Nexora-delivery-773/Engine/TwoD/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Presentation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Window/include",
+          "-I/workspace/Nexora-delivery-773/Engine/EditorImGui/include",
+          "-std=c++20",
+          "-fvisibility=hidden",
+          "-fvisibility-inlines-hidden",
+          "-Wall",
+          "-Wextra",
+          "-Wpedantic",
+          "-Werror",
+          "-o",
+          "/workspace/work/engine-goal-20261112/authoring/build-clip-picker/gcc15/development/Apps_Editor_main-0.o",
+          "-c",
+          "/workspace/Nexora-delivery-773/Apps/Editor/main.cpp"
+        ],
+        "source_sha256": "602e3cdb6a26dbba5cf39ed3b747ae23404216eb6b1d8000b157ba97b98b7092",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "file": "Engine/EditorImGui/src/EditorImGui.cpp",
+        "exit": 0,
+        "command": [
+          "/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/bin/x86_64-linux-gnu-g++-15",
+          "-B/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/lib/gcc/x86_64-linux-gnu/15/",
+          "-DIMGUI_USE_WCHAR32=1",
+          "-DNEXORA_ASSET_PIPELINE_ENABLED=1",
+          "-DNEXORA_BUILD_DEVELOPMENT=1",
+          "-DNEXORA_CAPTURE_ENCODER_ENABLED=0",
+          "-DNEXORA_EDITOR_IMGUI_EXPORTS",
+          "-DNEXORA_EDITOR_IMGUI_TEST_ACCESS=1",
+          "-DNEXORA_EDITOR_SDK_ENABLED=1",
+          "-DNEXORA_GAMEPLAY_SIMULATION_ENABLED=1",
+          "-DNEXORA_HAS_2D=1",
+          "-DNEXORA_LARGE_WORLD_ENABLED=1",
+          "-DNEXORA_MEDIA_DRM_ENABLED=0",
+          "-DNEXORA_PLATFORM_ENABLED=1",
+          "-DNEXORA_PRESENTATION_ENABLED=1",
+          "-DNEXORA_SCENE_RENDERING_ENABLED=1",
+          "-DNEXORA_SHIPPING_ENABLED=1",
+          "-DNexoraEditorImGui_EXPORTS",
+          "-I/workspace/Nexora-delivery-773/Engine/EditorImGui/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Editor/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Core/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Foundation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/API/include",
+          "-I/workspace/Nexora-delivery-773/build/linux-development/Engine/Foundation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Runtime/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Renderer/include",
+          "-I/workspace/Nexora-delivery-773/Engine/RHI/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Cryptography/include",
+          "-I/workspace/Nexora-delivery-773/Engine/TwoD/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Presentation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Window/include",
+          "-isystem",
+          "/workspace/Nexora-delivery-773/build/linux-development/_deps/nexora_imgui-src",
+          "-std=c++20",
+          "-fPIC",
+          "-fvisibility=hidden",
+          "-fvisibility-inlines-hidden",
+          "-Wall",
+          "-Wextra",
+          "-Wpedantic",
+          "-Werror",
+          "-o",
+          "/workspace/work/engine-goal-20261112/authoring/build-clip-picker/gcc15/development/Engine_EditorImGui_src_EditorImGui-0.o",
+          "-c",
+          "/workspace/Nexora-delivery-773/Engine/EditorImGui/src/EditorImGui.cpp"
+        ],
+        "source_sha256": "b56950eb3afe7f150997e8cea92f24d412e1bb3cb46c423bdea506e33a6718ac",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "file": "Tests/EditorImGui/ProjectBuildSettingsTests.cpp",
+        "exit": 0,
+        "command": [
+          "/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/bin/x86_64-linux-gnu-g++-15",
+          "-B/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/lib/gcc/x86_64-linux-gnu/15/",
+          "-DNEXORA_ASSET_PIPELINE_ENABLED=1",
+          "-DNEXORA_BUILD_DEVELOPMENT=1",
+          "-DNEXORA_CAPTURE_ENCODER_ENABLED=0",
+          "-DNEXORA_EDITOR_SDK_ENABLED=1",
+          "-DNEXORA_GAMEPLAY_SIMULATION_ENABLED=1",
+          "-DNEXORA_HAS_2D=1",
+          "-DNEXORA_LARGE_WORLD_ENABLED=1",
+          "-DNEXORA_MEDIA_DRM_ENABLED=0",
+          "-DNEXORA_PLATFORM_ENABLED=1",
+          "-DNEXORA_PRESENTATION_ENABLED=1",
+          "-DNEXORA_SCENE_RENDERING_ENABLED=1",
+          "-DNEXORA_SHIPPING_ENABLED=1",
+          "-I/workspace/Nexora-delivery-773/Engine/EditorImGui/src",
+          "-I/workspace/Nexora-delivery-773/Engine/EditorImGui/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Editor/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Core/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Foundation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/API/include",
+          "-I/workspace/Nexora-delivery-773/build/linux-development/Engine/Foundation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Runtime/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Renderer/include",
+          "-I/workspace/Nexora-delivery-773/Engine/RHI/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Cryptography/include",
+          "-I/workspace/Nexora-delivery-773/Engine/TwoD/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Presentation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Window/include",
+          "-std=c++20",
+          "-fvisibility=hidden",
+          "-fvisibility-inlines-hidden",
+          "-Wall",
+          "-Wextra",
+          "-Wpedantic",
+          "-Werror",
+          "-o",
+          "/workspace/work/engine-goal-20261112/authoring/build-clip-picker/gcc15/development/Tests_EditorImGui_ProjectBuildSettingsTests-0.o",
+          "-c",
+          "/workspace/Nexora-delivery-773/Tests/EditorImGui/ProjectBuildSettingsTests.cpp"
+        ],
+        "source_sha256": "c391a92c0b7595049116063c8de46d6675b7bcf1063d5d5b65aabdd25e7bc068",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "file": "Tests/EditorImGui/BuildAnimationPickerTests.cpp",
+        "exit": 0,
+        "command": [
+          "/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/bin/x86_64-linux-gnu-g++-15",
+          "-B/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/lib/gcc/x86_64-linux-gnu/15/",
+          "-DNEXORA_ASSET_PIPELINE_ENABLED=1",
+          "-DNEXORA_BUILD_DEVELOPMENT=1",
+          "-DNEXORA_CAPTURE_ENCODER_ENABLED=0",
+          "-DNEXORA_EDITOR_SDK_ENABLED=1",
+          "-DNEXORA_GAMEPLAY_SIMULATION_ENABLED=1",
+          "-DNEXORA_HAS_2D=1",
+          "-DNEXORA_LARGE_WORLD_ENABLED=1",
+          "-DNEXORA_MEDIA_DRM_ENABLED=0",
+          "-DNEXORA_PLATFORM_ENABLED=1",
+          "-DNEXORA_PRESENTATION_ENABLED=1",
+          "-DNEXORA_SCENE_RENDERING_ENABLED=1",
+          "-DNEXORA_SHIPPING_ENABLED=1",
+          "-I/workspace/Nexora-delivery-773/Engine/EditorImGui/src",
+          "-I/workspace/Nexora-delivery-773/Engine/EditorImGui/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Editor/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Core/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Foundation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/API/include",
+          "-I/workspace/Nexora-delivery-773/build/linux-development/Engine/Foundation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Runtime/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Renderer/include",
+          "-I/workspace/Nexora-delivery-773/Engine/RHI/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Cryptography/include",
+          "-I/workspace/Nexora-delivery-773/Engine/TwoD/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Presentation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Window/include",
+          "-std=c++20",
+          "-fvisibility=hidden",
+          "-fvisibility-inlines-hidden",
+          "-Wall",
+          "-Wextra",
+          "-Wpedantic",
+          "-Werror",
+          "-o",
+          "/workspace/work/engine-goal-20261112/authoring/build-clip-picker/gcc15/development/Tests_EditorImGui_BuildAnimationPickerTests-0.o",
+          "-c",
+          "/workspace/Nexora-delivery-773/Tests/EditorImGui/BuildAnimationPickerTests.cpp"
+        ],
+        "source_sha256": "250a68a12af4d189ea83e63b7ecc54ed279af4a086a6163ca91aa8c27233a80b",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  },
+  "native": {
+    "receipt": "build/linux-development/artifacts/editor-sprite-sources/clip-picker-1794660600366272627/receipt.json",
+    "receipt_sha256": "ad3fd6de80a8a698fb14815b1bda4efd3e3dd514973a27fc6ac1ab842bd8df6c",
+    "test_seconds": 100.47,
+    "selected_roots": [
+      "00000000-0000-006a-0000-000000000001",
+      "00000000-0000-0069-0000-000000000001"
+    ],
+    "reports": {
+      "scene-only_verify": {
+        "status": "VERIFIED_GAME_PACKAGE",
+        "schema_version": 1,
+        "capability": 4,
+        "start_scene": "0f2fa535-d98f-df2b-b7f4-425c24dea863",
+        "scene_count": 2,
+        "asset_count": 9,
+        "native_rendering": false,
+        "gameplay_loaded": false
+      },
+      "script_verify": {
+        "status": "VERIFIED_GAME_PACKAGE",
+        "schema_version": 1,
+        "capability": 4,
+        "start_scene": "0f2fa535-d98f-df2b-b7f4-425c24dea863",
+        "scene_count": 2,
+        "asset_count": 9,
+        "native_rendering": false,
+        "gameplay_loaded": false
+      },
+      "legacy": {
+        "status": "RENDERED_GAME_PACKAGE",
+        "native_rendering": true,
+        "start_scene": "0f2fa535-d98f-df2b-b7f4-425c24dea863",
+        "active_scene": "0f2fa535-d98f-df2b-b7f4-425c24dea863",
+        "camera": "0",
+        "gameplay_loaded": false,
+        "gameplay_updates": 0,
+        "scene_commits": 1,
+        "rejected_requests": 0,
+        "scene_records": 1,
+        "instances": 1,
+        "stored_entities": 3,
+        "presented_frames": 558,
+        "scene_draw_calls": 558,
+        "sprite_draw_calls": 0,
+        "visible_sprites": 0,
+        "geometry_residency_available": true,
+        "geometry_uploads": 1,
+        "geometry_hits": 557,
+        "geometry_native_bytes": 4096,
+        "geometry_cpu_bytes": 150,
+        "scene_texture_uploads": 3,
+        "software_rasterizer": true,
+        "drained": true
+      },
+      "scene-only": {
+        "status": "RENDERED_GAME_PACKAGE",
+        "native_rendering": true,
+        "start_scene": "0f2fa535-d98f-df2b-b7f4-425c24dea863",
+        "active_scene": "0f2fa535-d98f-df2b-b7f4-425c24dea863",
+        "camera": "0",
+        "gameplay_loaded": false,
+        "gameplay_updates": 0,
+        "scene_commits": 1,
+        "rejected_requests": 0,
+        "scene_records": 1,
+        "instances": 1,
+        "stored_entities": 3,
+        "presented_frames": 2351,
+        "scene_draw_calls": 2351,
+        "sprite_draw_calls": 2351,
+        "visible_sprites": 2,
+        "geometry_residency_available": true,
+        "geometry_uploads": 1,
+        "geometry_hits": 2350,
+        "geometry_native_bytes": 4096,
+        "geometry_cpu_bytes": 150,
+        "scene_texture_uploads": 3,
+        "software_rasterizer": true,
+        "drained": true
+      },
+      "script": {
+        "status": "RENDERED_GAME_PACKAGE",
+        "native_rendering": true,
+        "start_scene": "0f2fa535-d98f-df2b-b7f4-425c24dea863",
+        "active_scene": "0f2fa535-d98f-df2b-b7f4-425c24dea863",
+        "camera": "0",
+        "gameplay_loaded": true,
+        "gameplay_updates": 2541,
+        "scene_commits": 1,
+        "rejected_requests": 0,
+        "scene_records": 1,
+        "instances": 1,
+        "stored_entities": 3,
+        "presented_frames": 2542,
+        "scene_draw_calls": 2542,
+        "sprite_draw_calls": 2542,
+        "visible_sprites": 2,
+        "geometry_residency_available": true,
+        "geometry_uploads": 1,
+        "geometry_hits": 2541,
+        "geometry_native_bytes": 4096,
+        "geometry_cpu_bytes": 150,
+        "scene_texture_uploads": 3,
+        "software_rasterizer": true,
+        "drained": true
+      }
+    },
+    "captures": [
+      {
+        "width": 1280,
+        "height": 720,
+        "sha256": "78befaacdd68622d2a64178c84aca81ac863662eb39e2914fb86b43f1c52efef",
+        "grayscale_fraction": 0.9090315755208334,
+        "warm_pixels": 181,
+        "blue_pixels": 55,
+        "dynamic_range": 213,
+        "phase": "selected-unsaved"
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "sha256": "082c65a48e0a7c87d13166adbf3072ce49d783a41d3a1e53577df3e9e2416eb2",
+        "grayscale_fraction": 0.8937874348958333,
+        "warm_pixels": 200,
+        "blue_pixels": 115,
+        "dynamic_range": 213,
+        "phase": "script-built"
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "sha256": "111d2c16e848cf08aa4ddd2f059c5b6665d7bb8db1af5b7b340768aea104749a",
+        "grayscale_fraction": 0.9144173177083333,
+        "warm_pixels": 0,
+        "blue_pixels": 112,
+        "dynamic_range": 213,
+        "phase": "readonly-reopened"
+      },
+      {
+        "width": 960,
+        "height": 640,
+        "sha256": "ac66de306c7f7f0ca9d883b68c62ebd34b52d8896ab36116c79c2465f871bc7b",
+        "grayscale_fraction": 0.0,
+        "warm_pixels": 0,
+        "blue_pixels": 400942,
+        "dynamic_range": 21,
+        "phase": "legacy"
+      },
+      {
+        "width": 960,
+        "height": 640,
+        "sha256": "ac66de306c7f7f0ca9d883b68c62ebd34b52d8896ab36116c79c2465f871bc7b",
+        "grayscale_fraction": 0.0,
+        "warm_pixels": 0,
+        "blue_pixels": 400942,
+        "dynamic_range": 21,
+        "phase": "legacy"
+      },
+      {
+        "width": 960,
+        "height": 640,
+        "sha256": "df6d6d47baf4be941fb5936c8bf18246df560d706024df84f278f82c9d2625b5",
+        "grayscale_fraction": 0.0,
+        "warm_pixels": 2048,
+        "blue_pixels": 394798,
+        "dynamic_range": 255,
+        "phase": "scene-only"
+      },
+      {
+        "width": 960,
+        "height": 640,
+        "sha256": "df6d6d47baf4be941fb5936c8bf18246df560d706024df84f278f82c9d2625b5",
+        "grayscale_fraction": 0.0,
+        "warm_pixels": 2048,
+        "blue_pixels": 394798,
+        "dynamic_range": 255,
+        "phase": "scene-only"
+      },
+      {
+        "width": 960,
+        "height": 640,
+        "sha256": "df6d6d47baf4be941fb5936c8bf18246df560d706024df84f278f82c9d2625b5",
+        "grayscale_fraction": 0.0,
+        "warm_pixels": 2048,
+        "blue_pixels": 394798,
+        "dynamic_range": 255,
+        "phase": "script"
+      },
+      {
+        "width": 960,
+        "height": 640,
+        "sha256": "df6d6d47baf4be941fb5936c8bf18246df560d706024df84f278f82c9d2625b5",
+        "grayscale_fraction": 0.0,
+        "warm_pixels": 2048,
+        "blue_pixels": 394798,
+        "dynamic_range": 255,
+        "phase": "script"
+      }
+    ],
+    "source_deleted": true,
+    "readonly_project_unchanged": true,
+    "authored_source_hashes": {
+      "Content/Animation.nx2clip": "c48a4c2975611ee0096d03681b01406f6e05cecf01e874213bdefba5136cfff1",
+      "Content/Animation.nx2clip.meta": "0f1b6a3ec081215e5d1d2262e9adebe2aa15832798fd0fa90515648d68c9f8e6",
+      "Content/Color.nx2atlas": "6e0cab5487fc3ccba91db7bdefe4ed5b17b33cba3540cfc028c583620a897482",
+      "Content/Color.nx2atlas.meta": "cec5e22d41a1fb87a52c7cd3c108bfecf0da558d4976362109dc58fe8c6831b1",
+      "Content/Legacy.nx2clip": "820f15f34b277bf11365fa21459c338918b0631011fd34768a8a3447c467bb0c",
+      "Content/Legacy.nx2clip.meta": "26b9f3aa5993020bf4d7608d5a92b4fd6ce7818be02474aafe782ca87d66a924",
+      "Content/Other.nx2atlas": "9501bb538ff642e05d501c292395ac48945bd4a6862a8d685d1523bd70b07c45",
+      "Content/Other.nx2atlas.meta": "c9c82bca55db2ff1a86b3be32202faa710f870977423244b6c580755d665eac5",
+      "Content/Other.nx2sprite": "fe1fe3ee8f955a194027d9a0103c7d03c9f6ceafc53b4d6a6a1245446339ef57",
+      "Content/Other.nx2sprite.meta": "45d06a5481b84ef822574926268c6420be972f38beeb3027917deb4cbf27aa74",
+      "Content/Source.nx2sprite": "16b9c57fa36162107fbb568fa7a781f23d2baee3d1e59f9debb41e3dde2650a4",
+      "Content/Source.nx2sprite.meta": "34fcf3225d3fbf86a1bfabd5929db3dc9f5c7b061dc56e2f7c66627ef742a163",
+      "Content/Triangle.obj": "1f4f01899e25a85c903038f27ee0bdc05be15737690fdf33d3b80d0fd1dc9302",
+      "Content/Triangle.obj.meta": "af18e903de89c794cc8c2770701f1922027e1dbd20efa1a127548f9b752b560b",
+      "Content/Unselected.nx2clip": "446ff2ea4a058ddb598d7e90d58d70cf10a8a548c4eb26ae6e3ce0bf246a00bc",
+      "Content/Unselected.nx2clip.meta": "929168372549ed5d2dc87c5121970599cfc0afdd18cdadc9d664d3179b64cf5b",
+      "Level.scene": "2084bbff51d5f3c986d7e991ab3129f3f1c28255640a2c3fb7c3a837e6235263",
+      "Scripts/game.zig": "88dde01883d8cf216377ad04dc8488d29938a9be5ed9251586510d89c66689ea",
+      "Scripts/project.json": "385158803a6f91bdf598d21075e8cf477daf283987503f2e028060c9c87976d4",
+      "Title.scene": "2084bbff51d5f3c986d7e991ab3129f3f1c28255640a2c3fb7c3a837e6235263"
+    },
+    "canonical_sdk_build_records": {
+      "Build.commands": {
+        "bytes": 1864,
+        "sha256": "e754a56e902327f77a1bdce9ea60e858aa274e7040f83354d06397b8610a9784"
+      },
+      "Build.sources": {
+        "bytes": 1162,
+        "sha256": "470b855c97bb80d27f07480e7ecacbb96811e6e67331d3a736b54e297dc3ee18"
+      },
+      "Build.tools": {
+        "bytes": 1243,
+        "sha256": "a64cd57fb52544e8a6b0ae731c8f2674a0c92469bfe4f8b38f69712d0c06f9e8"
+      },
+      "Game.inventory": {
+        "bytes": 609,
+        "sha256": "5f959d13fbee1108b0fdd172c7a8a6f15ac8c8cab74d79fa791617cb71a6f699"
+      },
+      "Publication.receipt": {
+        "bytes": 260,
+        "sha256": "3294f8e13974dbfb8f647d6460cfc1c04df0a2795ad607b2451bbde6aa280af0"
+      },
+      "Records.inventory": {
+        "bytes": 276,
+        "sha256": "c8c83d0e360611260cf28e869674f6caf42616d25457eef8637ed2bd3ed3d10a"
+      }
+    },
+    "canonical_sdk_commands": "{\"cwd\":\"/tmp/nexora-game-126554562087639-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-development/Apps/ProjectPlayer/NexoraProjectPlayer\",\"--verify-native-game-package\",\"/tmp/nexora-game-126554562087639-0/package/Game.nxgame\"]}\n{\"cwd\":\"/tmp/nexora-game-126554562087639-0/nexora-script-126554731101976-0\",\"argv\":[\"/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/cmake/data/bin/cmake\",\"-S\",\"/tmp/nexora-game-126554562087639-0/nexora-script-126554731101976-0\",\"-B\",\"/tmp/nexora-game-126554562087639-0/nexora-script-126554731101976-0/compile\",\"-G\",\"Ninja\",\"-DCMAKE_MAKE_PROGRAM=/workspace/work/engine-goal-20261112/tools/bin/ninja\",\"-DNEXORA_GAME_MANIFEST=/tmp/nexora-game-126554562087639-0/nexora-script-126554731101976-0/source/Scripts/project.json\",\"-DNEXORA_GAME_ZIG=/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/ziglang/zig\"]}\n{\"cwd\":\"/tmp/nexora-game-126554562087639-0/nexora-script-126554731101976-0\",\"argv\":[\"/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/cmake/data/bin/cmake\",\"--build\",\"/tmp/nexora-game-126554562087639-0/nexora-script-126554731101976-0/compile\",\"--target\",\"GameModule\"]}\n{\"cwd\":\"/tmp/nexora-game-126554562087639-0/nexora-script-126554731101976-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-development/Apps/ProjectPlayer/NexoraProjectPlayer\",\"--verify-game-module\",\"/tmp/nexora-game-126554562087639-0/nexora-script-126554731101976-0/nexora-script-126554731101976-0.so\"]}\n{\"cwd\":\"/tmp/nexora-game-126554562087639-0\",\"argv\":[\"/tmp/nexora-game-126554562087639-0/package/Game\",\"--verify-native-game-package\",\"/tmp/nexora-game-126554562087639-0/package/Game.nxgame\"]}\n{\"cwd\":\"/tmp/nexora-game-126554562087639-0\",\"argv\":[\"/tmp/nexora-game-126554562087639-0/package/Game\",\"--verify-game-module\",\"/tmp/nexora-game-126554562087639-0/package/libGame.so\"]}\n"
+  },
+  "historical": {
+    "logs": [
+      "pre-sort-compile/build.log",
+      "focus-ui-1.log",
+      "focus-ui-2.log",
+      "focus-ui-3.log",
+      "focus-ui-4.log",
+      "focus-ui-5.log",
+      "pre-explicit-open/focus-native-1.log"
+    ],
+    "initial_native_seconds": 94.19,
+    "later_focus_native_seconds": 91.8,
+    "initial_generation_hashes": {
+      "Apps/Editor/main.cpp": "602e3cdb6a26dbba5cf39ed3b747ae23404216eb6b1d8000b157ba97b98b7092",
+      "Engine/EditorImGui/src/EditorImGui.cpp": "b56950eb3afe7f150997e8cea92f24d412e1bb3cb46c423bdea506e33a6718ac",
+      "Engine/EditorImGui/src/EditorImGuiTestAccess.h": "c1012487eeda19764eb31c98659e17d2371f73301400a54fd9c098eb7532821b",
+      "Tests/Editor/CMakeLists.txt": "a190272f7dbbaa9c9e7c1004fb889eef14bd22c6090ed52456959f1b0a927298",
+      "Tests/EditorImGui/CMakeLists.txt": "526b02ebf314252cac443d9217a65a1f183cf78ff19268a4412f07152674bf04",
+      "Engine/EditorImGui/src/BuildAnimationPicker.inl": "c3b8f3adb3bbca1b940001921e94b4b365412379285da2c8b5c94cc24eb53d28",
+      "Tests/Editor/LinuxBuildAnimationPicker.py": "79bbe49be10ca5458ad50ac4c1960f74768863915fbf488194d30ce0a577fcfd",
+      "Tests/EditorImGui/BuildAnimationPickerTests.cpp": "4fa79585fd0bb2aa999ff616a828d85206a7759249044817002ea568c0c04cd1"
+    }
+  },
+  "hosted_ci": "pending on the eventual immutable committed head",
+  "goal_complete": false,
+  "parent_milestones": {
+    "workflow": "5/9",
+    "graphical_editor": "0/8",
+    "twod": "9/11"
+  },
+  "metadata_gates": {
+    "api": {
+      "exit": 0,
+      "log_sha256": "b889e69740e2b720cf28e366793a954c391a42b5171c62dbedabb68e581a6543"
+    },
+    "doc-ci": {
+      "exit": 0,
+      "log_sha256": "96f051c917d559ede8318723a24ecfedfc31a14af023a375ec8349fc9c2b20fc"
+    },
+    "format": {
+      "exit": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "python": {
+      "exit": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "markdown": {
+      "exit": 0,
+      "log_sha256": "8789b907b371c8a511fc8a1cddfd0073e012ce6e07ce913a346df5777a436c78"
+    },
+    "diff-check": {
+      "exit": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}

@@ -83,7 +83,10 @@ for the remaining integration and platform acceptance.
 
 Explicit animation assets can be listed by UUID in schema-3 `project.build.json` using
 `animation_clips` (see [the settings contract](../../Engine/Editor/README.md#project-build-scene-settings)).
-Reload retains that list while editing other Build settings; a graphical Clip picker is pending.
+The Animation assets action in Build Settings selects imported ready Clips and removes explicit
+roots. Save applies the draft; Reload/reopen preserve exact UUIDs. Missing roots remain visible
+for deliberate repair. Read-only projects can inspect the list. Build/Play/busy/recovery and stale
+Content contexts cannot mutate it. See the [graphical selection evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-BuildClipPicker-Linux-2026-11-14.md).
 Build freezes the selected Clips and complete source/Atlas closure, without starting animation.
 
 These settings feed the accepted [multi-scene game delivery](../../Roadmap/en/Project_Scene_Delivery_Plan.md)
