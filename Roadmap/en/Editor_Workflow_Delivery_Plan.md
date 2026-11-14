@@ -344,8 +344,8 @@ service admission. The focused production-host fixture passes32 canonical SDK re
 128 rejects; its Linux native companion verifies192 acknowledged source/pool presentations across
 replacement, rollback and source reimport/repack. The separate complete native Player sample
 regression also passes. [Ownership contract](../../Apps/TwoDPlayer/README.md#strict-generation-ownership)
-distinguishes these fixture/loop scopes. Full529/529,14local gates and ten actual GCC15 command variants pass; exact-head hosted
-CI is required before delivery. Main packaged Editor/Player services, project watching and complete ED-WF-07/08
+distinguishes these fixture/loop scopes. Full531/531,14local gates and ten actual GCC15 command variants pass; exact-head hosted
+CI is required before delivery. Main packaged source-animation/pool gameplay services, project watching and complete ED-WF-07/08
 remain open; Workflow **5/9**, Editor **0/8**, TwoD **9/11** are unchanged.
 
 [Full local execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-PlayerGeneration-Linux-2026-11-14.md) retains initial failures and complete scope.

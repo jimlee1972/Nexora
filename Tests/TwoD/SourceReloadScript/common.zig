@@ -14,10 +14,22 @@ fn finalize() callconv(.c) void {
     if (final_storage.remove) |remove| _ = remove(final_storage.context, "generation-guard", 16);
 }
 var linux_finalizer: *const fn () callconv(.c) void linksection(".fini_array") = finalize;
-var mac_finalizer: *const fn () callconv(.c) void linksection("__DATA,__mod_term_func") = finalize;
 comptime {
     if (builtin.os.tag == .linux) @export(&linux_finalizer, .{ .name = "NexoraSourceReloadFinalizer" });
-    if (builtin.os.tag == .macos) @export(&mac_finalizer, .{ .name = "NexoraSourceReloadFinalizer" });
+}
+extern var __dso_handle: u8;
+extern fn __cxa_atexit(callback: *const fn (?*anyopaque) callconv(.c) void, argument: ?*anyopaque, image: ?*anyopaque) c_int;
+var mac_finalizer_registered = false;
+fn finalizeMac(_: ?*anyopaque) callconv(.c) void {
+    finalize();
+}
+fn registerFinalizer() !void {
+    if (builtin.os.tag == .macos and !builtin.is_test and !mac_finalizer_registered) {
+        // Use the same image-scoped CRT registration as native C++ destructors. A raw
+        // __mod_term_func section was present but never called by the hosted dyld path.
+        if (__cxa_atexit(finalizeMac, null, @ptrCast(&__dso_handle)) != 0) return error.FinalizerRegistration;
+        mac_finalizer_registered = true;
+    }
 }
 
 // A host work lease retains this exact library until the call returns.
@@ -62,6 +74,7 @@ pub fn Script(comptime mode: Mode) type {
                 if (services.get_ui_api) |get| _ = get(services.context, &self.external_ui);
                 final_storage = self.external_storage;
             }
+            try registerFinalizer();
         }
         fn probeExternal(self: *const Self, expected: ?i32) !void {
             var results: [5]i32 = @splat(-2);

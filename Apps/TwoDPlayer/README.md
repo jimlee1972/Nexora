@@ -379,6 +379,8 @@ writes the source/project directory. Candidate copies survive failure cleanup/fi
 copies retire only after Runtime closes their libraries, and final Unload removes the active copy.
 This avoids the strict Runtime rejection of reusing an already loaded image. The canonical SDK's
 self-contained gameplay images use this boundary; sibling native dependency payloads are not copied.
+Strict dynamic admission rejects TLS/Objective-C-pinned images before gameplay creation. The raw
+TwoD and HD2D entry points use the SDK's TLS-free macOS panic handler to remain unloadable.
 
 The private `GenerationHost::Reload` boundary enters read-only capture before Runtime calls
 `save_state`. Cached TwoD/source/scene and external-service operations reject with `UNSUPPORTED`
@@ -405,8 +407,8 @@ formats retain their C/Zig layouts; new helper ownership is private to the Playe
 The engine-owned raw Zig sample advertises its existing side-effect-free create/restored-start
 behavior as reload-lifecycle capable and uses the SDK's TLS-free macOS panic handler for unloadable
 dynamic images. Project-mode commands retain their explicit module selection;
-this embedding work supplies no project file watcher or compiler. Packaged main Editor gameplay
-services and complete Editor reload acceptance remain separate integration work.
+this embedding work supplies no project file watcher or compiler. Packaged main Editor
+source-animation/pool gameplay services and complete Editor reload acceptance remain separate work.
 
 
 The focused `twod.player_reload_generations` fixture links the actual Player host factory and
@@ -416,7 +418,7 @@ source/pool image rows before and after publication or rejection. Cached service
 prepare/Stop/Destroy and actual ELF/Mach-O unload finalizers exercise lifetime isolation. A
 separate existing native sample process covers the complete Player loop with its bounded reload.
 This does not establish 32 source SDK replacements through that entire application loop, a project
-watcher, production Editor reload or complete ED-WF-08 acceptance. Full local validation passes529/529 and all14gates; fresh exact-head hosted CI
+watcher, production Editor reload or complete ED-WF-08 acceptance. Full local validation passes531/531 and all14gates; fresh exact-head hosted CI
 is required before delivery.
 
 ## Gameplay Sprite sources

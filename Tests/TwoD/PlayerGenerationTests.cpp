@@ -115,7 +115,7 @@ int main(int argc, char **argv) try {
           "Player generation input sentinel");
   const std::array<std::byte, 3> saved{std::byte{1}, std::byte{17}, std::byte{255}};
   Require(services.storage.save(services.storage.context, "generation-guard", 16, 7, saved.data(),
-                                saved.size()) == 0,
+                                static_cast<std::uint32_t>(saved.size())) == 0,
           "Player generation storage sentinel");
   const auto guard = root / "storage" / "generation-guard.nxsav";
   const auto original = Read(guard);

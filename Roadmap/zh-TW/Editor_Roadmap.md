@@ -2378,7 +2378,7 @@ context、唯讀存狀態階段，以及候選／退役世代的外部服務准�
 canonical SDK 替換與128次拒絕；Linux 原生版本在替換、回復與來源重新匯入／重打包過程中，
 驗證192次有呈現識別標記的來源／物件池畫面。另一個完整原生 Player 範例行程回歸亦通過。
 [所有權契約](../../Apps/TwoDPlayer/README.md#strict-generation-ownership) 區分 fixture 與完整行程範圍。
-完整529/529、14本機 gates 與十組實際 GCC15 編譯命令皆通過；交付仍須確切提交的雲端 CI。主程式封裝 Editor／Player
-服務、專案監看及完整 ED-WF-07／08 仍開放；Workflow **5/9**、Editor **0/8**、TwoD **9/11** 不變。
+完整531/531、14本機 gates 與十組實際 GCC15 編譯命令皆通過；交付仍須確切提交的雲端 CI。主程式封裝 Editor／Player
+來源動畫／物件池服務、專案監看及完整 ED-WF-07／08 仍開放；Workflow **5/9**、Editor **0/8**、TwoD **9/11** 不變。
 
 [完整本機執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-PlayerGeneration-Linux-2026-11-14.md) 保留初期失敗及完整範圍。

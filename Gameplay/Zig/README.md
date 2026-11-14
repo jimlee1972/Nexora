@@ -40,6 +40,8 @@ The raw 2D sample advertises reload-lifecycle support: create binds only its new
 restore copies bounded value state, and restored start reuses existing scene/entity/pool handles.
 Dynamic images use independent host-owned copies; the raw macOS entry matches the canonical SDK's
 TLS-free message-and-trap panic handler so dyld can unload it without suppressing safety checks.
+Both raw HD2D entry points use that handler for strict initial Load/Unload as well. They remain
+non-migrating diagnostics; the panic override does not advertise reload-lifecycle support.
 The shared Player now stages independent generations and guards save-state/retired host effects.
 This sample does not substitute for canonical SDK source-gameplay or packaged Editor acceptance.
 

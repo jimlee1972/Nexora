@@ -1,6 +1,6 @@
 # Standalone Player generation contexts — Linux Cloud acceptance
 
-Supporting task: `nexora-whr.8.2.2`. Local gates completed 2026-11-14T12:40:39.986816+08:00.
+Supporting task: `nexora-whr.8.2.2`. Local gates completed 2026-11-14T14:26:46.552892+08:00.
 
 The common TwoD Player now owns stable contexts for active, candidate and retired generations.
 Every cached World/TwoD/source/scene table stays bound to its generation. `GenerationHost::Reload`
@@ -30,12 +30,12 @@ Player retains its existing strict geometry/pixel checks.
 ## Validation
 
 - Full `cmake --preset linux-development`, `cmake --build --preset linux-development` and
-  `ctest --preset linux-development --output-on-failure`:529/529,zero failures/skips,1830.86s.
+  `ctest --preset linux-development --output-on-failure`:531/531,zero failures/skips,1905.38s.
 - All14 sequential gates pass: Development build/full suite and GCC15,Shipping Full build,
   actual relocated source animation and raw-sample native reload,Monolithic build/GCC15/five
   consumers,and TwoD-OFF/testing-OFF graphical Editor/native ProjectPlayer builds.
 - GCC15.2 compiles five actual translation-unit commands in each Development and Monolithic
-  configuration. Warnings remain errors. Source/build/fixture11hashes stay frozen throughout.
+  configuration. Warnings remain errors. Source/build/fixture13hashes stay frozen throughout.
 - API145,documentation CI16,touched C++/Zig formatting,Python syntax and11Markdown files/three
   bilingual roadmap pairs pass before publication. Root README and stable C/Zig layouts are unchanged.
 
@@ -53,8 +53,22 @@ The first complete run passed528/529 and exposed dynamic-loader handle reuse for
 path, independently reproduced as RestartRequired=3. Unique initial/replacement images fix it;
 the fixture verifies independent paths and removal of retired/final image directories. The raw
 Zig sample uses the canonical TLS-free panic entry on macOS; hosted macOS CI must verify that path.
+Hosted Windows desktop Push/PR builds on77e94b89 then reproduced MSVC C4267: the fixture passed
+the fixed three-byte array's size_t length to storage.save's uint32_t argument. An explicit
+conversion fixes the warning without changing the value or /W4 /WX. Hosted macOS then passed
+433/436: two HD2D initial loads and the new finalizer coverage failed. Cross-compiled actual objects
+show the old HD2D panic's TLS and its absence after both raw-root overrides. A separate probe
+falsifies the section-type hypothesis: both termination-section spellings already have type10.
+The source fixture now uses image-scoped __cxa_atexit/__dso_handle registration instead of that
+uninvoked raw termination section; exact one-finalizer assertions remain. Cross-object inspection
+is not macOS execution. The intervening196-pass/zero-failure Linux attempt was stopped, exit130,
+and retained without a full acceptance claim. The prior529/529 and14-gate result remains historical;
+all final gates rerun after the platform repairs with13 frozen sources.
+The next8-pass/zero-failure attempt was stopped when main advanced to cc9a4bae (PR783). The main
+integration retains both roadmap sections and all13own source hashes. Final531-test acceptance
+includes that delivered configured Sprite Play consumer; its source/ownership work is preserved.
 
 No local Windows/macOS/mobile execution or physical display/audio/device acceptance is claimed.
-Fresh exact-head hosted CI is required before delivery. Main packaged Editor/Player services,
+Fresh exact-head hosted CI is required before delivery. Main packaged source-animation/pool services,
 project watcher/compiler,complete ED-WF-07/08 and parents8.2/8.3 remain open. Workflow5/9,
 graphical Editor0/8 and TwoD9/11 are unchanged. Separately owned packaged Editor Play7.8 is untouched.
