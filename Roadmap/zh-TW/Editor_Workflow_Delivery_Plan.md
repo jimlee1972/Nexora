@@ -321,3 +321,15 @@ canonical SDK 替換與128次拒絕；Linux 原生版本在替換、回復與來
 動畫／物件池／發布／reload 與完整 ED-WF-07/08 仍未完成。完整 Linux 510/510、Shipping、實際 TwoD-OFF／noTests 與圖形 Monolithic gates 通過；
 交付仍須確切提交的 hosted CI。工作單
 **5/9**、圖形 Editor **0/8**、TwoD **9/11** 及實體／乾淨主機驗收維持不變。
+
+## ✅ Sprite 來源幾何資訊檢視（2026-11-14）
+
+支援工作 `nexora-whr.7.10` 在主 Inspector 新增預設收合的唯讀來源詳細資訊，顯示來源／Atlas UUID、
+原始尺寸、左上起算裁切／Atlas 區域、左下起算 Pivot、PPU、邊框及套用實體變換前的來源局部範圍。
+共用幾何解析器讀取目前已匯入的不可變資料，不讀寫檔案、不修改編輯資料、不註冊 GPU 紋理。
+實際 1×／2× 控制驗證指派與歷史、混合／缺失／不支援參考、重新匯入、唯讀／Play 檢視及內容移除。
+Linux X11 驗證非對稱數值、實際呈現畫面、精確 Undo／Redo／儲存／重開及唯讀專案雜湊不變。
+完整 Linux **510/510**、Shipping、TwoD-OFF／testing-OFF 與圖形 Monolithic gates 通過；
+交付仍須確切提交的 hosted CI。見[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceDetails-Linux-2026-11-14.md)。
+工作流程 **5/9**、Editor **0/8**、TwoD **9/11** 不變；完整 ED-WF-07／08、正式動畫／重載與實體／
+乾淨主機驗收仍開放。獨立 Clip 目錄工作由 PR #786 負責。
