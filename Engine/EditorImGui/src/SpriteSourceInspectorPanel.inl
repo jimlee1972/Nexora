@@ -148,8 +148,10 @@ void DrawSpriteSourceInspector(StateT &state, SceneDocument &scene, ProjectConte
   ImGui::EndDisabled();
   ImGui::SameLine();
   ImGui::BeginDisabled(!allowed || !present);
+  bool referenceChanged = assignment.has_value();
   if (detail::IconButton("Clear Sprite source###editor.inspector.sprite-source.clear",
                          detail::EditorIcon::Delete)) {
+    referenceChanged = true;
     CancelSceneGestures(state);
     const bool accepted = ClearSpriteSources(scene, keys, version, *content, allowed);
     CancelInspectorDrafts(state);
@@ -167,4 +169,47 @@ void DrawSpriteSourceInspector(StateT &state, SceneDocument &scene, ProjectConte
                        "preserved; reimport or clear them.");
   else if (!allowed)
     ImGui::TextDisabled("Source editing requires a writable project and stopped Play.");
+
+  // The owning component preview predates this frame's controls. Do not display its old source
+  // after assignment/Clear. Next frame obtains a fresh preview and imported metadata index.
+  if (referenceChanged || unsupported || mixed || missing || !present || !item ||
+      !version.project_generation)
+    return;
+  const bool expanded = ImGui::CollapsingHeader("Source details###editor.inspector.sprite-details");
+  capture(state.inspector_sprite_positions[3]);
+  if (!expanded)
+    return;
+  const auto &source = *item->twod->SpriteSource();
+  const auto &atlas = *assets.at(source.atlas)->twod->Atlas();
+  const auto &region = *atlas.Find(source.region);
+  std::array<char, 768> text{};
+  std::snprintf(text.data(), text.size(),
+                "Source UUID: %s\nOriginal: %u x %u px\n"
+                "Trim (top-left): %u, %u; %u x %u px\n"
+                "Pivot (bottom-left): %.6g, %.6g px\nPixels per unit: %.6g\n"
+                "Borders (L/R/T/B): %u / %u / %u / %u px\n"
+                "Atlas UUID: %s\nAtlas: %u x %u px\n"
+                "Region %u (top-left): %u, %u; %u x %u px\n",
+                source.id.ToString().c_str(), source.sourceWidth, source.sourceHeight, source.trimX,
+                source.trimY, source.trimWidth, source.trimHeight, double(source.pivotX),
+                double(source.pivotY), double(source.pixelsPerUnit), source.border[0],
+                source.border[1], source.border[2], source.border[3], atlas.id.ToString().c_str(),
+                atlas.width, atlas.height, region.id, region.x, region.y, region.width,
+                region.height);
+  state.inspector_sprite_details = text.data();
+  twod::SpriteInstance witness;
+  witness.id = 1;
+  witness.matrix = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+  const auto resolved = twod::ResolveSpriteAsset(source, atlas, std::move(witness));
+  if (resolved && resolved->localQuad) {
+    const auto &quad = *resolved->localQuad;
+    std::snprintf(text.data(), text.size(),
+                  "Local bounds (units, before entity transform):\n(%.6g, %.6g) to (%.6g, %.6g)",
+                  double(quad.minimum.x), double(quad.minimum.y), double(quad.maximum.x),
+                  double(quad.maximum.y));
+    state.inspector_sprite_details += text.data();
+  } else {
+    state.inspector_sprite_details += "Local bounds unavailable for this source geometry.";
+  }
+  ImGui::TextWrapped("%s", state.inspector_sprite_details.c_str());
 }

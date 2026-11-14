@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Real X11 source selection/clear, batch history, save/reopen and read-only rejection."""
+"""Real X11 source authoring, read-only geometry, exact history and save/reopen."""
 import argparse
 import hashlib
 import json
@@ -76,6 +76,27 @@ def main():
             proof['attempts'].append({'capture': output.name,
                                       'sha256': hashlib.sha256(output.read_bytes()).hexdigest()})
 
+        def inspect_details(name):
+            before_scene = scene.read_bytes()
+            before_sources = {p.name: p.read_bytes() for p in (root / 'Content').rglob('*')
+                              if p.is_file()}
+            driver.click(point('sprite_source_details'))
+            expected_details = [b'Original: 19 x 23 px', b'Trim (top-left): 3, 5; 7 x 9 px',
+                                b'Pivot (bottom-left): 4.5, 8.25 px', b'Pixels per unit: 2',
+                                b'Atlas: 16 x 16 px', b'Region 1 (top-left): 3, 4; 7 x 9 px',
+                                b'(-0.75, 0.375) to (2.75, 4.875)']
+            driver.wait(lambda _: all(value in driver.stderr for value in expected_details),
+                        'expanded source details differ from independent asymmetric geometry')
+            capture(name)
+            require(scene.read_bytes() == before_scene and
+                    before_sources == {p.name: p.read_bytes() for p in (root / 'Content').rglob('*')
+                                       if p.is_file()}, 'geometry inspection modified authoring files')
+            # Keep existing authoring controls and save/history checks on their ordinary layout.
+            driver.click(point('sprite_source_details'))
+            proof.setdefault('source_details', []).append({
+                'capture': name + '.ppm', 'expected': [s.decode() for s in expected_details],
+                'scene_and_sources_unchanged': True})
+
         def open_host(readonly=False):
             nonlocal process, driver
             number = len(proof['attempts']) + 1
@@ -113,6 +134,7 @@ def main():
         (evidence / 'assigned.scene').write_bytes(assigned)
         require(assigned != initial, 'source assignment was not persisted')
         capture('assigned')
+        inspect_details('source-geometry')
         driver.chord('ctrl+z')
         save(initial)
         (evidence / 'undone.scene').write_bytes(scene.read_bytes())
@@ -126,6 +148,7 @@ def main():
         before = {str(p.relative_to(root)): p.read_bytes() for p in root.rglob('*') if p.is_file()}
         open_host(True)
         require(references(scene.read_bytes()) == [expected, expected], 'reopened references changed')
+        inspect_details('readonly-source-geometry')
         driver.click(point('sprite_source_clear'))
         driver.click(point('sprite_source_combo'))
         driver.chord('ctrl+s')

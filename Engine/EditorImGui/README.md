@@ -109,6 +109,18 @@ Content, stopped Play, focus and ordinary scene/recovery/modal permission. Sourc
 change Runtime components, transforms, C/Zig tables or any scene/asset wire. Existing material,
 mesh and reflected Inspector contracts remain independent; Scene View/Build consumers are separate.
 
+For a complete selection sharing one available source, the initially collapsed **Source details**
+shows source/Atlas UUIDs, original pixel dimensions, top-left trim and Atlas region coordinates,
+bottom-left Pivot, pixels per unit, L/R/T/B borders and source-local bounds before entity transforms.
+It reads the current imported immutable metadata during this serialized frame, with no file IO,
+asset changes, retained model borrow or GPU texture registration. Only expanded details invoke
+the shared `ResolveSpriteAsset` validator/geometry resolver; collapsed idle presentation keeps
+its existing indexing cost. Inspection remains available in read-only projects and during Play.
+Mixed, unavailable, unsupported or absent references hide details. Assignment/Clear suppress the
+old component preview for that frame; the next draw resolves fresh metadata. No displayed numeric
+snapshot survives project/selection/content replacement. The private test accessor observes only
+the current expanded text and visible header center, granting no mutation capability.
+
 Private test access returns copied visible centers (including disabled controls) and a label;
 it clears observations every shell frame and grants no authoring authority. The real Linux
 X11 fixture observes stable presented geometry and then sends normal input, verifies exact scene
