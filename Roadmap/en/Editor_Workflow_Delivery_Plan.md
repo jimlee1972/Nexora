@@ -371,7 +371,7 @@ physical/clean-host acceptance are unchanged.
 Supporting `nexora-whr.8.3.1` adds explicit immutable Clip roots to Build settings, exact owning
 Clip/source/Atlas capture and distinct game-package capability 4. No-root settings and capability-2/3
 package writers retain their prior bytes. Typed admission validates legacy regions and complete
-source closure; retained Clips own their frame UUIDs after producer/source removal. Full Linux **532/532**, zero failures/skips, **2039.81 s**, 13 local gates,
+source closure; retained Clips own their frame UUIDs after producer/source removal. Full Linux **536/536**, zero failures/skips, **2184.80 s**, 13 local gates,
 Development/Shipping native pixels, Monolithic and TwoD-OFF refusal pass.
 [Execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-GameClipRoots-Linux-2026-11-14.md) records ownership and compatibility.
 Fresh exact-head hosted CI is required before delivery. Main gameplay source/animation/pool services, live

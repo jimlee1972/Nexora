@@ -1,15 +1,33 @@
 {
   "task": "nexora-whr.8.3.1",
   "objective": "Explicit immutable animation roots through main Game Build and typed package admission",
-  "local_validation_parent": "e4b02c88267ad09a5ff37349d87c1e0814817ec7",
-  "generated_at": "2026-11-14T09:24:02.374038+00:00",
+  "validation_base": "edb5e17ba85209b93d307d6bd8cc0932fca7017d",
+  "integration": {
+    "incoming_main": "edb5e17ba85209b93d307d6bd8cc0932fca7017d",
+    "own_sources_changed_by_incoming_main": [
+      "Engine/EditorImGui/src/EditorImGui.cpp"
+    ],
+    "other15_own_sources_unchanged": true,
+    "roadmap_conflicts_resolved": [
+      "Roadmap/en/2D_Roadmap.md",
+      "Roadmap/en/Editor_Roadmap.md",
+      "Roadmap/en/Editor_Workflow_Delivery_Plan.md",
+      "Roadmap/zh-TW/2D_Roadmap.md",
+      "Roadmap/zh-TW/Editor_Roadmap.md",
+      "Roadmap/zh-TW/Editor_Workflow_Delivery_Plan.md"
+    ],
+    "both_complete_append_sections_preserved": true
+  },
+  "previous_head": "d153db95b70935c008b40b9d408769acb1fbfbac",
+  "local_validation_parent": "ec083a8312419a5c476a22c57059b38d8eb9c4f3",
+  "generated_at": "2026-11-14T10:38:48.052988+00:00",
   "source_sha256": {
     "Apps/ProjectPlayer/main.cpp": "98b8d67f9307cc41c582b19c05d3ae8601382db49b29fe846a77747fad3e41f5",
     "Engine/Editor/include/Nexora/Editor/GameProjectExport.h": "08ca6ae427f7628dd4c78bb7514c97abcb6cee991711e9b512254b1f0c10f002",
     "Engine/Editor/include/Nexora/Editor/ProjectBuildSettings.h": "60520b16022c26f359f142938afee5cbba85bfa54e97e7c6ecfc1f5655257d61",
     "Engine/Editor/src/GameProjectExport.cpp": "c1b609b59e17bf0f926c6542eac9244d10f8b64670da2622ccd96e7381cad55f",
     "Engine/Editor/src/ProjectBuildSettings.cpp": "b6e51c396a54f94f6e81f34ccddd00d57fcdb836e369d979089e8a5603cf4057",
-    "Engine/EditorImGui/src/EditorImGui.cpp": "2e68c7f9f0ee8a2d3f7bbe402bbc70c1b5a328c58fc62bc84348c0c5b64bf2af",
+    "Engine/EditorImGui/src/EditorImGui.cpp": "2e576afe93c04959c047c682c9246c98009764dc95f594837b2d8b93cdcbbdfa",
     "Engine/Runtime/include/Nexora/Runtime/GameProjectPackage.h": "235a3168053d26e59ce23851eb6543a7940650d729f75f1d1bb0871d5a1375f8",
     "Engine/Runtime/src/GameProjectPackage.cpp": "e6d66db890c6b6fee3ceceb0946f76bf08c8d33287a0b223c0d9b43690e5ec81",
     "Engine/TwoD/include/Nexora/TwoD/GameSpriteAssets.h": "23e7fd3666698457877290a9e94706cd2bb3931893fdd7e5bebbdef390053f94",
@@ -22,12 +40,12 @@
     "Tests/Runtime/GameProjectPackageTests.cpp": "c3457363b02ddc6532f55b3951ecbe6aa8af33ee274813c84a73a7ca337ca701"
   },
   "full": {
-    "passed": 532,
+    "passed": 536,
     "failed": 0,
     "skipped": 0,
-    "seconds": 2039.81,
-    "log_sha256": "0f647d0871546ac05beb4a88835f65820782b6b4d67a0033370e3781e8edcaf2",
-    "last_test_sha256": "a4f692481dc7e9bfd93d56f20a7590357acc62fa596438e21c92e8cf8f2e284c"
+    "seconds": 2184.8,
+    "log_sha256": "31e0ada8a084f8316e86c15eb1baa69a939dee8e5ad3db556b3ce42e54984919",
+    "last_test_sha256": "d944dab8a0e2c53ad0d793c64b1a5ba14545ed1c4039eb4eaed8d49352a6e3d0"
   },
   "gates": {
     "development-configure": {
@@ -45,7 +63,7 @@
         "-DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON"
       ],
       "cwd": "/workspace/Nexora-delivery-773",
-      "log_sha256": "57df1bff4eb6552d55212c2a4322c6778170f1141247d779e7e2601d93f3ebdf"
+      "log_sha256": "04025a1821ac0d5913641afada0a020fa92d35c64e2f1c8bb24cc3268534016e"
     },
     "development-build": {
       "exit": 0,
@@ -56,7 +74,7 @@
         "linux-development"
       ],
       "cwd": "/workspace/Nexora-delivery-773",
-      "log_sha256": "4362f0f76a350c35b65b088b31165794d0f8195a20433b22c6fb89a36be49ae0"
+      "log_sha256": "44f75b5c1c2050cc9cde661a383eb0e3f81fd45b5400acf59e6a6264e91844f7"
     },
     "development-gcc15": {
       "exit": 0,
@@ -78,7 +96,7 @@
         "--output-on-failure"
       ],
       "cwd": "/workspace/Nexora-delivery-773",
-      "log_sha256": "0f647d0871546ac05beb4a88835f65820782b6b4d67a0033370e3781e8edcaf2"
+      "log_sha256": "31e0ada8a084f8316e86c15eb1baa69a939dee8e5ad3db556b3ce42e54984919"
     },
     "shipping-configure": {
       "exit": 0,
@@ -98,7 +116,7 @@
         "-DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON"
       ],
       "cwd": "/workspace/Nexora-delivery-773",
-      "log_sha256": "8b77b36cb81249437d3d64360964a173b30dff6fada5a7568e9d9991e716f75d"
+      "log_sha256": "866af1df8cd93b7ec44e046393af494c868ba0e6ceacd0fb7f20591c3baaa170"
     },
     "shipping-build": {
       "exit": 0,
@@ -109,7 +127,7 @@
         "linux-shipping"
       ],
       "cwd": "/workspace/Nexora-delivery-773",
-      "log_sha256": "c2ed93ffd93c840755c0e91392ae593b1b52de9b7aaf6c208123feaceb1dde2e"
+      "log_sha256": "9a01b9fa1c1bf4604e5d8d2a984ce7fa906ded64fa5ba1137b805ecc22aeca2c"
     },
     "shipping-animation-native": {
       "exit": 0,
@@ -168,7 +186,7 @@
         "NexoraGameProjectPackageTests"
       ],
       "cwd": "/workspace/Nexora-delivery-773",
-      "log_sha256": "ea340668310a46dfc816923485f39a37f84ea2fa34aea08cd8164b3f563d15d1"
+      "log_sha256": "6d49162e142158b28c09419217daf529b84eb183016f406fe328075adc09862d"
     },
     "monolithic-test": {
       "exit": 0,
@@ -181,7 +199,7 @@
         "--output-on-failure"
       ],
       "cwd": "/workspace/Nexora-delivery-773",
-      "log_sha256": "d7f34e833be1ac9d4ca4e40d0cd1ca76fdbef93d84b303e5065aefab4f63c886"
+      "log_sha256": "1ad19a7a45956bc8173d66a8152a1450b2053273c1e98124b66d6df3cf11e8eb"
     },
     "feature-off-configure": {
       "exit": 0,
@@ -213,7 +231,7 @@
         "NexoraProjectPlayer"
       ],
       "cwd": "/workspace/Nexora-delivery-773",
-      "log_sha256": "6d6963cdb7c52800f4415e785cfd13c4285de6da08ac7d8efe229d4431ebdfc0"
+      "log_sha256": "0fef7a0dd7ab60cbeabc58051c42e720925863569d47681005d6734deaf779d0"
     },
     "feature-off-refusal": {
       "exit": 0,
@@ -222,7 +240,7 @@
         "/workspace/work/engine-goal-20261112/authoring/game-clip-roots/verify-off.py"
       ],
       "cwd": "/workspace/Nexora-delivery-773",
-      "log_sha256": "3301298fe027e6a69062d6144dd310a2a0b550816f591e97646fd3191c0cf6a5"
+      "log_sha256": "1a930419e85d303afa59e2043bd9c18141af089721ccfba83d1393268b802232"
     }
   },
   "gcc15": {
@@ -641,7 +659,7 @@
           "-c",
           "/workspace/Nexora-delivery-773/Engine/EditorImGui/src/EditorImGui.cpp"
         ],
-        "source_sha256": "2e68c7f9f0ee8a2d3f7bbe402bbc70c1b5a328c58fc62bc84348c0c5b64bf2af",
+        "source_sha256": "2e576afe93c04959c047c682c9246c98009764dc95f594837b2d8b93cdcbbdfa",
         "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       },
       {
@@ -695,28 +713,28 @@
   },
   "native": {
     "development": {
-      "receipt": "build/linux-development/artifacts/editor-sprite-sources/build-1794647865640430920/receipt.json",
-      "sha256": "e93721aa44287989fda1297bb3f6bfc9cecbceb89ff6bf2eafad99b64d0c24fb",
+      "receipt": "build/linux-development/artifacts/editor-sprite-sources/build-1794652216962578042/receipt.json",
+      "sha256": "573b60995aacb269e83fc5b900063e50e3908cea3b160d769b3d3851d957ed86",
       "report": {
         "status": "RENDERED_GAME_PACKAGE",
         "native_rendering": true,
-        "start_scene": "4567c553-f9f8-9af9-32da-63b5665f73a9",
-        "active_scene": "4567c553-f9f8-9af9-32da-63b5665f73a9",
+        "start_scene": "f022f018-d44b-938e-0b30-db2d49160102",
+        "active_scene": "f022f018-d44b-938e-0b30-db2d49160102",
         "camera": "0",
         "gameplay_loaded": true,
-        "gameplay_updates": 1449,
+        "gameplay_updates": 2541,
         "scene_commits": 1,
         "rejected_requests": 0,
         "scene_records": 1,
         "instances": 1,
         "stored_entities": 3,
-        "presented_frames": 1450,
-        "scene_draw_calls": 1450,
-        "sprite_draw_calls": 1450,
+        "presented_frames": 2542,
+        "scene_draw_calls": 2542,
+        "sprite_draw_calls": 2542,
         "visible_sprites": 2,
         "geometry_residency_available": true,
         "geometry_uploads": 1,
-        "geometry_hits": 1449,
+        "geometry_hits": 2541,
         "geometry_native_bytes": 4096,
         "geometry_cpu_bytes": 150,
         "scene_texture_uploads": 3,
@@ -776,28 +794,28 @@
       "source_deleted": true
     },
     "shipping": {
-      "receipt": "build/linux-shipping/artifacts/editor-sprite-sources/build-1794648140681965246/receipt.json",
-      "sha256": "49fce70e8a1fb7682bc1a41206ab057c4f1a9fb3c6347a4fbbc12b2989eb96bc",
+      "receipt": "build/linux-shipping/artifacts/editor-sprite-sources/build-1794652621028683073/receipt.json",
+      "sha256": "0131347aa84388e4acddc2f37702b33d524c2184f50e5ca4bf046fbd3eea5600",
       "report": {
         "status": "RENDERED_GAME_PACKAGE",
         "native_rendering": true,
-        "start_scene": "b14285fa-c884-e86d-fadd-3b4dfe842e5d",
-        "active_scene": "b14285fa-c884-e86d-fadd-3b4dfe842e5d",
+        "start_scene": "ef364974-d1d5-ad86-f0ae-973faa9152da",
+        "active_scene": "ef364974-d1d5-ad86-f0ae-973faa9152da",
         "camera": "0",
         "gameplay_loaded": true,
-        "gameplay_updates": 2920,
+        "gameplay_updates": 1356,
         "scene_commits": 1,
         "rejected_requests": 0,
         "scene_records": 1,
         "instances": 1,
         "stored_entities": 3,
-        "presented_frames": 2921,
-        "scene_draw_calls": 2921,
-        "sprite_draw_calls": 2921,
+        "presented_frames": 1357,
+        "scene_draw_calls": 1357,
+        "sprite_draw_calls": 1357,
         "visible_sprites": 2,
         "geometry_residency_available": true,
         "geometry_uploads": 1,
-        "geometry_hits": 2920,
+        "geometry_hits": 1356,
         "geometry_native_bytes": 4096,
         "geometry_cpu_bytes": 150,
         "scene_texture_uploads": 3,
@@ -861,11 +879,11 @@
     "command": [
       "/workspace/Nexora-delivery-773/build/source-reload-feature-off/Apps/ProjectPlayer/NexoraProjectPlayer",
       "--verify-game-package",
-      "/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/build-1794647865640430920/moved \u904a\u6232/Game.nxgame"
+      "/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/build-1794652216962578042/moved \u904a\u6232/Game.nxgame"
     ],
     "exit": 1,
     "stdout": "",
-    "stderr": "Nexora logs: /workspace/work/engine-goal-20261112/state/Nexora/Logs/run-1794648242273847477-596977-0\nGame Sprite admission requires TwoD support\n"
+    "stderr": "Nexora logs: /workspace/work/engine-goal-20261112/state/Nexora/Logs/run-1794652727876670437-622844-0\nGame Sprite admission requires TwoD support\n"
   },
   "legacy_source_wire": {
     "tree": "/workspace/Nexora-scene-ui-composition",
@@ -905,6 +923,29 @@
   "ownership": "Explicit selected Clip roots; complete source/Atlas closure; retained immutable Clip after producer/source deletion",
   "scope": "Native frames render existing authored static source references beside unchanged 3D. CPU Animator verifies retained Clip clocks. Main gameplay animation/pool API publication and full reload acceptance remain open.",
   "shipping_producer_scope": "Development Editor producer with Shipping Player/runtime profile; Shipping forcibly disables the Editor.",
+  "historical_d153_hosted_failure": {
+    "head": "d153db95b70935c008b40b9d408769acb1fbfbac",
+    "failed_job": 132404277159,
+    "failed_tests": [
+      {
+        "name": "editor.windows_startup_integration",
+        "reason": "Startup/Ready deadline exceeded",
+        "seconds": 35.46
+      },
+      {
+        "name": "editor.windows_build_workflow",
+        "reason": "Stop Game did not drain",
+        "seconds": 101.41
+      }
+    ],
+    "push_success_job": 132404194275,
+    "push_lines": [
+      "2026-11-14T09:55:11.1955748Z 256/464 Test #256: editor.windows_startup_integration .......................   Passed   20.72 sec\r",
+      "2026-11-14T09:57:16.3770570Z 257/464 Test #257: editor.windows_build_workflow ............................   Passed  125.18 sec\r",
+      "2026-11-14T10:15:02.4425180Z 100% tests passed out of 464\r"
+    ],
+    "root_cause": "Unconfirmed. Same-head independent Push succeeds; an earlier Stop interaction is tracked in nexora-whr.10. Preserve failures; final integrated head requires fresh checks."
+  },
   "hosted_ci": "Fresh exact-commit hosted CI required after publication; this receipt records local Linux execution only.",
   "milestones": {
     "workflow": "5/9",
@@ -918,7 +959,7 @@
     },
     "doc-ci": {
       "exit": 0,
-      "log_sha256": "ecb4ac67a677c61f6d689d695b733c802b8d7f470b33069819bd2b12298ef692"
+      "log_sha256": "96f051c917d559ede8318723a24ecfedfc31a14af023a375ec8349fc9c2b20fc"
     },
     "format": {
       "exit": 0,

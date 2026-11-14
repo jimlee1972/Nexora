@@ -1,7 +1,7 @@
 # Explicit main-game animation root capture — Linux, 2026-11-14
 
 Supporting task: `nexora-whr.8.3.1`. Full Linux Development configure/build/CTest passes
-**532/532**, zero failures/skips, **2039.81 s**. All **13** sequential local gates pass.
+**536/536**, zero failures/skips, **2184.80 s**. All **13** sequential local gates pass.
 The [machine receipt](ED-WF-08-GameClipRoots-Cloud.json) records all 16 frozen source/build/test
 hashes, gate logs, actual GCC 15 commands, native receipts and compatibility provenance.
 
@@ -26,7 +26,7 @@ payloads, and mutate correctly checksummed root counts/order/identity/capability
 ## Executed validation
 
 - `cmake --preset linux-development`, `cmake --build --preset linux-development`,
-  `ctest --preset linux-development --output-on-failure`: **532/532**, **2039.81 s**.
+  `ctest --preset linux-development --output-on-failure`: **536/536**, **2184.80 s**.
 - Ten actual affected Development compile commands replayed with GNU 15.2, preserving warnings.
 - `cmake --preset linux-shipping -DNEXORA_SHIPPING_PROFILE=Full ...`
   and `cmake --build --preset linux-shipping`: Full Monolithic runtime. The producer is the Development Editor with the Shipping runtime profile;
@@ -54,11 +54,28 @@ Save, Reload and script Build, with oversized handoff rejection preserving the p
 The first optional Shipping native invocation used a nonexistent Shipping Editor path and
 failed before Build; its logs/receipt remain in `pre-shipping-producer-scope`. Project CMake forces
 Editor OFF in Shipping. Corrected optional acceptance uses the Development Editor producer and
-Shipping Player/runtime profile with the same 16 product sources; the valid full532 result is
-retained. Those earlier archived receipts are historical. Final acceptance uses the frozen 16-file
+Shipping Player/runtime profile for the original source generation; its valid full532 result is
+retained. After main advanced with separately delivered Scene View PR785, local integration
+`ec083a83` preserves both complete roadmap sections and all15 other own source files. The UI
+source includes the new main code plus the existing root guard. Original d153 full532/13gates
+and hosted CI snapshots remain in `pre-main-edb5e17b`; final integrated acceptance reruns all536
+and every gate on main `edb5e17b`. Those earlier archived receipts are historical. Final acceptance uses the frozen 16-file
 generation through the complete gate chain. No failed native oracle, warning, deadline or input
 condition was weakened. The Shipping standalone receipt directory was moved into ignored build
 evidence after execution; original command paths remain historical observations in its receipt.
+
+## Retained original-head hosted result
+
+The original d153 Windows PR desktop job 132404277159 failed two GUI cases:
+`editor.windows_startup_integration` at its existing Startup/Ready deadline (35.46 s), and
+`editor.windows_build_workflow` reporting Stop Game did not drain (101.41 s). The complete decoded
+log is retained externally (1018708 bytes, SHA-256
+`7dd2489bfb8a3286cf91f3dd347230950d60460d6848e4a30ced912e2daa02fe`).
+Independent same-head Windows Push job 132404194275 succeeds, with those cases 20.72/125.18 s;
+its summary is 100% tests passed out of 464, with the existing optional font skip retained.
+The earlier Stop interaction remains open under `nexora-whr.10`; no shared root cause or runner
+capacity diagnosis is claimed. Original failures are retained, no deadline/assertion is relaxed,
+and fresh checks on the integrated updated head remain required before merge.
 
 ## Scope and remaining work
 

@@ -1072,7 +1072,7 @@ canonical SDK 替換與128次拒絕；Linux 原生版本在替換、回復與來
 支援工作 `nexora-whr.8.3.1` 在 Build 設定加入明確且不可變的 Clip 根資產、完整擁有的
 Clip／來源／Atlas 擷取，以及獨立的遊戲封裝能力版本 4。沒有根資產的設定與能力版本 2／3
 封裝維持既有位元組。型別驗證檢查傳統影格區域與完整來源依賴；保留的 Clip 在產生者與
-原始檔移除後仍擁有影格 UUID。完整 Linux **532/532**、零失敗／略過、**2039.81 秒**、13 項本機閘門、
+原始檔移除後仍擁有影格 UUID。完整 Linux **536/536**、零失敗／略過、**2184.80 秒**、13 項本機閘門、
 Development／Shipping 原生像素、Monolithic 與 TwoD-OFF 明確拒絕均通過。
 [執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-GameClipRoots-Linux-2026-11-14.md) 記錄所有權與相容性。
 交付前仍須精確提交的最新雲端 CI。主程式來源／動畫／
