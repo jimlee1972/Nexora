@@ -1,6 +1,6 @@
 # Main Inspector Sprite source details — Linux, 2026-11-14
 
-Task `nexora-whr.7.10`; base main `edb5e17ba85209b93d307d6bd8cc0932fca7017d`. Independent Clip catalog PR #786 is preserved.
+Task `nexora-whr.7.10`; base main `72d20c516904302742002c01aca9edde788b4e11`. Independent Clip catalog PR #786 is preserved.
 Workflow **5/9**, graphical Editor **0/8**, TwoD **9/11** remain unchanged.
 
 ## Behavior and ownership
@@ -16,10 +16,22 @@ and generation are resolved again on the next draw. Collapsed idle cost stays un
 See [UI contract](../../../../Engine/EditorImGui/README.md#main-sprite-source-inspector) and
 [native observer](../../../../Apps/Editor/README.md#native-project-and-asset-workflow-acceptance).
 
+## Main integration
+
+Initial head `6015e663` passed unfiltered510/510 Linux tests and all41 applicable hosted checks,
+with all3 workflows succeeding on attempt1. Before merge, independently owned PR #786 landed as
+`72d20c51`, creating six roadmap append conflicts. Both full sets of records are preserved, and
+source-details records now live in the existing Inspector sections to keep future appends independent.
+All six own source files remain exact except the incoming one-line4096 Clip-root guard in
+EditorImGui.cpp; the TwoD geometry resolver and main application have no incoming changes.
+The complete combined gate is rerun below before committing the merge update. Prior source/log/CI
+hashes remain in the machine receipt and original immutable PR commit history. New-head hosted
+CI is required again before actual delivery; this is a new validated base, not a CI retry.
+
 ## Verification
 
-Complete Development Modular configure/all-build and unfiltered **510/510** tests pass,
-zero failures/skips, **1671.38 seconds**. All six frozen source hashes
+Complete Development Modular configure/all-build and unfiltered **511/511** tests pass,
+zero failures/skips, **1710.72 seconds**. All 21 frozen integration source hashes
 remain exact. [Machine receipt](ED-WF-07-SourceDetails-Cloud.json) retains every configured result,
 full gate commands, source/log/image hashes, native checks and the original fixture failure.
 Shipping Full, actual TwoD-OFF/testing-OFF graphical Editor/native Player, and actual graphical

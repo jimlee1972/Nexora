@@ -171,3 +171,24 @@ Build/relocated Player acceptance remains independent of the
 now admits this owning catalog through its single-pass Scene/Sprite/GUI compositor.
 Scene View authoring rendering, source animation/pool services, live source publication and reload
 are separate acceptance. See [executed Build evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-Linux-2026-11-13.md).
+
+## Explicit animation Clip roots
+
+Schema-3 `project.build.json` adds an explicit `animation_clips` UUID array to the schema-2 fields.
+Both SceneOnly and ScriptProject capture these roots through the same producer; scene references
+still authorize their own source roots. Capture never selects unrelated Content Clips implicitly.
+Every selected root must be an imported ready `.nx2clip` with matching typed identity. Source Clips
+capture their unique source UUIDs and each source's Atlas; legacy Clips capture their one Atlas.
+The common 4096-asset/64 MiB payload limits include the combined scene and animation closure.
+Missing/wrong-type/incompatible dependencies, invalid regions, stale imports and missing or changed
+mandatory Clip/source/Atlas sidecars reject. Their exact raw bytes join the final publication guard.
+
+`GameProjectExportInput::animation_clips` owns the explicit roots; pure cooking validates the typed
+closure before emitting game capability 4. Runtime structurally validates the graph independently
+of optional TwoD, whose `GameSpriteAssets` performs payload admission and returns immutable Clip
+owners. The catalog and Clips survive source removal/relocation. Unrooted Clips and any other extra
+asset reject. No-root settings/package writers retain their exact prior schema-1/2 and capability-2/3
+bytes. The C/Zig ABI and Clip/Atlas/source codecs are unchanged; C++ consumers rebuild.
+
+This delivers asset capture/admission. There is no implicit animation start, packaged main gameplay
+2D/source/pool service, live source publication or completed strict Editor reload acceptance.

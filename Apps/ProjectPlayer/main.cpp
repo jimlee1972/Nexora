@@ -54,7 +54,7 @@ int VerifyGame(const std::filesystem::path &path) {
 #endif
   }
   std::cout << "{\"status\":\"VERIFIED_GAME_PACKAGE\",\"schema_version\":1,\"capability\":"
-            << (project->SpriteAssets().empty() ? 2 : 3) << ',' << "\"start_scene\":\""
+            << project->Capability() << ',' << "\"start_scene\":\""
             << project->StartupScene().ToString()
             << "\",\"scene_count\":" << project->Scenes().size()
             << ",\"asset_count\":" << project->AssetCount()

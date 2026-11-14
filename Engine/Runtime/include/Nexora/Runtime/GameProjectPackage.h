@@ -31,6 +31,7 @@ struct GameProjectPackage final {
   AssetUuid start_scene;
   std::vector<GameSceneEntry> scenes;
   std::vector<RuntimeBlob> assets;
+  std::vector<AssetUuid> animation_clips{};
 };
 
 // Frozen catalog and scene templates. Different templates share immutable decoded geometry/PBR
@@ -41,9 +42,15 @@ public:
   [[nodiscard]] AssetUuid StartupScene() const noexcept { return start_scene_; }
   [[nodiscard]] std::span<const GameSceneEntry> Scenes() const noexcept { return catalog_; }
   [[nodiscard]] std::size_t AssetCount() const noexcept { return asset_count_; }
-  // Structurally validated, owning source/Atlas NXABs. Optional TwoD consumers must additionally
-  // validate the typed payloads before reporting admission, executing callbacks or native drawing.
+  // Structurally validated, owning source/Atlas/Clip NXABs. Optional TwoD consumers must
+  // additionally validate the typed payloads before reporting admission, executing callbacks or
+  // native drawing.
   [[nodiscard]] std::span<const RuntimeBlob> SpriteAssets() const noexcept { return sprites_; }
+  // Canonical explicit Clip roots; the immutable catalog does not start animation implicitly.
+  [[nodiscard]] std::span<const AssetUuid> AnimationClips() const noexcept { return clips_; }
+  [[nodiscard]] unsigned Capability() const noexcept {
+    return !clips_.empty() ? 4U : sprites_.empty() ? 2U : 3U;
+  }
   [[nodiscard]] std::shared_ptr<const LoadedStaticProject> ResolveScene(AssetUuid) const;
   [[nodiscard]] std::shared_ptr<const LoadedStaticProject> ResolveScene(std::string_view) const;
 
@@ -54,6 +61,7 @@ private:
   std::unordered_map<AssetUuid, std::shared_ptr<const LoadedStaticProject>, AssetUuidHash> scenes_;
   std::size_t asset_count_{};
   std::vector<RuntimeBlob> sprites_;
+  std::vector<AssetUuid> clips_;
 };
 
 [[nodiscard]] NEXORA_RUNTIME_API std::optional<LoadedGameProject>

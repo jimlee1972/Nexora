@@ -40,6 +40,15 @@ std::optional<GameSpriteAssets> GameSpriteAssets::Load(std::span<const runtime::
           blob.dependencies.front() != source->atlas)
         return reject("Game Sprite source payload disagrees with its identity/dependencies.");
       result.sources_.emplace(blob.id, std::make_shared<const SpriteAsset>(std::move(*source)));
+    } else if (blob.type == "sprite_clip") {
+      auto clip = DecodeClip(blob.payload);
+      auto dependencies = blob.dependencies;
+      std::ranges::sort(dependencies, [](auto a, auto b) {
+        return a.high != b.high ? a.high < b.high : a.low < b.low;
+      });
+      if (!clip || clip->id != blob.id || ClipDependencies(*clip) != dependencies)
+        return reject("Game Clip payload disagrees with its identity/dependencies.");
+      result.clips_.emplace(blob.id, std::make_shared<const Clip>(std::move(*clip)));
     } else
       return reject("Unsupported game Sprite asset type.");
   }
@@ -59,6 +68,21 @@ std::optional<GameSpriteAssets> GameSpriteAssets::Load(std::span<const runtime::
         region->second->height != source->trimHeight)
       return reject("Game Sprite source region/trim closure is invalid.");
   }
+  for (const auto &[id, clip] : result.clips_) {
+    static_cast<void>(id);
+    if (ClipUsesSources(*clip)) {
+      for (const auto dependency : ClipDependencies(*clip))
+        if (!result.Source(dependency))
+          return reject("Game Clip source dependency is missing or wrong-typed.");
+    } else {
+      const auto atlas = regions.find(clip->atlas);
+      if (atlas == regions.end())
+        return reject("Game Clip Atlas dependency is missing.");
+      for (const auto &frame : clip->frames)
+        if (!atlas->second.contains(frame.region))
+          return reject("Game Clip Atlas region is missing.");
+    }
+  }
   return result;
 }
 
@@ -69,6 +93,10 @@ std::shared_ptr<const SpriteAsset> GameSpriteAssets::Source(AssetId id) const {
 std::shared_ptr<const Atlas> GameSpriteAssets::ResolveAtlas(AssetId id) const {
   const auto found = atlases_.find(id);
   return found == atlases_.end() ? nullptr : found->second;
+}
+std::shared_ptr<const Clip> GameSpriteAssets::ResolveClip(AssetId id) const {
+  const auto found = clips_.find(id);
+  return found == clips_.end() ? nullptr : found->second;
 }
 
 std::optional<SpriteFrame> GameSpriteAssets::Extract(const runtime::GameSceneView &view,

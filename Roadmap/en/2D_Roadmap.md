@@ -1069,6 +1069,20 @@ Module-backed main Play was independently delivered by `nexora-whr.7.4` / PR #77
 source animation/reload and full ED-WF-07 remain open. Workflow **5/9**, Editor **0/8**, TwoD **9/11**
 and physical acceptance are unchanged.
 
+### ✅ Source geometry inspection (2026-11-14)
+
+Supporting `nexora-whr.7.10` adds initially collapsed, read-only main Inspector details for
+source/Atlas UUIDs, original size, top-left trim/Atlas region, bottom-left Pivot, PPU, borders
+and source-local bounds before entity transforms. The shared geometry resolver reads current
+imported immutable metadata without file IO, authoring mutation or GPU texture registration.
+Actual 1×/2× widgets cover assignment/history, mixed/missing/unsupported references, reimport,
+read-only/Play inspection and context removal. Native Linux X11 checks asymmetric values,
+presented pixels, exact Undo/Redo/save/reopen and unchanged read-only project hashes.
+Full Linux **511/511**, Shipping, TwoD-OFF/testing-OFF and graphical Monolithic gates pass;
+exact-head hosted CI is required before delivery. See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceDetails-Linux-2026-11-14.md).
+Workflow **5/9**, Editor **0/8**, TwoD **9/11**, full ED-WF-07/08, production animation/reload
+and physical/clean-host acceptance remain unchanged/open. PR #786 owns the independent Clip catalog.
+
 ## ✅ Authored Sprite source document persistence (2026-11-13)
 
 The ED-WF-07 supporting slice `nexora-whr.7.2` adds an owning source catalog to ND2D schema 2,
@@ -1207,16 +1221,14 @@ editing, main packaged source animation/pool/publication/reload and full ED-WF-0
 Exact-head hosted CI is required before delivery; Workflow **5/9**, graphical Editor **0/8**, TwoD **9/11** and
 physical/clean-host acceptance are unchanged.
 
-## ✅ Sprite source geometry inspection (2026-11-14)
+## ✅ Explicit main-game animation root capture (2026-11-14)
 
-Supporting `nexora-whr.7.10` adds initially collapsed, read-only main Inspector details for
-source/Atlas UUIDs, original size, top-left trim/Atlas region, bottom-left Pivot, PPU, borders
-and source-local bounds before entity transforms. The shared geometry resolver reads current
-imported immutable metadata without file IO, authoring mutation or GPU texture registration.
-Actual 1×/2× widgets cover assignment/history, mixed/missing/unsupported references, reimport,
-read-only/Play inspection and context removal. Native Linux X11 checks asymmetric values,
-presented pixels, exact Undo/Redo/save/reopen and unchanged read-only project hashes.
-Full Linux **510/510**, Shipping, TwoD-OFF/testing-OFF and graphical Monolithic gates pass;
-exact-head hosted CI is required before delivery. See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceDetails-Linux-2026-11-14.md).
-Workflow **5/9**, Editor **0/8**, TwoD **9/11**, full ED-WF-07/08, production animation/reload
-and physical/clean-host acceptance remain unchanged/open. PR #786 owns the independent Clip catalog.
+Supporting `nexora-whr.8.3.1` adds explicit immutable Clip roots to Build settings, exact owning
+Clip/source/Atlas capture and distinct game-package capability 4. No-root settings and capability-2/3
+package writers retain their prior bytes. Typed admission validates legacy regions and complete
+source closure; retained Clips own their frame UUIDs after producer/source removal. Full Linux **536/536**, zero failures/skips, **2184.80 s**, 13 local gates,
+Development/Shipping native pixels, Monolithic and TwoD-OFF refusal pass.
+[Execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-GameClipRoots-Linux-2026-11-14.md) records ownership and compatibility.
+Fresh exact-head hosted CI is required before delivery. Main gameplay source/animation/pool services, live
+publication, the graphical Clip picker and complete ED-WF-07/08 remain open. Workflow **5/9**,
+Editor **0/8**, TwoD **9/11** and physical/clean-host acceptance are unchanged.

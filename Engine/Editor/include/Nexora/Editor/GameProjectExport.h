@@ -16,6 +16,7 @@ struct GameProjectExportInput final {
   std::vector<StaticMeshAsset> meshes;
   std::vector<StaticMaterialAsset> materials;
   std::vector<runtime::RuntimeBlob> sprite_assets;
+  std::vector<runtime::AssetUuid> animation_clips{};
 };
 // Pure owning cooker; captures are borrowed for this call. Shared asset closures merge by full
 // UUID and identical cooked bytes. Unsupported required behavior/identity conflicts reject.
