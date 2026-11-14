@@ -1503,6 +1503,12 @@ Scene View, configured package Play and Build are documented as separate consume
 production source animation/reload remains open.
 With `NEXORA_SPRITE_SOURCE_INSPECTOR_TEST_EVIDENCE`, a separate test-only frame heartbeat proves
 that stable positions were observed across new frames; ordinary geometry output stays change-only.
+The same opt-in observer emits change-only copies of the currently expanded Sprite source details.
+The native fixture checks asymmetric trim/Pivot/PPU/Atlas-region values and independent local bounds
+in writable and read-only launches, captures the presented panel and verifies unchanged scene and
+source files. This inspection executes no authoring command; exact Undo/Redo and read-only whole
+project hashes retain their existing independent assertions. No source metadata is logged unless
+the explicit test evidence flag is set.
 
 `editor.linux_project_asset_workflow` drives the real project selector and Content widgets
 with X11 pointer/key events: create, asynchronous initial OBJ import, filtering and selection,

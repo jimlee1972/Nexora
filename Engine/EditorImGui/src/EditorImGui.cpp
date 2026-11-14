@@ -8,6 +8,7 @@
 #include "Nexora/Runtime/RenderSync.h"
 #if defined(NEXORA_HAS_2D)
 #include "Nexora/Editor/SpriteSourceCatalog.h"
+#include "Nexora/TwoD/Scene.h"
 #endif
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
 #include "EditorImGuiTestAccess.h"
@@ -542,7 +543,8 @@ struct EditorImGuiHost::State final {
   };
   std::optional<SpriteSourcePopup> inspector_sprite_popup;
   std::string inspector_sprite_label;
-  std::array<std::optional<std::array<float, 2>>, 3> inspector_sprite_positions{};
+  std::string inspector_sprite_details;
+  std::array<std::optional<std::array<float, 2>>, 4> inspector_sprite_positions{};
   std::vector<std::pair<runtime::AssetUuid, std::array<float, 2>>> inspector_sprite_choices;
 #endif
   std::uint32_t inspector_selection = 0;
@@ -5802,6 +5804,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   Activate(state_->context);
 #if defined(NEXORA_HAS_2D)
   state_->inspector_sprite_label.clear();
+  state_->inspector_sprite_details.clear();
   state_->inspector_sprite_positions = {};
   state_->inspector_sprite_choices.clear();
 #endif
@@ -10030,6 +10033,15 @@ EditorImGuiTestAccess::InspectorSpriteSourcePosition(const EditorImGuiHost &host
   static_cast<void>(host);
   static_cast<void>(control);
   return std::nullopt;
+#endif
+}
+std::string_view
+EditorImGuiTestAccess::InspectorSpriteSourceDetails(const EditorImGuiHost &host) noexcept {
+#if defined(NEXORA_HAS_2D)
+  return host.state_->inspector_sprite_details;
+#else
+  static_cast<void>(host);
+  return {};
 #endif
 }
 std::optional<std::array<float, 2>>

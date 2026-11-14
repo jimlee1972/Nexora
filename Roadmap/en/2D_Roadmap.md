@@ -1206,3 +1206,17 @@ This uses existing linear PBR sampling and alpha cutoff0.5. Partial blending, pi
 editing, main packaged source animation/pool/publication/reload and full ED-WF-07/08 remain open. Full Linux 510/510, Shipping, actual TwoD-OFF/noTests and graphical Monolithic gates pass.
 Exact-head hosted CI is required before delivery; Workflow **5/9**, graphical Editor **0/8**, TwoD **9/11** and
 physical/clean-host acceptance are unchanged.
+
+## ✅ Sprite source geometry inspection (2026-11-14)
+
+Supporting `nexora-whr.7.10` adds initially collapsed, read-only main Inspector details for
+source/Atlas UUIDs, original size, top-left trim/Atlas region, bottom-left Pivot, PPU, borders
+and source-local bounds before entity transforms. The shared geometry resolver reads current
+imported immutable metadata without file IO, authoring mutation or GPU texture registration.
+Actual 1×/2× widgets cover assignment/history, mixed/missing/unsupported references, reimport,
+read-only/Play inspection and context removal. Native Linux X11 checks asymmetric values,
+presented pixels, exact Undo/Redo/save/reopen and unchanged read-only project hashes.
+Full Linux **510/510**, Shipping, TwoD-OFF/testing-OFF and graphical Monolithic gates pass;
+exact-head hosted CI is required before delivery. See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceDetails-Linux-2026-11-14.md).
+Workflow **5/9**, Editor **0/8**, TwoD **9/11**, full ED-WF-07/08, production animation/reload
+and physical/clean-host acceptance remain unchanged/open. PR #786 owns the independent Clip catalog.

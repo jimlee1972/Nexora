@@ -404,7 +404,10 @@ public:
   InspectorMaterialPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
   [[nodiscard]] static std::string_view
   InspectorSpriteSourceLabel(const EditorImGuiHost &host) noexcept;
-  // Visible centers, including disabled controls: combo, first choice, clear (0, 1, 2).
+  // Current expanded text, empty for collapsed/unavailable details. Frame-only observation.
+  [[nodiscard]] static std::string_view
+  InspectorSpriteSourceDetails(const EditorImGuiHost &host) noexcept;
+  // Visible centers, including disabled controls: combo, first choice, clear, details (0..3).
   [[nodiscard]] static std::optional<std::array<float, 2>>
   InspectorSpriteSourcePosition(const EditorImGuiHost &host, std::size_t control) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
