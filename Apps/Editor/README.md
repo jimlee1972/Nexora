@@ -1612,6 +1612,11 @@ operations, and native Game viewport/pixel/runtime/source assertions still verif
 The native Game fixture acknowledges only those reserved Play keys; movement/input-routing
 keys retain their original runtime path because game capture intentionally bypasses ImGui.
 Each start gesture and its Game viewport result share the original twelve-second deadline.
+The read-only reopen uses one Ctrl+1 gesture with processed Ctrl/digit-down/up observations
+before verifying the actual Scene viewport. The copied `scene_key` bit is available independently
+of TwoD and never changes focus. Readiness, all four native phases and viewport verification share
+the original twelve-second deadline; no retry or direct focus operation is added. The earlier
+unacknowledged intermittent failure remains unexplained; passing probes do not establish a fix.
 Both binary streams have one reader across every reopen, failures retain project/input/output,
 and short four-frame checks validate complete output with their original shutdown bounds.
 

@@ -4069,6 +4069,8 @@ int RunGraphical(std::optional<ProjectState> project,
                << " play_requests=" << shortcut.play_shortcut_requests
                << " play_command=" << static_cast<int>(shortcut.play_command)
                << " play_state=" << static_cast<int>(play.State());
+      // Copied digit state acknowledges native Ctrl+1 delivery without invoking panel focus.
+      geometry << " scene_key=" << Access::ScenePreviewKeys(ui)[4];
       geometry << " file_keys=";
       for (const bool key : shortcut.file_keys)
         geometry << key;

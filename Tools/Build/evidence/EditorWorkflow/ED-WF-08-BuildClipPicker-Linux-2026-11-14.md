@@ -1,6 +1,6 @@
 # Graphical Build animation Clip selection — Linux Cloud, 2026-11-14
 
-Local acceptance passes the full Linux Development gate: **538/538**, zero failures/skips, **2330.19 s**, and all **13 sequential local gates**. Exact-head hosted CI is required before delivery.
+Local acceptance passes the full Linux Development gate: **538/538**, zero failures/skips, **2273.16 s**, and all **13 sequential local gates**. Exact-head hosted CI is required before delivery.
 
 The main Build Settings Animation assets popup edits explicit immutable Clip roots. It captures
 only bounded owning UUID/path metadata from typed ready Content, preserves missing saved IDs,
@@ -26,6 +26,32 @@ input acknowledgement or pixel assertion was relaxed. Full final-generation vali
 
 Machine evidence: [ED-WF-08-BuildClipPicker-Cloud.json](ED-WF-08-BuildClipPicker-Cloud.json).
 
+## Combined-source Scene focus investigation
+
+The first main-integrated full attempt completed 260 passes and one failure in
+`editor.linux_native_game_materials`, then was deliberately interrupted (exit 130); it is not
+accepted as a full run. The writable material/Play phase passed. The read-only process restored
+its saved Game tab, but the opaque Ctrl+1 gesture did not yield a Scene viewport within twelve
+seconds. Control transitions were recorded without a digit observation, leaving delivery versus
+routing unproven. Original project, state, logs and source hashes are retained externally.
+
+Four ordinary raw/phased and four forced-batched/phased unchanged-binary probes passed. They do
+not reproduce the original trigger or establish product remediation. A separate open investigation
+tracks that cause. The generic opt-in observer now copies digit1, and the native fixture acknowledges
+one real Ctrl-down/1-down/1-up/Ctrl-up gesture before checking the original viewport. All phases
+share the original twelve-second deadline; material, runtime, pixel and read-only file assertions
+remain unchanged. Focused native material and project-input cases pass 2/2 (9.70 seconds).
+
+## Historical hosted failure
+
+On the earlier immutable pre-main head `a85d9d73`, the PR Build and Windows SDK workflows pass.
+The independent Push Windows workflow fails `editor.windows_build_workflow`: its PID-only tree
+includes `csrss.exe` and `wininit.exe` alongside `Game.exe` under Editor PID 736. Historical parent
+PID reuse is a candidate; process birth identity was not captured, so no root-cause fix is claimed.
+The complete original log and all job outcomes are retained. This is a separate open investigation
+from the earlier Stop/startup and Linux Scene-focus failures. No retry was issued on that head.
+New combined-source hosted acceptance must be recorded independently.
+
 ## Executed final source generation
 
 - `cmake --preset linux-development`, all-target build, unfiltered `ctest --preset linux-development --output-on-failure`: 538/538, including the actual GUI/native Clip picker and existing zero-root Build/Run/Stop workflows.
@@ -33,7 +59,7 @@ Machine evidence: [ED-WF-08-BuildClipPicker-Cloud.json](ED-WF-08-BuildClipPicker
 - Full Monolithic Shipping build and actual relocated native capability-4 acceptance using the Development Editor producer with the Shipping Player/runtime profile. Shipping intentionally disables Editor.
 - Graphical Monolithic build of both actual UI consumers and existing settings/export/runtime consumers: five CPU cases pass.
 - Actual TwoD-OFF/testing-OFF graphical Editor and native Player build, plus explicit capability-4 refusal before callbacks on the new graphical fixture's package.
-- Final metadata checks cover stable C API exports, documentation utilities, five C++/header/inl formatting checks, Python syntax, eleven Markdown files/three bilingual pairs and all eight frozen source hashes.
+- Final metadata checks cover stable C API exports, documentation utilities, five C++/header/inl formatting checks, Python syntax, eleven Markdown files/three bilingual pairs and all ten frozen source hashes.
 
 The machine receipt records exact commands, compiler argv, log and source hashes, full LastTest
 hash, native capture hashes and reports. Canonical SDK Build commands/inventories from the actual

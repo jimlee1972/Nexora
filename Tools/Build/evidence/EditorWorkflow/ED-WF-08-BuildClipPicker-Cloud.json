@@ -1,24 +1,26 @@
 {
   "status": "local_gates_and_metadata_passed_ci_pending",
-  "base": "72d20c516904302742002c01aca9edde788b4e11",
-  "validation_parent": "72d20c516904302742002c01aca9edde788b4e11",
+  "base": "1a057c16ce34b6d5c06d19ca52c3a35cb017efbd",
+  "validation_parent": "506227c54dfe344e6c45da470548572e5d984701",
   "scope": "main graphical explicit Clip selection; no main gameplay animation/pool/publication/reload acceptance",
   "frozen_sources": {
-    "Apps/Editor/main.cpp": "602e3cdb6a26dbba5cf39ed3b747ae23404216eb6b1d8000b157ba97b98b7092",
-    "Engine/EditorImGui/src/EditorImGui.cpp": "b56950eb3afe7f150997e8cea92f24d412e1bb3cb46c423bdea506e33a6718ac",
-    "Engine/EditorImGui/src/EditorImGuiTestAccess.h": "c1012487eeda19764eb31c98659e17d2371f73301400a54fd9c098eb7532821b",
+    "Apps/Editor/main.cpp": "2155d215e5aed5e95d08d4f55f8a0488f254aecb0200398739e76c7431ef87b6",
+    "Engine/EditorImGui/src/EditorImGui.cpp": "182ed3e57e06e69c5c0b35683cb80ab036ce97a395e430bf2c30c97c249a518c",
+    "Engine/EditorImGui/src/EditorImGuiTestAccess.h": "918516d76fa289a9f9681c1870687ee712ff1d65736978b9194f0dc32d6eee5b",
     "Engine/EditorImGui/src/BuildAnimationPicker.inl": "954713a66d5238f30b0f0376fff4549dcf898b0bfbac186fc5da04aa188201b5",
     "Tests/Editor/CMakeLists.txt": "a190272f7dbbaa9c9e7c1004fb889eef14bd22c6090ed52456959f1b0a927298",
     "Tests/EditorImGui/CMakeLists.txt": "526b02ebf314252cac443d9217a65a1f183cf78ff19268a4412f07152674bf04",
     "Tests/Editor/LinuxBuildAnimationPicker.py": "79bbe49be10ca5458ad50ac4c1960f74768863915fbf488194d30ce0a577fcfd",
-    "Tests/EditorImGui/BuildAnimationPickerTests.cpp": "250a68a12af4d189ea83e63b7ecc54ed279af4a086a6163ca91aa8c27233a80b"
+    "Tests/EditorImGui/BuildAnimationPickerTests.cpp": "250a68a12af4d189ea83e63b7ecc54ed279af4a086a6163ca91aa8c27233a80b",
+    "Tests/EditorImGui/NativeSceneInput.py": "c21f9a1f242b159701230cddfc26f14cc934611c0fec9d7cb9eea7a587acec62",
+    "Tests/EditorImGui/LinuxNativeGameView.py": "200eaa5ddd1f867f047ab7316e7249e20cb72ec05d97fe14e5abdcda4bcddc2d"
   },
   "full": {
     "passed": 538,
     "failed": 0,
     "skipped": 0,
-    "seconds": 2330.19,
-    "last_test_sha256": "63566fdb9b42c1158bd2a71ff6df33d9ada0f79042e663630db6d550c9040767"
+    "seconds": 2273.16,
+    "last_test_sha256": "98d6b6ec12149a0733db569796305d84bd772a7283fae12aaf57cfcc5507394d"
   },
   "gates": [
     {
@@ -37,7 +39,7 @@
       ],
       "exit": 0,
       "log_bytes": 183,
-      "log_sha256": "1b29b33056a330dac333542cc20871b975153e6ad63095bd4f360937930217c9"
+      "log_sha256": "a460f559d9e717d63055c026acb1c9e3e1623377e7a300f8c8caf181c8ac06aa"
     },
     {
       "name": "development-build",
@@ -48,8 +50,8 @@
         "linux-development"
       ],
       "exit": 0,
-      "log_bytes": 65630,
-      "log_sha256": "a076b653d8184b2809b3ec9e9c3d0c3c16366f8cac7b0f50f0c0f00bdc0a581a"
+      "log_bytes": 27409,
+      "log_sha256": "9c2f87e27fba18f25a804f6e78775f853d87cd6ba4d5472d57202790206e8504"
     },
     {
       "name": "development-gcc15",
@@ -73,7 +75,7 @@
       ],
       "exit": 0,
       "log_bytes": 81318,
-      "log_sha256": "c9f73fae8d313ad20857b5649c988be9da8ba058432141da3db69dbcd37c8468"
+      "log_sha256": "59de318815fc23279d91e14318f87de1ae6371596a78fe9958f737a159018bf1"
     },
     {
       "name": "shipping-configure",
@@ -94,7 +96,7 @@
       ],
       "exit": 0,
       "log_bytes": 142,
-      "log_sha256": "8b77b36cb81249437d3d64360964a173b30dff6fada5a7568e9d9991e716f75d"
+      "log_sha256": "732ddfe9c1df42980f4ca2a2b1fbd089b2cb63c6377ec44aabb9902f8ba60803"
     },
     {
       "name": "shipping-build",
@@ -106,31 +108,14 @@
       ],
       "exit": 0,
       "log_bytes": 919,
-      "log_sha256": "70463a083180b5a35efc5fcda172dc184fdcd14123db17db121261047de585ff"
+      "log_sha256": "b521b43d1ba15daeedc8e6fdb0624764de17d3da25d7bc02658f7d929a7eeb16"
     },
     {
       "name": "shipping-animation-native",
       "command": [
-        "python3",
-        "Tests/Editor/LinuxGameSpriteBuild.py",
-        "--animation-roots",
-        "--shipping",
-        "--editor",
-        "/workspace/Nexora-delivery-773/build/linux-development/Apps/Editor/NexoraEditor",
-        "--player",
-        "/workspace/Nexora-delivery-773/build/linux-shipping/Apps/ProjectPlayer/NexoraProjectPlayer",
-        "--fixture",
-        "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-        "--xvfb",
-        "/workspace/work/engine-goal-20261112/sysroot/usr/bin/Xvfb",
-        "--xdotool",
-        "/workspace/work/engine-goal-20261112/sysroot/usr/bin/xdotool",
-        "--cmake",
-        "/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/cmake/data/bin/cmake",
-        "--ninja",
-        "/workspace/work/engine-goal-20261112/tools/bin/ninja",
-        "--zig",
-        "/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/ziglang/zig"
+        "bash",
+        "-c",
+        "cd /workspace/Nexora-delivery-773/build/linux-shipping && exec python3 /workspace/Nexora-delivery-773/Tests/Editor/LinuxGameSpriteBuild.py --animation-roots --shipping --editor /workspace/Nexora-delivery-773/build/linux-development/Apps/Editor/NexoraEditor --player /workspace/Nexora-delivery-773/build/linux-shipping/Apps/ProjectPlayer/NexoraProjectPlayer --fixture /workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests --xvfb /workspace/work/engine-goal-20261112/sysroot/usr/bin/Xvfb --xdotool /workspace/work/engine-goal-20261112/sysroot/usr/bin/xdotool --cmake /workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/cmake/data/bin/cmake --ninja /workspace/work/engine-goal-20261112/tools/bin/ninja --zig /workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/ziglang/zig"
       ],
       "exit": 0,
       "log_bytes": 96,
@@ -153,7 +138,7 @@
       ],
       "exit": 0,
       "log_bytes": 190,
-      "log_sha256": "bd820ed592cfcadb481b075aaa8569817e39b029e822b26d532caa92e381fd07"
+      "log_sha256": "3fcbd95a725991a6fa493cb87484121312cd917c44dc8c218fd5b8e4f914510c"
     },
     {
       "name": "monolithic-build",
@@ -169,8 +154,8 @@
         "NexoraGameProjectPackageTests"
       ],
       "exit": 0,
-      "log_bytes": 1122,
-      "log_sha256": "38c16b5ad90055fd22a2baf54a2415d1dd0869fb0f9236ec983c30c7d5fedf1e"
+      "log_bytes": 1022,
+      "log_sha256": "0e701be9472e93d09adef489ab1c0a12a6d060e6712dc3516174bbefb4e716c3"
     },
     {
       "name": "monolithic-test",
@@ -184,7 +169,7 @@
       ],
       "exit": 0,
       "log_bytes": 727,
-      "log_sha256": "d917a8474734a23423b4a2f9b1ec343da7d0cd777e1c87f0e6ad03be49939f8f"
+      "log_sha256": "ab08bb340114fb2dae7d2f08bd35e7b0ec49fabd66d99f45f0059991f444be2a"
     },
     {
       "name": "feature-off-configure",
@@ -228,7 +213,7 @@
       ],
       "exit": 0,
       "log_bytes": 516,
-      "log_sha256": "ec654438114a63fb65b70bf00bac0e8f5d6fbd7ae2948b714913449fecf98120"
+      "log_sha256": "f4ba1ff39be83453901de52065abce6c1bb81d281584e4007286fe3d4cb9d549"
     }
   ],
   "gcc15": {
@@ -281,7 +266,7 @@
           "-c",
           "/workspace/Nexora-delivery-773/Apps/Editor/main.cpp"
         ],
-        "source_sha256": "602e3cdb6a26dbba5cf39ed3b747ae23404216eb6b1d8000b157ba97b98b7092",
+        "source_sha256": "2155d215e5aed5e95d08d4f55f8a0488f254aecb0200398739e76c7431ef87b6",
         "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       },
       {
@@ -334,7 +319,7 @@
           "-c",
           "/workspace/Nexora-delivery-773/Engine/EditorImGui/src/EditorImGui.cpp"
         ],
-        "source_sha256": "b56950eb3afe7f150997e8cea92f24d412e1bb3cb46c423bdea506e33a6718ac",
+        "source_sha256": "182ed3e57e06e69c5c0b35683cb80ab036ce97a395e430bf2c30c97c249a518c",
         "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       },
       {
@@ -434,9 +419,9 @@
     ]
   },
   "native": {
-    "receipt": "build/linux-development/artifacts/editor-sprite-sources/clip-picker-1794660600366272627/receipt.json",
-    "receipt_sha256": "ad3fd6de80a8a698fb14815b1bda4efd3e3dd514973a27fc6ac1ab842bd8df6c",
-    "test_seconds": 100.47,
+    "receipt": "build/linux-development/artifacts/editor-sprite-sources/clip-picker-1794667849233400119/receipt.json",
+    "receipt_sha256": "f5cf5d39a8b6f70021b0c3bb00d4a575dbd24e9c52db1ffeb3d3ddbc155c6242",
+    "test_seconds": 103.34,
     "selected_roots": [
       "00000000-0000-006a-0000-000000000001",
       "00000000-0000-0069-0000-000000000001"
@@ -446,7 +431,7 @@
         "status": "VERIFIED_GAME_PACKAGE",
         "schema_version": 1,
         "capability": 4,
-        "start_scene": "0f2fa535-d98f-df2b-b7f4-425c24dea863",
+        "start_scene": "62325b5b-2477-094d-a0f6-d6d43fe249fd",
         "scene_count": 2,
         "asset_count": 9,
         "native_rendering": false,
@@ -456,7 +441,7 @@
         "status": "VERIFIED_GAME_PACKAGE",
         "schema_version": 1,
         "capability": 4,
-        "start_scene": "0f2fa535-d98f-df2b-b7f4-425c24dea863",
+        "start_scene": "62325b5b-2477-094d-a0f6-d6d43fe249fd",
         "scene_count": 2,
         "asset_count": 9,
         "native_rendering": false,
@@ -465,8 +450,8 @@
       "legacy": {
         "status": "RENDERED_GAME_PACKAGE",
         "native_rendering": true,
-        "start_scene": "0f2fa535-d98f-df2b-b7f4-425c24dea863",
-        "active_scene": "0f2fa535-d98f-df2b-b7f4-425c24dea863",
+        "start_scene": "62325b5b-2477-094d-a0f6-d6d43fe249fd",
+        "active_scene": "62325b5b-2477-094d-a0f6-d6d43fe249fd",
         "camera": "0",
         "gameplay_loaded": false,
         "gameplay_updates": 0,
@@ -475,13 +460,13 @@
         "scene_records": 1,
         "instances": 1,
         "stored_entities": 3,
-        "presented_frames": 558,
-        "scene_draw_calls": 558,
+        "presented_frames": 673,
+        "scene_draw_calls": 673,
         "sprite_draw_calls": 0,
         "visible_sprites": 0,
         "geometry_residency_available": true,
         "geometry_uploads": 1,
-        "geometry_hits": 557,
+        "geometry_hits": 672,
         "geometry_native_bytes": 4096,
         "geometry_cpu_bytes": 150,
         "scene_texture_uploads": 3,
@@ -491,8 +476,8 @@
       "scene-only": {
         "status": "RENDERED_GAME_PACKAGE",
         "native_rendering": true,
-        "start_scene": "0f2fa535-d98f-df2b-b7f4-425c24dea863",
-        "active_scene": "0f2fa535-d98f-df2b-b7f4-425c24dea863",
+        "start_scene": "62325b5b-2477-094d-a0f6-d6d43fe249fd",
+        "active_scene": "62325b5b-2477-094d-a0f6-d6d43fe249fd",
         "camera": "0",
         "gameplay_loaded": false,
         "gameplay_updates": 0,
@@ -501,13 +486,13 @@
         "scene_records": 1,
         "instances": 1,
         "stored_entities": 3,
-        "presented_frames": 2351,
-        "scene_draw_calls": 2351,
-        "sprite_draw_calls": 2351,
+        "presented_frames": 2398,
+        "scene_draw_calls": 2398,
+        "sprite_draw_calls": 2398,
         "visible_sprites": 2,
         "geometry_residency_available": true,
         "geometry_uploads": 1,
-        "geometry_hits": 2350,
+        "geometry_hits": 2397,
         "geometry_native_bytes": 4096,
         "geometry_cpu_bytes": 150,
         "scene_texture_uploads": 3,
@@ -517,23 +502,23 @@
       "script": {
         "status": "RENDERED_GAME_PACKAGE",
         "native_rendering": true,
-        "start_scene": "0f2fa535-d98f-df2b-b7f4-425c24dea863",
-        "active_scene": "0f2fa535-d98f-df2b-b7f4-425c24dea863",
+        "start_scene": "62325b5b-2477-094d-a0f6-d6d43fe249fd",
+        "active_scene": "62325b5b-2477-094d-a0f6-d6d43fe249fd",
         "camera": "0",
         "gameplay_loaded": true,
-        "gameplay_updates": 2541,
+        "gameplay_updates": 2003,
         "scene_commits": 1,
         "rejected_requests": 0,
         "scene_records": 1,
         "instances": 1,
         "stored_entities": 3,
-        "presented_frames": 2542,
-        "scene_draw_calls": 2542,
-        "sprite_draw_calls": 2542,
+        "presented_frames": 2004,
+        "scene_draw_calls": 2004,
+        "sprite_draw_calls": 2004,
         "visible_sprites": 2,
         "geometry_residency_available": true,
         "geometry_uploads": 1,
-        "geometry_hits": 2541,
+        "geometry_hits": 2003,
         "geometry_native_bytes": 4096,
         "geometry_cpu_bytes": 150,
         "scene_texture_uploads": 3,
@@ -660,11 +645,11 @@
     "canonical_sdk_build_records": {
       "Build.commands": {
         "bytes": 1864,
-        "sha256": "e754a56e902327f77a1bdce9ea60e858aa274e7040f83354d06397b8610a9784"
+        "sha256": "8c3fed3c163b09b2744113a52d772caab363b916f272a1e00e831c5259641b1e"
       },
       "Build.sources": {
         "bytes": 1162,
-        "sha256": "470b855c97bb80d27f07480e7ecacbb96811e6e67331d3a736b54e297dc3ee18"
+        "sha256": "20c13c2c5ef2ebe1e1480bf247d0560cdac26e54e5f0c4ea044e324c85acb974"
       },
       "Build.tools": {
         "bytes": 1243,
@@ -672,20 +657,21 @@
       },
       "Game.inventory": {
         "bytes": 609,
-        "sha256": "5f959d13fbee1108b0fdd172c7a8a6f15ac8c8cab74d79fa791617cb71a6f699"
+        "sha256": "bbd4f0e2b7130c1e5eb16484f804c68795ed28d2250e5a6c6b1b9b73e0ff7d93"
       },
       "Publication.receipt": {
         "bytes": 260,
-        "sha256": "3294f8e13974dbfb8f647d6460cfc1c04df0a2795ad607b2451bbde6aa280af0"
+        "sha256": "adedd3a9a9237144c77f9598e635f876545aeecd659dc852b3b6a19736afdd28"
       },
       "Records.inventory": {
         "bytes": 276,
-        "sha256": "c8c83d0e360611260cf28e869674f6caf42616d25457eef8637ed2bd3ed3d10a"
+        "sha256": "54269ce39be57e41d3ee41d6cc4096d3fe81f2de93d2793634fba10100652549"
       }
     },
-    "canonical_sdk_commands": "{\"cwd\":\"/tmp/nexora-game-126554562087639-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-development/Apps/ProjectPlayer/NexoraProjectPlayer\",\"--verify-native-game-package\",\"/tmp/nexora-game-126554562087639-0/package/Game.nxgame\"]}\n{\"cwd\":\"/tmp/nexora-game-126554562087639-0/nexora-script-126554731101976-0\",\"argv\":[\"/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/cmake/data/bin/cmake\",\"-S\",\"/tmp/nexora-game-126554562087639-0/nexora-script-126554731101976-0\",\"-B\",\"/tmp/nexora-game-126554562087639-0/nexora-script-126554731101976-0/compile\",\"-G\",\"Ninja\",\"-DCMAKE_MAKE_PROGRAM=/workspace/work/engine-goal-20261112/tools/bin/ninja\",\"-DNEXORA_GAME_MANIFEST=/tmp/nexora-game-126554562087639-0/nexora-script-126554731101976-0/source/Scripts/project.json\",\"-DNEXORA_GAME_ZIG=/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/ziglang/zig\"]}\n{\"cwd\":\"/tmp/nexora-game-126554562087639-0/nexora-script-126554731101976-0\",\"argv\":[\"/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/cmake/data/bin/cmake\",\"--build\",\"/tmp/nexora-game-126554562087639-0/nexora-script-126554731101976-0/compile\",\"--target\",\"GameModule\"]}\n{\"cwd\":\"/tmp/nexora-game-126554562087639-0/nexora-script-126554731101976-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-development/Apps/ProjectPlayer/NexoraProjectPlayer\",\"--verify-game-module\",\"/tmp/nexora-game-126554562087639-0/nexora-script-126554731101976-0/nexora-script-126554731101976-0.so\"]}\n{\"cwd\":\"/tmp/nexora-game-126554562087639-0\",\"argv\":[\"/tmp/nexora-game-126554562087639-0/package/Game\",\"--verify-native-game-package\",\"/tmp/nexora-game-126554562087639-0/package/Game.nxgame\"]}\n{\"cwd\":\"/tmp/nexora-game-126554562087639-0\",\"argv\":[\"/tmp/nexora-game-126554562087639-0/package/Game\",\"--verify-game-module\",\"/tmp/nexora-game-126554562087639-0/package/libGame.so\"]}\n"
+    "canonical_sdk_commands": "{\"cwd\":\"/tmp/nexora-game-133803349097218-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-development/Apps/ProjectPlayer/NexoraProjectPlayer\",\"--verify-native-game-package\",\"/tmp/nexora-game-133803349097218-0/package/Game.nxgame\"]}\n{\"cwd\":\"/tmp/nexora-game-133803349097218-0/nexora-script-133803484463092-0\",\"argv\":[\"/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/cmake/data/bin/cmake\",\"-S\",\"/tmp/nexora-game-133803349097218-0/nexora-script-133803484463092-0\",\"-B\",\"/tmp/nexora-game-133803349097218-0/nexora-script-133803484463092-0/compile\",\"-G\",\"Ninja\",\"-DCMAKE_MAKE_PROGRAM=/workspace/work/engine-goal-20261112/tools/bin/ninja\",\"-DNEXORA_GAME_MANIFEST=/tmp/nexora-game-133803349097218-0/nexora-script-133803484463092-0/source/Scripts/project.json\",\"-DNEXORA_GAME_ZIG=/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/ziglang/zig\"]}\n{\"cwd\":\"/tmp/nexora-game-133803349097218-0/nexora-script-133803484463092-0\",\"argv\":[\"/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/cmake/data/bin/cmake\",\"--build\",\"/tmp/nexora-game-133803349097218-0/nexora-script-133803484463092-0/compile\",\"--target\",\"GameModule\"]}\n{\"cwd\":\"/tmp/nexora-game-133803349097218-0/nexora-script-133803484463092-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-development/Apps/ProjectPlayer/NexoraProjectPlayer\",\"--verify-game-module\",\"/tmp/nexora-game-133803349097218-0/nexora-script-133803484463092-0/nexora-script-133803484463092-0.so\"]}\n{\"cwd\":\"/tmp/nexora-game-133803349097218-0\",\"argv\":[\"/tmp/nexora-game-133803349097218-0/package/Game\",\"--verify-native-game-package\",\"/tmp/nexora-game-133803349097218-0/package/Game.nxgame\"]}\n{\"cwd\":\"/tmp/nexora-game-133803349097218-0\",\"argv\":[\"/tmp/nexora-game-133803349097218-0/package/Game\",\"--verify-game-module\",\"/tmp/nexora-game-133803349097218-0/package/libGame.so\"]}\n"
   },
   "historical": {
+    "archive": "pre-main-1a057c16",
     "logs": [
       "pre-sort-compile/build.log",
       "focus-ui-1.log",
@@ -715,6 +701,474 @@
     "graphical_editor": "0/8",
     "twod": "9/11"
   },
+  "main_integration": {
+    "previous_head": "a85d9d737c3e96baf56277d0224a96c1faff751d",
+    "previous_base": "72d20c516904302742002c01aca9edde788b4e11",
+    "base": "1a057c16ce34b6d5c06d19ca52c3a35cb017efbd",
+    "merge_commit": "506227c54dfe344e6c45da470548572e5d984701",
+    "previous_full": {
+      "passed": 538,
+      "failed": 0,
+      "skipped": 0,
+      "seconds": 2330.19
+    },
+    "previous_local_gates": 13,
+    "previous_ci_runs": [
+      43598514317,
+      43598514194,
+      43598460394
+    ],
+    "own_sources_changed_by_incoming_main": [
+      "Apps/Editor/main.cpp",
+      "Engine/EditorImGui/src/EditorImGui.cpp",
+      "Engine/EditorImGui/src/EditorImGuiTestAccess.h"
+    ],
+    "unchanged_own_sources": 5,
+    "archive": "/workspace/work/engine-goal-20261112/authoring/build-clip-picker/pre-main-1a057c16"
+  },
+  "scene_focus_investigation": {
+    "status": "open_cause_unproven",
+    "issue": "nexora-wro",
+    "failed_full": {
+      "passed": 260,
+      "failed": 1,
+      "exit": 130,
+      "accepted": false
+    },
+    "ordinary_probes": [
+      {
+        "mode": "raw",
+        "passed": true,
+        "preview_keys": [
+          "000000000000",
+          "100010000000",
+          "100010000000",
+          "000000000000"
+        ]
+      },
+      {
+        "mode": "phased",
+        "passed": true,
+        "preview_keys": [
+          "000000000000",
+          "100000000000",
+          "100010000000",
+          "100010000000",
+          "100000000000",
+          "000000000000"
+        ]
+      },
+      {
+        "mode": "raw",
+        "passed": true,
+        "preview_keys": [
+          "000000000000",
+          "100000000000",
+          "100010000000",
+          "100010000000",
+          "000010000000",
+          "000000000000"
+        ]
+      },
+      {
+        "mode": "phased",
+        "passed": true,
+        "preview_keys": [
+          "000000000000",
+          "100000000000",
+          "100010000000",
+          "100010000000",
+          "100000000000",
+          "000000000000"
+        ]
+      }
+    ],
+    "batched_probes": [
+      {
+        "mode": "batched-raw",
+        "passed": true,
+        "preview_keys": [
+          "000000000000",
+          "100010000000",
+          "000000000000"
+        ]
+      },
+      {
+        "mode": "phased",
+        "passed": true,
+        "preview_keys": [
+          "000000000000",
+          "100000000000",
+          "100010000000",
+          "100010000000",
+          "100000000000",
+          "000000000000"
+        ]
+      },
+      {
+        "mode": "batched-raw",
+        "passed": true,
+        "preview_keys": [
+          "000000000000",
+          "100010000000",
+          "000000000000"
+        ]
+      },
+      {
+        "mode": "phased",
+        "passed": true,
+        "preview_keys": [
+          "000000000000",
+          "100000000000",
+          "100010000000",
+          "100010000000",
+          "100000000000",
+          "000000000000"
+        ]
+      }
+    ],
+    "focus_acknowledgement": {
+      "passed": 2,
+      "failed": 0,
+      "seconds": 9.7,
+      "deadline_seconds": 12,
+      "retries": 0,
+      "product_shortcut_changed": false,
+      "log_sha256": "ba0b9f2ee4cbd0db440cd1258121644cc52b8f3fbde29eb68d40b619185d81c8",
+      "last_test_sha256": "e8b65247129e6fd15a0e03d14dd62ccd31eb669fb8f219086c64a3954e2653ea"
+    },
+    "failed_source_commit": "506227c54dfe344e6c45da470548572e5d984701",
+    "failed_sources": {
+      "Apps/Editor/main.cpp": "a338c1985b1f81c632efb2d24de3474998fb8175852573856bdc0ebee20d004c",
+      "Engine/EditorImGui/src/EditorImGui.cpp": "182ed3e57e06e69c5c0b35683cb80ab036ce97a395e430bf2c30c97c249a518c",
+      "Engine/EditorImGui/src/EditorImGuiTestAccess.h": "918516d76fa289a9f9681c1870687ee712ff1d65736978b9194f0dc32d6eee5b",
+      "Engine/EditorImGui/src/BuildAnimationPicker.inl": "954713a66d5238f30b0f0376fff4549dcf898b0bfbac186fc5da04aa188201b5",
+      "Tests/Editor/CMakeLists.txt": "a190272f7dbbaa9c9e7c1004fb889eef14bd22c6090ed52456959f1b0a927298",
+      "Tests/EditorImGui/CMakeLists.txt": "526b02ebf314252cac443d9217a65a1f183cf78ff19268a4412f07152674bf04",
+      "Tests/Editor/LinuxBuildAnimationPicker.py": "79bbe49be10ca5458ad50ac4c1960f74768863915fbf488194d30ce0a577fcfd",
+      "Tests/EditorImGui/BuildAnimationPickerTests.cpp": "250a68a12af4d189ea83e63b7ecc54ed279af4a086a6163ca91aa8c27233a80b",
+      "Tests/EditorImGui/NativeSceneInput.py": "9202547bd4aec0201241f06f2eccfe47e1418d61e8f34c7099f104915c14eaf7",
+      "Tests/EditorImGui/LinuxNativeGameView.py": "cbebfe31cf1e9d7b015f5fada025364c36e61e10eadc70febaaaf906211e893e"
+    },
+    "original_changed_observations": [
+      {
+        "focused": 1,
+        "text_input": 0,
+        "file_open_admitted": 1,
+        "play_admitted": 1,
+        "game_focused": 0,
+        "game_capture_admitted": 0,
+        "keys": "000000000"
+      },
+      {
+        "focused": 1,
+        "text_input": 0,
+        "file_open_admitted": 1,
+        "play_admitted": 1,
+        "game_focused": 0,
+        "game_capture_admitted": 0,
+        "keys": "100000000"
+      },
+      {
+        "focused": 1,
+        "text_input": 0,
+        "file_open_admitted": 1,
+        "play_admitted": 1,
+        "game_focused": 0,
+        "game_capture_admitted": 0,
+        "keys": "000000000"
+      }
+    ],
+    "ready_predicate_explains_original_failure": false
+  },
+  "historical_hosted_ci": [
+    {
+      "id": 43598514194,
+      "name": "Windows 2D SDK candidate",
+      "event": "pull_request",
+      "head": "a85d9d737c3e96baf56277d0224a96c1faff751d",
+      "status": "completed",
+      "conclusion": "success",
+      "attempt": 1,
+      "jobs": [
+        {
+          "id": 132458046537,
+          "name": "cleanup",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458062105,
+          "name": "producer",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458751957,
+          "name": "consumer",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 43598514317,
+      "name": "Build",
+      "event": "pull_request",
+      "head": "a85d9d737c3e96baf56277d0224a96c1faff751d",
+      "status": "completed",
+      "conclusion": "success",
+      "attempt": 1,
+      "jobs": [
+        {
+          "id": 132458047264,
+          "name": "Documentation and change detection",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458172234,
+          "name": "CMake configure smoke (ios-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458172235,
+          "name": "showcase-posix-shipping-package (ubuntu-latest, linux-showcase-shipping)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458172243,
+          "name": "mimalloc backend (windows-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458172254,
+          "name": "showcase-windows-shipping-package",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458172256,
+          "name": "desktop (ubuntu-latest, linux-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458172259,
+          "name": "build-contract",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458172264,
+          "name": "showcase-posix-shipping-package (macos-latest, macos-showcase-shipping)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458172271,
+          "name": "showcase-windows-vulkan-package",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458172273,
+          "name": "mimalloc backend (linux-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458172276,
+          "name": "Zig object smoke (aarch64-ios)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458172278,
+          "name": "desktop (windows-latest, windows-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458172287,
+          "name": "modern-shaders-preview",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458172296,
+          "name": "mimalloc backend (macos-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458172303,
+          "name": "CMake configure smoke (android-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458172309,
+          "name": "desktop (macos-latest, macos-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458172316,
+          "name": "Zig object smoke (aarch64-linux-android)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458172348,
+          "name": "Editor Linux display acceptance (Xvfb)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132470708504,
+          "name": "CI result",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 43598460394,
+      "name": "Build",
+      "event": "push",
+      "head": "a85d9d737c3e96baf56277d0224a96c1faff751d",
+      "status": "completed",
+      "conclusion": "failure",
+      "attempt": 1,
+      "jobs": [
+        {
+          "id": 132457893911,
+          "name": "Documentation and change detection",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458027833,
+          "name": "showcase-windows-vulkan-package",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458027837,
+          "name": "CMake configure smoke (ios-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458027840,
+          "name": "Editor Linux display acceptance (Xvfb)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458027851,
+          "name": "Zig object smoke (aarch64-ios)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458027859,
+          "name": "showcase-posix-shipping-package (ubuntu-latest, linux-showcase-shipping)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458027871,
+          "name": "mimalloc backend (windows-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458027873,
+          "name": "showcase-posix-shipping-package (macos-latest, macos-showcase-shipping)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458027882,
+          "name": "CMake configure smoke (android-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458027897,
+          "name": "mimalloc backend (linux-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458027902,
+          "name": "mimalloc backend (macos-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458027906,
+          "name": "desktop (macos-latest, macos-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458027916,
+          "name": "build-contract",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458027940,
+          "name": "desktop (ubuntu-latest, linux-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458027950,
+          "name": "desktop (windows-latest, windows-development)",
+          "status": "completed",
+          "conclusion": "failure"
+        },
+        {
+          "id": 132458027966,
+          "name": "modern-shaders-preview",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458028028,
+          "name": "showcase-windows-shipping-package",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132458028121,
+          "name": "Zig object smoke (aarch64-linux-android)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 132472498276,
+          "name": "CI result",
+          "status": "completed",
+          "conclusion": "failure"
+        }
+      ]
+    }
+  ],
+  "historical_windows_failure": {
+    "issue": "nexora-1va",
+    "cause": "unproven PID-reuse candidate; distinct from Stop/startup",
+    "log_bytes": 1017013,
+    "log_sha256": "5955747e28a3b0b5d923da4882921dfc84451b80410f1d2031f6660eed80588f",
+    "retry_issued": false
+  },
   "metadata_gates": {
     "api": {
       "exit": 0,
@@ -722,7 +1176,7 @@
     },
     "doc-ci": {
       "exit": 0,
-      "log_sha256": "96f051c917d559ede8318723a24ecfedfc31a14af023a375ec8349fc9c2b20fc"
+      "log_sha256": "3319496c28ac08ced363408a901954cc4fcf8512f5532450635383c9d0fd70f9"
     },
     "format": {
       "exit": 0,
@@ -734,7 +1188,7 @@
     },
     "markdown": {
       "exit": 0,
-      "log_sha256": "8789b907b371c8a511fc8a1cddfd0073e012ce6e07ce913a346df5777a436c78"
+      "log_sha256": "4e208ce41c7f13911863d2e9b16bc8fd56fc6d08857696959846322e2d351948"
     },
     "diff-check": {
       "exit": 0,
