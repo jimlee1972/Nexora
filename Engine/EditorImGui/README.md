@@ -87,6 +87,30 @@ they retain no ImGui/model pointer and neither execute actions nor grant authori
 authority. Native fixtures still send real X11 input and check independent pixels, values, files
 and access rejection. See the [application observer contract](../../Apps/Editor/README.md#native-project-and-asset-workflow-acceptance).
 
+## Main Sprite source creation
+
+An imported Atlas's Content context menu opens **Create Sprite source**. The modal owns only copied
+project/root/version, folder, Atlas label and up to 1024 region records, plus name, original size,
+top-left trim origin, bottom-left pixel Pivot and PPU drafts. Trim size follows the selected stable
+region ID; borders default to zero. It retains no model/Atlas-pixel borrow and performs no file IO.
+One explicit Create emits an owning request; the application repeats authority and publishes the
+new file/import outside Draw. Failure keeps the draft; a created file dismisses it with Content
+feedback even when later import fails. Cancel has no authoring effect. Source edits/Atlas slicing
+are separate work.
+
+Creation requires the current writable, focused, idle project/Content and stopped Play. Scope
+loss discards the draft; revision changes disable it until reopened. Recovery, concurrent file or
+build work, unsafe names and invalid geometry reject. The modal blocks global Scene/Play shortcuts.
+Success never resets the Content view/history.
+Names still retained by Content Undo reject before any new file is created. The authoring owner
+reconciles cached asset paths from current Content, so released names import immediately after
+rename/move. Native acceptance exercises actual renames, reserved-name rejection and name reuse.
+Private test access copies visible widget bounds,
+including disabled controls, and status text; it supplies no queue-injection or write capability.
+`editor.sprite_source_creation_ui` drives actual 1x/2x controls; the native X11 flow creates,
+immediately assigns, inspects, saves and reopens the generated UUID in a byte-identical read-only
+project. See the [file/import contract](../Editor/README.md#new-main-project-sprite-source-files).
+
 ## Main Sprite source Inspector
 
 With `NEXORA_HAS_2D`, the main Inspector selects imported Sprite source UUIDs and clears supported

@@ -418,6 +418,13 @@ public:
   InspectorSpriteSourcePosition(const EditorImGuiHost &host, std::size_t control) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   InspectorSpriteSourceChoicePosition(const EditorImGuiHost &host, runtime::AssetUuid) noexcept;
+  // Creation controls: name, region, size X/Y, trim X/Y, Pivot X/Y, PPU, Create, Cancel.
+  [[nodiscard]] static std::optional<std::array<float, 4>>
+  SpriteSourceCreationRect(const EditorImGuiHost &, std::size_t) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  SpriteSourceCreationMenu(const EditorImGuiHost &) noexcept;
+  [[nodiscard]] static std::string_view
+  SpriteSourceCreationStatus(const EditorImGuiHost &) noexcept;
   static void FocusInspector(EditorImGuiHost &host) noexcept;
   // Visible, enabled local TRS input bounds; rows Position/Rotation/Scale, axes X/Y/Z.
   [[nodiscard]] static std::optional<std::array<float, 4>>

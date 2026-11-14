@@ -4,6 +4,9 @@
 #include "PrefabPlacementInternal.h"
 #include "ReflectedArrayTestAccess.h"
 #include "ReimportSource.h"
+#if defined(NEXORA_HAS_2D)
+#include "Nexora/Editor/ProjectContent.h"
+#endif
 
 #include <algorithm>
 #include <array>
@@ -508,6 +511,101 @@ bool AssetWorkspace::ImportSavedScene(const std::filesystem::path &relative, std
     error->clear();
   return true;
 }
+#if defined(NEXORA_HAS_2D)
+bool AssetWorkspace::ImportSavedSpriteSource(const std::filesystem::path &relative,
+                                             runtime::AssetUuid expected,
+                                             const ProjectContentSession &current,
+                                             std::string *error) {
+  const auto fail = [&](std::string message) {
+    if (error)
+      *error = std::move(message);
+    return false;
+  };
+  if (content_root_.empty() || identity_mode_ != AssetIdentityMode::PersistentReadWrite ||
+      !current.Writable() || current.ReimportBusy() ||
+      current.Root() / "Content" != content_root_ || expected == runtime::AssetUuid{} ||
+      relative.empty() || relative.has_root_path() || relative.extension() != ".nx2sprite")
+    return fail(
+        "Saved Sprite source import requires a writable Content index and source identity.");
+  auto path = content_root_;
+  std::error_code ec;
+  for (const auto &part : relative) {
+    if (part.empty() || part == "." || part == "..")
+      return fail("Saved Sprite source path is invalid.");
+    path /= part;
+    const auto status = std::filesystem::symlink_status(path, ec);
+    if (ec || std::filesystem::is_symlink(status))
+      return fail("Saved Sprite source path is unavailable or aliased.");
+  }
+  if (!std::filesystem::is_regular_file(path, ec) || ec ||
+      std::filesystem::hard_link_count(path, ec) != 1 || ec)
+    return fail("Saved Sprite source must be an ordinary owned file.");
+  const auto key = detail::PathUtf8(relative);
+  if (key.size() >= 1024 || !foundation::IsValidUtf8(key) ||
+      std::ranges::any_of(entries_, [&](const AssetEntry &entry) { return entry.id == expected; }))
+    return fail("Saved Sprite source is already indexed or has an invalid path.");
+  // Content owns current paths and imported owners. The initial cached index may still contain
+  // vacated names after Rename/Move or deleted rows; rebuilding from that owning view is IO-free.
+  std::vector<AssetEntry> updated;
+  updated.reserve(current.Browser().Items().size() + 1);
+  for (const auto &item : current.Browser().Items()) {
+    if (item.path.empty() || *item.path.begin() != "Content")
+      return fail("Current Content contains an invalid source path.");
+    const auto local = item.path.lexically_relative("Content");
+    for (const auto &part : local)
+      if (part.empty() || part == "." || part == "..")
+        return fail("Current Content contains an invalid source path.");
+    auto name = detail::PathUtf8(local);
+    if (name.size() >= 1024 || !foundation::IsValidUtf8(name) || item.id == expected || name == key)
+      return fail("The saved Sprite source conflicts with current Content.");
+    const auto state = item.thumbnail == ThumbnailState::Ready    ? ImportState::Imported
+                       : item.thumbnail == ThumbnailState::Failed ? ImportState::Failed
+                                                                  : ImportState::Pending;
+    updated.push_back({item.id, std::move(name), item.type, item.artifact_hash, state,
+                       item.import_diagnostic, item.mesh, item.material, item.twod});
+  }
+  auto imported = detail::ReadReimportSource(path, ".nx2sprite", expected);
+  if (!imported.error.empty() || !imported.twod || !imported.twod->SpriteSource())
+    return fail(imported.error.empty() ? "Saved Sprite source could not be decoded."
+                                       : std::move(imported.error));
+  std::size_t count{}, retained{};
+  for (const auto &entry : updated)
+    if (entry.twod) {
+      ++count;
+      retained += entry.twod->RetainedBytes();
+    }
+  if (updated.size() >= AssetIndexLimits{}.max_assets || count >= kMaximumWorkspaceTwoDAssets ||
+      retained > kMaximumWorkspaceTwoDBytes - imported.twod->RetainedBytes())
+    return fail("Saved Sprite source exceeds the Content payload budget.");
+  const auto sidecar = IdentitySidecar(path);
+  const auto status = std::filesystem::symlink_status(sidecar, ec);
+  if (ec != std::errc::no_such_file_or_directory && ec)
+    return fail("Saved Sprite source identity is unavailable.");
+  ec.clear();
+  const bool has_identity = std::filesystem::exists(status);
+  if (has_identity) {
+    runtime::AssetUuid identity;
+    std::string type, message;
+    if (!ReadAssetIdentity(sidecar, identity, type, message) || identity != expected ||
+        type != ".nx2sprite")
+      return fail("Saved Sprite source identity does not match its embedded identity.");
+  }
+  AssetEntry saved{expected, key, ".nx2sprite", imported.artifact_hash, ImportState::Imported,
+                   {},       {},  {},           imported.twod};
+  updated.push_back(std::move(saved));
+  std::ranges::sort(updated, {}, &AssetEntry::relative_path);
+  // Stage the entire in-memory result before publishing the new identity file.
+  if (!has_identity) {
+    std::string message;
+    if (!WriteAssetIdentity(sidecar, expected, ".nx2sprite", message))
+      return fail(std::move(message));
+  }
+  entries_.swap(updated);
+  if (error)
+    error->clear();
+  return true;
+}
+#endif
 std::vector<const AssetEntry *> AssetWorkspace::Search(std::string_view query,
                                                        std::string_view type) const {
   const auto needle = Lower(query), wanted = Lower(type);

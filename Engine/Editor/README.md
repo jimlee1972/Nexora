@@ -1597,7 +1597,7 @@ association; ordinary Save retains it. Read-only
 sessions may track paths but still cannot write. Bootstrap load protection remains independent.
 
 `ContentBrowserModel::Discover` publishes one already-saved owning item without recording a content
-edit. It rejects duplicate ID/path, including collisions in the retained Undo snapshot, preserves
+edit. It rejects duplicate ID/path, including ASCII case aliases in the retained Undo snapshot, preserves
 folder/filter/selection, and carries the new item into that snapshot so an earlier content Undo cannot
 hide it. Application scene saves compose `AssetWorkspace::ImportSavedScene` with discovery/artifact
 publication. That operation reads only the saved `.scene` and its bounded identity sidecar, hashes
@@ -2796,9 +2796,144 @@ The graphical application stores `appearance` beside `RecentProjectStore::Defaul
 configured recent-project path), separate from project layout, locks and read-only permissions.
 Calls run on the application owner thread; UI widgets emit values and perform no IO.
 
-The main configured Play workflow now uses background `ObserveGameScriptSources` plus the same
-`PrepareGameScript` entry for explicit ScriptProject settings. Source observation owns bounded content
-fingerprints and inventory, with no compiler/source writes or Editor/World borrow. The application
-owns debouncing, project/Play/source keys, final byte admission, strict reload transactions and actual
-worker cancellation/drain before project teardown. See [build contracts](GameBuild.md); native workflow
-and complete immutable-head acceptance remain pending.
+### Immutable Sprite sources in Editor Play
+
+Source animation Clips additionally use [Clip schema 2](../TwoD/README.md#source-animation-clips).
+Typed import metadata and cooked generation capture require exact sorted unique source dependency
+edges, then validate the complete source/Atlas closure before publication. Captured Clips, sources
+and Atlases remain independently owned after generation/project destruction. ND2D authoring accepts
+source Clip frames only from its validated document catalog; missing frames reject atomically and
+Undo/Redo/save/reopen retain their UUIDs. Legacy Clip bytes remain schema 1; C/Zig wires do not change.
+
+`TwoDAssetPayload::SpriteSource()` and `TwoDPlayAssets::SpriteSource(id)` return owning immutable
+metadata decoded from the existing 96-byte schema 1. Sources remain distinct from Clips, and their
+Atlas is admitted once per closure. Decode does not resolve dependencies; complete project/cooked
+capture validates the selected closure before publication. Missing/type/UUID/region/trim mismatches
+reject the candidate while retained snapshots keep their geometry and Atlas owners. Source metadata
+shares existing 4096-asset/64 MiB budgets, cancellation and authoring-thread publication rules.
+
+Main Editor Play captures indexed sources and resolves their geometry from the frozen snapshot for
+scene and pooled gameplay instances. Current source/sidecar/Content provenance must still pass
+`Matches` before production activation. The source-content registration service remains unsupported
+for this immutable embedding. Public C++ payload/snapshot layouts change, so consumers rebuild;
+legacy C/Zig descriptors, Clip schema-1 bytes, Atlas/source codecs and scene formats remain unchanged.
+
+`twod.editor_sprite_sources`, `editor.sprite_source_play` and `editor.sprite_source_native` cover
+index/sidecar discovery, synchronous/queued reimport, renamed importer identity, budgets, rejected
+closures, owners surviving store/project destruction, public gameplay API use, authoring isolation
+and actual composed Editor pixels across retained/reimported snapshots. See the
+[cloud evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md).
+Source reference Inspector/save/reopen is delivered below. Scene View, configured package Play, Build export
+and live source animation/reload remain separate ED-WF-07/08 acceptance gates.
+
+### Main Editor Sprite source reference transactions
+
+The graphical consumer in `EditorImGui` now provides source selection/Clear with batch history,
+wrapped save/reopen, mixed/missing/unsupported states and exact popup-context checks. It uses the
+transactions below without changing their ownership or wire contracts. See the
+[Inspector contract](../EditorImGui/README.md#main-sprite-source-inspector) and
+[native execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceInspector-Linux-2026-11-13.md).
+
+The whole-scene `InspectOpaqueComponents(type, reserved_name)` overload captures owning 64-byte
+previews for matching type **or** name. It validates live Editor entity membership with one index
+and traverses nodes/records once, without repeated `Key` lookups or Runtime serialization. Existing
+100000-entity/4096-record bounds apply; invalid scope rejects. Returned entity IDs, type names and
+previews survive document teardown. Unsupported records stay unmodified for caller validation.
+This is the main Play reference probe, including the asset-free 3D fast path; it avoids the
+quadratic cost of repeatedly using the single-entity Inspector accessor on every scene node.
+The new exported C++ overload requires rebuilding its consumers; no C ABI or class-layout change.
+
+With `NEXORA_ENABLE_2D`, `SpriteSourceCatalog` publishes an owning, CPU-only view of the current
+Content source/Atlas closure on the authoring thread. It uses immutable `TwoDAssetPayload` owners
+already validated by `ImportTwoDAsset`, verifies UUID/type identity and the 4096-asset/64 MiB retained
+payload limits, and indexes each Atlas's stable regions once. Source region existence and exact
+trim dimensions validate before publication; a missing/wrong dependency rejects the entire
+candidate and preserves the previous version/owners. It does not repeat full Atlas validation per
+source. Region-index/map allocator overhead is outside the retained-payload byte limit. Unrelated
+Clips and unimported rows are outside this catalog; an unresolved dependency cannot be assigned.
+Snapshots own both source metadata and Atlas after Content reload, catalog clear or project teardown.
+
+The catalog version includes both project generation and Content revision. Lookup requires an
+exact version; reimporting an Atlas invalidates pending assignments even if project generation,
+source UUID and source payload pointer are unchanged. Selection-only Content changes retain the
+revision. Publication, lookup and document edits are serialized by the authoring-thread owner.
+No filesystem provenance, source re-read, GPU resource creation or Play publication occurs here.
+
+`editor.sprite.source` is an owning opaque scene component with reserved TypeId
+`0x4544535052540001`. Version 1 is exactly 17 bytes: byte `1`, followed by UUID high/low U64 words
+in little-endian order. The reader requires exact type/name, full 17-byte count/preview, supported
+version and nonzero UUID. Unknown versions, mismatched names/types, oversized/truncated payloads
+and zero UUIDs stay unresolved and preserved by the existing scene wrapper; there is no migration.
+
+`AssignSpriteSources` requires the complete current ordered selection, live entity/document keys,
+current Content/catalog generation and revision, and identical imported source/Atlas owners.
+`ClearSpriteSources` validates the same selection/access/version but permits absent source/Atlas
+assets. Both require writable Content and the caller's current `editable` authorization; the host
+must supply project writer, stopped-Play and recovery policy. Any unsupported component using the
+reserved type or name rejects the entire request before mutation. One existing bounded metadata
+transaction handles the batch and its Undo/Redo; unrelated components and Runtime bytes stay exact.
+Equal assignment/absent removal preserve pending Redo. Wrapped scene Save/Reload stores the UUID
+reference, including unresolved references; reopening must obtain fresh NodeKeys.
+
+This API is the main Inspector's model prerequisite; its graphical consumer is documented above.
+The application now converts references for
+module-backed main Play after validating and freezing the scene and asset closure; see the
+[host ownership contract](../../Apps/Editor/README.md#authored-source-references-in-module-backed-play).
+The [module-free main scene clone](../../Apps/Editor/README.md#module-free-main-scene-sprite-play)
+captures only referenced sources and owns the same private preview without a module callback.
+TwoDDocument/ND2D/Studio owns its separate source catalog. Main Game Build owns the cooked closure
+below, while [configured package Play](../../Apps/Editor/README.md#configured-packaged-sprite-play)
+admits its immutable assets and complete native GUI before World publication. Scene View authoring
+rendering and live source/reload publication remain separate consumers. No C/Zig ABI,
+NX2S/ND2D or asset codec changes; consumers of the new exported C++ API rebuild. When 2D is disabled,
+the helper is absent and the ordinary opaque scene wrapper still preserves its bytes. See
+[reference transaction evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceReferences-Linux-2026-11-13.md).
+
+### New main-project Sprite source files
+
+`SpriteSourceCreationRequest` owns the project/root, destination folder, Content version, name and
+Sprite metadata. It grants no write authority. The serialized authoring owner calls
+`CreateSpriteSourceFile` outside GUI rendering with current authorization. The service repeats
+writer/recovery/external-change, exact scope/version, ordinary Content folder, portable UTF-8 name,
+typed Atlas/region/geometry, asset/path/payload capacity and destination/sidecar collision checks.
+Names admit at most 128 UTF-8 bytes; case-alias inspection admits at most 65536 directory entries.
+Before staging, a private browser copy must admit the candidate through `Discover`, including its
+retained Undo paths (with ASCII case aliases) and payload budgets. A reserved name rejects before
+creating the source or sidecar; the live browser/history never changes during this preflight.
+It assigns a fresh nonzero UUID and stages the existing canonical 96-byte codec in an owned
+`.nexora/source-staging` directory. Publication never replaces an existing file: Windows uses a
+non-replacing move, POSIX an exclusive hard link followed by owned staging cleanup. This is a local
+cooperative-filesystem transaction, not a power-loss durability or adversarial race guarantee.
+
+Rejected means no primary destination was published. Created means the source file exists, even
+if subsequent import fails. Uncertain conservatively reports a native publication error; inspect
+Content before retrying. The creator does not publish Content, mutate Scene/Runtime, replace source
+or Atlas files, or create GPU resources. Allocation/IO failures before publication preserve existing
+file bytes; only owned temporary files/directories are removed. Empty staging parents may remain.
+
+`AssetWorkspace::ImportSavedSpriteSource` reads only that newly saved `.nx2sprite`, checks its exact
+embedded UUID and existing identity (or creates the ordinary matching sidecar), and stages a new
+index without scanning Content or reading the Atlas. It requires a persistent writer index,
+ordinary non-aliased source paths, and the current writable, idle, same-root `ProjectContentSession`.
+That owner's browser supplies current paths, rows and immutable imported owners; the initial cache
+may predate Rename/Move/Delete/reimport. The new candidate index reconciles those in-memory values
+before checking destination conflicts. It never retargets an existing identity to the new source.
+Once a later Content command replaces an earlier Undo reservation, its vacated path can be reused
+and imported immediately despite the old cached path. The application stages browser `Discover` and copied
+dependency graph before replacing the three in-memory owners. Discovery preserves selection,
+folder/filter and pending Content Undo, which also retains the newly created asset. A post-creation
+import/admission failure preserves the created source and last good live catalog, reports both
+outcomes, and permits ordinary import on project reopen. This is not a multi-file rollback.
+The new C++ exports require rebuilding Editor consumers; optional 2D, C/Zig ABI and codecs retain
+their existing boundaries. Existing-source editing, slicing and Clip authoring remain separate.
+
+## Main Game Build Sprite source closure
+
+`GameProjectExportInput::sprite_assets` owns the optional source/Atlas cooked closure. Saved-scene
+capture deduplicates by full UUID, bounds payloads before cooking and validates the complete typed
+closure. `CaptureGameBuild` adds exact canonical source/artifact/mandatory sidecar baselines to the
+existing final publication guard. No Content/document pointer crosses the worker boundary.
+Source-free package bytes remain capability 2; supported source references require capability 3
+and a TwoD-capable native consumer. See [the Build contract](GameBuild.md#main-scene-sprite-source-export)
+and [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-Linux-2026-11-13.md).
+This appends a C++ owning field; consumers rebuild. No stable C/Zig descriptor or asset wire changes.

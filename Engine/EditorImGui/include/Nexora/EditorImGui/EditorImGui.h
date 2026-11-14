@@ -24,6 +24,9 @@
 #include "Nexora/Editor/SceneMergeCandidateJob.h"
 #include "Nexora/Editor/StaticProjectExportJob.h"
 #include "Nexora/Editor/ViewportMath.h"
+#if defined(NEXORA_HAS_2D)
+#include "Nexora/Editor/SpriteSourceCreation.h"
+#endif
 #include "Nexora/EditorImGui/Api.h"
 #include "Nexora/Presentation/RenderSurface.h"
 #include "Nexora/RHI/Device.h"
@@ -44,6 +47,12 @@
 namespace nexora::editor::imgui {
 
 class EditorImGuiTestAccess;
+#if defined(NEXORA_HAS_2D)
+struct SpriteSourceCreationUiRequest final {
+  std::uint64_t identity{};
+  SpriteSourceCreationRequest creation;
+};
+#endif
 
 // Built-in native preview reserves the remaining instance slots for ground and gizmos.
 inline constexpr std::size_t kMaximumNativeSceneFrameCandidates = 3999;
@@ -421,6 +430,12 @@ public:
       runtime::PlaySession *play = nullptr, ProfileSession *profile = nullptr,
       const MeshAssetCatalog *meshes = nullptr, const MaterialAssetCatalog *materials = nullptr);
   [[nodiscard]] PlayCommand TakePlayCommand() noexcept;
+#if defined(NEXORA_HAS_2D)
+  // Owning one-shot request. The application repeats writer/scope/Play admission outside Draw.
+  [[nodiscard]] std::optional<SpriteSourceCreationUiRequest> TakeSpriteSourceCreationRequest();
+  void SetSpriteSourceCreationResult(std::uint64_t identity, bool file_created,
+                                     std::string message);
+#endif
   [[nodiscard]] std::optional<PlayTransformReview> TakePlayApplyRequest();
   [[nodiscard]] std::string_view GameplayLibrary() const noexcept;
   void SetGameplayStatus(std::string message);

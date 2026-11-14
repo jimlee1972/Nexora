@@ -2006,6 +2006,28 @@ Additive/Replace/return sequence, floating Inspector occlusion, resize and exter
 rejection before callbacks. Full native captures, original fixture failures and exact verification
 commands are in the [execution record](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-ConfiguredSpritePlay-Linux-2026-11-14.md).
 
+## Creating Sprite source assets
+
+In Content, right-click an imported Atlas and choose **Create Sprite source...**. Enter a new
+filename without its extension, select a region, and set the original pixel size, top-left trim
+origin, bottom-left pixel Pivot and pixels per unit. Trim size follows the region and borders start
+at zero. **Create source** writes a new canonical `.nx2sprite` beside that Atlas and immediately
+imports its new UUID. It becomes available in the existing Inspector source picker without a
+project rescan. Existing Content selection, folder/filter and file-move Undo are preserved.
+A name still reserved by the pending Content Undo rejects before writing. Once a later Content
+operation replaces that reservation, the vacated name can be reused and immediately imported;
+cached index paths are reconciled from current Content without a filesystem rescan.
+
+The modal requires stopped Play and an idle, focused project writer. Existing source/identity
+filenames, stale Content versions and invalid geometry reject; no overwrite prompt is offered.
+Creating an asset does not assign it or dirty the Scene. Choose it in the Inspector and Save the
+Scene to retain that reference. A created file whose import fails remains on disk; feedback states
+that outcome and project reopen retries ordinary import. Read-only projects may inspect the saved
+source details but cannot create assets. Existing-source editing and Atlas slicing remain open.
+The [Editor contract](../../Engine/Editor/README.md#new-main-project-sprite-source-files) describes
+publication/error ownership. Opt-in scene UI test geometry copies actual Atlas/menu/modal bounds;
+these observations neither perform actions nor grant write authority.
+
 ## Native Scene Sprite sources
 
 The native 3D Scene View displays referenced imported Sprite sources as world-space cutout planes.
