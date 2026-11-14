@@ -2946,5 +2946,33 @@
     "roadmaps_reviewed": 70,
     "single_source_creation_section_per_roadmap": true,
     "root_readme_unchanged": true
+  },
+  "post_gate_portability": {
+    "kind": "MSVC local-variable shadow warning",
+    "full_gate_head": "fc642731b4d9ac61c8c2473001a5b5490d9500a3",
+    "changed_source": "Apps/Editor/main.cpp",
+    "full_gate_sha256": "e569e7c8d67446a741760e6c1086e99203931d8d25d804e87298b2fed7386df2",
+    "current_sha256": "a45828960dfb6714e39aade018a2210359a5ac6b8880c4d6b7d1d5086ecbfaeb",
+    "all_other_20_sources_unchanged": true,
+    "only_local_identifier_and_formatting_changed": true,
+    "warning": "C4456 under /W4 /WX: result shadows earlier local result",
+    "fix": "Rename the creation block local and references to creation_result; compiler warning flags unchanged",
+    "windows_failed_job_ids": [
+      132525767301,
+      132525788015
+    ],
+    "retained_windows_job_log_sha256": "d3141d6d4eca1a658e682255793b7983ee5e6d6c07145c46434cec4b0c047582",
+    "commands": [
+      "cmake --build --preset linux-development --target NexoraEditor",
+      "ctest --test-dir build/linux-development -R '^editor.linux_sprite_source_creation$' --output-on-failure"
+    ],
+    "linux_editor_build_passed": true,
+    "native_extended_passed": true,
+    "native_seconds": 93.81,
+    "log_sha256": {
+      "source-create-msvc-name-build.log": "2353f8f682cd3148cf564160b1ba7752d57bbf7f4c657b093d2de0c6b9b85b0a",
+      "source-create-msvc-name-native.log": "87927f24ae6b75dd2e4bc709ba53a5b5555be06f7197a7cdc94ca315fad32662"
+    },
+    "hosted_ci": "All updated-head checks must pass; failed prior-head jobs do not count."
   }
 }

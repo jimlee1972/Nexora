@@ -1902,24 +1902,25 @@ int RunGraphical(std::optional<ProjectState> project,
                                 && !game_builder.Busy() && !game_runner.Busy()
 #endif
             ;
-        const auto result =
+        const auto creation_result =
             CreateSpriteSourceFile(project->workspace, content, request->creation, authorized);
-        const bool file_created = result.state == SpriteSourceCreationState::Created;
-        std::string message(SpriteSourceCreationMessage(result.error));
+        const bool file_created = creation_result.state == SpriteSourceCreationState::Created;
+        std::string message(SpriteSourceCreationMessage(creation_result.error));
         if (file_created) {
           try {
             auto candidate_assets = project->assets;
             std::string error;
-            if (!candidate_assets.ImportSavedSpriteSource(result.path.lexically_relative("Content"),
-                                                          result.asset, content, &error))
+            if (!candidate_assets.ImportSavedSpriteSource(
+                    creation_result.path.lexically_relative("Content"), creation_result.asset,
+                    content, &error))
               throw std::runtime_error(error);
-            const auto *entry = candidate_assets.Find(result.asset);
+            const auto *entry = candidate_assets.Find(creation_result.asset);
             if (!entry || !entry->twod)
               throw std::runtime_error("The saved source has no imported payload.");
             auto browser = content.Browser();
             auto dependencies = content.Dependencies();
             if (!browser.Discover({entry->id,
-                                   result.path,
+                                   creation_result.path,
                                    entry->type,
                                    entry->artifact_hash,
                                    ThumbnailState::Ready,
@@ -1928,7 +1929,7 @@ int RunGraphical(std::optional<ProjectState> project,
                                    entry->twod}) ||
                 !dependencies.Set(entry->id, std::array{request->creation.source.atlas}))
               throw std::runtime_error("Content could not admit the saved source.");
-            const auto encoded_path = result.path.generic_u8string();
+            const auto encoded_path = creation_result.path.generic_u8string();
             message = "Sprite source created and imported: ";
             message.append(encoded_path.begin(), encoded_path.end());
             project->assets = std::move(candidate_assets);

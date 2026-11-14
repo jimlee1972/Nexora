@@ -29,7 +29,7 @@ preserved. This is a cooperative local-filesystem operation, without power-loss 
 ## Acceptance
 
 Complete Development Modular configure/all-build and unfiltered **516/516** tests pass,
-zero failures/skips, **1878.37 seconds**. All 21 frozen source hashes match.
+zero failures/skips, **1878.37 seconds**. The full gate records all 21 frozen source hashes.
 Shipping Full, actual TwoD-OFF/testing-OFF graphical Editor/native Player, graphical Monolithic
 TwoD-ON model/control tests and the actual native creation flow pass. Exact-head hosted CI is
 required before actual delivery; PR/Beads record its final result. No local Windows/macOS/mobile
@@ -76,6 +76,18 @@ merge conflict was the adjacent CMake test declarations; both executables/tests 
 The complete combined gate above reruns516/516 tests and all optional builds/native checks on
 21 frozen integration source hashes. Earlier full receipts/logs remain retained separately.
 New-head hosted CI is required; earlier feature-head CI is not substituted for the combined tree.
+
+## MSVC compiler portability follow-up
+
+The combined516/516 gate above ran at `fc642731`. Windows hosted compilation then diagnosed
+C4456 under the existing `/W4 /WX`: the new block's `result` shadowed an earlier local in main.
+Only that local and its references are renamed to `creation_result`; no warning policy changes.
+All other20 frozen source files remain byte identical. Main is identical after normalizing that
+identifier and formatting. Linux Editor rebuild and the same extended X11 create/rename/reserve/
+release/recreate/import/assign/Save/read-only flow pass again (**93.81 s**). The receipt preserves
+the original/current hashes and failed Windows job-log hash. Updated-head hosted CI must pass in
+full; this targeted compiler-portability check is not claimed as another full local run or local
+Windows execution.
 
 ## Exact commands
 
