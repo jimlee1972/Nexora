@@ -688,10 +688,16 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
                       state.prefab_can_rebase = false;
                       state.prefab_rebase_confirmation = false;
                     }
-                    const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
-                    state.prefab_choice_positions.emplace_back(
-                        static_cast<std::size_t>(index), option,
-                        std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F});
+                    // Auto-sized popup measurement frames do not provide clickable targets.
+                    const auto *popup = ImGui::GetCurrentWindow();
+                    if (!popup->Hidden && !popup->SkipItems && ImGui::IsItemVisible()) {
+                      const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+                      const ImVec2 center{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+                      if (popup->ClipRect.Contains(center))
+                        state.prefab_choice_positions.emplace_back(static_cast<std::size_t>(index),
+                                                                   option,
+                                                                   std::array{center.x, center.y});
+                    }
                   }
                   ImGui::EndCombo();
                 }

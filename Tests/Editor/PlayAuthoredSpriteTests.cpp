@@ -165,6 +165,42 @@ void Run(const std::filesystem::path &root) {
   };
   start();
   const auto clone = play.PlayWorld()->SaveScene(id);
+  {
+    using Phase = editor::preview::PlayServiceGate::Phase;
+    editor::preview::PlayServiceGate gate;
+    auto services =
+        editor::preview::PlayTwoDServices::Bind(*play.PlayWorld(), *captured, false, &gate);
+    Check(bool(services), "direct authored source owner unavailable");
+    NexoraTwoDApiV1 prefix{};
+    prefix.struct_size = NEXORA_2D_API_V1_BASE_SIZE;
+    const auto sentinel = +[](void *, NexoraTwoDSourceApiV1 *) -> int32_t { return 123; };
+    prefix.get_source_api = sentinel;
+    Check(services->GetApi(&prefix) == 0 && prefix.struct_size == NEXORA_2D_API_V1_BASE_SIZE &&
+              prefix.get_source_api == sentinel,
+          "Editor source proxy overwrote the caller's legacy table prefix/tail");
+    NexoraTwoDApiV1 api{};
+    api.struct_size = sizeof(api);
+    NexoraTwoDSourceApiV1 sources{};
+    sources.struct_size = sizeof(sources);
+    Check(services->GetApi(&api) == 0 && NexoraGetTwoDSourcesV1(&api, &sources) == 0,
+          "Editor source proxy suffix unavailable");
+    NexoraTwoDSourceSpriteV1 value{};
+    Check(sources.get_sprite(sources.context, entities[0], &value) == 0 &&
+              value.source_high == sourceId.high && value.source_low == sourceId.low,
+          "authored reference missing from the guarded source table");
+    const auto original_sprite = value;
+    value.sprite.color[0] = .25F;
+    Check(gate.SetPhase(Phase::Capture) &&
+              sources.set_sprite(sources.context, entities[0], &value) ==
+                  NEXORA_GAMEPLAY_ERROR_LIFECYCLE,
+          "cached source table bypassed Capture write rejection");
+    Check(sources.get_sprite(sources.context, entities[0], &value) == 0 &&
+              value.sprite.color[0] == original_sprite.sprite.color[0] &&
+              gate.SetPhase(Phase::Live) &&
+              sources.set_sprite(sources.context, entities[0], &value) == 0 &&
+              play.PlayWorld()->SaveScene(id) == clone,
+          "source Capture rejection changed metadata/World or broke Live routing");
+  }
   editor::preview::PlayGameplayModule module;
   Check(module.Load(*play.PlayWorld(), Loader, {}, *captured) && creates == 1 && observed_sources &&
             play.PlayWorld()->SaveScene(id) == clone,

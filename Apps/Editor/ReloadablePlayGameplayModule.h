@@ -20,6 +20,21 @@ public:
   ReloadablePlayGameplayModule(const ReloadablePlayGameplayModule &) = delete;
   ReloadablePlayGameplayModule &operator=(const ReloadablePlayGameplayModule &) = delete;
 
+  // Keep the no-library authored preview on the same facade and borrowed Play World.
+  bool BindAuthoredPreview(runtime::World &world, const PlayTwoDBinding &binding) try {
+    Unload();
+    active_ = std::make_unique<PlayGameplayModule>(log_, rejected_);
+    if (!active_->BindAuthoredPreview(world, binding)) {
+      Unload();
+      return false;
+    }
+    world_ = &world;
+    active_->input_ = idle_input_;
+    return true;
+  } catch (...) {
+    Unload();
+    return false;
+  }
   bool LoadRelative(runtime::World &world, const std::filesystem::path &root,
                     std::string_view relative, std::string &error,
                     std::shared_ptr<const MeshAssetCatalog> assets = {},

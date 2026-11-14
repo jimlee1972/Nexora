@@ -78,6 +78,11 @@ disabled-control observations for permission checks. See [the scoped Linux valid
 
 ### Private native icon-control observations
 
+Prefab isolation conflict-option centers are published only for visible popup items outside
+hidden sizing frames, with their center inside the popup clip rectangle. Fast acknowledged
+native input must not target provisional auto-fit geometry. Widget choices and rebase/consent/
+read-only admission are unchanged; these observations invoke no authoring action.
+
 Private test access copies close-modal Save/Discard/Cancel centers only when the current item
 is visible, enabled, outside hidden sizing frames and its center lies within the current window
 clip rectangle. Each frame clears old close points. Diagnostic, Scene Select All, reflected

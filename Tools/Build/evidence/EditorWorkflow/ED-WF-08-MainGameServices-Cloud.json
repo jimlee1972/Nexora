@@ -1,5 +1,5 @@
 {
-  "status": "local_14_gates_and_metadata_passed_ci_pending",
+  "status": "original_generation_local_and_exact_head_ci_passed_integrated_repair_pending",
   "base": "76fb7244a743abccfb41b4b1a6967311175fc9bb",
   "validation_parent": "76fb7244a743abccfb41b4b1a6967311175fc9bb",
   "scope": "main native Player same-World source/animation/pool services; no configured Editor/watching/full strict reload acceptance",
@@ -1454,7 +1454,17 @@
     "manifest_sha256": "a228b35cbfdbb0a3a8d52fb4ef0abf15de6cbecc4fd59176ba1c6f1d1889d5b1",
     "all_original_file_sha256_verified": true
   },
-  "hosted_ci": "pending on eventual immutable committed head",
+  "hosted_ci": {
+    "head": "08498a0023b8e380e82bfee0be090aee31a63991",
+    "checks_passed": 41,
+    "first_attempt": true,
+    "run_ids": [
+      43627966458,
+      43627966404,
+      43627938654
+    ],
+    "status": "all_completed_success"
+  },
   "goal_complete": false,
   "parent_milestones": {
     "workflow": "5/9",
@@ -1490,5 +1500,15 @@
       "exit": 0,
       "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     }
+  },
+  "integrated_delivery": {
+    "status": "repair_combined_local_549_and_14_gates_passed_ci_pending",
+    "head": "0d439a7782c50305d9d771972f0e4c2b0b74ac11",
+    "merge": "30fcf6fdfd862189fafb49370d772c050eac5ddf",
+    "repair_task": "nexora-whr.8.3.5",
+    "evidence": "Tools/Build/evidence/EditorWorkflow/ED-WF-08-MainGameIntegration-Linux-2026-11-14.md",
+    "repair_full_passed": 549,
+    "repair_full_seconds": 2289.04,
+    "repair_evidence": "Tools/Build/evidence/EditorWorkflow/ED-WF-08-MainGameIntegration-Cloud.json"
   }
 }

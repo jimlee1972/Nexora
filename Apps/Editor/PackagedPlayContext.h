@@ -5,6 +5,9 @@
 #include "PlayWorldReload.h"
 #include <stdexcept>
 #include <type_traits>
+#if defined(NEXORA_HAS_2D)
+#include "Nexora/TwoD/GameSpriteAssets.h"
+#endif
 
 namespace nexora::editor::preview {
 // Owner-thread isolated packaged game. This owner outlives the PlaySession borrow and module;
@@ -22,6 +25,15 @@ public:
   explicit PackagedPlayContext(std::shared_ptr<const runtime::LoadedGameProject> project)
       : project_(std::move(project)),
         scenes_(std::make_unique<runtime::GameSceneSession>(world_, project_)) {
+#if defined(NEXORA_HAS_2D)
+    std::string error;
+    sprite_assets_ = twod::GameSpriteAssets::Load(project_->SpriteAssets(), &error);
+    if (!sprite_assets_)
+      throw std::runtime_error(error);
+#else
+    if (!project_->SpriteAssets().empty())
+      throw std::runtime_error("Configured Sprite Play requires TwoD support.");
+#endif
     std::uint64_t request{};
     if (scenes_->RequestLoad(project_->StartupScene(), runtime::GameSceneLoadMode::Replace, false,
                              request) != runtime::GameSceneError::None)

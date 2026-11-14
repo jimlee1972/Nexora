@@ -43,7 +43,7 @@ GameplayGeneration::CreateCatalog(std::vector<SceneEntry> catalog, std::size_t c
   }
 }
 GameplayGeneration::GameplayGeneration(const GameplayGeneration &source, StagedCopy)
-    : world_(source.world_), tiles_(source.tiles_), pool_(source.pool_, InstancePool::StagedCopy{}),
+    : world_(source.world_), tiles_(source.tiles_), pool_(source.pool_, InstancePool::ReloadCopy{}),
       has_tiles_(source.has_tiles_) {
   if (source.single_) {
     single_ = std::make_unique<SpriteScene>(*source.single_);

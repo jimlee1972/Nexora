@@ -1559,6 +1559,12 @@ host soak remain separate gates.
 
 ### 2D Game View and optional Play gameplay services
 
+Fresh authored bindings validate the captured Runtime snapshot and resolve source UUIDs before
+seeding private Sprite metadata, before module Create. The existing Source API suffix shares
+the same generation gate as its parent: Capture permits reads and rejects writes; accepted
+reload rebinds each generation to its own World before retirement. Parent API acquisition copies
+only the negotiated supported prefix and preserves caller storage beyond it.
+
 For a bound 2D owner, the same V3 host now advertises services for rebindable action/pointer input,
 immediate UI/font registration, native WAV audio controls and project-UUID-scoped permanent slots.
 Frozen Atlas/Clip assets remain read-only through the 2D bridge; a mutable content registration

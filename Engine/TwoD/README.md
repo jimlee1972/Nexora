@@ -245,6 +245,10 @@ and rejects missing callbacks. The original V3 prefix is still sufficient for ot
 TwoD-off hosts leave the callback null and the capability unset. Runtime has no dependency on
 TwoD. The original ABI baseline is retained alongside an additive 2D V1 wire baseline.
 
+Single-scene reload fork/rebind operations reject both `SceneSession` and `GameSpriteSession`
+routers before reading single-scene metadata. Main Game ownership remains on its existing World;
+this rejection preserves live animation/pool state and does not accept full main Game reload.
+
 The bridge borrows the supplied World, its matching SpriteScene and optional Tilemap/InstancePool;
 reject a mismatched World/scene at construction. ClipResolver returns immutable host-owned clips;
 Play validates their UUID and binding mode (plus Atlas identity for legacy Clips) and copies a Clip
