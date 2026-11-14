@@ -230,7 +230,8 @@ and [Linux evidence](../../Tools/Build/evidence/EditorEDM3-GameTwoDPreview-Linux
 
 This Sprite-only translation rejects every nonzero `SceneTextureReference`, including partial
 references paired with ordinary texture IDs, before appending any geometry. Scene image bindings
-require a separate owning ImGui integration; this path cannot silently discard their tags.
+use the separate `DrawGameScene` owning integration below; this Sprite-only path cannot silently
+discard their tags.
 
 The private View-option position observer publishes only visible, enabled items in a nonhidden
 popup. ImGui's first size-measurement frame is excluded because its coordinates are not interactive
@@ -2087,3 +2088,23 @@ Scene marker test getters additionally require a currently submitted, active, vi
 non-skipped Scene window, so hidden sizing or previous-frame markers are not actionable points.
 The source-rebase test keys are copied separately; they do not alter the existing scene/file/
 Play key formats, routing, or command ownership.
+
+
+## Owning Game Scene images and source quads
+
+`DrawGameScene(reference, sprites)` targets the current physical native Game canvas before
+`EndFrame`. It prevalidates the same 4096 indexed uniform-tint Sprite limits and native texture
+generations as `DrawGameTwoDSprites`; nonzero Scene tags inside the Sprite packet still reject.
+A complete typed reference supplies the Scene image before those quads. An empty reference gives
+a Sprite-only background. Duplicate/post-EndFrame calls or invalid partial references reject.
+
+The host records the image's owning draw-list/index range, not a new public integer texture ID.
+Native flattening preserves ImGui window order and splits any merged command around that range,
+emitting its explicit `sceneTexture` and ordinary Sprite/font commands separately. An absent or
+partial image range rejects before native submission. The surface validates frame/domain/view
+identity and owns fenced sampling resources. The legacy headless RHI overload does not reinterpret
+Scene images as font textures. All per-frame image metadata clears at `BeginFrame`.
+
+The application owns source admission, GUI completion/submission and World publication; the host
+retains no gameplay, source or renderer pointer. See [configured Play ownership](../../Apps/Editor/README.md#configured-packaged-sprite-play)
+and [native acceptance](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-ConfiguredSpritePlay-Linux-2026-11-14.md).

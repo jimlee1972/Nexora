@@ -2873,9 +2873,10 @@ module-backed main Play after validating and freezing the scene and asset closur
 [host ownership contract](../../Apps/Editor/README.md#authored-source-references-in-module-backed-play).
 The [module-free main scene clone](../../Apps/Editor/README.md#module-free-main-scene-sprite-play)
 captures only referenced sources and owns the same private preview without a module callback.
-TwoDDocument/ND2D/Studio owns its separate source catalog. Scene View drawing,
-configured package Play and main Editor Build export remain consumers requiring their own closure
-validation. No C/Zig ABI,
+TwoDDocument/ND2D/Studio owns its separate source catalog. Main Game Build owns the cooked closure
+below, while [configured package Play](../../Apps/Editor/README.md#configured-packaged-sprite-play)
+admits its immutable assets and complete native GUI before World publication. Scene View authoring
+rendering and live source/reload publication remain separate consumers. No C/Zig ABI,
 NX2S/ND2D or asset codec changes; consumers of the new exported C++ API rebuild. When 2D is disabled,
 the helper is absent and the ordinary opaque scene wrapper still preserves its bytes. See
 [reference transaction evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceReferences-Linux-2026-11-13.md).

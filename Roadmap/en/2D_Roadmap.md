@@ -1161,3 +1161,19 @@ gates pass. [Supplementary evidence](../../Tools/Build/evidence/EditorWorkflow/E
 both original native evidence files and the reproduced failure. This does not implement owning
 ImGui Scene bindings or guarded packaged source Play; parent `nexora-whr.7.8`, production reload,
 full ED-WF-07/08, **5/9**, **0/8**, **9/11** and physical/clean-host acceptance remain open/unchanged.
+
+
+## ✅ Configured packaged Sprite Play (2026-11-14)
+
+Supporting `nexora-whr.7.8` integrates the delivered Build catalog and fenced Scene-image primitive
+in the actual main Editor. All package Atlases are admitted before Play; candidate remapped source
+frames and the complete Scene/Sprite/GUI pass precede World publication and initial callbacks.
+Read-only native acceptance repeats 32 sessions, verifies full crop/Pivot/mirror masks and unchanged
+underlying 3D pixels, then exercises actual SDK Zig Additive/Replace/return, floating-window
+occlusion, resize and stale-source refusal before module Start. The source-free direct path and
+TwoD-OFF refusal remain. [Contract](../../Apps/Editor/README.md#configured-packaged-sprite-play) and
+[execution record](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-ConfiguredSpritePlay-Linux-2026-11-14.md).
+The earlier foundation-only notes describe their delivery boundary; configured Play is now this
+separate consumer. Scene View authoring, production source publication/reload and complete
+ED-WF-07/08 remain open. Workflow **5/9**, graphical Editor **0/8**, TwoD **9/11** and physical /
+clean-host acceptance are unchanged.

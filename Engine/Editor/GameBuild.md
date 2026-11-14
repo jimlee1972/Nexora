@@ -166,7 +166,8 @@ Unicode relocation and source deletion. Sprite metadata augments remapped live W
 3D content remains underneath a default-camera 2D overlay. The source-free capability-2 wire is
 byte-for-byte unchanged against the prior producer.
 
-This accepts Build/relocated Player source references, not Editor configured package Play's
-separate preview compositor: that owner currently rejects source-bearing catalogs explicitly.
+Build/relocated Player acceptance remains independent of the
+[configured Editor Play owner](../../Apps/Editor/README.md#configured-packaged-sprite-play), which
+now admits this owning catalog through its single-pass Scene/Sprite/GUI compositor.
 Scene View authoring rendering, source animation/pool services, live source publication and reload
 are separate acceptance. See [executed Build evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-Linux-2026-11-13.md).

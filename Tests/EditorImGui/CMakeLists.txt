@@ -874,6 +874,21 @@ target_link_libraries(NexoraReflectedInspectorUiTests PRIVATE Nexora::EditorImGu
 nexora_apply_defaults(NexoraReflectedInspectorUiTests)
 add_test(NAME editor.reflected_inspector_ui COMMAND NexoraReflectedInspectorUiTests)
 if(NEXORA_ENABLE_2D)
+  if(NEXORA_ENABLE_ASSET_PIPELINE)
+    add_executable(NexoraPackagedSpritePlayTests PackagedSpritePlayTests.cpp)
+    target_include_directories(NexoraPackagedSpritePlayTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+    target_link_libraries(NexoraPackagedSpritePlayTests PRIVATE Nexora::EditorImGui)
+    nexora_apply_defaults(NexoraPackagedSpritePlayTests)
+    add_test(NAME editor.packaged_sprite_play COMMAND NexoraPackagedSpritePlayTests)
+    if(NEXORA_ZIG_EXECUTABLE)
+      include("${PROJECT_SOURCE_DIR}/CMake/Modules/NexoraGameProject.cmake")
+      nexora_add_game_module(NexoraPackagedSpriteScriptFixture
+        PROJECT "${CMAKE_CURRENT_SOURCE_DIR}/PackagedSpriteScript/project.json"
+        OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/packaged-sprite-script"
+        ZIG "${NEXORA_ZIG_EXECUTABLE}")
+      add_dependencies(NexoraPackagedSpritePlayTests NexoraPackagedSpriteScriptFixture)
+    endif()
+  endif()
   add_executable(NexoraSpriteSourceInspectorTests SpriteSourceInspectorTests.cpp)
   target_include_directories(NexoraSpriteSourceInspectorTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
   target_link_libraries(NexoraSpriteSourceInspectorTests PRIVATE Nexora::EditorImGui)
@@ -978,6 +993,16 @@ if(NEXORA_ENABLE_2D AND NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
       --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/editor-authored-preview")
   set_tests_properties(editor.linux_authored_preview PROPERTIES
     TIMEOUT 180 RUN_SERIAL TRUE LABELS "editor;twod;source;vulkan;virtual-display")
+  if(TARGET NexoraPackagedSpriteScriptFixture AND TARGET NexoraGameSpriteBuildTests)
+    add_test(NAME editor.linux_packaged_sprites
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxPackagedSprites.py"
+        --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraGameSpriteBuildTests>"
+        --module "${CMAKE_CURRENT_BINARY_DIR}/packaged-sprite-script/lib/${CMAKE_SHARED_LIBRARY_PREFIX}PackagedSpriteFixture${CMAKE_SHARED_LIBRARY_SUFFIX}"
+        --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}"
+        --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/editor-packaged-sprites")
+    set_tests_properties(editor.linux_packaged_sprites PROPERTIES
+      TIMEOUT 180 RUN_SERIAL TRUE LABELS "editor;twod;source;vulkan;virtual-display")
+  endif()
 endif()
 
 add_executable(NexoraContentDependencyTests ContentDependencyTests.cpp)
