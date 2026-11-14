@@ -124,6 +124,9 @@ locator. Set Startup enables its scene; the startup checkbox/removal is protecte
 startup is chosen. Explicit path repair keeps identity. Save and Reload emit one-shot project/root
 scoped requests; the host owns enrollment, bounded file IO, catalog reconciliation and guarded
 publication. `SetProjectBuildSettings` transfers an owning observation, never a workspace borrow.
+The observation also carries up to 4096 immutable animation Clip roots. Oversized handoffs leave
+the previous ready draft untouched. Existing controls and Save/Reload/Build requests preserve that
+list; a graphical Clip picker remains separate work.
 Read-only projects expose inspection/Reload but disable writes. Recovery, Play and export block
 mutation. Project changes close the settings window and discard pending requests; while open,
 scene/play shortcuts are blocked. Settings do not change the single editable Scene or the Editor's

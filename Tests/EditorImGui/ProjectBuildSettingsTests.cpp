@@ -41,6 +41,7 @@ struct Fixture final {
                b = session.Enroll("Level01.scene", catalog);
     Require(a && b, "enrollment");
     settings = {a->id, {*a, *b}};
+    settings.animation_clips = {{900, 1}, {900, 2}};
     Require(session.Save(settings, catalog), "settings save");
     ui.SetProjectBuildSettings(writer, settings, true);
     ui.SetDisplay(1600, 1600, dpi);
@@ -86,6 +87,10 @@ struct Fixture final {
 };
 void Run(float scale) {
   Fixture f(scale);
+  auto oversized = f.settings;
+  oversized.animation_clips.resize(4097, {900, 3});
+  // A rejected handoff must retain the prior ready draft, including its immutable roots.
+  f.ui.SetProjectBuildSettings(f.writer, std::move(oversized), false, "Oversized roots");
   const auto build_chord = [&](unsigned modifiers) {
     Nexora::Window::WindowEvent event;
     event.type = Nexora::Window::WindowEventType::Key;
@@ -103,6 +108,7 @@ void Run(float scale) {
   const auto shortcut_build = f.ui.TakeProjectBuildSettingsRequest();
   Require(shortcut_build && shortcut_build->action == Action::BuildSceneOnly &&
               shortcut_build->run_after_build && shortcut_build->root == f.writer.Root() &&
+              shortcut_build->settings.animation_clips == f.settings.animation_clips &&
               shortcut_build->settings.start_scene == f.settings.start_scene,
           "Ctrl+B did not emit a scoped Build & Run request");
   f.ui.SetGameBuildStatus(true, "Compiling");
@@ -118,10 +124,12 @@ void Run(float scale) {
               request->root == f.writer.Root() &&
               request->settings.start_scene == f.settings.scenes[1].id &&
               !request->settings.scenes[0].enabled && request->settings.scenes[1].enabled &&
+              request->settings.animation_clips == f.settings.animation_clips &&
               !f.ui.TakeProjectBuildSettingsRequest(),
           "real UI did not produce scoped startup/exclusion");
   editor::ProjectBuildSettingsSession session(f.writer);
   Require(session.Reload() && session.Save(request->settings, f.catalog) &&
+              session.Settings()->animation_clips == f.settings.animation_clips &&
               session.Settings()->start_scene == f.settings.scenes[1].id,
           "UI request save failed");
   f.ui.SetProjectBuildSettings(f.writer, *session.Settings(), true, "Saved");
@@ -136,6 +144,8 @@ void Run(float scale) {
   build = f.ui.TakeProjectBuildSettingsRequest();
   Require(build && build->action == Action::BuildScript && build->path == "Scripts/project.json",
           "explicit script build action");
+  Require(build->settings.animation_clips == f.settings.animation_clips,
+          "UI script build lost explicit animation roots");
   f.Click(5);
   request = f.ui.TakeProjectBuildSettingsRequest();
   Require(request && request->action == Action::Save &&

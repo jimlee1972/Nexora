@@ -81,6 +81,11 @@ Build output expands a bounded sanitized tail. No percentage or gameplay success
 from a running compiler or a completed build. See the [workflow delivery plan](../../Roadmap/en/Editor_Workflow_Delivery_Plan.md)
 for the remaining integration and platform acceptance.
 
+Explicit animation assets can be listed by UUID in schema-3 `project.build.json` using
+`animation_clips` (see [the settings contract](../../Engine/Editor/README.md#project-build-scene-settings)).
+Reload retains that list while editing other Build settings; a graphical Clip picker is pending.
+Build freezes the selected Clips and complete source/Atlas closure, without starting animation.
+
 These settings feed the accepted [multi-scene game delivery](../../Roadmap/en/Project_Scene_Delivery_Plan.md)
 producer and Play path. Export StaticView remains a separate command for the current Scene.
 

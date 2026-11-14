@@ -57,6 +57,10 @@ public:
     std::unordered_set<std::string> paths;
     std::unordered_map<std::uint64_t, AssetUuid> mesh_resources;
     std::size_t bytes = 68, geometry = 0, snapshots = 0, entity_count = 0;
+    if (package.animation_clips.size() > kMaximumProjectPackageAssets)
+      return Fail<LoadedGameProject>(error, "Game animation root count exceeds 4096.");
+    if (!package.animation_clips.empty())
+      bytes += 4 + 16 * package.animation_clips.size();
     for (const auto &entry : package.scenes) {
       if (!Nonzero(entry.id) || !CatalogPath(entry.path) || !scene_ids.insert(entry.id).second ||
           !paths.insert(Fold(entry.path)).second)
@@ -89,12 +93,14 @@ public:
       } else if (blob.type == kCookedSceneType) {
         if (!scene_ids.contains(blob.id))
           return Fail<LoadedGameProject>(error, "Unlisted scene in game package.");
-      } else if (blob.type == "sprite_atlas" || blob.type == "sprite_source") {
+      } else if (blob.type == "sprite_atlas" || blob.type == "sprite_source" ||
+                 blob.type == "sprite_clip") {
         const auto serialized = AssetCooker::Serialize(blob);
         if (!PreflightBlob(serialized) || !AssetCooker::Deserialize(serialized))
           return Fail<LoadedGameProject>(error, "Game Sprite asset integrity failed.");
         if ((blob.type == "sprite_atlas" && !blob.dependencies.empty()) ||
-            (blob.type == "sprite_source" && blob.dependencies.size() != 1))
+            (blob.type == "sprite_source" && blob.dependencies.size() != 1) ||
+            (blob.type == "sprite_clip" && blob.dependencies.empty()))
           return Fail<LoadedGameProject>(error, "Invalid Sprite asset dependency framing.");
         result.sprites_.push_back(blob);
       } else if (blob.type != kCookedScalarPbrType)
@@ -106,6 +112,31 @@ public:
         if (atlas == blobs.end() || atlas->second->type != "sprite_atlas")
           return Fail<LoadedGameProject>(error, "Sprite source Atlas is missing or wrong-typed.");
       }
+    // Only explicit roots authorize Clip capture. Their edges are either sources or one Atlas;
+    // source payload/region agreement remains the optional TwoD consumer's responsibility.
+    std::unordered_set<AssetUuid, AssetUuidHash> clip_roots;
+    for (const auto id : package.animation_clips) {
+      const auto clip = blobs.find(id);
+      if (!Nonzero(id) || !clip_roots.insert(id).second || clip == blobs.end() ||
+          clip->second->type != "sprite_clip")
+        return Fail<LoadedGameProject>(error, "Invalid, duplicate or unresolved animation root.");
+      used.insert(id);
+      std::unordered_set<AssetUuid, AssetUuidHash> dependencies;
+      std::string_view kind;
+      for (const auto dependency : clip->second->dependencies) {
+        const auto found = blobs.find(dependency);
+        if (!dependencies.insert(dependency).second || found == blobs.end() ||
+            (found->second->type != "sprite_source" && found->second->type != "sprite_atlas") ||
+            (!kind.empty() && kind != found->second->type))
+          return Fail<LoadedGameProject>(error, "Invalid animation dependency closure.");
+        kind = found->second->type;
+        used.insert(dependency);
+        if (kind == "sprite_source")
+          used.insert(found->second->dependencies.front());
+      }
+      if (kind == "sprite_atlas" && dependencies.size() != 1)
+        return Fail<LoadedGameProject>(error, "Legacy animation requires exactly one Atlas.");
+    }
     std::unordered_map<AssetUuid, std::shared_ptr<const CookedMesh>, AssetUuidHash> meshes;
     std::unordered_map<AssetUuid, std::shared_ptr<const CookedScalarPbr>, AssetUuidHash> materials;
     for (const auto &entry : package.scenes) {
@@ -178,6 +209,8 @@ public:
     if (used.size() != blobs.size())
       return Fail<LoadedGameProject>(error, "Unreferenced extra assets in game package.");
     result.catalog_ = package.scenes;
+    result.clips_ = package.animation_clips;
+    std::ranges::sort(result.clips_, Less);
     std::ranges::sort(result.catalog_,
                       [](const auto &a, const auto &b) { return Less(a.id, b.id); });
     return result;
@@ -204,7 +237,7 @@ std::optional<ByteBuffer> EncodeGameProjectPackage(const GameProjectPackage &pac
     return std::nullopt;
   ByteBuffer output(kGameMagic.begin(), kGameMagic.end());
   Append(output, 1, 4); // Schema.
-  Append(output, loaded->SpriteAssets().empty() ? 2 : 3, 4);
+  Append(output, loaded->Capability(), 4);
   for (const auto value : {package.project.high, package.project.low, package.start_scene.high,
                            package.start_scene.low})
     Append(output, value, 8);
@@ -215,6 +248,13 @@ std::optional<ByteBuffer> EncodeGameProjectPackage(const GameProjectPackage &pac
     Append(output, entry.path.size(), 4);
     for (const unsigned char c : entry.path)
       output.push_back(static_cast<std::byte>(c));
+  }
+  if (loaded->Capability() == 4) {
+    Append(output, loaded->AnimationClips().size(), 4);
+    for (const auto id : loaded->AnimationClips()) {
+      Append(output, id.high, 8);
+      Append(output, id.low, 8);
+    }
   }
   std::vector<const RuntimeBlob *> sorted;
   for (const auto &blob : package.assets)
@@ -251,10 +291,10 @@ std::optional<LoadedGameProject> DecodeGameProjectPackage(std::span<const std::b
   GameProjectPackage package;
   std::uint64_t schema{}, capability{}, count{};
   if (!reader.Number(schema, 4) || schema != 1 || !reader.Number(capability, 4) ||
-      (capability != 2 && capability != 3) || !reader.Number(package.project.high, 8) ||
-      !reader.Number(package.project.low, 8) || !reader.Number(package.start_scene.high, 8) ||
-      !reader.Number(package.start_scene.low, 8) || !reader.Number(count, 4) || !count ||
-      count > kMaximumGameScenes)
+      (capability != 2 && capability != 3 && capability != 4) ||
+      !reader.Number(package.project.high, 8) || !reader.Number(package.project.low, 8) ||
+      !reader.Number(package.start_scene.high, 8) || !reader.Number(package.start_scene.low, 8) ||
+      !reader.Number(count, 4) || !count || count > kMaximumGameScenes)
     return Fail<LoadedGameProject>(error, "Invalid game catalog count/schema.");
   AssetUuid previous;
   for (std::uint64_t i = 0; i < count; ++i) {
@@ -269,6 +309,20 @@ std::optional<LoadedGameProject> DecodeGameProjectPackage(std::span<const std::b
     reader.offset += static_cast<std::size_t>(size);
     previous = entry.id;
     package.scenes.push_back(std::move(entry));
+  }
+  if (capability == 4) {
+    if (!reader.Number(count, 4) || !count || count > kMaximumProjectPackageAssets ||
+        count > (reader.bytes.size() - reader.offset) / 16)
+      return Fail<LoadedGameProject>(error, "Invalid animation root count.");
+    previous = {};
+    for (std::uint64_t i = 0; i < count; ++i) {
+      AssetUuid id;
+      if (!reader.Number(id.high, 8) || !reader.Number(id.low, 8) || !Nonzero(id) ||
+          (i && !Less(previous, id)))
+        return Fail<LoadedGameProject>(error, "Invalid animation root identity/order.");
+      package.animation_clips.push_back(id);
+      previous = id;
+    }
   }
   if (!reader.Number(count, 4) || !count || count > kMaximumProjectPackageAssets ||
       count > (reader.bytes.size() - reader.offset) / 12)
@@ -292,7 +346,7 @@ std::optional<LoadedGameProject> DecodeGameProjectPackage(std::span<const std::b
   if (reader.offset != reader.bytes.size())
     return Fail<LoadedGameProject>(error, "Unexpected game package suffix.");
   auto loaded = LoadGameProjectPackage(package, error);
-  if (loaded && (loaded->SpriteAssets().empty() ? 2U : 3U) != capability)
+  if (loaded && loaded->Capability() != capability)
     return Fail<LoadedGameProject>(error, "Game capability disagrees with Sprite asset presence.");
   return loaded;
 }
