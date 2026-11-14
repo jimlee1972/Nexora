@@ -164,7 +164,7 @@ void Run(float dpi) {
   auto request = ui.TakeSpriteSourceCreationRequest();
   Check(request && !ui.TakeSpriteSourceCreationRequest(), "one-shot creation request");
   const auto &r = request->creation;
-  Check(r.name == "Created" && r.project == workspace.Project().id && r.root == root &&
+  Check(r.name == "Created" && r.project == workspace.Project().id && r.root == workspace.Root() &&
             r.folder == "Content" && r.source.id == runtime::AssetUuid{} &&
             r.source.atlas == atlasId && r.source.region == 7 && r.source.sourceWidth == 19 &&
             r.source.sourceHeight == 23 && r.source.trimX == 3 && r.source.trimY == 5 &&

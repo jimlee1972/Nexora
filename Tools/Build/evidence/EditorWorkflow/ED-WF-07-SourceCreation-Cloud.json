@@ -2896,5 +2896,30 @@
       "Roadmap/zh-TW/Editor_Workflow_Delivery_Plan.md"
     ],
     "root_readme_unchanged": true
+  },
+  "followup_validation": {
+    "kind": "test-only canonical-root assertion",
+    "full_gate_commit": "9c17c45cf7374484198211bfc443eb5e41c1f72c",
+    "changed_source": "Tests/EditorImGui/SpriteSourceCreationUiTests.cpp",
+    "full_gate_sha256": "9b617078fec7906fba6223e2705ced8d7bcf0fc3119b2380821e1f95b38ebce8",
+    "current_sha256": "0508b5c942449404f6556fc0684a397b51fd89f3cdbaa8ec5a589f1979dc56ec",
+    "all_other_14_frozen_files_unchanged": true,
+    "product_code_changed": false,
+    "reason": "Temporary directories may contain aliases on macOS. Compare the owning request against ProjectWorkspace.Root(), the canonical authority, instead of the noncanonical temporary input path.",
+    "normal_tmpdir_ui_passed": true,
+    "symlink_tmpdir_ui_passed": true,
+    "normal_seconds": 1.79,
+    "aliased_seconds": 1.85,
+    "commands": [
+      "cmake --build --preset linux-development --target NexoraSpriteSourceCreationUiTests",
+      "ctest --test-dir build/linux-development -R '^editor.sprite_source_creation_ui$' --output-on-failure",
+      "TMPDIR=/workspace/work/editor-completion/source-create-temp-root-alias ctest --test-dir build/linux-development -R '^editor.sprite_source_creation_ui$' --output-on-failure"
+    ],
+    "log_sha256": {
+      "source-create-canonical-root-build.log": "9f70be406f51498f71829ab25ac6392b3cd1dbb87a5e3ef8a83a5ce4be089b17",
+      "source-create-canonical-root-ui.log": "cde6592176a4000c89000096c0b46b9cbdb8cdd529272b65826a92ab84c6789f",
+      "source-create-canonical-root-alias-ui.log": "08fa66ebaa212d275e8927e5ca1dc147e924c6a3194318521ca8cd5fc36a7085"
+    },
+    "hosted_ci": "Required again against the updated final head; prior-head runs do not satisfy it."
   }
 }

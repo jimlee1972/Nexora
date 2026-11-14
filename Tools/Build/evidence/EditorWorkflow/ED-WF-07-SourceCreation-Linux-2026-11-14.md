@@ -25,7 +25,7 @@ preserved. This is a cooperative local-filesystem operation, without power-loss 
 ## Acceptance
 
 Complete Development Modular configure/all-build and unfiltered **514/514** tests pass,
-zero failures/skips, **1740.31 seconds**. All 15 frozen source hashes match.
+zero failures/skips, **1740.31 seconds**. The full gate records all 15 frozen source hashes.
 Shipping Full, actual TwoD-OFF/testing-OFF graphical Editor/native Player, graphical Monolithic
 TwoD-ON model/control tests and the actual native creation flow pass. Exact-head hosted CI is
 required before actual delivery; PR/Beads record its final result. No local Windows/macOS/mobile
@@ -54,6 +54,17 @@ result, native UUID/file hashes and retained development failures. Initial compi
 errors were corrected before this frozen acceptance gate; no admission guard or deadline was relaxed.
 The initial native oracle expected a different magic, although the product created canonical bytes;
 the oracle now checks the existing codec's exact magic/schema and complete metadata.
+
+## Test-only canonical-root follow-up
+
+The full gate above ran at `9c17c45c`. A subsequent one-line UI-test correction compares the
+request root with `ProjectWorkspace.Root()` rather than the temporary input path. macOS temporary
+directories can use aliases; the production owner correctly emits the canonical workspace root.
+All other 14 frozen files, including every product implementation/build file, remain byte identical.
+The updated actual 1×/2× UI test passes both ordinary TMPDIR (**1.79 s**) and a real symlink TMPDIR
+(**1.85 s**) on Linux. This is targeted portability validation, not a new local full-gate or local
+macOS claim. The machine receipt preserves the original full-gate hash and the current test hash;
+updated-head hosted CI remains required. No runtime behavior, admission or deadline changed.
 
 ## Exact commands
 
