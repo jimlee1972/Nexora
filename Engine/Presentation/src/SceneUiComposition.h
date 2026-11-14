@@ -5,8 +5,9 @@
 namespace Nexora::Presentation::detail {
 [[nodiscard]] NEXORA_PRESENTATION_API std::uint64_t NextSceneTextureDomain() noexcept;
 
-// No descriptor, image or library pointer escapes the surface. One offscreen view is prepared
-// under the existing exclusive Scene admission; UI publication can then admit a disjoint view.
+// No descriptor, image or library pointer escapes the surface. At most two independent LDR
+// views may be prepared before the one UI pass. One sampled view can instead precede a disjoint
+// direct view. HDR/shadow and untagged offscreen workflows retain their exclusive admission.
 class SceneUiComposition final {
 public:
   SceneUiComposition() = default;
@@ -15,21 +16,22 @@ public:
   struct Plan final {
     bool valid{}, sampled{};
     SceneViewport bounds{};
+    std::array<bool, 2> views{};
   };
   void Begin(std::uint64_t frame) noexcept {
     frame_ = frame;
-    reference_.reset();
+    references_ = {};
+    latest_.reset();
     sampled_ = false;
   }
   [[nodiscard]] bool Publish(std::size_t view) noexcept {
-    if (!domain_ || !frame_ || view > UINT32_MAX || reference_)
+    if (!domain_ || !frame_ || view >= references_.size() || references_[view])
       return false;
-    reference_ = SceneTextureReference{domain_, frame_, static_cast<std::uint32_t>(view)};
+    latest_ = SceneTextureReference{domain_, frame_, static_cast<std::uint32_t>(view)};
+    references_[view] = latest_;
     return true;
   }
-  [[nodiscard]] std::optional<SceneTextureReference> Reference() const noexcept {
-    return reference_;
-  }
+  [[nodiscard]] std::optional<SceneTextureReference> Reference() const noexcept { return latest_; }
   void Complete() noexcept { sampled_ = true; }
   [[nodiscard]] bool Sampled() const noexcept { return sampled_; }
   [[nodiscard]] Plan Validate(const UiDrawData &data, std::uint32_t width,
@@ -41,7 +43,9 @@ public:
     for (const auto &command : data.commands) {
       if (command.sceneTexture == SceneTextureReference{})
         continue;
-      if (sampled_ || !reference_ || command.sceneTexture != *reference_ || command.textureId ||
+      const auto view = command.sceneTexture.view;
+      if (sampled_ || view >= references_.size() || !references_[view] ||
+          command.sceneTexture != *references_[view] || command.textureId ||
           command.instanceCount || command.firstInstance || !command.elementCount ||
           command.elementCount % 3 || data.indices.size() % stride ||
           command.indexOffset > data.indices.size() / stride ||
@@ -83,6 +87,7 @@ public:
         plan.bounds.height = bottom - plan.bounds.y;
       }
       plan.sampled = true;
+      plan.views[view] = true;
     }
     return plan;
   }
@@ -90,7 +95,8 @@ public:
 private:
   const std::uint64_t domain_{NextSceneTextureDomain()};
   std::uint64_t frame_{};
-  std::optional<SceneTextureReference> reference_;
+  std::array<std::optional<SceneTextureReference>, 2> references_{};
+  std::optional<SceneTextureReference> latest_;
   bool sampled_{};
 };
 } // namespace Nexora::Presentation::detail

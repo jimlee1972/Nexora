@@ -49,3 +49,12 @@ Stable C／Zig layout、asset／resource identity、source format、shader 與 m
 未變動。執行完整 Linux Development／Shipping 與最終來源的全部 hosted CI。Vulkan core／同步
 驗證也必須拒絕 pipeline／render-pass 不相容；clear／load pass 除 attachment 相容，還共用
 包含 color read 的相同 dependency。目前驗證仍進行中。
+
+## UI 取樣擴充（2026-11-14）
+
+原生製作 Sprite consumer 可在同一次 UI 提交前準備至多兩個明確的 LDR、無陰影離屏視圖。
+每個視圖發布不同的 frame/domain/view 型別參照，並保有 fence 保護的色彩目標；DX12／Metal
+依序清除共享的每幀暫存深度。UI 命令個別選擇視圖並保留所屬視窗順序。既有單取樣加上
+不相交 direct 視圖仍可使用。一般未標記離屏、HDR、陰影路徑仍為獨占，總繪製次數仍為二。
+Editor 繼續抑制重疊的 Scene／Game 畫布。取樣影像支援浮動輔助視窗遮擋，並未接受任意
+Scene／Game 重疊。參見 [Scene 影像生命週期](../../Engine/Presentation/SceneUiComposition.md)。

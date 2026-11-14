@@ -1087,3 +1087,20 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
       --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
   set_tests_properties(editor.linux_appearance PROPERTIES TIMEOUT 90 LABELS "vulkan;virtual-display")
 endif()
+
+if(NEXORA_ENABLE_2D AND NEXORA_ENABLE_ASSET_PIPELINE)
+  add_executable(NexoraSceneSpritePreviewTests SceneSpritePreviewTests.cpp)
+  target_include_directories(NexoraSceneSpritePreviewTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+  target_link_libraries(NexoraSceneSpritePreviewTests PRIVATE Nexora::EditorImGui Nexora::TwoD)
+  nexora_apply_defaults(NexoraSceneSpritePreviewTests)
+  add_test(NAME editor.scene_sprite_preview COMMAND NexoraSceneSpritePreviewTests)
+  if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
+    add_test(NAME editor.linux_scene_sprites
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxSceneSprites.py"
+        --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraSceneSpritePreviewTests>"
+        --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}"
+        --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/editor-scene-sprites")
+    set_tests_properties(editor.linux_scene_sprites PROPERTIES
+      TIMEOUT 180 RUN_SERIAL TRUE LABELS "editor;twod;source;vulkan;virtual-display")
+  endif()
+endif()

@@ -361,7 +361,9 @@ physical-display/clean-host attestations.
 `SupportsBoundedSceneViews()` is default-false on ISurface and forwarded by RenderSurface. Native
 Vulkan/DX12/Metal adapters support at most two explicit, disjoint direct LDR/non-shadow viewports
 after the single UI submission. Touching edges are allowed. Implicit full-surface, offscreen, HDR,
-shadow and before-UI workflows remain exclusive. All original descriptor/budget validation runs;
+shadow and ordinary before-UI workflows remain exclusive. Explicit `sampledByUi` LDR/non-shadow
+requests can instead prepare two offscreen views before one UI submission; see
+[typed Scene composition](SceneUiComposition.md). All original descriptor/budget validation runs;
 failed geometry, overlap and a third view return InvalidDescriptor without consuming admission.
 Admission commits only after successful recording and resets on successful Acquire. Unsupported
 adapters keep their capability false. This rebuild-required C++ capability changes no stable C wire,
@@ -371,8 +373,8 @@ Each protecting-frame/view slot owns its mutable scene upload and geometry-prefi
 slot grows lazily and retains existing per-view limits. Vulkan separately owns each view's scene
 targets, bindings and PBR descriptors, with two bounded 64-material descriptor groups per frame;
 creating the next direct target cannot release the first recorded view. DX12/Metal retain serial
-shared depth ownership while using distinct mutable uploads. Offscreen/HDR/shadow targets stay
-exclusive. Existing mesh-residency leases cover both unsubmitted views until the next frame.
+shared depth ownership while using distinct mutable uploads and per-frame secondary LDR color
+targets for sampled UI views. Ordinary offscreen/HDR/shadow targets stay exclusive. Existing mesh-residency leases cover both unsubmitted views until the next frame.
 Resize/recovery/drain account for both slots, and abandoned recordings never submit freed resources.
 Vulkan clear/load scene render passes share identical subpass dependencies, including color reads,
 so their shared pipelines remain render-pass compatible while preserving load synchronization.
@@ -1211,3 +1213,17 @@ The copied debug selector displays actual angular-map distances in the safe view
 tone mapping; inactive slots are magenta. HUD remains separate. Native pixel fixtures compare
 normal, selective-bloom and map views against independent CPU references with unchanged two-channel
 8-bit tolerance, and persist `.bloom.ppm`, `.shadow.ppm` and completed-frame `.timings.csv` evidence.
+
+## Explicit immutable Scene texture retirement
+
+`ReleaseSceneTextures(ids)` runs on the render owner thread between acquired frames. Native
+Vulkan/DX12/Metal validate the entire request before mutation: at most64 nonzero application IDs,
+excluding the two reserved default IDs. Unknown/duplicate IDs are idempotent. Wrong-thread,
+acquired-frame and malformed calls reject; unsupported surfaces retain the default Unsupported.
+The native surface drains submitted work before freeing matching RGBA and linear Scene textures,
+both color-space views/descriptors and cache bindings. UI/Sprite textures, reserved defaults and
+other Scene owners remain live. `RenderSurface` forwards the operation and reports SurfaceLost
+after destruction. Callers keep IDs immutable and avoid recycling them within a surface; CPU
+owners may be released after the synchronous call returns. No C/Gameplay wire or shader changes.
+The native retirement fixture submits80 replacement generations/160frames, exceeding cache
+capacity while preserving another Scene owner and an independent same-integer UI texture.

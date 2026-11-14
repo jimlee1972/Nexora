@@ -923,29 +923,38 @@ int main(int argc, char **argv) {
       }
     }
     SceneUiFixture sceneUi;
-    for (unsigned frame = 0; frame < 12; ++frame) {
-      if (!sceneUi.Draw(*surface, 640, 360)) {
-        std::cerr << sceneUi.failure << '\n';
-        return fail(__LINE__);
+    for (const bool dual : {false, true}) {
+      const auto beforeSceneUi = surface->Diagnostics();
+      for (unsigned frame = 0; frame < 12; ++frame) {
+        if (!sceneUi.Draw(*surface, 640, 360, dual)) {
+          std::cerr << sceneUi.failure << '\n';
+          return fail(__LINE__);
+        }
+        const auto pixels = surface->ReadScenePixelsForTesting();
+        if (pixels.size() != 640 * 360 * 4)
+          return fail(__LINE__);
+        const auto read = [&](unsigned x, unsigned y) {
+          const auto offset = (y * 640 + x) * 4;
+          return std::array<unsigned, 3>{std::to_integer<unsigned>(pixels[offset + 2]),
+                                         std::to_integer<unsigned>(pixels[offset + 1]),
+                                         std::to_integer<unsigned>(pixels[offset])};
+        };
+        if (!SceneUiFixture::Pixels(read(160, 180), read(80, 180), read(160, 45), read(480, 180),
+                                    read(480, 45)) ||
+            !SceneUiFixture::Orientation(
+                {read(200, 90), read(100, 90), read(100, 270), read(200, 270)},
+                {read(520, 135), read(420, 135), read(420, 225), read(520, 225)},
+                surface->Diagnostics().uiTargetEncodesSrgb)) {
+          std::cerr << "sampled Metal Scene/UI orientation, clipping or view resources changed\n";
+          return fail(__LINE__);
+        }
       }
-      const auto pixels = surface->ReadScenePixelsForTesting();
-      if (pixels.size() != 640 * 360 * 4)
+      const auto afterSceneUi = surface->Diagnostics();
+      if (afterSceneUi.presentedFrames - beforeSceneUi.presentedFrames != 12 ||
+          afterSceneUi.sceneDrawCalls - beforeSceneUi.sceneDrawCalls != 24 ||
+          afterSceneUi.sceneComposites - beforeSceneUi.sceneComposites != 12 ||
+          afterSceneUi.nativeUiDrawCalls - beforeSceneUi.nativeUiDrawCalls != (dual ? 60 : 48))
         return fail(__LINE__);
-      const auto read = [&](unsigned x, unsigned y) {
-        const auto offset = (y * 640 + x) * 4;
-        return std::array<unsigned, 3>{std::to_integer<unsigned>(pixels[offset + 2]),
-                                       std::to_integer<unsigned>(pixels[offset + 1]),
-                                       std::to_integer<unsigned>(pixels[offset])};
-      };
-      if (!SceneUiFixture::Pixels(read(160, 180), read(80, 180), read(160, 45), read(480, 180),
-                                  read(480, 45)) ||
-          !SceneUiFixture::Orientation(
-              {read(200, 90), read(100, 90), read(100, 270), read(200, 270)},
-              {read(520, 135), read(420, 135), read(420, 225), read(520, 225)},
-              surface->Diagnostics().uiTargetEncodesSrgb)) {
-        std::cerr << "sampled Metal Scene/UI orientation, clipping or view resources changed\n";
-        return fail(__LINE__);
-      }
     }
     std::array<SceneVertex, 6> layered{};
     for (std::size_t i = 0; i < 3; ++i) {

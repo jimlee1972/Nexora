@@ -102,6 +102,11 @@ int main(int argc, char **argv) {
     auto surface = CreateSurface(descriptor, *windows);
     Require(bool(surface), "Vulkan surface failed");
     SceneUiFixture fixture;
+#if defined(NEXORA_SCENE_UI_DUAL)
+    constexpr bool dual = true;
+#else
+    constexpr bool dual = false;
+#endif
     unsigned width = 640, height = 480;
     for (unsigned frame = 0; frame < 12; ++frame) {
       if (frame == 4 || frame == 8) {
@@ -111,7 +116,7 @@ int main(int argc, char **argv) {
                     surface->NotifyWindowExtent(width, height) == SurfaceStatus::Ready,
                 "Scene/UI resize failed");
       }
-      const bool drawn = fixture.Draw(*surface, width, height);
+      const bool drawn = fixture.Draw(*surface, width, height, dual);
       if (!drawn)
         std::cerr << fixture.failure << '\n';
       Require(drawn, "native Scene/UI fixture rejected");
@@ -121,7 +126,7 @@ int main(int argc, char **argv) {
     }
     const auto stats = surface->Diagnostics();
     Require(stats.presentedFrames == 12 && stats.sceneDrawCalls == 24 &&
-                stats.sceneComposites == 12 && stats.nativeUiDrawCalls == 48 &&
+                stats.sceneComposites == 12 && stats.nativeUiDrawCalls == (dual ? 60 : 48) &&
                 stats.nativeUiRejectedTextures == 0,
             "Scene/UI actual submission counts changed");
     Require(surface->DrainAndDestroy() == SurfaceStatus::Ready && !surface->SceneTexture() &&
@@ -129,8 +134,8 @@ int main(int argc, char **argv) {
             "Scene/UI drain or reference invalidation failed");
     XCloseDisplay(display);
     Require(windows->Destroy(created.handle) == Window::WindowError::None, "window drain failed");
-    std::cout
-        << "PASS12native Scene/UI compositions,24scenes,48UI commands,2resizes;oneUI pass/frame\n";
+    std::cout << "PASS12native Scene/UI compositions,24scenes," << (dual ? 60 : 48)
+              << "UI commands,2resizes;oneUI pass/frame;dual=" << dual << '\n';
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';
     return 1;

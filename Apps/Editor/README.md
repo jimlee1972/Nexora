@@ -1504,7 +1504,8 @@ carry no mutation capability. Real X11 events select two entities, assign an imp
 Clear, Undo/Redo, save and reopen read-only; exact wrapped scene/plugin bytes and complete project
 hashes provide the independent result checks. Full presented screenshots and input/log/receipt
 files stay in `artifacts/editor-sprite-sources/inspector-*`. This accepts reference authoring;
-Scene View drawing, configured package Play, Build and source animation remain separate work.
+Scene View, configured package Play and Build are documented as separate consumers below;
+production source animation/reload remains open.
 With `NEXORA_SPRITE_SOURCE_INSPECTOR_TEST_EVIDENCE`, a separate test-only frame heartbeat proves
 that stable positions were observed across new frames; ordinary geometry output stays change-only.
 
@@ -1761,8 +1762,8 @@ then the Sprite owner is released before its borrowed Play World. Retained captu
 their matching Runtime scene after Content/project/source destruction, while fresh production
 activation requires current provenance. All calls are serialized on the host owner thread.
 
-Scene View conversion, configured package Play/Build export and source
-animation/reload remain separate. The module-free main-scene consumer is described below.
+Scene View conversion, configured package Play/Build export and the module-free main-scene
+consumer are documented below; production source animation/reload remains open.
 C/Zig ABI, NX2S/ND2D/asset codecs and module dependencies are unchanged; changed C++ application
 and test consumers rebuild. The 2D-OFF embedding remains source-free. See
 [Play reference evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-PlayReferences-Linux-2026-11-13.md).
@@ -1826,7 +1827,8 @@ against an independently built source-free SceneOnly baseline. WM close verifies
 Stop/Destroy and native drain; authored and runtime file hashes remain unchanged. Attempts,
 logs, screenshots and receipts live under `artifacts/editor-sprite-sources/build-*`.
 Configured packaged Play now owns a separate one-UI-pass source compositor, documented below.
-Scene View, animation/pool/reload and full ED-WF-07 acceptance remain separate. See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-Linux-2026-11-13.md).
+Native Scene View source rendering is documented below. Production animation/pool/reload and full
+ED-WF-07 acceptance remain open. See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-Linux-2026-11-13.md).
 
 The [main integration evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-MainIntegration-Linux-2026-11-13.md)
 validates this producer together with the independently delivered module-free preview on main2e900.
@@ -1873,3 +1875,29 @@ underlying 3D pixels against an independent source-free Editor, then exercises a
 Additive/Replace/return sequence, floating Inspector occlusion, resize and external stale-source
 rejection before callbacks. Full native captures, original fixture failures and exact verification
 commands are in the [execution record](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-ConfiguredSpritePlay-Linux-2026-11-14.md).
+
+## Native Scene Sprite sources
+
+The native 3D Scene View displays referenced imported Sprite sources as world-space cutout planes.
+Immutable source/Atlas owners and source-local geometry are captured only from imported referenced
+assets, without IO or borrowed document/content pointers. Trim, Pivot and PPU determine geometry;
+full hierarchical matrices preserve mirrors and shear. Source/mesh union bounds drive Frame All
+and transform handles. Selection intersects the real plane and its linearly filtered alpha, so
+transparent texels do not intercept picks. Missing/unsupported/oversized sources show unavailable
+status and Console diagnostics; the source-free direct Scene path remains available.
+
+This uses the existing unlit PBR emission/linear sampler with alpha cutoff0.5 and native output
+transfer. Partial alpha blending, nearest-filtered pixel-perfect2D authoring and a new XY camera
+remain separate. Existing 3D ground/depth occlusion applies. Preview and camera navigation never
+change source/reference bytes or undo history; actual authoring transforms use the existing
+preview/commit/cancel and Undo/Redo transactions.
+
+One application owner allocates immutable Scene texture IDs monotonically across project changes,
+deduplicates exact immutable Atlas owners, and admits at most16 Atlases per packet. It is separate
+from the GUI texture cache. Replaced IDs retire through `ReleaseSceneTextures` before BeginFrame
+and final drain. Future Scene texture producers must share this allocator. Source Pivot-only
+reimports retain the same Atlas binding; Atlas replacement receives a fresh ID. Pending geometry
+is revalidated against document generation, imported content revision and exact source references
+before submission. Scene and Game prepare up to two fenced sampled images before the single
+owning GUI packet; configured Play still publishes its candidate only after complete submission.
+See [native ownership](../../Engine/Presentation/SceneUiComposition.md).

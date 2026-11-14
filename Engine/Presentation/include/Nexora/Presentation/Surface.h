@@ -707,6 +707,12 @@ public:
   virtual SurfaceStatus ReleaseSpriteTextures(std::span<const std::uint64_t>) {
     return SurfaceStatus::Unsupported;
   }
+  // Owner thread, between acquired frames. Drain before reclaiming named immutable Scene
+  // RGBA/linear textures and their descriptors. At most64 nonzero, nonreserved IDs; unknown
+  // IDs and duplicates are idempotent. Validate the complete request before changing resources.
+  virtual SurfaceStatus ReleaseSceneTextures(std::span<const std::uint64_t>) {
+    return SurfaceStatus::Unsupported;
+  }
   // Draws one indexed, depth-tested, lit mesh into the acquired image or, when offscreen is
   // requested, a fence-owned private color/depth target requiring CompositeScene. Backends without
   // a real geometry pipeline report Unsupported rather than silently falling back to a 2D

@@ -2383,6 +2383,21 @@ canonical SDK 替換與128次拒絕；Linux 原生版本在替換、回復與來
 
 [完整本機執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-PlayerGeneration-Linux-2026-11-14.md) 保留初期失敗及完整範圍。
 
+## ✅ 原生 Scene Sprite 來源預覽（2026-11-14）
+
+支援項目 `nexora-whr.7.9` 在實際原生 3D Scene View，以持有已匯入來源／Atlas 的 cutout
+平面顯示 Sprite。Trim／Pivot／PPU、鏡像與完整階層矩陣、來源／mesh 聯集精確邊界、透明度
+選取，以及一般變形預覽／Undo／Redo 共用相同來源幾何。單一應用 Scene 紋理 owner 持有精確
+不可變 Atlas，於幀之間退役被替換的原生紋理。兩個 fence 保護的 LDR 取樣視圖先於同一次
+所屬 GUI 提交；保留無來源繪圖及設定式 Play 的發布保護。Scene／Game 畫布仍須不相交，浮動
+輔助視窗依 GUI 順序遮擋。
+[契約](../../Apps/Editor/README.md#native-scene-sprite-sources) 與
+[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SceneSpritePreview-Linux-2026-11-14.md)。
+此功能沿用線性 PBR 取樣及 alpha cutoff0.5。部分透明混色、像素精確 2D／XY 編輯、主程式封裝來源
+動畫／物件池／發布／reload 與完整 ED-WF-07/08 仍未完成。完整 Linux 510/510、Shipping、實際 TwoD-OFF／noTests 與圖形 Monolithic gates 通過；
+交付仍須確切提交的 hosted CI。工作單
+**5/9**、圖形 Editor **0/8**、TwoD **9/11** 及實體／乾淨主機驗收維持不變。
+
 ## ✅ 主遊戲明確動畫根資產擷取（2026-11-14）
 
 支援工作 `nexora-whr.8.3.1` 在 Build 設定加入明確且不可變的 Clip 根資產、完整擁有的
