@@ -1,4 +1,5 @@
 #include "../../Engine/Runtime/src/GameplayDevicePresence.h"
+#include "../../Engine/Runtime/src/GameplayDeviceScan.h"
 #include "../../Engine/Runtime/src/GameplayDirectInputState.h"
 #include "../../Engine/Runtime/src/GameplayXInputState.h"
 #include "Nexora/Runtime/GameplayGamepad.h"
@@ -9,6 +10,42 @@
 
 using namespace nexora::runtime;
 int main() {
+  // Stable 60 Hz input must not repeatedly enter slow OS enumeration. A real notification,
+  // including one delivered while the owner is enumerating, still schedules another snapshot.
+  using Scan = detail::DeviceScanSchedule;
+  const auto origin = Scan::Clock::time_point{};
+  Scan discovery;
+  assert(discovery.Begin(origin, true));
+  for (unsigned frame = 1; frame <= 3600; ++frame)
+    assert(!discovery.Begin(origin + std::chrono::milliseconds(frame * 17), true));
+  discovery.Notify();
+  discovery.Notify(); // Coalesce a device-interface burst into one enumeration.
+  assert(discovery.Begin(origin + std::chrono::seconds(62), true));
+  std::thread deviceArrival([&] { discovery.Notify(); });
+  deviceArrival.join(); // The arrival races the in-progress enumeration, not a gameplay call.
+  assert(discovery.Begin(origin + std::chrono::seconds(62), true));
+  assert(!discovery.Begin(origin + std::chrono::seconds(62), true));
+  // Failure retains the pending request and backs off from completion, even for a slow scan.
+  discovery.Notify();
+  assert(discovery.Begin(origin + std::chrono::seconds(63), true));
+  const auto completed = origin + std::chrono::seconds(66);
+  discovery.RetryAfterFailure(completed);
+  discovery.Notify();
+  assert(!discovery.Begin(completed + std::chrono::milliseconds(999), true));
+  assert(discovery.Begin(completed + std::chrono::seconds(1), true));
+  assert(!discovery.Begin(completed + std::chrono::seconds(10), true));
+  // Unsupported notification APIs retain bounded legacy hotplug polling, with no catch-up debt.
+  Scan fallback;
+  assert(fallback.Begin(origin, false));
+  fallback.Notify();
+  assert(!fallback.Begin(origin + std::chrono::milliseconds(999), false));
+  assert(fallback.Begin(origin + std::chrono::seconds(1), false));
+  assert(fallback.Begin(origin + std::chrono::seconds(30), false));
+  assert(!fallback.Begin(origin + std::chrono::seconds(30), false));
+  fallback.RetryAfterFailure(origin + std::chrono::seconds(32));
+  assert(!fallback.Begin(origin + std::chrono::milliseconds(32999), false));
+  assert(fallback.Begin(origin + std::chrono::seconds(33), false));
+
   uint32_t present{};
   std::array<uint64_t, 4> disconnected{};
   using nexora::runtime::detail::SetGamepadPresence;

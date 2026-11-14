@@ -65,6 +65,15 @@ models and connections. OS detection of a DUALSHOCK or another HID
 device alone does not establish game input. See the current implementation scope in the
 [input contract](../../Engine/Runtime/GameplayInput.md#native-gamepad-adapter-and-evidence).
 
+Windows discovery correction (`nexora-573`, validation pending): stable input frames no longer
+periodically enumerate all DirectInput controllers. Initial discovery, PnP interface changes and
+XInput slot changes request owner-thread scans; notifications during a scan are retained and
+failed scans back off from completion. A physical consumer API probe found all eight old scans
+above 33 ms (median 290.123 ms, maximum 437.260 ms); this identifies synchronous blocking, not a final
+game performance pass. The 0.3.1 SDK candidate/promotion requires a real native consumer receipt
+confirming notification discovery. CI, SDK publication, game stutter and PS4 hotplug retests remain
+pending; the M7 clean-host and production performance gates are unchanged.
+
 ### M7 Runtime/Shipping acceptance scope (revised 2026-10-19)
 
 M7 accepts one standalone cooked 2D Shipping validation application; a finished production game

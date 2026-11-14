@@ -60,6 +60,13 @@ Windows 原生 Adapter 保留 XInput，並新增 DirectInput 搖桿路徑及 DUA
 作業系統辨識到 DUALSHOCK／其他 HID 裝置本身，不等於遊戲已收到輸入。
 實作範圍見[輸入契約](../../Engine/Runtime/GameplayInput.md#native-gamepad-adapter-and-evidence)。
 
+Windows裝置探索修正（`nexora-573`，驗證待完成）：穩定輸入幀不再週期性列舉全部DirectInput
+控制器；首次探索、PnP介面變更及XInput席位變更才要求owner-thread掃描，保留掃描途中通知，
+失敗從完成時間起限速重試。實機消費端API探針的舊掃描8次全部超過33ms（中位290.123ms、
+最大437.260ms）；此為同步阻塞證據，不等同正式遊戲效能通過。0.3.1 SDK候選／提升須有真實原生
+消費端啟用通知探索的收據。CI、SDK發布、遊戲卡頓及PS4熱插拔補驗仍待完成；M7乾淨主機與正式
+效能gate保持原狀。
+
 ### M7 Runtime／Shipping 驗收範圍（2026-10-19 修訂）
 
 M7 驗收一個獨立、Cooked 的 2D Shipping 驗證程式，不要求先完成正式遊戲。

@@ -1,0 +1,65 @@
+{
+  "task": "nexora-573",
+  "status": "IMPLEMENTED_VALIDATION_PENDING",
+  "scope": "Windows steady-state DirectInput discovery; no C/Zig ABI change",
+  "pre_fix_api_probe": {
+    "sdk_versions_with_same_periodic_path": [
+      "0.2.0",
+      "0.3.0"
+    ],
+    "scans": {
+      "phase": "with_one_second_enumeration",
+      "call": "DirectInputEnumDevices",
+      "samples": 8,
+      "median_ms": 290.12284986674786,
+      "p95_ms": 349.7673999518156,
+      "max_ms": 437.2602002695203,
+      "over_33ms": 8
+    },
+    "devices": [
+      {
+        "vid": 1356,
+        "pid": 2508
+      }
+    ],
+    "probe_sha256": "1526b1fd4c196770776ff1653224620bbf25b98e9282878aea568b5e1b67fec9",
+    "limits": [
+      "Read-only OS API probe; not a post-fix game frame-time or hotplug acceptance.",
+      "Operator described roughly three-second hitches; this is approximate. The old adapter scan period is one second."
+    ]
+  },
+  "notification_api_smoke": {
+    "scope": "registration/unregistration API smoke only; no injected input or physical hotplug",
+    "filter_size": 416,
+    "register_result": 0,
+    "unregister_result": 0,
+    "events": []
+  },
+  "validation": {
+    "cpp_local": "NOT_RUN: game development host consumes prebuilt SDK; CI must compile Runtime",
+    "cpp_ci": "PENDING",
+    "sdk_candidate": "PENDING",
+    "physical_game": "NOT_RUN_ON_FIXED_ENGINE",
+    "physical_ps4_hotplug": "NOT_RUN_ON_FIXED_ENGINE",
+    "sdk_python_tests": {
+      "status": "PASS",
+      "tests": 10,
+      "command": "python -X utf8 -m unittest discover -s Tools/SDK/tests -v",
+      "initial_attempt": "Sparse checkout lacked Tools/TwoD; dependency restored, full rerun passed."
+    },
+    "clang_format": {
+      "status": "PASS",
+      "version": "19.1.5",
+      "files": [
+        "Engine/Runtime/src/GameplayDeviceScan.h",
+        "Engine/Runtime/src/GameplayGamepad.cpp",
+        "Tests/Runtime/GameplayGamepadTests.cpp"
+      ]
+    },
+    "documentation_routing_tests": {
+      "status": "PASS",
+      "tests": 16,
+      "command": "python -X utf8 Tools/Build/TestDocumentationCI.py"
+    }
+  }
+}
