@@ -21,11 +21,14 @@ public:
           std::span<const runtime::AssetUuid> roots, std::string *error = nullptr,
           TwoDPlayAssetLimits limits = {});
   [[nodiscard]] std::uint64_t Generation() const noexcept { return generation_; }
-  [[nodiscard]] std::size_t Size() const noexcept { return atlases_.size() + clips_.size(); }
+  [[nodiscard]] std::size_t Size() const noexcept {
+    return atlases_.size() + clips_.size() + sources_.size();
+  }
   // Unique cooked payload bytes, not allocator capacity, RSS or GPU memory.
   [[nodiscard]] std::size_t PayloadBytes() const noexcept { return payload_bytes_; }
   [[nodiscard]] std::shared_ptr<const twod::Atlas> Atlas(runtime::AssetUuid) const;
   [[nodiscard]] std::shared_ptr<const twod::Clip> Clip(runtime::AssetUuid) const;
+  [[nodiscard]] std::shared_ptr<const twod::SpriteAsset> SpriteSource(runtime::AssetUuid) const;
 
 private:
   TwoDPlayAssets() = default;
@@ -35,6 +38,9 @@ private:
       atlases_;
   std::unordered_map<runtime::AssetUuid, std::shared_ptr<const twod::Clip>, runtime::AssetUuidHash>
       clips_;
+  std::unordered_map<runtime::AssetUuid, std::shared_ptr<const twod::SpriteAsset>,
+                     runtime::AssetUuidHash>
+      sources_;
 };
 
 } // namespace nexora::editor

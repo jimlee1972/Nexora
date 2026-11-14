@@ -1,5 +1,27 @@
 # Nexora Graphical Editor Roadmap
 
+### ✅ Saved dock selection and test-free graphical builds (2026-11-12)
+
+When restoring a layout, shell panels no longer take focus merely by appearing, preserving Hierarchy/
+Project and Scene/Game selection across fresh contexts and native process restarts. Four DPI buckets retain
+floating Content geometry and byte-identical layouts; new-layout and explicit focus remain available.
+Test-only scene comparison/extension observations are guarded consistently, restoring graphical
+`BUILD_TESTING=OFF` compilation; desktop CI now rebuilds that configuration after its normal gates.
+See the [scoped Linux evidence](../../Tools/Build/evidence/EditorLayoutBuild-Linux-2026-11-12.md).
+Physical docking/input and the complete graphical Editor milestones remain open (0/8).
+This layout/build slice does not itself accept an ED-WF work order.
+
+### ✅ X11 legacy held-key fixture boundary (2026-11-12)
+
+The Sprite acceptance candidate also exposed an existing X11 legacy held-key fixture race:
+its live gesture assumed the fallback's matching press was already buffered. The fixture now
+queues the genuine held gesture under a confirmed stopped consumer and observes every buffered
+repeat pair, retaining all physical/text/focus/lifecycle assertions and the live detectable-repeat
+case. Production Window behavior is unchanged. [Follow-up evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-X11Fixture-Linux-2026-11-12.md)
+retains the failed hosted gate and successful controlled/full regression. Repaired-head
+CI passes and PR #772 is merged; [ED-WF-06 acceptance](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md)
+records the complete delivery gate. Physical input acceptance remains separate.
+
 Local crash/game-log persistence is tracked in [Crash Logging Delivery](Crash_Logging_Delivery_Plan.md). It includes native gameplay callback capture and keeps platform/physical-host gates separate; it does not complete this roadmap’s broader milestones.
 
 
@@ -18,7 +40,7 @@ Superseded failures and their repairs remain recorded. Rect/combined tools, vert
 orientation widget, maximized view and a new XY 2D mode remain outside this change.
 Physical clean-host acceptance is NOT_RUN; the validated input ZIP is not the final workflow ZIP.
 See [Editor controls](../../Apps/Editor/README.md#unity-style-editor-input-issue-759).
-This supporting task does not alter the 4/9 workflow count or 0/8 Editor milestone count.
+This supporting task does not alter the 5/9 workflow count or 0/8 Editor milestone count.
 
 
 
@@ -27,7 +49,7 @@ This supporting task does not alter the 4/9 workflow count or 0/8 Editor milesto
 The approved [delivery plan](Editor_Workflow_Delivery_Plan.md) and
 [Epic #741](https://github.com/jimlee1972/Nexora/issues/741) track nine dependent work orders for
 script Build UI, clean game output, stateful reload and source-aware Editor/Player/Zig integration.
-Acceptance is 4/9 (44.4%): ED-WF-01 ✅ [PR #751](https://github.com/jimlee1972/Nexora/pull/751), ED-WF-02 ✅ [PR #754](https://github.com/jimlee1972/Nexora/pull/754), ED-WF-03 ✅ [PR #756](https://github.com/jimlee1972/Nexora/pull/756), ED-WF-04 ✅ [PR #758](https://github.com/jimlee1972/Nexora/pull/758); existing supporting capabilities are not counted as complete workflows.
+Acceptance is 5/9 (55.6%): ED-WF-01 ✅ [PR #751](https://github.com/jimlee1972/Nexora/pull/751), ED-WF-02 ✅ [PR #754](https://github.com/jimlee1972/Nexora/pull/754), ED-WF-03 ✅ [PR #756](https://github.com/jimlee1972/Nexora/pull/756), ED-WF-04 ✅ [PR #758](https://github.com/jimlee1972/Nexora/pull/758); ED-WF-06 ✅ [acceptance](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md); existing supporting capabilities are not counted as complete workflows.
 The full Editor milestone count remains 0/8. Existing CLI and `.bat` development remains available.
 
 ### Windows exported game entry (2026-10-30)
@@ -2297,3 +2319,217 @@ and evidence match reality; and no build output, local preset, credential, priva
 capture is committed. `Editor Preview` requires ED-M0–M2, `Creator Alpha` also requires M3–M4, and
 `Production Beta` requires the selected M5 tools plus M6–M7. Preview/read-only capability never raises
 the enclosing milestone percentage or waives a target-host gate.
+
+## ✅ Editor Sprite source snapshots (2026-11-12)
+
+Typed source indexing/reimport now owns existing Sprite metadata, and frozen project/cooked Play
+capture validates its exact Atlas closure. Main Editor gameplay scene/pool instances resolve those
+immutable snapshots; real composed native pixels verify trim/Pivot geometry, negative scale and
+old-owner retention across reimport. [Evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md).
+Inspector source assignment, authoring persistence, Build, source animation/reload and complete
+Editor acceptance remain open. ED-WF stays 5/9, Editor 0/8, 2D 9/11; M6/M7 physical gates unchanged.
+
+## ✅ Main Editor Sprite source Inspector (2026-11-13)
+
+Supporting `nexora-whr.7.5` exposes imported source choices and Clear in the real main Inspector.
+Complete selections share one metadata Undo/Redo and wrapped scene Save/Reload. Mixed, missing
+source/Atlas and unsupported references have distinct states; unsupported bytes remain protected.
+Writable project, stopped Play, focus/recovery and live selection/version checks guard every action.
+The popup owns its bounded immutable catalog, paths and keys; stale imports or context changes
+cancel it. No filesystem work or Runtime Sprite mutation occurs in the widgets.
+Actual 1×/2× controls and Linux X11 interaction verify batch assignment, Clear, exact Undo/Redo,
+save/reopen and unchanged read-only project bytes. See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceInspector-Linux-2026-11-13.md).
+Module-backed main Play was independently delivered by `nexora-whr.7.4` / PR #776; Scene View, configured package Play, Build,
+source animation/reload and full ED-WF-07 remain open. Workflow **5/9**, Editor **0/8**, TwoD **9/11**
+and physical acceptance are unchanged.
+
+### ✅ Source geometry inspection (2026-11-14)
+
+Supporting `nexora-whr.7.10` adds initially collapsed, read-only main Inspector details for
+source/Atlas UUIDs, original size, top-left trim/Atlas region, bottom-left Pivot, PPU, borders
+and source-local bounds before entity transforms. The shared geometry resolver reads current
+imported immutable metadata without file IO, authoring mutation or GPU texture registration.
+Actual 1×/2× widgets cover assignment/history, mixed/missing/unsupported references, reimport,
+read-only/Play inspection and context removal. Native Linux X11 checks asymmetric values,
+presented pixels, exact Undo/Redo/save/reopen and unchanged read-only project hashes.
+Full Linux **511/511**, Shipping, TwoD-OFF/testing-OFF and graphical Monolithic gates pass;
+exact-head hosted CI is required before delivery. See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceDetails-Linux-2026-11-14.md).
+Workflow **5/9**, Editor **0/8**, TwoD **9/11**, full ED-WF-07/08, production animation/reload
+and physical/clean-host acceptance remain unchanged/open. PR #786 owns the independent Clip catalog.
+
+## ✅ Isolated source-bearing authoring documents (2026-11-13)
+
+TwoDDocument now owns a bounded immutable source catalog with source assignment, transactional
+metadata replacement/removal, Undo/Redo, save/reopen and isolated Play snapshots. Studio controls
+and previews use the same resolver; Player accepts exported embedded sources after relocation.
+Legacy documents retain exact schema-1 bytes. See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-AuthoredSources-Linux-2026-11-13.md).
+This supporting `nexora-whr.7.2` slice does not accept end-to-end main Editor Inspector/project persistence,
+Build, source animation/reload or complete ED-WF-07; graphical milestones remain **0/8**.
+
+### Main scene Sprite Play without a module
+
+✅ `nexora-whr.7.6` adds reference-only source capture and a callback-free owner in the actual
+main scene Play clone. The existing 2D Game selector displays frozen source geometry; 32 actual
+native sessions verify Pause/Step/Resume, exact restart masks, Stop retirement and unchanged
+authoring pixels/bytes. Source-free 3D Play ignores unrelated unavailable assets. Configured
+package Play/Build, Scene View and animation/reload remain open; the merged Inspector assignment and
+milestone counts are preserved. [Contract](../../Apps/Editor/README.md#module-free-main-scene-sprite-play)
+and [evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-ModuleFreePlay-Linux-2026-11-13.md).
+
+### Main scene references in module Play
+
+✅ Main module Play now freezes and binds authored source UUID references before module Create
+(`nexora-whr.7.4`), with exact authored-capture rechecks and matching isolated Runtime validation.
+Missing/unsupported/stale references reject before callbacks; retained legacy/authored/legacy
+native frames verify source reimport and old-owner retention. Scene View,
+configured package Play/Build and animation/reload remain open; milestone counts do not change.
+[Contract and evidence](Editor_Workflow_Delivery_Plan.md#-authored-sprite-references-in-main-module-play-2026-11-13).
+
+✅ The 2026-11-13 main Editor reference-model prerequisite (`nexora-whr.7.3`) adds owning source/Atlas
+lookup, exact Content generation/revision checks and complete-selection UUID assignment/clear with
+one Undo/Redo and wrapped scene Save/Reload. Unknown payloads remain protected. This does not add
+Inspector widgets, authoring rendering, main Play conversion or Build export; the counts above stay
+unchanged. [Contract and evidence](Editor_Workflow_Delivery_Plan.md#-main-editor-sprite-source-reference-model-2026-11-13).
+
+## ✅ Main-scene Sprite source Build support (2026-11-13)
+
+Supporting `nexora-whr.7.7` captures saved source UUID references with owning, deduplicated imported
+source/Atlas closure and exact publication baselines. Capability-3 games preserve source-free
+capability-2 bytes and keep Runtime independent of optional TwoD payload codecs. The canonical
+Player validates typed closure and renders actual remapped World transforms as a 2D overlay.
+CPU cases cover stale/malformed/missing closure, owning lifetime and additive ID remapping;
+real Build/SDK Zig, source deletion, Unicode relocation and zero-argument Player execution verify
+exact Sprite color masks and unchanged underlying native 3D pixels. See [Build evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-Linux-2026-11-13.md).
+Configured packaged Play preview, Scene View, source animation/pool and hot reload remain open;
+independent module-free Play work is preserved. ED-WF-07 remains open. Workflow **5/9**, graphical
+Editor **0/8**, TwoD **9/11** and physical/clean-host gates are unchanged.
+
+Integration with independently delivered module-free Play (PR #778, main `2e900aa2`) is covered by
+the [main integration supplement](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-MainIntegration-Linux-2026-11-13.md):
+full **521/521**, zero failures/skips, actual Development/Shipping native pixels, Monolithic and
+2D-OFF builds. Native test transport repairs retain the same deadlines and all original assertions;
+the earlier failed full gate remains separate evidence. Parent acceptance and milestone counts are unchanged.
+
+## ✅ Source animation Clip foundation (2026-11-13)
+
+Supporting `nexora-whr.8.1` adds source-only Clip schema 2 while preserving exact legacy Clip bytes
+and C/Zig tables. Typed import/cook/catalog and Editor snapshots validate the complete source/Atlas
+closure; explicit Play/Advance, immutable retained Clip ownership, ND2D history and Studio preview
+preserve source identity and style. Real SDK/relocated Player Development and Shipping pixels cover
+trim/Pivot, flips, negative scale, a second preloaded source/Atlas and stable source pool handles.
+Full Linux **523/523**, zero failures/skips, Shipping/native, Monolithic and TwoD-OFF
+gates pass. [Execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-SourceAnimation-Linux-2026-11-13.md) retains earlier
+failed/interrupted attempts. Source reimport, 32 real Zig reloads/rollback, configured packaged main
+Editor Play and full ED-WF-07/08 remain open; the `repacked` native phase names a preloaded animation
+frame, not live reimport. Workflow **5/9**, graphical Editor **0/8**, TwoD **9/11** and physical/clean-host
+gates are unchanged.
+
+The [compiler portability supplement](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-SourceAnimation-Portability-Linux-2026-11-13.md) records the
+corrected full **523/523**,zero failures/skips,Development/Shipping native,Monolithic and TwoD-OFF
+gates. GNU 15.2 before/after probes reproduce the original benchmark temporary warnings and verify
+all 17 affected C++ translation units; explicit bounded test integer types address MSVC warnings.
+Warning rules and native oracles remain intact. Initial `1ec968b6` local passes and failed CI remain
+historical; complete ED-WF-07/08 and milestone counts are unchanged.
+
+Additional `nexora-whr.8.1` native-fixture portability coverage passes523/523 and all12 local gates;
+GCC15.2 compiles all309 actual TwoD consumer command variants, including the inherited CPU/native
+PlayContext test. [Final native-context evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-SourceAnimation-NativeContext-Linux-2026-11-13.md)
+preserves both earlier committed receipts and the additional failed hosted head. Production32
+source reloads/configured packaged Play and complete ED-WF-07/08 remain open; **5/9**, **0/8**, **9/11**
+are unchanged.
+
+## ✅ Isolated source reload generation foundation (2026-11-13)
+
+Supporting `nexora-whr.8.2.1` stages independent TwoD World/metadata, camera/query, animation
+clock/pause/style, scene requests/revisions and exact pool handles. Allocation/admission/reentry
+failures preserve live values. Actual canonical SDK tests pass32 unique library replacements,
+128 candidate rejections, leased old-code quiescence and sourceUUID reimport preserving anchors.
+Full525/525, Shipping/native regression, Monolithic and TwoD-OFF gates pass; [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-GenerationStaging-Linux-2026-11-13.md)
+retains initial failures and the interrupted run. This is a reusable isolated TwoD prerequisite:
+production Player/Editor services and native reload integration remain open under `nexora-whr.8.2`;
+full ED-WF-07/08, **5/9**, **0/8**, **9/11** and physical/clean-host acceptance are unchanged.
+
+## ✅ Fenced Scene images in single-pass UI (2026-11-13)
+
+Supporting `nexora-whr.7.8.1` adds explicit offscreen LDR Scene references sampled inside one UI
+submission with pre-upload stale/foreign validation and fenced per-view resources. Actual Linux
+Development/Shipping fixtures each pass12 frames,24 Scene draws,48 UI commands,two resizes and
+asymmetric pixel/occlusion checks; an inverted-UV negative control fails as expected. Full527/527,
+Monolithic and TwoD-OFF gates pass. [Execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SceneUiComposition-Linux-2026-11-13.md)
+retains initial failures and separates local Linux from hosted platform checks. Parent `nexora-whr.7.8`
+configured packaged Editor source Play remains guarded/open; production reload, full ED-WF-07/08,
+Workflow **5/9**, Editor **0/8**, TwoD **9/11** and physical/clean-host acceptance are unchanged.
+
+## ✅ Editor Sprite Scene-tag rejection (2026-11-14)
+
+Supporting `nexora-whr.7.8.1` now rejects nonzero Scene references in the existing indexed Sprite
+translator before appending ImGui geometry. The same real external fixture fails against the old
+library and passes after the production guard; complete/partial tags reject while ordinary
+submission remains valid. Fresh full 527/527, Shipping native, Monolithic five-test and TwoD-OFF
+gates pass. [Supplementary evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SceneUiComposition-EditorTag-Linux-2026-11-14.md) preserves
+both original native evidence files and the reproduced failure. This does not implement owning
+ImGui Scene bindings or guarded packaged source Play; parent `nexora-whr.7.8`, production reload,
+full ED-WF-07/08, **5/9**, **0/8**, **9/11** and physical/clean-host acceptance remain open/unchanged.
+
+## ✅ Configured packaged Sprite Play (2026-11-14)
+
+Supporting `nexora-whr.7.8` integrates the delivered Build catalog and fenced Scene-image primitive
+in the actual main Editor. All package Atlases are admitted before Play; candidate remapped source
+frames and the complete Scene/Sprite/GUI pass precede World publication and initial callbacks.
+Read-only native acceptance repeats 32 sessions, verifies full crop/Pivot/mirror masks and unchanged
+underlying 3D pixels, then exercises actual SDK Zig Additive/Replace/return, floating-window
+occlusion, resize and stale-source refusal before module Start. The source-free direct path and
+TwoD-OFF refusal remain. [Contract](../../Apps/Editor/README.md#configured-packaged-sprite-play) and
+[execution record](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-ConfiguredSpritePlay-Linux-2026-11-14.md).
+The earlier foundation-only notes describe their delivery boundary; configured Play is now this
+separate consumer. Scene View authoring, production source publication/reload and complete
+ED-WF-07/08 remain open. Workflow **5/9**, graphical Editor **0/8**, TwoD **9/11** and physical /
+clean-host acceptance are unchanged.
+
+## ✅ Standalone Player strict reload integration (2026-11-14)
+
+Supporting `nexora-whr.8.2.2` adopts isolated TwoD generations in the production Player host,
+including stable cached service contexts, read-only state capture and candidate/retired external
+service admission. The focused production-host fixture passes32 canonical SDK replacements and
+128 rejects; its Linux native companion verifies192 acknowledged source/pool presentations across
+replacement, rollback and source reimport/repack. The separate complete native Player sample
+regression also passes. [Ownership contract](../../Apps/TwoDPlayer/README.md#strict-generation-ownership)
+distinguishes these fixture/loop scopes. Full531/531,14local gates and ten actual GCC15 command variants pass; exact-head hosted
+CI is required before delivery. Main packaged source-animation/pool gameplay services, project watching and complete ED-WF-07/08
+remain open; Workflow **5/9**, Editor **0/8**, TwoD **9/11** are unchanged.
+
+[Full local execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-PlayerGeneration-Linux-2026-11-14.md) retains initial failures and complete scope.
+
+## ✅ Native Scene Sprite source preview (2026-11-14)
+
+Supporting `nexora-whr.7.9` displays owning imported Sprite sources as cutout planes in the actual
+native 3D Scene View. Trim/Pivot/PPU, mirrored/full hierarchical matrices, exact source/mesh union
+bounds, alpha-aware picks and ordinary transform preview/Undo/Redo share the same source geometry.
+One application Scene texture owner retains exact immutable Atlases and retires replaced native
+textures between frames. Two fenced sampled LDR views precede the same owning GUI submission;
+source-free rendering and guarded configured Play publication remain intact. Scene/Game canvases
+still require disjoint rectangles; floating auxiliary-window occlusion follows GUI order.
+[Contract](../../Apps/Editor/README.md#native-scene-sprite-sources) and
+[execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SceneSpritePreview-Linux-2026-11-14.md).
+This uses existing linear PBR sampling and alpha cutoff0.5. Partial blending, pixel-perfect2D/XY
+editing, main packaged source animation/pool/publication/reload and full ED-WF-07/08 remain open. Full Linux 510/510, Shipping, actual TwoD-OFF/noTests and graphical Monolithic gates pass.
+Exact-head hosted CI is required before delivery; Workflow **5/9**, graphical Editor **0/8**, TwoD **9/11** and
+physical/clean-host acceptance are unchanged.
+
+## ✅ Explicit main-game animation root capture (2026-11-14)
+
+Supporting `nexora-whr.8.3.1` adds explicit immutable Clip roots to Build settings, exact owning
+Clip/source/Atlas capture and distinct game-package capability 4. No-root settings and capability-2/3
+package writers retain their prior bytes. Typed admission validates legacy regions and complete
+source closure; retained Clips own their frame UUIDs after producer/source removal. Full Linux **536/536**, zero failures/skips, **2184.80 s**, 13 local gates,
+Development/Shipping native pixels, Monolithic and TwoD-OFF refusal pass.
+[Execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-GameClipRoots-Linux-2026-11-14.md) records ownership and compatibility.
+Fresh exact-head hosted CI is required before delivery. Main gameplay source/animation/pool services, live
+publication and complete ED-WF-07/08 remain open. Workflow **5/9**,
+Editor **0/8**, TwoD **9/11** and physical/clean-host acceptance are unchanged.
+
+## ✅ Graphical animation root selection (2026-11-14)
+
+Supporting `nexora-whr.8.3.2` selects/removes explicit immutable Clip roots through the main Build Settings Animation assets popup. A bounded owning metadata snapshot and separate virtualized lists preserve missing UUIDs, reject stale/foreign/busy/read-only edits and retain existing Build/Run/Stop layout. Actual 1x/2x controls and native X11 Save/Reload/read-only reopen feed both SceneOnly and canonical SDK ScriptProject Build; deleted-source Unicode relocation checks 8192 Sprite pixels, an independent central 80x80 3D region and native drain in each mode. Full Linux **538/538**, zero failures/skips, **2273.16 s**, all **13 local gates**, four actual GCC15 commands, Shipping native, Monolithic five CPU cases and actual TwoD-OFF refusal pass.
+
+[Execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-BuildClipPicker-Linux-2026-11-14.md) records original failures and precise scope. Exact-head hosted CI is required before delivery. Main gameplay animation/pool/publication/reload and complete ED-WF-07/08 remain open; Workflow **5/9**, Editor **0/8**, TwoD **9/11** and physical/clean-host acceptance are unchanged.

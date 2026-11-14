@@ -1,0 +1,3689 @@
+{
+  "task": "nexora-whr.7.8.1",
+  "parent_task": "nexora-whr.7.8",
+  "status": "local_validation_passed",
+  "date": "2026-11-14T00:59:40.536225+00:00",
+  "validated_parent": "dbb3ad76556bf029e23c1a44f7c9ba7fee465140",
+  "scope": "Reject every nonzero SceneTextureReference in the existing Editor indexed Sprite translator before any ImGui geometry append. Cover complete and partial tags paired with otherwise valid texture IDs, preserving the subsequent ordinary packet and duplicate rejection.",
+  "exclusions": "No owning ImGui Scene image binding or configured packaged Editor source admission. Source Play guard and parents7.8/8.2/8.3,workflow5/9,Editor0/8,TwoD9/11 remainopen/unchanged. Mainmerge still requires resolved explicit userapproval andall fresh CI.",
+  "baseline": {
+    "commit": "dbb3ad76556bf029e23c1a44f7c9ba7fee465140",
+    "immutable_evidence_sha256": {
+      "Tools/Build/evidence/EditorWorkflow/ED-WF-07-SceneUiComposition-Cloud.json": "175f7372da2b05f154bf393200c5c832d64837bd7bd5c5147a407f0e6e22852d",
+      "Tools/Build/evidence/EditorWorkflow/ED-WF-07-SceneUiComposition-Linux-2026-11-13.md": "ff148744244470a97a3f276da7f7a04e5704519fe8e0d7589a25da6d440d00e1"
+    },
+    "source_sha256": {
+      "Engine/Presentation/CMakeLists.txt": "3d17dfa180342fd22986a4d7e1276ca42ffe2c2f2b3f538c4718b43a3d8cd6dc",
+      "Engine/Presentation/include/Nexora/Presentation/RenderSurface.h": "556a53352923cc3a2484f183b7be23cf46fc2989dc6d84b27d7334b8016ad097",
+      "Engine/Presentation/include/Nexora/Presentation/Surface.h": "ff930bf8ebf0c87f75c404e10bad033d7fd8d730fa6e9ac3a3a99f75220d99ce",
+      "Engine/Presentation/src/Dx12Surface.cpp": "85d8f7d1e44e555e41f4a0da83994507a960f9d6f82cdbef0ad3aec34cf1cafa",
+      "Engine/Presentation/src/MetalSurface.mm": "62a7d22f747e0817b00f182620e60abad1f0b7d753ba229522db00372a5641ca",
+      "Engine/Presentation/src/RenderSurface.cpp": "cb607b0714f3482606bd2ad93351ce15436c5012abd0883039824b1f147436af",
+      "Engine/Presentation/src/SceneUiComposition.cpp": "2ff693fa68a6f5aae0769830f6c01a6ac9fa042f3dafadd691fdc6ad120b155c",
+      "Engine/Presentation/src/SceneUiComposition.h": "24f8e297f1d956c47a70ac0887ceb1b872e4bda65db11e49b07d17628ac8d86f",
+      "Engine/Presentation/src/SceneViewAdmission.h": "beb744175a3203c9bc8e4b319721e63de6276610e17be9a7b5958b34ef4dee39",
+      "Engine/Presentation/src/SpriteDraws.cpp": "5319427dc2d0e780a30aa81a361c8493e7391d4e1e4b76de120abfd966445133",
+      "Engine/Presentation/src/VulkanSurface.cpp": "5629c0c2eb57280c162ae6262cc90f7f23d1452f62c3d1867cf32ca16b3a6334",
+      "Tests/WindowPresentation/CMakeLists.txt": "21a38b04a41133114beb4703c0733a842a055e3490d9ff646152033ece4bc2f7",
+      "Tests/WindowPresentation/MetalSceneTests.mm": "781b43ea16273e54a0a087105ed20e2453f599a9f6ed16ab9a9054bfa22894f5",
+      "Tests/WindowPresentation/SceneUiCompositionTests.cpp": "6984ec31296c59da83e5bb8481a3d7f4f451d887514fb11878eb724d2fa2e20d",
+      "Tests/WindowPresentation/SceneUiFixture.h": "0ddac8073eca94ffc471c0a80c09e1c8119978e93ac9c9203859771ebdc20f2a",
+      "Tests/WindowPresentation/VulkanPbrTests.cpp": "b60c5b3229db14e26b4a9f7f527840f976fa322735d421ff9721507a158b8a1b",
+      "Tests/WindowPresentation/VulkanSceneUiTests.cpp": "ab6a2f0e43ea8273d7144d22c846208593522b812dfdab02f556916babc439c0"
+    },
+    "compiler_variants": 339,
+    "note": "Original527/11/339 acceptance is retained unchanged for its original17 native files; this supplement covers the two additional Editor translation files. Neither original evidence file is rewritten."
+  },
+  "development": {
+    "registered": 527,
+    "passed": 527,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 1889.9,
+    "tests": [
+      {
+        "number": 388,
+        "name": "editor.hierarchy_scale_lifecycle",
+        "result": "Passed",
+        "seconds": 173.05
+      },
+      {
+        "number": 427,
+        "name": "editor.linux_prefab_isolation",
+        "result": "Passed",
+        "seconds": 150.8
+      },
+      {
+        "number": 278,
+        "name": "editor.game_build",
+        "result": "Passed",
+        "seconds": 187.45
+      },
+      {
+        "number": 279,
+        "name": "editor.game_script_build",
+        "result": "Passed",
+        "seconds": 128.81
+      },
+      {
+        "number": 55,
+        "name": "showcase.linux_vulkan_interaction",
+        "result": "Passed",
+        "seconds": 95.19
+      },
+      {
+        "number": 434,
+        "name": "editor.linux_scene_files",
+        "result": "Passed",
+        "seconds": 61.15
+      },
+      {
+        "number": 387,
+        "name": "editor.deep_hierarchy",
+        "result": "Passed",
+        "seconds": 72.66
+      },
+      {
+        "number": 268,
+        "name": "twod.scene_project_zig",
+        "result": "Passed",
+        "seconds": 36.6
+      },
+      {
+        "number": 265,
+        "name": "twod.sprite_source_catalog_player",
+        "result": "Passed",
+        "seconds": 47.61
+      },
+      {
+        "number": 256,
+        "name": "gameplay.zig_script_project",
+        "result": "Passed",
+        "seconds": 56.49
+      },
+      {
+        "number": 264,
+        "name": "twod.sprite_source_player",
+        "result": "Passed",
+        "seconds": 47.33
+      },
+      {
+        "number": 439,
+        "name": "editor.linux_display_acceptance",
+        "result": "Passed",
+        "seconds": 35.39
+      },
+      {
+        "number": 389,
+        "name": "editor.overview_pose_snapshot",
+        "result": "Passed",
+        "seconds": 50.75
+      },
+      {
+        "number": 269,
+        "name": "twod.scene_project_native",
+        "result": "Passed",
+        "seconds": 39.03
+      },
+      {
+        "number": 445,
+        "name": "editor.linux_native_scene_meshes",
+        "result": "Passed",
+        "seconds": 36.38
+      },
+      {
+        "number": 430,
+        "name": "editor.linux_plugin_manager",
+        "result": "Passed",
+        "seconds": 34.07
+      },
+      {
+        "number": 444,
+        "name": "editor.linux_native_scene_center",
+        "result": "Passed",
+        "seconds": 35.02
+      },
+      {
+        "number": 39,
+        "name": "showcase.courtyard_hero_generation",
+        "result": "Passed",
+        "seconds": 46.46
+      },
+      {
+        "number": 443,
+        "name": "editor.linux_native_scene_preview",
+        "result": "Passed",
+        "seconds": 34.03
+      },
+      {
+        "number": 502,
+        "name": "editor.linux_sprite_source_inspector",
+        "result": "Passed",
+        "seconds": 36.88
+      },
+      {
+        "number": 286,
+        "name": "editor.content_path_sort",
+        "result": "Passed",
+        "seconds": 33.81
+      },
+      {
+        "number": 283,
+        "name": "editor.content_directory_index",
+        "result": "Passed",
+        "seconds": 31.22
+      },
+      {
+        "number": 437,
+        "name": "editor.linux_scene_merge_publication",
+        "result": "Passed",
+        "seconds": 29.19
+      },
+      {
+        "number": 396,
+        "name": "editor.layout_restart",
+        "result": "Passed",
+        "seconds": 37.59
+      },
+      {
+        "number": 425,
+        "name": "editor.linux_project_asset_workflow",
+        "result": "Passed",
+        "seconds": 28.56
+      },
+      {
+        "number": 497,
+        "name": "editor.linux_prefab_placement_selected_revert",
+        "result": "Passed",
+        "seconds": 27.01
+      },
+      {
+        "number": 483,
+        "name": "editor.hierarchy_keyboard_navigation",
+        "result": "Passed",
+        "seconds": 16.13
+      },
+      {
+        "number": 348,
+        "name": "editor.static_project_export_cli_optimized",
+        "result": "Passed",
+        "seconds": 18.86
+      },
+      {
+        "number": 432,
+        "name": "editor.linux_project_upgrade",
+        "result": "Passed",
+        "seconds": 18.58
+      },
+      {
+        "number": 347,
+        "name": "editor.static_project_export_cli",
+        "result": "Passed",
+        "seconds": 24.12
+      },
+      {
+        "number": 436,
+        "name": "editor.linux_scene_merge_candidate",
+        "result": "Passed",
+        "seconds": 17.91
+      },
+      {
+        "number": 494,
+        "name": "editor.linux_prefab_placement_source_rebase",
+        "result": "Passed",
+        "seconds": 17.34
+      },
+      {
+        "number": 403,
+        "name": "editor.builtin_creation_input",
+        "result": "Passed",
+        "seconds": 19.34
+      },
+      {
+        "number": 496,
+        "name": "editor.linux_prefab_placement_overrides",
+        "result": "Passed",
+        "seconds": 15.23
+      },
+      {
+        "number": 105,
+        "name": "window_presentation.twod_linear_native",
+        "result": "Passed",
+        "seconds": 10.41
+      },
+      {
+        "number": 321,
+        "name": "editor.scene_save_batch",
+        "result": "Passed",
+        "seconds": 17.9
+      },
+      {
+        "number": 104,
+        "name": "window_presentation.twod_linear_shader_artifacts",
+        "result": "Passed",
+        "seconds": 9.78
+      },
+      {
+        "number": 435,
+        "name": "editor.linux_scene_comparison",
+        "result": "Passed",
+        "seconds": 15.34
+      },
+      {
+        "number": 319,
+        "name": "editor.semantic_scene_comparison",
+        "result": "Passed",
+        "seconds": 12.85
+      },
+      {
+        "number": 441,
+        "name": "editor.linux_build_process_console",
+        "result": "Passed",
+        "seconds": 12.72
+      },
+      {
+        "number": 448,
+        "name": "editor.linux_native_gameplay_module",
+        "result": "Passed",
+        "seconds": 10.58
+      },
+      {
+        "number": 479,
+        "name": "editor.scene_file_input",
+        "result": "Passed",
+        "seconds": 13.96
+      },
+      {
+        "number": 384,
+        "name": "editor.imgui_contract",
+        "result": "Passed",
+        "seconds": 11.98
+      },
+      {
+        "number": 429,
+        "name": "editor.linux_reflected_arrays",
+        "result": "Passed",
+        "seconds": 10.28
+      },
+      {
+        "number": 93,
+        "name": "window_presentation.vulkan_pbr",
+        "result": "Passed",
+        "seconds": 7.75
+      },
+      {
+        "number": 450,
+        "name": "editor.linux_native_concurrent_game_views",
+        "result": "Passed",
+        "seconds": 11.39
+      },
+      {
+        "number": 428,
+        "name": "editor.linux_reflected_inspector",
+        "result": "Passed",
+        "seconds": 7.95
+      },
+      {
+        "number": 115,
+        "name": "api.gameplay_scene_zig_abi",
+        "result": "Passed",
+        "seconds": 3.33
+      },
+      {
+        "number": 177,
+        "name": "runtime.zig_reload_transaction",
+        "result": "Passed",
+        "seconds": 12.54
+      },
+      {
+        "number": 61,
+        "name": "showcase.linux_vulkan_camera_input",
+        "result": "Passed",
+        "seconds": 5.16
+      },
+      {
+        "number": 480,
+        "name": "editor.native_surface_lifetime",
+        "result": "Passed",
+        "seconds": 11.95
+      },
+      {
+        "number": 481,
+        "name": "editor.content_keyboard_shortcuts",
+        "result": "Passed",
+        "seconds": 12.63
+      },
+      {
+        "number": 452,
+        "name": "editor.linux_native_play_debug_lines",
+        "result": "Passed",
+        "seconds": 10.37
+      },
+      {
+        "number": 454,
+        "name": "editor.linux_native_play_physics_services",
+        "result": "Passed",
+        "seconds": 9.43
+      },
+      {
+        "number": 247,
+        "name": "gameplay.zig_display_wire_layout",
+        "result": "Passed",
+        "seconds": 3.2
+      },
+      {
+        "number": 220,
+        "name": "twod.authored_source_native",
+        "result": "Passed",
+        "seconds": 10.48
+      },
+      {
+        "number": 18,
+        "name": "gameplay.zig_storage_wrapper",
+        "result": "Passed",
+        "seconds": 3.91
+      },
+      {
+        "number": 17,
+        "name": "gameplay.zig_audio_wrapper",
+        "result": "Passed",
+        "seconds": 3.12
+      },
+      {
+        "number": 498,
+        "name": "editor.linux_prefab_instance_source_apply",
+        "result": "Passed",
+        "seconds": 9.46
+      },
+      {
+        "number": 451,
+        "name": "editor.linux_native_play_mesh_assets",
+        "result": "Passed",
+        "seconds": 10.45
+      },
+      {
+        "number": 453,
+        "name": "editor.linux_native_play_scene_services",
+        "result": "Passed",
+        "seconds": 10.55
+      },
+      {
+        "number": 458,
+        "name": "editor.linux_native_project_input",
+        "result": "Passed",
+        "seconds": 9.22
+      },
+      {
+        "number": 302,
+        "name": "editor.prefab_nested_materialization",
+        "result": "Passed",
+        "seconds": 9.0
+      },
+      {
+        "number": 40,
+        "name": "showcase.courtyard_environment_generation",
+        "result": "Passed",
+        "seconds": 6.72
+      },
+      {
+        "number": 314,
+        "name": "editor.additive_scene_composition",
+        "result": "Passed",
+        "seconds": 8.73
+      },
+      {
+        "number": 232,
+        "name": "gameplay.zig_ui_wire_layout",
+        "result": "Passed",
+        "seconds": 3.12
+      },
+      {
+        "number": 343,
+        "name": "editor.static_project_export",
+        "result": "Passed",
+        "seconds": 9.27
+      },
+      {
+        "number": 253,
+        "name": "gameplay.zig_assets_wire_layout",
+        "result": "Passed",
+        "seconds": 3.04
+      },
+      {
+        "number": 94,
+        "name": "window_presentation.vulkan_scene_upload_reuse",
+        "result": "Passed",
+        "seconds": 3.55
+      },
+      {
+        "number": 503,
+        "name": "editor.prefab_isolation_ui",
+        "result": "Passed",
+        "seconds": 6.61
+      },
+      {
+        "number": 249,
+        "name": "gameplay.zig_ui_draw_wire_layout",
+        "result": "Passed",
+        "seconds": 3.17
+      },
+      {
+        "number": 252,
+        "name": "twod.asset_residency_stress",
+        "result": "Passed",
+        "seconds": 8.07
+      },
+      {
+        "number": 431,
+        "name": "editor.linux_diagnostic_privacy",
+        "result": "Passed",
+        "seconds": 6.04
+      },
+      {
+        "number": 467,
+        "name": "editor.component_draft_lifecycle",
+        "result": "Passed",
+        "seconds": 9.98
+      },
+      {
+        "number": 402,
+        "name": "editor.inspector_component_values",
+        "result": "Passed",
+        "seconds": 9.24
+      },
+      {
+        "number": 495,
+        "name": "editor.linux_prefab_placement_source",
+        "result": "Passed",
+        "seconds": 8.06
+      },
+      {
+        "number": 19,
+        "name": "gameplay.zig_content_wrapper",
+        "result": "Passed",
+        "seconds": 3.21
+      },
+      {
+        "number": 259,
+        "name": "gameplay.zig_effects_wire_layout",
+        "result": "Passed",
+        "seconds": 4.14
+      },
+      {
+        "number": 21,
+        "name": "gameplay.zig_ui_draw_wrapper",
+        "result": "Passed",
+        "seconds": 2.97
+      },
+      {
+        "number": 22,
+        "name": "gameplay.zig_assets_wrapper",
+        "result": "Passed",
+        "seconds": 2.83
+      },
+      {
+        "number": 20,
+        "name": "gameplay.zig_display_wrapper",
+        "result": "Passed",
+        "seconds": 3.48
+      },
+      {
+        "number": 442,
+        "name": "editor.linux_single_scene",
+        "result": "Passed",
+        "seconds": 7.99
+      },
+      {
+        "number": 527,
+        "name": "editor.linux_appearance",
+        "result": "Passed",
+        "seconds": 9.52
+      },
+      {
+        "number": 237,
+        "name": "twod.cooked_product_native",
+        "result": "Passed",
+        "seconds": 9.58
+      },
+      {
+        "number": 228,
+        "name": "twod.integrated_stress",
+        "result": "Passed",
+        "seconds": 7.38
+      },
+      {
+        "number": 255,
+        "name": "gameplay.zig_game_script_adapter",
+        "result": "Passed",
+        "seconds": 3.53
+      },
+      {
+        "number": 472,
+        "name": "editor.mesh_scene_drop",
+        "result": "Passed",
+        "seconds": 8.35
+      },
+      {
+        "number": 16,
+        "name": "gameplay.zig_ui_wrapper",
+        "result": "Passed",
+        "seconds": 3.12
+      },
+      {
+        "number": 15,
+        "name": "gameplay.zig_input_wrapper",
+        "result": "Passed",
+        "seconds": 3.11
+      },
+      {
+        "number": 229,
+        "name": "twod.cloud_native",
+        "result": "Passed",
+        "seconds": 7.69
+      },
+      {
+        "number": 457,
+        "name": "editor.linux_native_play_pointer_motion",
+        "result": "Passed",
+        "seconds": 8.15
+      },
+      {
+        "number": 195,
+        "name": "runtime.linux_native_game_player",
+        "result": "Passed",
+        "seconds": 8.49
+      },
+      {
+        "number": 23,
+        "name": "gameplay.zig_color_wrapper",
+        "result": "Passed",
+        "seconds": 3.0
+      },
+      {
+        "number": 70,
+        "name": "build.pose_search_profiles",
+        "result": "Passed",
+        "seconds": 3.69
+      },
+      {
+        "number": 212,
+        "name": "gameplay.zig_sprite_source_wire_layout",
+        "result": "Passed",
+        "seconds": 3.1
+      },
+      {
+        "number": 72,
+        "name": "build.animation_profiles",
+        "result": "Passed",
+        "seconds": 3.74
+      },
+      {
+        "number": 234,
+        "name": "gameplay.zig_content_wire_layout",
+        "result": "Passed",
+        "seconds": 3.69
+      },
+      {
+        "number": 456,
+        "name": "editor.linux_native_play_pointer_buttons",
+        "result": "Passed",
+        "seconds": 7.57
+      },
+      {
+        "number": 399,
+        "name": "editor.scene_select_all",
+        "result": "Passed",
+        "seconds": 9.22
+      },
+      {
+        "number": 97,
+        "name": "window_presentation.pbr_shader_generation",
+        "result": "Passed",
+        "seconds": 5.33
+      },
+      {
+        "number": 41,
+        "name": "showcase.courtyard_environment_contracts",
+        "result": "Passed",
+        "seconds": 6.78
+      },
+      {
+        "number": 447,
+        "name": "editor.linux_native_game_materials",
+        "result": "Passed",
+        "seconds": 5.57
+      },
+      {
+        "number": 438,
+        "name": "editor.linux_static_project_export",
+        "result": "Passed",
+        "seconds": 6.38
+      },
+      {
+        "number": 342,
+        "name": "editor.scene_runtime_capture",
+        "result": "Passed",
+        "seconds": 8.38
+      },
+      {
+        "number": 513,
+        "name": "editor.content_dependency_reveal",
+        "result": "Passed",
+        "seconds": 5.35
+      },
+      {
+        "number": 397,
+        "name": "editor.scene_mesh_frame_selection",
+        "result": "Passed",
+        "seconds": 5.77
+      },
+      {
+        "number": 59,
+        "name": "showcase.linux_vulkan_virtual_display",
+        "result": "Passed",
+        "seconds": 3.81
+      },
+      {
+        "number": 476,
+        "name": "editor.inspector_mesh_drop",
+        "result": "Passed",
+        "seconds": 7.32
+      },
+      {
+        "number": 385,
+        "name": "editor.recovery_scope",
+        "result": "Passed",
+        "seconds": 5.51
+      },
+      {
+        "number": 478,
+        "name": "editor.keyboard_rename_lifecycle",
+        "result": "Passed",
+        "seconds": 5.68
+      },
+      {
+        "number": 27,
+        "name": "gameplay.zig_asset_transitions",
+        "result": "Passed",
+        "seconds": 5.69
+      },
+      {
+        "number": 471,
+        "name": "editor.mesh_scene_instantiation",
+        "result": "Passed",
+        "seconds": 5.97
+      },
+      {
+        "number": 455,
+        "name": "editor.linux_native_game_input",
+        "result": "Passed",
+        "seconds": 5.89
+      },
+      {
+        "number": 116,
+        "name": "api.gameplay_input_zig_abi",
+        "result": "Passed",
+        "seconds": 4.21
+      },
+      {
+        "number": 386,
+        "name": "editor.semantic_scene_comparison_ui",
+        "result": "Passed",
+        "seconds": 5.33
+      },
+      {
+        "number": 463,
+        "name": "editor.pointer_dpi",
+        "result": "Passed",
+        "seconds": 7.9
+      },
+      {
+        "number": 401,
+        "name": "editor.inspector_component_reset",
+        "result": "Passed",
+        "seconds": 7.06
+      },
+      {
+        "number": 30,
+        "name": "gameplay.zig_voice_player",
+        "result": "Passed",
+        "seconds": 6.53
+      },
+      {
+        "number": 98,
+        "name": "window_presentation.tone_shader_generation",
+        "result": "Passed",
+        "seconds": 3.67
+      },
+      {
+        "number": 95,
+        "name": "window_presentation.vulkan_swapchain",
+        "result": "Passed",
+        "seconds": 2.8
+      },
+      {
+        "number": 475,
+        "name": "editor.cut_clipboard_lifecycle",
+        "result": "Passed",
+        "seconds": 4.42
+      },
+      {
+        "number": 270,
+        "name": "twod.source_reload_transaction",
+        "result": "Passed",
+        "seconds": 4.4
+      },
+      {
+        "number": 499,
+        "name": "editor.reflected_array_ui",
+        "result": "Passed",
+        "seconds": 3.13
+      },
+      {
+        "number": 118,
+        "name": "api.gameplay_lifecycle_zig_abi",
+        "result": "Passed",
+        "seconds": 3.13
+      },
+      {
+        "number": 446,
+        "name": "editor.linux_native_game_view",
+        "result": "Passed",
+        "seconds": 3.42
+      },
+      {
+        "number": 334,
+        "name": "editor.parser_robustness",
+        "result": "Passed",
+        "seconds": 4.4
+      },
+      {
+        "number": 470,
+        "name": "editor.camera_scene_view_alignment",
+        "result": "Passed",
+        "seconds": 3.78
+      },
+      {
+        "number": 485,
+        "name": "editor.material_inspector",
+        "result": "Passed",
+        "seconds": 3.49
+      },
+      {
+        "number": 390,
+        "name": "editor.scene_tabs",
+        "result": "Passed",
+        "seconds": 3.57
+      },
+      {
+        "number": 42,
+        "name": "showcase.courtyard_asset_conversion",
+        "result": "Passed",
+        "seconds": 3.97
+      },
+      {
+        "number": 224,
+        "name": "gameplay.zig_twod_native",
+        "result": "Passed",
+        "seconds": 3.33
+      },
+      {
+        "number": 34,
+        "name": "gameplay.zig_hd2d_fallback",
+        "result": "Passed",
+        "seconds": 3.37
+      },
+      {
+        "number": 501,
+        "name": "editor.sprite_source_inspector",
+        "result": "Passed",
+        "seconds": 2.98
+      },
+      {
+        "number": 47,
+        "name": "showcase.runtime_rooms",
+        "result": "Passed",
+        "seconds": 3.37
+      },
+      {
+        "number": 271,
+        "name": "editor.brand_assets",
+        "result": "Passed",
+        "seconds": 2.2
+      },
+      {
+        "number": 468,
+        "name": "editor.scene_authoring_access",
+        "result": "Passed",
+        "seconds": 3.25
+      },
+      {
+        "number": 38,
+        "name": "showcase.courtyard_asset_generation",
+        "result": "Passed",
+        "seconds": 3.1
+      },
+      {
+        "number": 477,
+        "name": "editor.hierarchy_select_all",
+        "result": "Passed",
+        "seconds": 2.92
+      },
+      {
+        "number": 424,
+        "name": "editor.linux_project_cli",
+        "result": "Passed",
+        "seconds": 3.1
+      },
+      {
+        "number": 392,
+        "name": "editor.console_display",
+        "result": "Passed",
+        "seconds": 1.65
+      },
+      {
+        "number": 508,
+        "name": "editor.play_twod_native",
+        "result": "Passed",
+        "seconds": 1.66
+      },
+      {
+        "number": 193,
+        "name": "runtime.native_static_view",
+        "result": "Passed",
+        "seconds": 2.76
+      },
+      {
+        "number": 395,
+        "name": "editor.imgui_context_lifetime",
+        "result": "Passed",
+        "seconds": 1.77
+      },
+      {
+        "number": 383,
+        "name": "editor.build_process_console",
+        "result": "Passed",
+        "seconds": 2.38
+      },
+      {
+        "number": 500,
+        "name": "editor.reflected_inspector_ui",
+        "result": "Passed",
+        "seconds": 1.82
+      },
+      {
+        "number": 421,
+        "name": "editor.play_input_state",
+        "result": "Passed",
+        "seconds": 2.67
+      },
+      {
+        "number": 202,
+        "name": "runtime.gameplay_audio_residency",
+        "result": "Passed",
+        "seconds": 2.18
+      },
+      {
+        "number": 393,
+        "name": "editor.process_memory_display",
+        "result": "Passed",
+        "seconds": 1.61
+      },
+      {
+        "number": 60,
+        "name": "showcase.linux_vulkan_rendering_room",
+        "result": "Passed",
+        "seconds": 1.2
+      },
+      {
+        "number": 514,
+        "name": "editor.authoring_reopen_ui_1x",
+        "result": "Passed",
+        "seconds": 2.56
+      },
+      {
+        "number": 504,
+        "name": "editor.chrome_trace_display",
+        "result": "Passed",
+        "seconds": 1.38
+      },
+      {
+        "number": 516,
+        "name": "editor.authoring_reopen_ui_2x",
+        "result": "Passed",
+        "seconds": 2.13
+      },
+      {
+        "number": 510,
+        "name": "editor.game_twod_preview",
+        "result": "Passed",
+        "seconds": 2.01
+      },
+      {
+        "number": 219,
+        "name": "twod.authored_source_export",
+        "result": "Passed",
+        "seconds": 2.55
+      },
+      {
+        "number": 382,
+        "name": "editor.project_upgrade_ui",
+        "result": "Passed",
+        "seconds": 1.37
+      },
+      {
+        "number": 440,
+        "name": "editor.linux_process_memory",
+        "result": "Passed",
+        "seconds": 1.66
+      },
+      {
+        "number": 381,
+        "name": "editor.project_picker_ui",
+        "result": "Passed",
+        "seconds": 1.49
+      },
+      {
+        "number": 215,
+        "name": "twod.content_import",
+        "result": "Passed",
+        "seconds": 1.57
+      },
+      {
+        "number": 505,
+        "name": "editor.mesh_memory_capture_display",
+        "result": "Passed",
+        "seconds": 1.47
+      },
+      {
+        "number": 394,
+        "name": "editor.mesh_memory_display",
+        "result": "Passed",
+        "seconds": 1.97
+      },
+      {
+        "number": 353,
+        "name": "editor.play_authored_sprites",
+        "result": "Passed",
+        "seconds": 3.1
+      },
+      {
+        "number": 464,
+        "name": "editor.unknown_component_inspector",
+        "result": "Passed",
+        "seconds": 1.86
+      },
+      {
+        "number": 461,
+        "name": "editor.profiler_json_schema_optimized",
+        "result": "Passed",
+        "seconds": 1.74
+      },
+      {
+        "number": 92,
+        "name": "window_presentation.vulkan_scene",
+        "result": "Passed",
+        "seconds": 1.04
+      },
+      {
+        "number": 459,
+        "name": "editor.profiler_export",
+        "result": "Passed",
+        "seconds": 1.41
+      },
+      {
+        "number": 491,
+        "name": "editor.prefab_placement_override_ui",
+        "result": "Passed",
+        "seconds": 1.84
+      },
+      {
+        "number": 509,
+        "name": "editor.sprite_source_native",
+        "result": "Passed",
+        "seconds": 1.43
+      },
+      {
+        "number": 227,
+        "name": "twod.benchmark_trace",
+        "result": "Passed",
+        "seconds": 2.15
+      },
+      {
+        "number": 526,
+        "name": "editor.appearance_2x",
+        "result": "Passed",
+        "seconds": 1.6
+      },
+      {
+        "number": 157,
+        "name": "runtime.scene_world_pose_snapshot",
+        "result": "Passed",
+        "seconds": 1.83
+      },
+      {
+        "number": 488,
+        "name": "editor.static_project_export_ui",
+        "result": "Passed",
+        "seconds": 1.5
+      },
+      {
+        "number": 222,
+        "name": "twod.play_context_native",
+        "result": "Passed",
+        "seconds": 1.69
+      },
+      {
+        "number": 415,
+        "name": "editor.concurrent_game_view",
+        "result": "Passed",
+        "seconds": 1.8
+      },
+      {
+        "number": 306,
+        "name": "editor.prefab_asset_graph",
+        "result": "Passed",
+        "seconds": 1.5
+      },
+      {
+        "number": 487,
+        "name": "editor.gpu_capture_display",
+        "result": "Passed",
+        "seconds": 1.37
+      },
+      {
+        "number": 482,
+        "name": "editor.game_input_bindings",
+        "result": "Passed",
+        "seconds": 2.3
+      },
+      {
+        "number": 525,
+        "name": "editor.appearance_1x",
+        "result": "Passed",
+        "seconds": 1.66
+      },
+      {
+        "number": 489,
+        "name": "editor.prefab_placement_source_ui",
+        "result": "Passed",
+        "seconds": 1.41
+      },
+      {
+        "number": 379,
+        "name": "editor.git_diff_ui_2x",
+        "result": "Passed",
+        "seconds": 1.94
+      },
+      {
+        "number": 317,
+        "name": "editor.semantic_scene_merge_candidate",
+        "result": "Passed",
+        "seconds": 1.9
+      },
+      {
+        "number": 490,
+        "name": "editor.prefab_placement_rebase_ui",
+        "result": "Passed",
+        "seconds": 1.55
+      },
+      {
+        "number": 460,
+        "name": "editor.profiler_json_schema",
+        "result": "Passed",
+        "seconds": 1.57
+      },
+      {
+        "number": 327,
+        "name": "editor.workspace_budget",
+        "result": "Passed",
+        "seconds": 1.63
+      },
+      {
+        "number": 377,
+        "name": "editor.git_diff_ui_1x",
+        "result": "Passed",
+        "seconds": 1.93
+      },
+      {
+        "number": 375,
+        "name": "editor.plugin_manager_ui",
+        "result": "Passed",
+        "seconds": 1.46
+      },
+      {
+        "number": 518,
+        "name": "editor.project_build_settings_ui",
+        "result": "Passed",
+        "seconds": 1.45
+      },
+      {
+        "number": 484,
+        "name": "editor.hierarchy_hidden_requests",
+        "result": "Passed",
+        "seconds": 1.54
+      },
+      {
+        "number": 48,
+        "name": "showcase.visual_tour_cli",
+        "result": "Passed",
+        "seconds": 1.48
+      },
+      {
+        "number": 378,
+        "name": "editor.git_status_ui_2x",
+        "result": "Passed",
+        "seconds": 2.05
+      },
+      {
+        "number": 221,
+        "name": "twod.play_context",
+        "result": "Passed",
+        "seconds": 1.65
+      },
+      {
+        "number": 486,
+        "name": "editor.gpu_profile_display",
+        "result": "Passed",
+        "seconds": 1.47
+      },
+      {
+        "number": 398,
+        "name": "editor.native_scene_tools",
+        "result": "Passed",
+        "seconds": 2.58
+      },
+      {
+        "number": 391,
+        "name": "editor.content_diagnostic_display",
+        "result": "Passed",
+        "seconds": 1.99
+      },
+      {
+        "number": 413,
+        "name": "editor.play_host_memory_ui",
+        "result": "Passed",
+        "seconds": 2.18
+      },
+      {
+        "number": 462,
+        "name": "editor.play_apply_changes",
+        "result": "Passed",
+        "seconds": 1.94
+      },
+      {
+        "number": 493,
+        "name": "editor.prefab_instance_source_apply_ui_2x",
+        "result": "Passed",
+        "seconds": 1.2
+      },
+      {
+        "number": 380,
+        "name": "editor.diagnostic_privacy",
+        "result": "Passed",
+        "seconds": 1.64
+      },
+      {
+        "number": 194,
+        "name": "runtime.linux_native_static_player",
+        "result": "Passed",
+        "seconds": 1.44
+      },
+      {
+        "number": 106,
+        "name": "api.sprite_source_baseline_guard",
+        "result": "Passed",
+        "seconds": 0.88
+      },
+      {
+        "number": 107,
+        "name": "api.scene_baseline_guard",
+        "result": "Passed",
+        "seconds": 0.95
+      },
+      {
+        "number": 376,
+        "name": "editor.git_status_ui_1x",
+        "result": "Passed",
+        "seconds": 1.53
+      },
+      {
+        "number": 240,
+        "name": "twod.sprite_catalog_export",
+        "result": "Passed",
+        "seconds": 1.14
+      },
+      {
+        "number": 119,
+        "name": "api.twod_effects_baseline_guard",
+        "result": "Passed",
+        "seconds": 1.01
+      },
+      {
+        "number": 91,
+        "name": "window_presentation.vulkan_scene_ui",
+        "result": "Passed",
+        "seconds": 0.89
+      },
+      {
+        "number": 226,
+        "name": "twod.cpu_stress",
+        "result": "Passed",
+        "seconds": 1.12
+      },
+      {
+        "number": 492,
+        "name": "editor.prefab_instance_source_apply_ui_1x",
+        "result": "Passed",
+        "seconds": 1.09
+      },
+      {
+        "number": 374,
+        "name": "editor.content_search_keys",
+        "result": "Passed",
+        "seconds": 1.12
+      },
+      {
+        "number": 466,
+        "name": "editor.transform_input",
+        "result": "Passed",
+        "seconds": 1.27
+      },
+      {
+        "number": 407,
+        "name": "editor.game_view_preview",
+        "result": "Passed",
+        "seconds": 1.2
+      },
+      {
+        "number": 522,
+        "name": "editor.transform_layout_1x",
+        "result": "Passed",
+        "seconds": 0.96
+      },
+      {
+        "number": 469,
+        "name": "editor.game_camera_selection",
+        "result": "Passed",
+        "seconds": 1.27
+      },
+      {
+        "number": 465,
+        "name": "editor.component_multi_edit",
+        "result": "Passed",
+        "seconds": 1.35
+      },
+      {
+        "number": 524,
+        "name": "editor.transform_layout_2x",
+        "result": "Passed",
+        "seconds": 1.14
+      },
+      {
+        "number": 241,
+        "name": "twod.backend_options",
+        "result": "Passed",
+        "seconds": 1.01
+      },
+      {
+        "number": 117,
+        "name": "api.lifecycle_baseline_guard",
+        "result": "Passed",
+        "seconds": 0.74
+      },
+      {
+        "number": 474,
+        "name": "editor.clipboard_initialized_forest",
+        "result": "Passed",
+        "seconds": 1.05
+      },
+      {
+        "number": 473,
+        "name": "editor.selection_delete_transaction",
+        "result": "Passed",
+        "seconds": 1.06
+      },
+      {
+        "number": 112,
+        "name": "api.audio_state_baseline_guard",
+        "result": "Passed",
+        "seconds": 0.6
+      },
+      {
+        "number": 404,
+        "name": "editor.mesh_inspector",
+        "result": "Passed",
+        "seconds": 0.94
+      },
+      {
+        "number": 135,
+        "name": "renderer.vulkan_graphics_resource_reuse",
+        "result": "Passed",
+        "seconds": 0.53
+      },
+      {
+        "number": 433,
+        "name": "editor.linux_xvfb_lifetime",
+        "result": "Passed",
+        "seconds": 0.71
+      },
+      {
+        "number": 223,
+        "name": "twod.native_pixels",
+        "result": "Passed",
+        "seconds": 0.87
+      },
+      {
+        "number": 2,
+        "name": "build.editor_target_evidence",
+        "result": "Passed",
+        "seconds": 0.74
+      },
+      {
+        "number": 64,
+        "name": "cryptography.ed25519_sha256",
+        "result": "Passed",
+        "seconds": 0.46
+      },
+      {
+        "number": 191,
+        "name": "runtime.static_project_package",
+        "result": "Passed",
+        "seconds": 0.77
+      },
+      {
+        "number": 158,
+        "name": "runtime.render_sync",
+        "result": "Passed",
+        "seconds": 0.7
+      },
+      {
+        "number": 245,
+        "name": "twod.project_export_native",
+        "result": "Passed",
+        "seconds": 0.67
+      },
+      {
+        "number": 6,
+        "name": "build.showcase_package_launch_safety",
+        "result": "Passed",
+        "seconds": 0.71
+      },
+      {
+        "number": 37,
+        "name": "showcase.embedded_vulkan_shaders",
+        "result": "Passed",
+        "seconds": 0.66
+      },
+      {
+        "number": 236,
+        "name": "twod.cooked_product_services",
+        "result": "Passed",
+        "seconds": 0.5
+      },
+      {
+        "number": 156,
+        "name": "runtime.entity_parenting",
+        "result": "Passed",
+        "seconds": 0.72
+      },
+      {
+        "number": 350,
+        "name": "editor.material_scene_native",
+        "result": "Passed",
+        "seconds": 0.45
+      },
+      {
+        "number": 57,
+        "name": "showcase.linux_animation_handshake_optimized",
+        "result": "Passed",
+        "seconds": 0.5
+      },
+      {
+        "number": 207,
+        "name": "twod.windows_vm_transport",
+        "result": "Passed",
+        "seconds": 0.52
+      },
+      {
+        "number": 346,
+        "name": "editor.static_project_export_cli_diagnostics_optimized",
+        "result": "Passed",
+        "seconds": 0.41
+      },
+      {
+        "number": 45,
+        "name": "showcase.benchmark_evidence_policy_optimized",
+        "result": "Passed",
+        "seconds": 0.54
+      },
+      {
+        "number": 8,
+        "name": "build.v2_production_toolchain",
+        "result": "Passed",
+        "seconds": 0.55
+      },
+      {
+        "number": 204,
+        "name": "runtime.crash_diagnostics",
+        "result": "Passed",
+        "seconds": 0.65
+      },
+      {
+        "number": 372,
+        "name": "editor.git_diff_provider",
+        "result": "Passed",
+        "seconds": 0.58
+      },
+      {
+        "number": 326,
+        "name": "editor.autosave_journal",
+        "result": "Passed",
+        "seconds": 0.59
+      },
+      {
+        "number": 284,
+        "name": "editor.scene_golden_migrations",
+        "result": "Passed",
+        "seconds": 0.51
+      },
+      {
+        "number": 190,
+        "name": "runtime.cooked_scene_assets",
+        "result": "Passed",
+        "seconds": 0.55
+      },
+      {
+        "number": 312,
+        "name": "editor.bounded_build_process",
+        "result": "Passed",
+        "seconds": 0.52
+      },
+      {
+        "number": 28,
+        "name": "gameplay.zig_color_slice",
+        "result": "Passed",
+        "seconds": 0.52
+      },
+      {
+        "number": 71,
+        "name": "animation.v2_m8_pose_search",
+        "result": "Passed",
+        "seconds": 0.29
+      },
+      {
+        "number": 24,
+        "name": "gameplay.zig_display_player",
+        "result": "Passed",
+        "seconds": 0.29
+      },
+      {
+        "number": 163,
+        "name": "runtime.bounded_scene_save",
+        "result": "Passed",
+        "seconds": 0.48
+      },
+      {
+        "number": 330,
+        "name": "editor.asset_source",
+        "result": "Passed",
+        "seconds": 0.37
+      },
+      {
+        "number": 311,
+        "name": "editor.project_cli",
+        "result": "Passed",
+        "seconds": 0.35
+      },
+      {
+        "number": 176,
+        "name": "runtime.dynamic_gameplay_module",
+        "result": "Passed",
+        "seconds": 0.44
+      },
+      {
+        "number": 239,
+        "name": "twod.project_export",
+        "result": "Passed",
+        "seconds": 0.33
+      },
+      {
+        "number": 58,
+        "name": "showcase.linux_vulkan_evidence_policy",
+        "result": "Passed",
+        "seconds": 0.18
+      },
+      {
+        "number": 371,
+        "name": "editor.git_status_provider",
+        "result": "Passed",
+        "seconds": 0.41
+      },
+      {
+        "number": 349,
+        "name": "editor.material_import",
+        "result": "Passed",
+        "seconds": 0.35
+      },
+      {
+        "number": 423,
+        "name": "editor.linux_validation_output",
+        "result": "Passed",
+        "seconds": 0.39
+      },
+      {
+        "number": 359,
+        "name": "editor.mesh_memory_json_schema_optimized",
+        "result": "Passed",
+        "seconds": 0.36
+      },
+      {
+        "number": 52,
+        "name": "showcase.feature_gallery",
+        "result": "Passed",
+        "seconds": 0.3
+      },
+      {
+        "number": 198,
+        "name": "runtime.gameplay_alsa_lifetime",
+        "result": "Passed",
+        "seconds": 0.37
+      },
+      {
+        "number": 53,
+        "name": "showcase.zig_dynamic",
+        "result": "Passed",
+        "seconds": 0.39
+      },
+      {
+        "number": 80,
+        "name": "network.v2_m6_dormancy",
+        "result": "Passed",
+        "seconds": 0.08
+      },
+      {
+        "number": 287,
+        "name": "editor.chrome_cpu_trace",
+        "result": "Passed",
+        "seconds": 0.28
+      },
+      {
+        "number": 262,
+        "name": "twod.emission_asset_tool",
+        "result": "Passed",
+        "seconds": 0.24
+      },
+      {
+        "number": 51,
+        "name": "showcase.zig_headless",
+        "result": "Passed",
+        "seconds": 0.32
+      },
+      {
+        "number": 50,
+        "name": "showcase.probe_export",
+        "result": "Passed",
+        "seconds": 0.32
+      },
+      {
+        "number": 250,
+        "name": "twod.portable_font_bake",
+        "result": "Passed",
+        "seconds": 0.2
+      },
+      {
+        "number": 238,
+        "name": "twod.host_fixture",
+        "result": "Passed",
+        "seconds": 0.23
+      },
+      {
+        "number": 356,
+        "name": "editor.process_memory_json_schema_optimized",
+        "result": "Passed",
+        "seconds": 0.31
+      },
+      {
+        "number": 49,
+        "name": "showcase.guided_tour_cli",
+        "result": "Passed",
+        "seconds": 0.28
+      },
+      {
+        "number": 257,
+        "name": "twod.sdk_portable_pe",
+        "result": "Passed",
+        "seconds": 0.27
+      },
+      {
+        "number": 519,
+        "name": "editor.font_glyphs",
+        "result": "Passed",
+        "seconds": 0.26
+      },
+      {
+        "number": 54,
+        "name": "showcase.capability_fallbacks",
+        "result": "Passed",
+        "seconds": 0.29
+      },
+      {
+        "number": 26,
+        "name": "gameplay.zig_image_ui_player",
+        "result": "Passed",
+        "seconds": 0.29
+      },
+      {
+        "number": 139,
+        "name": "renderer.vulkan_recording_benchmark",
+        "result": "Passed",
+        "seconds": 0.28
+      },
+      {
+        "number": 140,
+        "name": "renderer.vulkan_recording_benchmark_reuse",
+        "result": "Passed",
+        "seconds": 0.28
+      },
+      {
+        "number": 138,
+        "name": "renderer.vulkan_recording_resource_reuse",
+        "result": "Passed",
+        "seconds": 0.23
+      },
+      {
+        "number": 292,
+        "name": "editor.build_artifact_verification",
+        "result": "Passed",
+        "seconds": 0.11
+      },
+      {
+        "number": 137,
+        "name": "renderer.vulkan_recording_gpu_timing",
+        "result": "Passed",
+        "seconds": 0.21
+      },
+      {
+        "number": 5,
+        "name": "build.showcase_package",
+        "result": "Passed",
+        "seconds": 0.31
+      },
+      {
+        "number": 285,
+        "name": "editor.prefab_instance_source_apply",
+        "result": "Passed",
+        "seconds": 0.19
+      },
+      {
+        "number": 96,
+        "name": "window_presentation.hlsl_embedding",
+        "result": "Passed",
+        "seconds": 0.12
+      },
+      {
+        "number": 506,
+        "name": "editor.play_twod_services",
+        "result": "Passed",
+        "seconds": 0.12
+      },
+      {
+        "number": 363,
+        "name": "editor.gpu_timing_json_optimized",
+        "result": "Passed",
+        "seconds": 0.33
+      },
+      {
+        "number": 289,
+        "name": "editor.signed_extension_admission",
+        "result": "Passed",
+        "seconds": 0.09
+      },
+      {
+        "number": 261,
+        "name": "twod.macos_development_export",
+        "result": "Passed",
+        "seconds": 0.17
+      },
+      {
+        "number": 56,
+        "name": "showcase.linux_animation_handshake",
+        "result": "Passed",
+        "seconds": 0.14
+      },
+      {
+        "number": 235,
+        "name": "twod.audio_device_lifecycle",
+        "result": "Passed",
+        "seconds": 0.05
+      },
+      {
+        "number": 216,
+        "name": "twod.play_assets",
+        "result": "Passed",
+        "seconds": 0.16
+      },
+      {
+        "number": 192,
+        "name": "runtime.static_project_player_cli",
+        "result": "Passed",
+        "seconds": 0.21
+      },
+      {
+        "number": 225,
+        "name": "twod.asset_tool",
+        "result": "Passed",
+        "seconds": 0.22
+      },
+      {
+        "number": 32,
+        "name": "gameplay.zig_lifecycle_player",
+        "result": "Passed",
+        "seconds": 0.18
+      },
+      {
+        "number": 419,
+        "name": "editor.play_physics_services",
+        "result": "Passed",
+        "seconds": 0.11
+      },
+      {
+        "number": 44,
+        "name": "showcase.benchmark_evidence_policy",
+        "result": "Passed",
+        "seconds": 0.26
+      },
+      {
+        "number": 79,
+        "name": "network.v2_m6_replication_interest",
+        "result": "Passed",
+        "seconds": 0.11
+      },
+      {
+        "number": 74,
+        "name": "animation.v2_m8_synchronized_trs_graph",
+        "result": "Passed",
+        "seconds": 0.05
+      },
+      {
+        "number": 108,
+        "name": "api.foundation_math_types",
+        "result": "Passed",
+        "seconds": 0.07
+      },
+      {
+        "number": 243,
+        "name": "twod.game_entry_acceptance",
+        "result": "Passed",
+        "seconds": 0.17
+      },
+      {
+        "number": 362,
+        "name": "editor.gpu_timing_json",
+        "result": "Passed",
+        "seconds": 0.16
+      },
+      {
+        "number": 345,
+        "name": "editor.static_project_export_cli_diagnostics",
+        "result": "Passed",
+        "seconds": 0.18
+      },
+      {
+        "number": 273,
+        "name": "editor.windows_package_admission",
+        "result": "Passed",
+        "seconds": 0.1
+      },
+      {
+        "number": 205,
+        "name": "twod.runtime_contracts",
+        "result": "Passed",
+        "seconds": 0.19
+      },
+      {
+        "number": 355,
+        "name": "editor.process_memory_json_schema",
+        "result": "Passed",
+        "seconds": 0.17
+      },
+      {
+        "number": 136,
+        "name": "renderer.vulkan_descriptor_isolation",
+        "result": "Passed",
+        "seconds": 0.15
+      },
+      {
+        "number": 148,
+        "name": "renderer.ray_tracing",
+        "result": "Passed",
+        "seconds": 0.15
+      },
+      {
+        "number": 358,
+        "name": "editor.mesh_memory_json_schema",
+        "result": "Passed",
+        "seconds": 0.23
+      },
+      {
+        "number": 82,
+        "name": "network.server_runtime_contract",
+        "result": "Passed",
+        "seconds": 0.08
+      },
+      {
+        "number": 134,
+        "name": "renderer.vulkan_texture_recording",
+        "result": "Passed",
+        "seconds": 0.14
+      },
+      {
+        "number": 133,
+        "name": "renderer.v2_gpu_driven",
+        "result": "Passed",
+        "seconds": 0.19
+      },
+      {
+        "number": 36,
+        "name": "gameplay.hd2d_diagnostic_assets",
+        "result": "Passed",
+        "seconds": 0.12
+      },
+      {
+        "number": 364,
+        "name": "editor.reflected_dynamic_arrays",
+        "result": "Passed",
+        "seconds": 0.11
+      },
+      {
+        "number": 29,
+        "name": "gameplay.zig_voice_dialogue",
+        "result": "Passed",
+        "seconds": 0.13
+      },
+      {
+        "number": 78,
+        "name": "network.v2_m6_entity_mapping",
+        "result": "Passed",
+        "seconds": 0.08
+      },
+      {
+        "number": 146,
+        "name": "renderer.mesh_shader",
+        "result": "Passed",
+        "seconds": 0.15
+      },
+      {
+        "number": 183,
+        "name": "runtime.console_record_admission",
+        "result": "Passed",
+        "seconds": 0.12
+      },
+      {
+        "number": 144,
+        "name": "renderer.tessellation",
+        "result": "Passed",
+        "seconds": 0.1
+      },
+      {
+        "number": 121,
+        "name": "renderer.submission_gpu_timing",
+        "result": "Passed",
+        "seconds": 0.09
+      },
+      {
+        "number": 109,
+        "name": "api.core_services_handle_and_vfs_contract",
+        "result": "Passed",
+        "seconds": 0.05
+      },
+      {
+        "number": 357,
+        "name": "editor.mesh_memory_capture",
+        "result": "Passed",
+        "seconds": 0.11
+      },
+      {
+        "number": 307,
+        "name": "editor.atomic_forest_import",
+        "result": "Passed",
+        "seconds": 0.05
+      },
+      {
+        "number": 304,
+        "name": "editor.prefab_revision_history",
+        "result": "Passed",
+        "seconds": 0.04
+      },
+      {
+        "number": 66,
+        "name": "core.async_log_stream",
+        "result": "Passed",
+        "seconds": 0.16
+      },
+      {
+        "number": 77,
+        "name": "network.v2_m5_transport",
+        "result": "Passed",
+        "seconds": 0.08
+      },
+      {
+        "number": 81,
+        "name": "network.v2_m6_prediction_replay",
+        "result": "Passed",
+        "seconds": 0.11
+      },
+      {
+        "number": 145,
+        "name": "renderer.shading_rate",
+        "result": "Passed",
+        "seconds": 0.11
+      },
+      {
+        "number": 150,
+        "name": "renderer.shading_rate_image",
+        "result": "Passed",
+        "seconds": 0.08
+      },
+      {
+        "number": 161,
+        "name": "runtime.v1_m12_shipping",
+        "result": "Passed",
+        "seconds": 0.08
+      },
+      {
+        "number": 329,
+        "name": "editor.mesh_import",
+        "result": "Passed",
+        "seconds": 0.07
+      },
+      {
+        "number": 294,
+        "name": "editor.prefab_placement_revision_snapshot",
+        "result": "Passed",
+        "seconds": 0.08
+      },
+      {
+        "number": 332,
+        "name": "editor.mesh_thumbnails",
+        "result": "Passed",
+        "seconds": 0.07
+      },
+      {
+        "number": 142,
+        "name": "renderer.vulkan_golden_triangle",
+        "result": "Passed",
+        "seconds": 0.09
+      },
+      {
+        "number": 147,
+        "name": "renderer.work_graph",
+        "result": "Passed",
+        "seconds": 0.09
+      },
+      {
+        "number": 352,
+        "name": "editor.sprite_source_catalog",
+        "result": "Passed",
+        "seconds": 0.08
+      },
+      {
+        "number": 189,
+        "name": "runtime.game_project_player_cli",
+        "result": "Passed",
+        "seconds": 0.07
+      },
+      {
+        "number": 149,
+        "name": "renderer.sampler_feedback",
+        "result": "Passed",
+        "seconds": 0.07
+      },
+      {
+        "number": 181,
+        "name": "runtime.v1_m5_asset_pipeline",
+        "result": "Passed",
+        "seconds": 0.08
+      },
+      {
+        "number": 340,
+        "name": "editor.external_scene_save_contract",
+        "result": "Passed",
+        "seconds": 0.08
+      },
+      {
+        "number": 295,
+        "name": "editor.prefab_placement_source_rebase",
+        "result": "Passed",
+        "seconds": 0.09
+      },
+      {
+        "number": 414,
+        "name": "editor.play_debug_lines",
+        "result": "Passed",
+        "seconds": 0.05
+      },
+      {
+        "number": 12,
+        "name": "gameplay.zig_twod_dynamic",
+        "result": "Passed",
+        "seconds": 0.05
+      },
+      {
+        "number": 111,
+        "name": "api.m6_manifest_compatibility",
+        "result": "Passed",
+        "seconds": 0.06
+      },
+      {
+        "number": 125,
+        "name": "renderer.contracts",
+        "result": "Passed",
+        "seconds": 0.07
+      },
+      {
+        "number": 361,
+        "name": "editor.gpu_timing_capture",
+        "result": "Passed",
+        "seconds": 0.07
+      },
+      {
+        "number": 354,
+        "name": "editor.process_memory_capture",
+        "result": "Passed",
+        "seconds": 0.1
+      },
+      {
+        "number": 367,
+        "name": "editor.material_tool_source_session",
+        "result": "Passed",
+        "seconds": 0.11
+      },
+      {
+        "number": 83,
+        "name": "network.v2_m5_headless_dependency",
+        "result": "Passed",
+        "seconds": 0.04
+      },
+      {
+        "number": 173,
+        "name": "runtime.v1_m4_vertical_slice",
+        "result": "Passed",
+        "seconds": 0.08
+      },
+      {
+        "number": 218,
+        "name": "twod.authored_sources",
+        "result": "Passed",
+        "seconds": 0.06
+      },
+      {
+        "number": 303,
+        "name": "editor.project_prefab_placement",
+        "result": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "number": 368,
+        "name": "editor.managed_tool_invocation",
+        "result": "Passed",
+        "seconds": 0.05
+      },
+      {
+        "number": 151,
+        "name": "renderer.modern_compute_fallback",
+        "result": "Passed",
+        "seconds": 0.06
+      },
+      {
+        "number": 320,
+        "name": "editor.semantic_scene_comparison_job",
+        "result": "Passed",
+        "seconds": 0.05
+      },
+      {
+        "number": 344,
+        "name": "editor.static_project_export_job",
+        "result": "Passed",
+        "seconds": 0.05
+      },
+      {
+        "number": 310,
+        "name": "editor.preview_contract",
+        "result": "Passed",
+        "seconds": 0.04
+      },
+      {
+        "number": 251,
+        "name": "twod.gameplay_assets",
+        "result": "Passed",
+        "seconds": 0.05
+      },
+      {
+        "number": 69,
+        "name": "ai.v2_m7_navigation_crowd_policy",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 308,
+        "name": "editor.shader_authoring_contracts",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 298,
+        "name": "editor.property_snapshot_hint_preservation",
+        "result": "Passed",
+        "seconds": 0.04
+      },
+      {
+        "number": 162,
+        "name": "runtime.v2_m12_hardening_reference_projects",
+        "result": "Passed",
+        "seconds": 0.04
+      },
+      {
+        "number": 122,
+        "name": "renderer.metal_source_contract",
+        "result": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "number": 254,
+        "name": "twod.voice_inventory",
+        "result": "Passed",
+        "seconds": 0.04
+      },
+      {
+        "number": 7,
+        "name": "build.v2_migration_scanner",
+        "result": "Passed",
+        "seconds": 0.04
+      },
+      {
+        "number": 373,
+        "name": "editor.semantic_scene_merge_publication",
+        "result": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "number": 305,
+        "name": "editor.prefab_property_revert_plan",
+        "result": "Passed",
+        "seconds": 0.04
+      },
+      {
+        "number": 76,
+        "name": "animation.v2_m8_pose_storage_retarget",
+        "result": "Passed",
+        "seconds": 0.04
+      },
+      {
+        "number": 301,
+        "name": "editor.prefab_stable_comparison",
+        "result": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "number": 11,
+        "name": "gameplay.zig_twod_static",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 275,
+        "name": "editor.game_build_capture",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 293,
+        "name": "editor.plugin_manager",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 318,
+        "name": "editor.semantic_scene_merge_candidate_job",
+        "result": "Passed",
+        "seconds": 0.04
+      },
+      {
+        "number": 418,
+        "name": "editor.play_scene_services",
+        "result": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "number": 366,
+        "name": "editor.material_tool_document",
+        "result": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "number": 325,
+        "name": "editor.inspector_atomic_batch",
+        "result": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "number": 43,
+        "name": "showcase.performance_statistics",
+        "result": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "number": 123,
+        "name": "renderer.indirect_range_source_contract",
+        "result": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "number": 313,
+        "name": "editor.tool_capability_metadata",
+        "result": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "number": 103,
+        "name": "window_presentation.twod_linear_packet",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 410,
+        "name": "editor.packaged_play_services",
+        "result": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "number": 351,
+        "name": "editor.material_catalog",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 65,
+        "name": "core.runtime",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 333,
+        "name": "editor.mesh_reimport",
+        "result": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "number": 315,
+        "name": "editor.additive_scene_session",
+        "result": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "number": 336,
+        "name": "editor.component_reset_contract",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 276,
+        "name": "editor.game_sprite_build",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 68,
+        "name": "core.v2_m11_remote_diagnostics",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 217,
+        "name": "twod.authoring_contracts",
+        "result": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "number": 1,
+        "name": "build.module_graph",
+        "result": "Passed",
+        "seconds": 0.05
+      },
+      {
+        "number": 338,
+        "name": "editor.builtin_creation_contract",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 213,
+        "name": "twod.project_play_assets",
+        "result": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "number": 206,
+        "name": "twod.sprite_source",
+        "result": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "number": 337,
+        "name": "editor.transform_value_contract",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 400,
+        "name": "editor.scene_move_planes",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 185,
+        "name": "runtime.plugin_lifecycle",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 507,
+        "name": "editor.sprite_source_play",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 339,
+        "name": "editor.scene_file_contract",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 272,
+        "name": "editor.game_build_progress",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 405,
+        "name": "editor.scene_mesh_preview_geometry",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 416,
+        "name": "editor.build_console_ingress",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 127,
+        "name": "renderer.parallel_graph_recording",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 299,
+        "name": "editor.atomic_property_snapshot",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 67,
+        "name": "core.process_memory",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 300,
+        "name": "editor.prefab_document_isolation",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 3,
+        "name": "build.shader_contract",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 263,
+        "name": "twod.scene_session",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 408,
+        "name": "editor.game_material_preview",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 25,
+        "name": "gameplay.zig_ui_showcase",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 214,
+        "name": "twod.editor_sprite_sources",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 420,
+        "name": "editor.play_mesh_assets",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 370,
+        "name": "editor.git_porcelain_parser",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 165,
+        "name": "runtime.v1_m7_input_ui_localization",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 114,
+        "name": "samples.editor_reflected_arrays",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 280,
+        "name": "editor.game_project_export",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 335,
+        "name": "editor.affine_gizmo_contract",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 73,
+        "name": "animation.v2_m8_inertial_pose_blend",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 309,
+        "name": "editor.project_upgrade_evidence",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 248,
+        "name": "twod.gameplay_ui_draw",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 230,
+        "name": "twod.graphical_controls",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 281,
+        "name": "editor.project_build_settings",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 168,
+        "name": "runtime.v1_m10_large_world",
+        "result": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "number": 296,
+        "name": "editor.signed_tool_invocation",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 288,
+        "name": "editor.extension_signature_trust",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 291,
+        "name": "editor.native_tool_callbacks",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 365,
+        "name": "editor.reflected_inspector",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 62,
+        "name": "foundation.build_info",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 200,
+        "name": "runtime.gameplay_gamepad_routing",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 88,
+        "name": "window_presentation.scene_instance_contract",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 316,
+        "name": "editor.prepared_scene_save",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 141,
+        "name": "build.shader_crosscompile",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 233,
+        "name": "twod.gameplay_content",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 180,
+        "name": "runtime.game_scene_zig_module",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 274,
+        "name": "editor.game_build_sdk_bytes",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 260,
+        "name": "twod.lighting_rendering",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 417,
+        "name": "editor.core_console_ingress",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 422,
+        "name": "editor.play_pointer_input",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 328,
+        "name": "editor.viewport_math",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 369,
+        "name": "editor.hierarchy_snapshot_index",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 341,
+        "name": "editor.play_input_settings",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 521,
+        "name": "editor.icon_buttons_1x",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 411,
+        "name": "editor.play_diagnostics",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 244,
+        "name": "twod.project_manifest",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 412,
+        "name": "editor.play_host_allocations",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 297,
+        "name": "editor.scalar_material_native_tool",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 179,
+        "name": "runtime.game_scene_session",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 258,
+        "name": "twod.gameplay_effects",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 360,
+        "name": "editor.gpu_profile",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 523,
+        "name": "editor.icon_buttons_2x",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 199,
+        "name": "runtime.gameplay_persistent_storage",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 31,
+        "name": "gameplay.zig_lifecycle_slice",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 331,
+        "name": "editor.mesh_asset_catalog",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 210,
+        "name": "twod.source_animation",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 324,
+        "name": "editor.mesh_memory_profile",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 322,
+        "name": "editor.additive_scene_contract",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 323,
+        "name": "editor.process_memory_profile",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 75,
+        "name": "animation.v2_m8_marker_sync",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 409,
+        "name": "editor.play_gameplay_module",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 196,
+        "name": "runtime.gameplay_action_input",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 282,
+        "name": "editor.content_diagnostics",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 33,
+        "name": "gameplay.zig_minimized_modules",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 187,
+        "name": "runtime.plugin_service_ownership",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 246,
+        "name": "twod.gameplay_display",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 152,
+        "name": "runtime.shader_artifact_contracts",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 84,
+        "name": "window_presentation.contracts",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 89,
+        "name": "window_presentation.scene_view_admission",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 14,
+        "name": "gameplay.zig_services_consumer",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 126,
+        "name": "renderer.graph_buffer_dependencies",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 166,
+        "name": "runtime.v1_m8_gameplay_simulation",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 171,
+        "name": "runtime.v1_m9_presentation",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 4,
+        "name": "build.plugin_manifests",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 46,
+        "name": "showcase.v1_probe",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 87,
+        "name": "window_presentation.scene_geometry_residency",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 211,
+        "name": "twod.gameplay_generation",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 188,
+        "name": "runtime.game_project_package",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 164,
+        "name": "runtime.world_identity_exhaustion",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 209,
+        "name": "twod.sprite_source_gameplay",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 175,
+        "name": "runtime.gameplay_reload_transaction",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 63,
+        "name": "foundation.gameplay_abi",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 208,
+        "name": "twod.gameplay_bridge",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 128,
+        "name": "renderer.graphics_capabilities",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 197,
+        "name": "runtime.gameplay_audio",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 231,
+        "name": "twod.gameplay_ui",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 113,
+        "name": "samples.api_foundation",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 132,
+        "name": "renderer.v2_gpu_scene",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 159,
+        "name": "api.gameplay_host_bridge",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 124,
+        "name": "renderer.dxil_artifact_readiness",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 155,
+        "name": "runtime.transform_rotation_scale",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 184,
+        "name": "runtime.v1_m6_editor_sdk",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 90,
+        "name": "window_presentation.scene_ui_composition",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 99,
+        "name": "window_presentation.gpu_timing",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 178,
+        "name": "runtime.game_launch_descriptor",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 9,
+        "name": "gameplay.zig_abi_smoke",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 170,
+        "name": "animation.v2_m8_sync_group_graph",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 172,
+        "name": "runtime.v2_m9_timeline_ui_audio_media",
+        "result": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "number": 201,
+        "name": "runtime.gameplay_audio_queue",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 86,
+        "name": "window_presentation.scene_geometry_upload_key",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 13,
+        "name": "gameplay.zig_twod_wire_layout",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 85,
+        "name": "window_presentation.staged_upload_allocation",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 169,
+        "name": "runtime.v1_m11_platform",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 182,
+        "name": "api.bundle_mount",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 174,
+        "name": "runtime.gameplay_module_host",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 153,
+        "name": "runtime.v1_m4_m11_contracts",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 154,
+        "name": "api.game_world_facade",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 160,
+        "name": "runtime.external_play_session",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 203,
+        "name": "runtime.gameplay_lifecycle",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 167,
+        "name": "runtime.v2_m7_ai_character_intent_bridge",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 120,
+        "name": "renderer.d3d12_adapter_policy",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 406,
+        "name": "editor.scene_mesh_allocation_failure",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 143,
+        "name": "renderer.enhanced_barrier_projection",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 129,
+        "name": "renderer.scene_frame_contracts",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 242,
+        "name": "twod.game_entry",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 100,
+        "name": "window.x11_key_repeat_matcher",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 130,
+        "name": "renderer.material_contracts",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 131,
+        "name": "renderer.golden_image_acceptance",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 110,
+        "name": "api.m6_c_consumer",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 290,
+        "name": "editor.native_tool_c_abi",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 10,
+        "name": "gameplay.zig_pointer_wire_layout",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 186,
+        "name": "runtime.plugin_lifecycle_c_abi",
+        "result": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "number": 426,
+        "name": "editor.linux_native_play_soak",
+        "result": "Passed",
+        "seconds": 82.64
+      },
+      {
+        "number": 511,
+        "name": "editor.linux_native_game_twod",
+        "result": "Passed",
+        "seconds": 70.22
+      },
+      {
+        "number": 520,
+        "name": "editor.linux_packaged_play",
+        "result": "Passed",
+        "seconds": 58.9
+      },
+      {
+        "number": 512,
+        "name": "editor.linux_authored_preview",
+        "result": "Passed",
+        "seconds": 62.33
+      },
+      {
+        "number": 267,
+        "name": "twod.source_animation_player",
+        "result": "Passed",
+        "seconds": 56.64
+      },
+      {
+        "number": 266,
+        "name": "twod.sprite_source_repack_player",
+        "result": "Passed",
+        "seconds": 56.8
+      },
+      {
+        "number": 277,
+        "name": "editor.linux_game_sprite_build",
+        "result": "Passed",
+        "seconds": 50.33
+      },
+      {
+        "number": 35,
+        "name": "gameplay.zig_hd2d_native",
+        "result": "Passed",
+        "seconds": 46.93
+      },
+      {
+        "number": 515,
+        "name": "editor.authoring_mixed_replay_1000_1x",
+        "result": "Passed",
+        "seconds": 9.32
+      },
+      {
+        "number": 517,
+        "name": "editor.authoring_mixed_replay_1000_2x",
+        "result": "Passed",
+        "seconds": 9.33
+      },
+      {
+        "number": 449,
+        "name": "editor.linux_play_host_memory",
+        "result": "Passed",
+        "seconds": 2.41
+      },
+      {
+        "number": 101,
+        "name": "window.x11_held_key_native",
+        "result": "Passed",
+        "seconds": 1.97
+      },
+      {
+        "number": 102,
+        "name": "window.x11_display_metrics_native",
+        "result": "Passed",
+        "seconds": 0.14
+      }
+    ]
+  },
+  "source_sha256": {
+    "Engine/Presentation/CMakeLists.txt": "3d17dfa180342fd22986a4d7e1276ca42ffe2c2f2b3f538c4718b43a3d8cd6dc",
+    "Engine/Presentation/include/Nexora/Presentation/RenderSurface.h": "556a53352923cc3a2484f183b7be23cf46fc2989dc6d84b27d7334b8016ad097",
+    "Engine/Presentation/include/Nexora/Presentation/Surface.h": "ff930bf8ebf0c87f75c404e10bad033d7fd8d730fa6e9ac3a3a99f75220d99ce",
+    "Engine/Presentation/src/Dx12Surface.cpp": "85d8f7d1e44e555e41f4a0da83994507a960f9d6f82cdbef0ad3aec34cf1cafa",
+    "Engine/Presentation/src/MetalSurface.mm": "62a7d22f747e0817b00f182620e60abad1f0b7d753ba229522db00372a5641ca",
+    "Engine/Presentation/src/RenderSurface.cpp": "cb607b0714f3482606bd2ad93351ce15436c5012abd0883039824b1f147436af",
+    "Engine/Presentation/src/SceneUiComposition.cpp": "2ff693fa68a6f5aae0769830f6c01a6ac9fa042f3dafadd691fdc6ad120b155c",
+    "Engine/Presentation/src/SceneUiComposition.h": "24f8e297f1d956c47a70ac0887ceb1b872e4bda65db11e49b07d17628ac8d86f",
+    "Engine/Presentation/src/SceneViewAdmission.h": "beb744175a3203c9bc8e4b319721e63de6276610e17be9a7b5958b34ef4dee39",
+    "Engine/Presentation/src/SpriteDraws.cpp": "5319427dc2d0e780a30aa81a361c8493e7391d4e1e4b76de120abfd966445133",
+    "Engine/Presentation/src/VulkanSurface.cpp": "5629c0c2eb57280c162ae6262cc90f7f23d1452f62c3d1867cf32ca16b3a6334",
+    "Tests/WindowPresentation/CMakeLists.txt": "21a38b04a41133114beb4703c0733a842a055e3490d9ff646152033ece4bc2f7",
+    "Tests/WindowPresentation/MetalSceneTests.mm": "781b43ea16273e54a0a087105ed20e2453f599a9f6ed16ab9a9054bfa22894f5",
+    "Tests/WindowPresentation/SceneUiCompositionTests.cpp": "6984ec31296c59da83e5bb8481a3d7f4f451d887514fb11878eb724d2fa2e20d",
+    "Tests/WindowPresentation/SceneUiFixture.h": "0ddac8073eca94ffc471c0a80c09e1c8119978e93ac9c9203859771ebdc20f2a",
+    "Tests/WindowPresentation/VulkanPbrTests.cpp": "b60c5b3229db14e26b4a9f7f527840f976fa322735d421ff9721507a158b8a1b",
+    "Tests/WindowPresentation/VulkanSceneUiTests.cpp": "ab6a2f0e43ea8273d7144d22c846208593522b812dfdab02f556916babc439c0",
+    "Engine/EditorImGui/src/EditorImGui.cpp": "764fb23b7452eaa2915e42c321f915a5e430f42a27a5fae2d87e1947fdef3cf2",
+    "Tests/EditorImGui/GameTwoDPreviewTests.cpp": "9b3394a6cf90939ddd4ff606ade95576a3d6ff1327b9139331bf0343a02b5d6f"
+  },
+  "changed_tu_gcc15": {
+    "compiler": "x86_64-linux-gnu-g++-15 (Ubuntu 15.2.0-4ubuntu4) 15.2.0",
+    "completed": 2,
+    "expected": 2,
+    "results": [
+      {
+        "file": "Engine/EditorImGui/src/EditorImGui.cpp",
+        "exit": 0,
+        "command": [
+          "/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/bin/x86_64-linux-gnu-g++-15",
+          "-B/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/lib/gcc/x86_64-linux-gnu/15/",
+          "-DIMGUI_USE_WCHAR32=1",
+          "-DNEXORA_ASSET_PIPELINE_ENABLED=1",
+          "-DNEXORA_BUILD_DEVELOPMENT=1",
+          "-DNEXORA_CAPTURE_ENCODER_ENABLED=0",
+          "-DNEXORA_EDITOR_IMGUI_EXPORTS",
+          "-DNEXORA_EDITOR_IMGUI_TEST_ACCESS=1",
+          "-DNEXORA_EDITOR_SDK_ENABLED=1",
+          "-DNEXORA_GAMEPLAY_SIMULATION_ENABLED=1",
+          "-DNEXORA_HAS_2D=1",
+          "-DNEXORA_LARGE_WORLD_ENABLED=1",
+          "-DNEXORA_MEDIA_DRM_ENABLED=0",
+          "-DNEXORA_PLATFORM_ENABLED=1",
+          "-DNEXORA_PRESENTATION_ENABLED=1",
+          "-DNEXORA_SCENE_RENDERING_ENABLED=1",
+          "-DNEXORA_SHIPPING_ENABLED=1",
+          "-DNexoraEditorImGui_EXPORTS",
+          "-I/workspace/Nexora-scene-ui-composition/Engine/EditorImGui/include",
+          "-I/workspace/Nexora-scene-ui-composition/Engine/Editor/include",
+          "-I/workspace/Nexora-scene-ui-composition/Engine/Core/include",
+          "-I/workspace/Nexora-scene-ui-composition/Engine/Foundation/include",
+          "-I/workspace/Nexora-scene-ui-composition/Engine/API/include",
+          "-I/workspace/Nexora-scene-ui-composition/build/linux-development/Engine/Foundation/include",
+          "-I/workspace/Nexora-scene-ui-composition/Engine/Runtime/include",
+          "-I/workspace/Nexora-scene-ui-composition/Engine/Renderer/include",
+          "-I/workspace/Nexora-scene-ui-composition/Engine/RHI/include",
+          "-I/workspace/Nexora-scene-ui-composition/Engine/Cryptography/include",
+          "-I/workspace/Nexora-scene-ui-composition/Engine/TwoD/include",
+          "-I/workspace/Nexora-scene-ui-composition/Engine/Presentation/include",
+          "-I/workspace/Nexora-scene-ui-composition/Engine/Window/include",
+          "-isystem",
+          "/workspace/Nexora-scene-ui-composition/build/linux-development/_deps/nexora_imgui-src",
+          "-std=c++20",
+          "-fPIC",
+          "-fvisibility=hidden",
+          "-fvisibility-inlines-hidden",
+          "-Wall",
+          "-Wextra",
+          "-Wpedantic",
+          "-Werror",
+          "-o",
+          "/workspace/work/engine-goal-20261112/authoring/scene-ui-compositor/editor-tag-rejection/gcc15/current.o",
+          "-c",
+          "/workspace/Nexora-scene-ui-composition/Engine/EditorImGui/src/EditorImGui.cpp"
+        ],
+        "source_sha256": "764fb23b7452eaa2915e42c321f915a5e430f42a27a5fae2d87e1947fdef3cf2",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "file": "Tests/EditorImGui/GameTwoDPreviewTests.cpp",
+        "exit": 0,
+        "command": [
+          "/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/bin/x86_64-linux-gnu-g++-15",
+          "-B/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/lib/gcc/x86_64-linux-gnu/15/",
+          "-DNEXORA_ASSET_PIPELINE_ENABLED=1",
+          "-DNEXORA_BUILD_DEVELOPMENT=1",
+          "-DNEXORA_CAPTURE_ENCODER_ENABLED=0",
+          "-DNEXORA_EDITOR_SDK_ENABLED=1",
+          "-DNEXORA_GAMEPLAY_SIMULATION_ENABLED=1",
+          "-DNEXORA_HAS_2D=1",
+          "-DNEXORA_LARGE_WORLD_ENABLED=1",
+          "-DNEXORA_MEDIA_DRM_ENABLED=0",
+          "-DNEXORA_PLATFORM_ENABLED=1",
+          "-DNEXORA_PRESENTATION_ENABLED=1",
+          "-DNEXORA_SCENE_RENDERING_ENABLED=1",
+          "-DNEXORA_SHIPPING_ENABLED=1",
+          "-I/workspace/Nexora-scene-ui-composition/Apps/Editor",
+          "-I/workspace/Nexora-scene-ui-composition/Engine/EditorImGui/src",
+          "-I/workspace/Nexora-scene-ui-composition/Engine/EditorImGui/include",
+          "-I/workspace/Nexora-scene-ui-composition/Engine/Editor/include",
+          "-I/workspace/Nexora-scene-ui-composition/Engine/Core/include",
+          "-I/workspace/Nexora-scene-ui-composition/Engine/Foundation/include",
+          "-I/workspace/Nexora-scene-ui-composition/Engine/API/include",
+          "-I/workspace/Nexora-scene-ui-composition/build/linux-development/Engine/Foundation/include",
+          "-I/workspace/Nexora-scene-ui-composition/Engine/Runtime/include",
+          "-I/workspace/Nexora-scene-ui-composition/Engine/Renderer/include",
+          "-I/workspace/Nexora-scene-ui-composition/Engine/RHI/include",
+          "-I/workspace/Nexora-scene-ui-composition/Engine/Cryptography/include",
+          "-I/workspace/Nexora-scene-ui-composition/Engine/TwoD/include",
+          "-I/workspace/Nexora-scene-ui-composition/Engine/Presentation/include",
+          "-I/workspace/Nexora-scene-ui-composition/Engine/Window/include",
+          "-std=c++20",
+          "-fvisibility=hidden",
+          "-fvisibility-inlines-hidden",
+          "-Wall",
+          "-Wextra",
+          "-Wpedantic",
+          "-Werror",
+          "-o",
+          "/workspace/work/engine-goal-20261112/authoring/scene-ui-compositor/editor-tag-rejection/gcc15/current.o",
+          "-c",
+          "/workspace/Nexora-scene-ui-composition/Tests/EditorImGui/GameTwoDPreviewTests.cpp"
+        ],
+        "source_sha256": "9b3394a6cf90939ddd4ff606ade95576a3d6ff1327b9139331bf0343a02b5d6f",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  },
+  "gates": {
+    "final-development-configure": {
+      "exit": 0,
+      "bytes": 191,
+      "sha256": "4b596b86e7031e19a0b623e08f6277c2a4eab85cedcf3f412c4a4d007bb93a32"
+    },
+    "final-development-build": {
+      "exit": 0,
+      "bytes": 56319,
+      "sha256": "168ca0148e28a09f7e7370dad4f87cfa68a6ece064c37192b5cf535ebac5bb63"
+    },
+    "final-development-test": {
+      "exit": 0,
+      "bytes": 79619,
+      "sha256": "ba9d6ba78087c3c812b428d108864e54ba6f9bee68c0e5b3efd3ea9f0e8428dd"
+    },
+    "shipping-configure": {
+      "exit": 0,
+      "bytes": 150,
+      "sha256": "5165f1ab8a4dd1b836d7714cd07c811f4e4ae5baa2309e1a74ddbf4db1f0cfd2"
+    },
+    "shipping-build": {
+      "exit": 0,
+      "bytes": 982,
+      "sha256": "c59402804413d2aa6e5ba7a3037645892792776c63fe79b2d6428bec8ab88db7"
+    },
+    "shipping-native": {
+      "exit": 0,
+      "bytes": 494,
+      "sha256": "a71cd69d6f365dc142f31c0bd900f7d30e17af8c37ede8e2f5fb0e52c4016b67"
+    },
+    "monolithic-configure": {
+      "exit": 0,
+      "bytes": 193,
+      "sha256": "bdf0bbe9424312814c64cf76f7d473e0d2d56990c46e168fcb5a9b40f05e436e"
+    },
+    "monolithic-build": {
+      "exit": 0,
+      "bytes": 8951,
+      "sha256": "c17d9c98bca90cdd09c04a5b1132d65ee9a10b01bd0c9efddb3a02b3f7dacbd6"
+    },
+    "monolithic-test": {
+      "exit": 0,
+      "bytes": 785,
+      "sha256": "650ce02f3b13a0ac70b697578550a55c338044cdf58a60c1e47964d18692edfd"
+    },
+    "feature-off-configure": {
+      "exit": 0,
+      "bytes": 194,
+      "sha256": "15a01ad599225049ab522ad1671fa97e8bbec2ef313647941f4b40801a483733"
+    },
+    "feature-off-build": {
+      "exit": 0,
+      "bytes": 1080,
+      "sha256": "457caab00dc1ce861cd16085206849c4a51b6bcca0ff0b28c69748128d1e0a46"
+    }
+  },
+  "runner": {
+    "content": "#!/usr/bin/env bash\nset -e\nsource /workspace/work/engine-goal-20261112/build.env\ncd /workspace/Nexora-scene-ui-composition\nout=/workspace/work/engine-goal-20261112/authoring/scene-ui-compositor/editor-tag-rejection\ntrap 'printf \"%s\\n\" \"$?\" > \"$out/all-gates.exit\"' EXIT\nprintf '%s\\n' running > \"$out/all-gates.exit\"\nrun_gate() {\n  local label=\"$1\"\n  shift\n  printf '%s\\n' \"$label\" > \"$out/current-gate\"\n  local result=0\n  \"$@\" > \"$out/$label.log\" 2>&1 || result=$?\n  printf '%s\\n' \"$result\" > \"$out/$label.exit\"\n  return \"$result\"\n}\nrun_gate final-development-configure cmake --preset linux-development -DNEXORA_BUILD_SHOWCASE=ON -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ZIG_EXECUTABLE=/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/ziglang/zig -DNEXORA_BUILD_PROJECT_PLAYER=ON -DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON\nrun_gate final-development-build cmake --build --preset linux-development\nrun_gate final-development-test ctest --preset linux-development --output-on-failure\nrun_gate shipping-configure cmake --preset linux-shipping -DNEXORA_SHIPPING_PROFILE=Full -DNEXORA_BUILD_SHOWCASE=ON -DNEXORA_ENABLE_2D=ON -DNEXORA_ENABLE_EDITOR_SDK=ON -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ZIG_EXECUTABLE=/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/ziglang/zig -DNEXORA_BUILD_PROJECT_PLAYER=ON -DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON -DCMAKE_PROJECT_Nexora_INCLUDE=/workspace/work/engine-goal-20261112/authoring/scene-ui-compositor/shipping-consumer.cmake\nrun_gate shipping-build cmake --build --preset linux-shipping\nrun_gate shipping-native python3 Tests/Showcase/LinuxVulkanSceneAcceptance.py --native-test /workspace/Nexora-scene-ui-composition/build/linux-shipping/NexoraSceneUiShippingAcceptance --evidence-dir /workspace/Nexora-scene-ui-composition/build/linux-shipping/artifacts/scene-ui-vulkan\nrun_gate monolithic-configure cmake --preset linux-development -B build/scene-ui-monolithic -DNEXORA_LINK_MODE=Monolithic -DNEXORA_ENABLE_2D=ON -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON -DNEXORA_ENABLE_SLANG=OFF -DNEXORA_ENABLE_ZIG_GAMEPLAY=OFF\nrun_gate monolithic-build cmake --build build/scene-ui-monolithic --target NexoraSceneUiCompositionTests NexoraSceneViewAdmissionTests NexoraWindowPresentationTests NexoraGameplayGenerationTests NexoraGameTwoDPreviewTests\nrun_gate monolithic-test ctest --test-dir build/scene-ui-monolithic -R '^window_presentation\\.(scene_ui_composition|scene_view_admission|contracts)$|^twod\\.gameplay_generation$|^editor\\.game_twod_preview$' --output-on-failure\nrun_gate feature-off-configure cmake --preset linux-development -B build/scene-ui-feature-off -DNEXORA_ENABLE_2D=OFF -DBUILD_TESTING=OFF -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON -DNEXORA_ENABLE_SLANG=OFF -DNEXORA_ENABLE_ZIG_GAMEPLAY=OFF -DNEXORA_BUILD_PROJECT_PLAYER=ON -DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON\nrun_gate feature-off-build cmake --build build/scene-ui-feature-off --target NexoraEditor NexoraProjectPlayer\nprintf '%s\\n' complete > \"$out/current-gate\"\n",
+    "sha256": "e54f9f0dd5a3acdcae83d421edb00291f370b12aadb06f27035c86f7a3ed56aa"
+  },
+  "original_reproduction": {
+    "status": "reproduced_unfixed_Editor_Sprite_translation_loses_Scene_tag",
+    "head": "dbb3ad76556bf029e23c1a44f7c9ba7fee465140",
+    "exit": 1,
+    "compile_command": [
+      "/usr/bin/c++",
+      "-I/workspace/Nexora-scene-ui-composition/Tests/EditorImGui",
+      "-DNEXORA_ASSET_PIPELINE_ENABLED=1",
+      "-DNEXORA_BUILD_DEVELOPMENT=1",
+      "-DNEXORA_CAPTURE_ENCODER_ENABLED=0",
+      "-DNEXORA_EDITOR_SDK_ENABLED=1",
+      "-DNEXORA_GAMEPLAY_SIMULATION_ENABLED=1",
+      "-DNEXORA_HAS_2D=1",
+      "-DNEXORA_LARGE_WORLD_ENABLED=1",
+      "-DNEXORA_MEDIA_DRM_ENABLED=0",
+      "-DNEXORA_PLATFORM_ENABLED=1",
+      "-DNEXORA_PRESENTATION_ENABLED=1",
+      "-DNEXORA_SCENE_RENDERING_ENABLED=1",
+      "-DNEXORA_SHIPPING_ENABLED=1",
+      "-I/workspace/Nexora-scene-ui-composition/Apps/Editor",
+      "-I/workspace/Nexora-scene-ui-composition/Engine/EditorImGui/src",
+      "-I/workspace/Nexora-scene-ui-composition/Engine/EditorImGui/include",
+      "-I/workspace/Nexora-scene-ui-composition/Engine/Editor/include",
+      "-I/workspace/Nexora-scene-ui-composition/Engine/Core/include",
+      "-I/workspace/Nexora-scene-ui-composition/Engine/Foundation/include",
+      "-I/workspace/Nexora-scene-ui-composition/Engine/API/include",
+      "-I/workspace/Nexora-scene-ui-composition/build/linux-development/Engine/Foundation/include",
+      "-I/workspace/Nexora-scene-ui-composition/Engine/Runtime/include",
+      "-I/workspace/Nexora-scene-ui-composition/Engine/Renderer/include",
+      "-I/workspace/Nexora-scene-ui-composition/Engine/RHI/include",
+      "-I/workspace/Nexora-scene-ui-composition/Engine/Cryptography/include",
+      "-I/workspace/Nexora-scene-ui-composition/Engine/TwoD/include",
+      "-I/workspace/Nexora-scene-ui-composition/Engine/Presentation/include",
+      "-I/workspace/Nexora-scene-ui-composition/Engine/Window/include",
+      "-std=c++20",
+      "-fvisibility=hidden",
+      "-fvisibility-inlines-hidden",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-o",
+      "/workspace/work/engine-goal-20261112/authoring/scene-ui-compositor/editor-tag-rejection/probe.o",
+      "-c",
+      "/workspace/work/engine-goal-20261112/authoring/scene-ui-compositor/editor-tag-rejection/GameTwoDPreviewTests.cpp"
+    ],
+    "link_command": [
+      "/usr/bin/c++",
+      "-Wl,--dependency-file=Tests/EditorImGui/CMakeFiles/NexoraGameTwoDPreviewTests.dir/link.d",
+      "/workspace/work/engine-goal-20261112/authoring/scene-ui-compositor/editor-tag-rejection/probe.o",
+      "-o",
+      "/workspace/work/engine-goal-20261112/authoring/scene-ui-compositor/editor-tag-rejection/EditorTagProbe",
+      "-Wl,-rpath,\\$ORIGIN:\\$ORIGIN/../../Engine/EditorImGui:\\$ORIGIN/../../Engine/Editor:\\$ORIGIN/../../Engine/TwoD:\\$ORIGIN/../../Engine/Cryptography:\\$ORIGIN/../../Engine/Runtime:\\$ORIGIN/../../Engine/Renderer:\\$ORIGIN/../../Engine/Presentation:\\$ORIGIN/../../Engine/RHI:\\$ORIGIN/../../Engine/Window:\\$ORIGIN/../../Engine/Core:\\$ORIGIN/../../Engine/Foundation",
+      "Engine/EditorImGui/libNexoraEditorImGui.so",
+      "Engine/Editor/libNexoraEditorCore.so",
+      "Engine/TwoD/libNexoraTwoD.so",
+      "Engine/Cryptography/libNexoraCryptography.so",
+      "Engine/Runtime/libNexoraRuntime.so",
+      "Engine/Renderer/libNexoraRenderer.so",
+      "Engine/Presentation/libNexoraPresentation.so",
+      "Engine/RHI/libNexoraRHI.so",
+      "Engine/Window/libNexoraWindow.so",
+      "Engine/Core/libNexoraCore.so",
+      "Engine/Foundation/libNexoraFoundation.so",
+      "-Wl,-rpath-link,/workspace/Nexora-scene-ui-composition/build/linux-development/Engine/EditorImGui"
+    ],
+    "probe_source_sha256": "cd0aae26c7aac95af865a18ecbaced4f758d94e979c5e0be59ce7b6d8e232f64",
+    "original_test_sha256": "9495fa04a982ebe6d7e4c61519e934d4f1a9f08513b4181856fb0bdbb7de2c99",
+    "library_sha256": "0413836180e9f7e63b556fd3b46fcd59ca2d1d539789d0545910f4a518566c68",
+    "log": "ALSA lib confmisc.c:855:(parse_card) cannot find card '0'\nALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory\nALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings\nALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory\nALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name\nALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory\nALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory\nALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM default\n2d fixture start\n2d fixture stop live=1\n2d fixture destroy live=1\nScene texture reference was silently discarded by the Sprite translator\n",
+    "extra_library_directories": [
+      "/workspace/Nexora-scene-ui-composition/build/linux-development/Engine/AI",
+      "/workspace/Nexora-scene-ui-composition/build/linux-development/Engine/AIIntegration",
+      "/workspace/Nexora-scene-ui-composition/build/linux-development/Engine/Animation",
+      "/workspace/Nexora-scene-ui-composition/build/linux-development/Engine/Core",
+      "/workspace/Nexora-scene-ui-composition/build/linux-development/Engine/Cryptography",
+      "/workspace/Nexora-scene-ui-composition/build/linux-development/Engine/Editor",
+      "/workspace/Nexora-scene-ui-composition/build/linux-development/Engine/EditorImGui",
+      "/workspace/Nexora-scene-ui-composition/build/linux-development/Engine/Foundation",
+      "/workspace/Nexora-scene-ui-composition/build/linux-development/Engine/Network",
+      "/workspace/Nexora-scene-ui-composition/build/linux-development/Engine/PoseSearch",
+      "/workspace/Nexora-scene-ui-composition/build/linux-development/Engine/Presentation",
+      "/workspace/Nexora-scene-ui-composition/build/linux-development/Engine/RHI",
+      "/workspace/Nexora-scene-ui-composition/build/linux-development/Engine/Renderer",
+      "/workspace/Nexora-scene-ui-composition/build/linux-development/Engine/Runtime",
+      "/workspace/Nexora-scene-ui-composition/build/linux-development/Engine/TwoD",
+      "/workspace/Nexora-scene-ui-composition/build/linux-development/Engine/Window"
+    ]
+  },
+  "same_external_probe_after_fix": {
+    "status": "same_external_probe_passes_after_production_guard",
+    "exit": 0,
+    "probe_binary_sha256": "2c7189aa76e0ced67f4241955b6d677316de1058f1415599f96326f607874d65",
+    "fixed_library_sha256": "5b64ba1be69c392fd95a4fad1d444c99ab1d3329193e46bf761a6e6a8b2de884",
+    "probe_source_sha256": "cd0aae26c7aac95af865a18ecbaced4f758d94e979c5e0be59ce7b6d8e232f64",
+    "log": "Main Game 2D preview: multi-Atlas pool, actual view selection, Step, DPI and Stop passed\nALSA lib confmisc.c:855:(parse_card) cannot find card '0'\nALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory\nALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings\nALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory\nALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name\nALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory\nALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory\nALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM default\n2d fixture start\n2d fixture stop live=1\n2d fixture destroy live=1\nALSA lib confmisc.c:855:(parse_card) cannot find card '0'\nALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory\nALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings\nALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory\nALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name\nALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory\nALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory\nALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM default\n2d fixture start\n2d fixture stop live=1\n2d fixture destroy live=1\nALSA lib confmisc.c:855:(parse_card) cannot find card '0'\nALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory\nALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings\nALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory\nALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name\nALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory\nALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory\nALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM default\n2d fixture start\n2d fixture stop live=1\n2d fixture destroy live=1\n"
+  },
+  "retained_probe_setup": {
+    "missing_local_header": "/workspace/work/engine-goal-20261112/authoring/scene-ui-compositor/editor-tag-rejection/GameTwoDPreviewTests.cpp:5:10: fatal error: TemporaryDirectoryCleanup.h: No such file or directory\n    5 | #include \"TemporaryDirectoryCleanup.h\"\n      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~\ncompilation terminated.\n",
+    "relative_origin_rpath": {
+      "status": "probe_setup_failure_relative_origin_rpath_from_external_executable",
+      "head": "dbb3ad76556bf029e23c1a44f7c9ba7fee465140",
+      "exit": 127,
+      "compile_command": [
+        "/usr/bin/c++",
+        "-I/workspace/Nexora-scene-ui-composition/Tests/EditorImGui",
+        "-DNEXORA_ASSET_PIPELINE_ENABLED=1",
+        "-DNEXORA_BUILD_DEVELOPMENT=1",
+        "-DNEXORA_CAPTURE_ENCODER_ENABLED=0",
+        "-DNEXORA_EDITOR_SDK_ENABLED=1",
+        "-DNEXORA_GAMEPLAY_SIMULATION_ENABLED=1",
+        "-DNEXORA_HAS_2D=1",
+        "-DNEXORA_LARGE_WORLD_ENABLED=1",
+        "-DNEXORA_MEDIA_DRM_ENABLED=0",
+        "-DNEXORA_PLATFORM_ENABLED=1",
+        "-DNEXORA_PRESENTATION_ENABLED=1",
+        "-DNEXORA_SCENE_RENDERING_ENABLED=1",
+        "-DNEXORA_SHIPPING_ENABLED=1",
+        "-I/workspace/Nexora-scene-ui-composition/Apps/Editor",
+        "-I/workspace/Nexora-scene-ui-composition/Engine/EditorImGui/src",
+        "-I/workspace/Nexora-scene-ui-composition/Engine/EditorImGui/include",
+        "-I/workspace/Nexora-scene-ui-composition/Engine/Editor/include",
+        "-I/workspace/Nexora-scene-ui-composition/Engine/Core/include",
+        "-I/workspace/Nexora-scene-ui-composition/Engine/Foundation/include",
+        "-I/workspace/Nexora-scene-ui-composition/Engine/API/include",
+        "-I/workspace/Nexora-scene-ui-composition/build/linux-development/Engine/Foundation/include",
+        "-I/workspace/Nexora-scene-ui-composition/Engine/Runtime/include",
+        "-I/workspace/Nexora-scene-ui-composition/Engine/Renderer/include",
+        "-I/workspace/Nexora-scene-ui-composition/Engine/RHI/include",
+        "-I/workspace/Nexora-scene-ui-composition/Engine/Cryptography/include",
+        "-I/workspace/Nexora-scene-ui-composition/Engine/TwoD/include",
+        "-I/workspace/Nexora-scene-ui-composition/Engine/Presentation/include",
+        "-I/workspace/Nexora-scene-ui-composition/Engine/Window/include",
+        "-std=c++20",
+        "-fvisibility=hidden",
+        "-fvisibility-inlines-hidden",
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-Werror",
+        "-o",
+        "/workspace/work/engine-goal-20261112/authoring/scene-ui-compositor/editor-tag-rejection/probe.o",
+        "-c",
+        "/workspace/work/engine-goal-20261112/authoring/scene-ui-compositor/editor-tag-rejection/GameTwoDPreviewTests.cpp"
+      ],
+      "link_command": [
+        "/usr/bin/c++",
+        "-Wl,--dependency-file=Tests/EditorImGui/CMakeFiles/NexoraGameTwoDPreviewTests.dir/link.d",
+        "/workspace/work/engine-goal-20261112/authoring/scene-ui-compositor/editor-tag-rejection/probe.o",
+        "-o",
+        "/workspace/work/engine-goal-20261112/authoring/scene-ui-compositor/editor-tag-rejection/EditorTagProbe",
+        "-Wl,-rpath,\\$ORIGIN:\\$ORIGIN/../../Engine/EditorImGui:\\$ORIGIN/../../Engine/Editor:\\$ORIGIN/../../Engine/TwoD:\\$ORIGIN/../../Engine/Cryptography:\\$ORIGIN/../../Engine/Runtime:\\$ORIGIN/../../Engine/Renderer:\\$ORIGIN/../../Engine/Presentation:\\$ORIGIN/../../Engine/RHI:\\$ORIGIN/../../Engine/Window:\\$ORIGIN/../../Engine/Core:\\$ORIGIN/../../Engine/Foundation",
+        "Engine/EditorImGui/libNexoraEditorImGui.so",
+        "Engine/Editor/libNexoraEditorCore.so",
+        "Engine/TwoD/libNexoraTwoD.so",
+        "Engine/Cryptography/libNexoraCryptography.so",
+        "Engine/Runtime/libNexoraRuntime.so",
+        "Engine/Renderer/libNexoraRenderer.so",
+        "Engine/Presentation/libNexoraPresentation.so",
+        "Engine/RHI/libNexoraRHI.so",
+        "Engine/Window/libNexoraWindow.so",
+        "Engine/Core/libNexoraCore.so",
+        "Engine/Foundation/libNexoraFoundation.so",
+        "-Wl,-rpath-link,/workspace/Nexora-scene-ui-composition/build/linux-development/Engine/EditorImGui"
+      ],
+      "probe_source_sha256": "cd0aae26c7aac95af865a18ecbaced4f758d94e979c5e0be59ce7b6d8e232f64",
+      "original_test_sha256": "9495fa04a982ebe6d7e4c61519e934d4f1a9f08513b4181856fb0bdbb7de2c99",
+      "library_sha256": "0413836180e9f7e63b556fd3b46fcd59ca2d1d539789d0545910f4a518566c68",
+      "log": "/workspace/work/engine-goal-20261112/authoring/scene-ui-compositor/editor-tag-rejection/EditorTagProbe: error while loading shared libraries: libNexoraEditorImGui.so: cannot open shared object file: No such file or directory\n"
+    }
+  },
+  "focused_log": "Test project /workspace/Nexora-scene-ui-composition/build/linux-development\n    Start 510: editor.game_twod_preview\n1/1 Test #510: editor.game_twod_preview .........   Passed    1.93 sec\n\n100% tests passed out of 1\n\nTotal Test time (real) =   1.94 sec\n",
+  "native": [
+    {
+      "preset": "linux-development",
+      "launch": {
+        "command": [
+          "/workspace/Nexora-scene-ui-composition/build/linux-development/Tests/WindowPresentation/NexoraVulkanSceneUiTests",
+          "/workspace/Nexora-scene-ui-composition/build/linux-development/artifacts/scene-ui-vulkan/scene.ppm"
+        ],
+        "exit_code": 0,
+        "acceptance_passed": true,
+        "scope": "Linux/X11/Vulkan GPU scene on virtual display",
+        "physical_display_verified": false,
+        "validation_layer_requested": false
+      },
+      "frames": 12,
+      "scenes": 24,
+      "ui_commands": 48,
+      "resizes": 2,
+      "files": {
+        "launch.json": {
+          "bytes": 432,
+          "sha256": "952c57a9f99313a0e46c0e80ed3a255ec8158d0f5a8a7034abb2ea5713a5b49b"
+        },
+        "scene.ppm": {
+          "bytes": 921615,
+          "sha256": "fdf4407e970611c035b760e8718da7fccf22312921c2b4795cf6ce6c6a272bf7"
+        },
+        "stderr.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout.log": {
+          "bytes": 84,
+          "sha256": "ae8115c4eb72a26c2d784f349a2754041937434d5a1368bd39c9516da4cfb883"
+        }
+      }
+    },
+    {
+      "preset": "linux-shipping",
+      "launch": {
+        "command": [
+          "/workspace/Nexora-scene-ui-composition/build/linux-shipping/NexoraSceneUiShippingAcceptance",
+          "/workspace/Nexora-scene-ui-composition/build/linux-shipping/artifacts/scene-ui-vulkan/scene.ppm"
+        ],
+        "exit_code": 0,
+        "acceptance_passed": true,
+        "scope": "Linux/X11/Vulkan GPU scene on virtual display",
+        "physical_display_verified": false,
+        "validation_layer_requested": false
+      },
+      "frames": 12,
+      "scenes": 24,
+      "ui_commands": 48,
+      "resizes": 2,
+      "files": {
+        "launch.json": {
+          "bytes": 408,
+          "sha256": "644a545e288ec4bb7317f85193b1f25733f83ded39fc94b9c24e2d86ca3ca161"
+        },
+        "scene.ppm": {
+          "bytes": 921615,
+          "sha256": "fdf4407e970611c035b760e8718da7fccf22312921c2b4795cf6ce6c6a272bf7"
+        },
+        "stderr.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout.log": {
+          "bytes": 84,
+          "sha256": "ae8115c4eb72a26c2d784f349a2754041937434d5a1368bd39c9516da4cfb883"
+        }
+      }
+    }
+  ],
+  "markdown": {
+    "Engine/EditorImGui/README.md": {
+      "bytes": 168987,
+      "sha256": "7e0078efe51d5e6423f37f0226d56e3361cf14fac48a2097715d04dc2195f45d"
+    },
+    "Engine/Presentation/SceneUiComposition.md": {
+      "bytes": 4740,
+      "sha256": "2057e8dacf4a45ea10c1ef2a2b541439daebcbbcf43ec561335d19718990ebe4"
+    },
+    "Roadmap/en/2D_Roadmap.md": {
+      "bytes": 93501,
+      "sha256": "d32acecbcf6755ebf9a47bcdb765deee562e729b07e6c077ef8950879305463e"
+    },
+    "Roadmap/en/Editor_Roadmap.md": {
+      "bytes": 212142,
+      "sha256": "08e43ac915135b50d6180110afcc780c959a65764ec6a0999de5f2df449aa74f"
+    },
+    "Roadmap/en/Editor_Workflow_Delivery_Plan.md": {
+      "bytes": 27388,
+      "sha256": "077ff62c21f2a8567a66ec36d03250da54db5bcd0a25e30d7e91822aa5e621ae"
+    },
+    "Roadmap/zh-TW/2D_Roadmap.md": {
+      "bytes": 86930,
+      "sha256": "44c5d7073eaa2896b55152978d66372145af96f046d1286229e0136016d63d9d"
+    },
+    "Roadmap/zh-TW/Editor_Roadmap.md": {
+      "bytes": 205012,
+      "sha256": "8aa0f465f8dd683ac6dedcb041b259cafc7750509be124a473a6d80e5fca946e"
+    },
+    "Roadmap/zh-TW/Editor_Workflow_Delivery_Plan.md": {
+      "bytes": 25566,
+      "sha256": "028cc1056d86b75b47779667110e730d7cf81a9070f7977b8d4ccefa087ac0c3"
+    },
+    "Tools/Build/evidence/EditorWorkflow/ED-WF-07-SceneUiComposition-EditorTag-Linux-2026-11-14.md": {
+      "bytes": 3787,
+      "sha256": "22e03fdcb23032d84ae9a16c24375d6f7dd45b0ba0ae28d2c033b2af728b39d4"
+    }
+  },
+  "metadata_logs": {
+    "api": "b889e69740e2b720cf28e366793a954c391a42b5171c62dbedabb68e581a6543",
+    "doc-ci": "285eb098614ec6fd64878772310b871665faef35aeb581e94e923e1d90d7a1ff",
+    "format": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "markdown": "400f3df3871de5412138615e3de211107084895447d0d8e28cc2b5dc96f50832",
+    "diff-check": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

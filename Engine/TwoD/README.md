@@ -3,12 +3,15 @@
 The additive [Sprite source asset contract](SpriteAssets.md) defines separately versioned
 canvas/trim/pixel-Pivot/PPU metadata, stable Atlas-region references, persistent C++ scene/pool
 source UUIDs and source-aware extraction. Source scenes use additive NX2S schema 3 with a schema-2
-backward reader; source-free scenes still emit schema 2. Atlas/Clip/C/Zig wires and straight-alpha
-behavior remain unchanged. Animation and Editor/Player source catalogs are separate follow-up gates.
+backward reader; source-free scenes still emit schema 2. Atlas, legacy Clip and C/Zig wires and straight-alpha
+behavior remain unchanged. The optional gameplay source table and canonical Player extraction are
+available, alongside the source animation Clips and Editor/source-catalog consumers described
+below. Live source reimport across module reloads remains a separate ED-WF-08 acceptance gate.
 
-The optional Editor's `TwoDPlayAssets` freezes validated cooked Atlas/Clip closures from one
-explicit Runtime asset generation without retaining the store. It resolves Clip Atlas dependencies,
-validates frame regions, bounds unique payload/count totals and preserves external residency/pins.
+The optional Editor's `TwoDPlayAssets` freezes validated cooked Atlas/Clip/Sprite-source closures from one
+explicit Runtime asset generation without retaining the store. It resolves Clip/source Atlas
+dependencies, validates frame regions and source geometry, bounds unique payload/count totals and
+preserves external residency/pins.
 See the [Editor ownership contract](../Editor/README.md#frozen-cooked-2d-play-assets).
 The Editor also offers project-scoped source/cooked admission through
 `ProjectTwoDPlayAssets`; see the [project capture contract](../Editor/README.md#project-scoped-cooked-2d-play-capture).
@@ -123,6 +126,35 @@ Advance reject without advancing state; large valid steps emit every event rathe
 updates. A relative 1e-12 frame-duration tolerance stabilizes decimal duration boundaries across
 equivalent delta partitions. It is independent of skeletal animation and application behavior.
 
+### Source animation Clips
+
+`AnimationFrame::source` selects a Sprite source UUID. A Clip exclusively uses source frames or
+legacy Atlas/region frames. Legacy Clips retain their exact schema-1 encoding. Source Clips use
+little-endian schema 2: the same magic/header, a zero Atlas UUID, then each frame's zero U32 region,
+float64 duration, length-prefixed ASCII event and two U64 source UUID halves. Source UUIDs must be
+nonzero and distinct from the Clip UUID. Mixed modes and ambiguous Atlas/region bindings reject.
+Existing 4096-frame, 256-byte event, duration and 64 MiB codec limits apply. Older decoders reject
+schema 2. Public C++ consumers rebuild for appended optional fields; C/Zig tables do not change.
+
+`ClipDependencies` returns sorted unique source UUIDs for schema 2 and the single Atlas UUID for
+schema 1. Importers, cooked catalog admission and Editor generation capture require those exact
+edges. Each source must resolve to a valid source/Atlas closure before Clip publication or snapshot
+acceptance. Authored ND2D documents validate all source frames against their owning source catalog;
+the existing source-bearing document schema retains the embedded Clip schema 2 without a new wrapper.
+
+Play requires a source-bound Sprite for source Clips and a legacy Sprite for region Clips. Source
+Play/Advance select `Sprite::source`, preserving World transforms, style, sort anchors and source
+geometry resolution. The unchanged C animation result reports region zero; read the selected UUID
+through the negotiated source API. Count-only/short event buffers never consume the clock. Editing
+the same source's style preserves playback; changing binding mode or source, or a legacy Sprite's
+Atlas, discards it. Legacy Atlas/region fields do not affect source-frame geometry.
+The source playback retains the admitted immutable Clip owner and its validated Animator copy.
+Registry replacement affects future Play calls; an existing playback continues its original sequence.
+Active and retained retired source Clips prevent removal of every referenced source. Clearing or
+forgetting playback releases that protection when no other owner remains. Source/Atlas publication
+still occurs only on the host thread. Pool publication uses the existing explicit source batch API;
+rendering and asset publication do not advance animations implicitly.
+
 SpatialIndex atomically rebuilds a sorted-ID grid of circles/AABBs. Cell references are stored
 contiguously in cell/shape order; queries deduplicate candidates and return IDs in the same sorted
 order. Rebuilds reuse a separate staging snapshot and publish only after complete validation.
@@ -215,7 +247,8 @@ TwoD. The original ABI baseline is retained alongside an additive 2D V1 wire bas
 
 The bridge borrows the supplied World, its matching SpriteScene and optional Tilemap/InstancePool;
 reject a mismatched World/scene at construction. ClipResolver returns immutable host-owned clips;
-Play validates their UUID/Atlas identity and copies a clip into its animator. Unavailable clips,
+Play validates their UUID and binding mode (plus Atlas identity for legacy Clips) and copies a Clip
+into its animator. Source playback also retains the admitted immutable owner. Unavailable clips,
 Tilemap or pool return `UNSUPPORTED`. Loading/cooking/asset generations remain host responsibilities;
 the module cannot read native paths, upload textures, or hold renderer pointers through this table.
 The host retains the table/context and services until all modules and callbacks have stopped.
@@ -227,6 +260,23 @@ callback concurrently with extraction, pool ForEach, World mutation, asset publi
 The legacy Sprite/pool wire cannot represent C++ source bindings. Reading those values or
 playing/advancing legacy region animation on them returns `UNSUPPORTED`; outputs and source state
 remain unchanged. Explicit legacy setters replace the complete Sprite value, clearing a source.
+The optional `get_source_api` suffix supplies `NexoraTwoDSourceApiV1`; check the parent
+`NEXORA_2D_API_V1_SOURCE_SIZE`, version and callback before reading it (`NexoraGetTwoDSourcesV1`
+or Zig `getTwoDSources`). Check the returned table size/version/callbacks before use. Acquisition
+accepts the original TwoD table prefix and copies only a complete supported prefix, preserving
+caller tails. Historical hosts remain usable through Zig `getTwoD`.
+
+The independent, fixed-stride source Sprite/Instance wires are 80/160 bytes on the supported
+64-bit targets; legacy wires remain 64/144 bytes. Zero source UUID means absent; a nonzero UUID
+supplies geometry while retaining tint, sorting, visibility, flips and transform. Registration and
+resolution are host-owned; setting an unresolved reference is valid and extraction marks it
+unavailable. Changing the source binding clears its animation; same-source style edits preserve it.
+Pool create/read/write validate and
+stage the entire batch before publishing or copying outputs, reuse existing owner/index/generation
+handles and destroy through the legacy API. Duplicate writes, stale/foreign handles and invalid
+values reject atomically. Null buffers are allowed only for zero count; the maximum count is
+100,000. The source table shares all owner-thread, reentry and borrowed-lifetime rules above.
+
 Every descriptor/buffer is borrowed only during its call. Outputs are copied and may be retained.
 The caller must provide correctly aligned, valid, nonaliasing buffers for their advertised capacity.
 No native object, C++ pointer or exception crosses the API; its context is an opaque borrowed token.
@@ -297,6 +347,16 @@ explicit content removal, retained-generation budgets and snapshot-aware native 
 The Player retains legacy preload defaults and adds deferred Atlas/Clip/opaque files plus
 configurable content/pool capacities. Games own transition and event policy in Zig.
 
+## Gameplay generation staging
+
+The optional [gameplay generation owner](GameplayGeneration.md) stages complete mutable TwoD
+values for strict Runtime transactions, retaining source clocks, queries, scene requests and exact
+pool handles. Embeddings own callback quiescence, candidate/retired contexts and isolation of other
+services. The standalone [Player embedding](../../Apps/TwoDPlayer/README.md#strict-generation-ownership)
+adds stable generation contexts, read-only save capture and candidate/retired external-service
+admission. Main packaged Player/Editor services and complete source-animation reload acceptance
+remain separate integration work.
+
 ## HD2D effects snapshots
 
 The [optional effects service](GameplayEffects.md) validates and owns atomic pending/active
@@ -308,12 +368,28 @@ Zig blob parsing and ordered selective bloom without changing Atlas/Clip or Spri
 
 ## Packaged authored 2D scenes
 
-`AuthoredScene` reads the existing ND2D schema-1 2D Studio document: NX2S World/Sprite/collider
+`AuthoredScene` reads ND2D schema-1/2 2D Studio documents: NX2S World/Sprite/collider
 snapshot plus optional embedded Atlas, Clip and Tilemap. `TwoDDocument` uses this same codec;
 Shipping never links Editor. A `.scene` extension is supported by Studio and does not turn a
-3D Editor text scene into an ND2D document. Sprite source UUID catalogs and per-scene Zig module
-binding are not part of this format. Open/validate with the appropriate editor; incompatible
+3D Editor text scene into an ND2D document. Schema 2 adds owning Sprite source metadata; per-scene
+Zig module binding remains separate. Open/validate with the appropriate editor; incompatible
 bytes reject, rather than being treated as an empty scene.
+
+Source-free encoding remains byte-identical schema 1. Schema 2 appends a little-endian U32 count
+(1..4096) after the four existing length-prefixed sections, followed by length-prefixed 96-byte
+`.nx2sprite` schema-1 records in strictly increasing UUID high/low order. The complete document
+retains its 64 MiB wire limit. Duplicate/noncanonical catalogs, unsupported versions, trailing bytes,
+missing source bindings, Atlas/Clip identity collisions and incompatible Atlas/region/trim geometry
+reject before publication. The encoder canonicalizes source order; all geometry uses the shared
+`ResolveSpriteAsset` implementation. Source-bearing reference validation checks the complete immutable
+Atlas once, then shares the resolver's per-source metadata/region/geometry checks. Its source-catalog
+cost is O(regions² + sources × log(regions)), avoiding repeated full Atlas overlap scans during edits.
+Returned `AuthoredScene` owns every record; C++ consumers rebuild.
+
+Player admits each document's Atlas, Clip and source records into the existing content registry
+before gameplay starts. Equal UUIDs across scene/asset catalogs require byte-identical metadata;
+conflicting owners reject startup. Existing global registry/byte budgets still apply, including
+embedded assets, and scene imports preserve source UUIDs when remapping entity identities.
 
 `SceneSession` owns immutable validated catalog sources and live Sprite/Tilemap metadata, borrowing
 an exclusively managed Play World. The session and World outlive `GameplayBridge` and every module
@@ -356,3 +432,27 @@ See [Player descriptor/export](../../Apps/TwoDPlayer/README.md#authored-scene-ca
 [Studio selection](../../Tools/TwoD/README.md#multiple-authored-scenes). Portable regressions are
 `twod.scene_session`, `twod.scene_project_zig`, `twod.authoring_contracts` and
 `twod.project_manifest`; the SDK consumer additionally exercises real Zig/native DX12 transitions.
+
+## Optional main-game package Sprite admission
+
+`GameSpriteAssets` consumes Runtime's owning auxiliary NXABs without an Editor dependency.
+Load validates payload codecs/UUID/dependency agreement, once-per-Atlas region indexes and source
+trim closure, with 4096 assets/64 MiB payloads. It owns shared immutable decoded data and no files,
+store, World, callback or publication authority. Copies retain matching immutable texture identities.
+Extraction borrows one current `GameSceneView`, remaps template IDs through each live instance and
+uses one actual World pose snapshot per scene. It returns an owning source-aware frame; retained
+Atlas owners outlive draw submission. Source geometry and negative scale use the common extractor.
+Destroyed authored entities contribute no geometry; malformed/unresolved metadata rejects.
+
+The default 2D camera is centered at (0,0), rotation zero and vertical size 20. It projects a flat
+Sprite overlay independently from the 3D camera. At most 100000 live Sprite inputs enter a frame.
+The existing common extractor limit of 64 resolved Atlases per frame still applies; native Build
+data admission checks the candidate before publication.
+Each Atlas receives a monotonic immutable texture ID in [2^57,2^58); the native surface drains
+before the asset owner is replaced/destroyed. Per-frame uploads borrow only for the native call.
+Capability-4 catalogs additionally admit immutable legacy/source Clips with exact payload dependencies,
+all legacy Atlas regions and complete source closure. `ResolveClip` returns a shared immutable owner
+that survives catalog destruction. The same asset/byte budgets cover Clips and no playback starts
+implicitly. This is packaged reference rendering and asset admission, not gameplay Sprite/pool APIs,
+live source animation or hot reload.
+See [the Runtime boundary](../Runtime/GameProjectPackage.md#sprite-source-capability-3).

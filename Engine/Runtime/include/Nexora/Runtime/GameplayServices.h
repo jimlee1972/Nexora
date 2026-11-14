@@ -23,6 +23,7 @@ public:
   NexoraGameplayLifecycleApiV1 lifecycle{};
   NexoraGameplaySceneApiV1 scene{};
   NexoraGameplayTwoDEffectsApiV1 twod_effects{};
+  NexoraGameplaySpriteContentApiV1 sprite_content{};
 
   [[nodiscard]] int32_t GetApi(NexoraGameplayServicesApiV1 *output) noexcept {
     if (std::this_thread::get_id() != owner_)
@@ -33,6 +34,8 @@ public:
       return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
     const auto bytes =
         output->struct_size >= sizeof(*output) ? sizeof(*output)
+        : output->struct_size >= offsetof(NexoraGameplayServicesApiV1, get_sprite_content_api)
+            ? offsetof(NexoraGameplayServicesApiV1, get_sprite_content_api)
         : output->struct_size >= offsetof(NexoraGameplayServicesApiV1, get_twod_effects_api)
             ? offsetof(NexoraGameplayServicesApiV1, get_twod_effects_api)
         : output->struct_size >= offsetof(NexoraGameplayServicesApiV1, get_scene_api)
@@ -71,7 +74,10 @@ public:
           return Copy(p, v, &GameplayServices::lifecycle);
         },
         [](void *p, NexoraGameplaySceneApiV1 *v) { return Copy(p, v, &GameplayServices::scene); },
-        [](void *p, NexoraGameplayTwoDEffectsApiV1 *v) { return CopyEffects(p, v); }};
+        [](void *p, NexoraGameplayTwoDEffectsApiV1 *v) { return CopyEffects(p, v); },
+        [](void *p, NexoraGameplaySpriteContentApiV1 *v) {
+          return Copy(p, v, &GameplayServices::sprite_content);
+        }};
     std::memcpy(output, &negotiated_table, bytes);
     return NEXORA_GAMEPLAY_OK;
   }

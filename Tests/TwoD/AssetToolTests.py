@@ -152,6 +152,28 @@ def main():
         before = (root/'clip.nx2clip').read_bytes()
         assets.compile_manifest(clip, root, compiler, root/'clip.nx2clip')
         assert before == (root/'clip.nx2clip').read_bytes()
+        source_clip = dict(type='clip', id=[17, 18], loop=True,
+            frames=[dict(source=[31, 32], seconds=0.1, event='next'),
+                    dict(source=[11, 12], seconds=0.2)])
+        source_output = root/'來源動畫.nx2clip'
+        assets.compile_manifest(source_clip, root, compiler, source_output)
+        source_bytes = source_output.read_bytes()
+        assert struct.unpack_from('<II', source_bytes) == (0x4332444e, 2)
+        assert source_bytes[24:40] == bytes(16)
+        assert struct.unpack_from('<QQ', source_bytes, 68) == (31, 32)
+        assets.compile_manifest(source_clip, root, compiler, source_output)
+        assert source_output.read_bytes() == source_bytes
+        malformed = [dict(source_clip, atlas=[1, 2]),
+                     dict(source_clip, frames=[dict(source=[1, 2], region=1, seconds=0.1)]),
+                     dict(source_clip, frames=[dict(source=[1, 2], seconds=0.1),
+                                              dict(region=1, seconds=0.1)]),
+                     dict(source_clip, frames=[dict(source=[0, 0], seconds=0.1)]),
+                     dict(source_clip, frames=[dict(source=[17, 18], seconds=0.1)])]
+        for invalid in malformed:
+            try: assets.compile_manifest(invalid, root, compiler, source_output)
+            except (ValueError, subprocess.CalledProcessError): pass
+            else: raise AssertionError('invalid source Clip published')
+            assert source_output.read_bytes() == source_bytes
     print('PNG slicing, packing, clips and failed publication passed')
 
 if __name__ == '__main__': main()

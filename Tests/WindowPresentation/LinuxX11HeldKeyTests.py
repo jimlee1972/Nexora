@@ -193,19 +193,59 @@ def run_mode(args, evidence, mode):
 
         tool('windowfocus', '--sync', ready['window'])
         wait(lambda: count(4, 1) >= 1, 'initial focus')
-        tool('keydown', 'n')
-        held_started = time.monotonic()
-        held_until = held_started + .75
-        while time.monotonic() < held_until:
-            drain(min(.01, max(0, held_until - time.monotonic())))
-        report['held_seconds'] = time.monotonic() - held_started
         def key_event(window, key, down, since):
             return any(record.get('kind') == 'event' and record.get('window') == window and
                        record.get('type') == 5 and record.get('value0') == key and
                        record.get('value1') == int(down) for record in records[since:])
 
-        offset = len(records)
-        tool('keyup', 'n')
+        legacy_stopped = False
+        try:
+            if mode == 'legacy':
+                # The fallback only normalizes already-buffered adjacent pairs. Let this
+                # owned server finish the real held gesture before the consumer drains it;
+                # a live split arrival is explicitly outside that legacy guarantee.
+                child.send_signal(signal.SIGSTOP)
+                legacy_stopped = True
+                stop_deadline = time.monotonic() + 2
+                while time.monotonic() < stop_deadline:
+                    stopped_pid, status = os.waitpid(child.pid, os.WNOHANG | os.WUNTRACED)
+                    if stopped_pid:
+                        if not os.WIFSTOPPED(status) or os.WSTOPSIG(status) != signal.SIGSTOP:
+                            raise RuntimeError('Legacy held consumer exited instead of stopping')
+                        report['legacy_held_stop_confirmed'] = True
+                        break
+                    drain(min(.005, max(0, stop_deadline - time.monotonic())))
+                if not report.get('legacy_held_stop_confirmed'):
+                    raise RuntimeError('Legacy held consumer did not stop within two seconds')
+                xtest = ctypes.CDLL('libXtst.so.6')
+                xtest.XTestFakeKeyEvent.argtypes = [ctypes.c_void_p, ctypes.c_uint,
+                                                   ctypes.c_int, ctypes.c_ulong]
+
+            def held_n(down):
+                if mode == 'normal':
+                    tool('keydown' if down else 'keyup', 'n')
+                    return
+                with (state / 'input.jsonl').open('a') as log:
+                    log.write(json.dumps(dict(time=time.monotonic(), native='XTestFakeKeyEvent',
+                                              keycode=native_n_keycode, down=down, delay_ms=0,
+                                              consumer_stop_confirmed=True)) + '\n')
+                if not xtest.XTestFakeKeyEvent(connection, native_n_keycode, int(down), 0):
+                    raise RuntimeError('Could not inject one real legacy N transition')
+                x11.XSync(connection, 0)
+
+            held_n(True)
+            held_started = time.monotonic()
+            held_until = held_started + .75
+            while time.monotonic() < held_until:
+                drain(min(.01, max(0, held_until - time.monotonic())))
+            report['held_seconds'] = time.monotonic() - held_started
+            offset = len(records)
+            held_n(False)
+            if mode == 'legacy':
+                report['legacy_held_release_server_synced'] = True
+        finally:
+            if legacy_stopped and child.poll() is None:
+                child.send_signal(signal.SIGCONT)
         wait(lambda: key_event(main_handle, ready['key_n'], False, offset), 'physical N release')
         if mode == 'normal':
             # Detectable repeat has no legacy fake release. Queue genuine physical taps
@@ -333,6 +373,17 @@ def run_mode(args, evidence, mode):
             # Without detectable repeat, equal-time physical taps remain ambiguous.
             report['rapid_burst'] = dict(applicable=False, reason='Legacy heuristic limitation')
             report['rapid_burst_ok'] = summary['b_down'] == summary['b_up'] == summary['b_text'] == 0
+        if mode == 'legacy':
+            repeat_releases = [event for event in native_n[:-1] if event.get('type') == 3]
+            report['buffered_legacy_releases'] = len(repeat_releases)
+            report['buffered_legacy_ok'] = (
+                report.get('legacy_held_stop_confirmed') is True and
+                report.get('legacy_held_release_server_synced') is True and
+                len(repeat_releases) == native_release - 1 and len(repeat_releases) >= 1 and
+                all(event.get('buffered_repeat') == 1 for event in repeat_releases) and
+                native_n[-1].get('type') == 3)
+        else:
+            report['buffered_legacy_ok'] = True
         report['text_preserved_ok'] = native_press == summary['text'] and native_press >= 2
         report['native_repeat_ok'] = (bool(native_n) and
                                       all(event.get('send_event') == 0 for event in native_n) and
@@ -351,6 +402,7 @@ def run_mode(args, evidence, mode):
             observation.get('global_before') == observation.get('global_after') == 1
             for observation in capabilities)
         report['passed'] = (report['counts_ok'] and report['text_preserved_ok'] and report['native_repeat_ok'] and
+                            report['buffered_legacy_ok'] and
                             report['focus_reset_ok'] and report['lifecycle_ok'] and report['rapid_burst_ok'] and
                             report['capability_ok'] and report['global_before'] == report['global_after'] == 1)
         if not report['passed']:

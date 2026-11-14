@@ -33,6 +33,9 @@ def verify(release, evidence, source, tag):
     if tuple(map(int, manifest['version'].split('.'))) >= (0, 3, 0):
         if receipt.get('authored_scene_headless') is not True or receipt.get('authored_scene_dx12') is not True:
             raise ValueError('missing packaged Zig scene acceptance')
+    if tuple(map(int, manifest['version'].split('.'))) >= (0, 3, 1):
+        if receipt.get('gamepad_device_notifications') is not True:
+            raise ValueError('missing gamepad notification discovery acceptance')
     with zipfile.ZipFile(archive) as zipped:
         if json.loads(zipped.read('sdk.json')) != manifest:
             raise ValueError('archive manifest mismatch')

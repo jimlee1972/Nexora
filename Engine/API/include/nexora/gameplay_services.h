@@ -37,6 +37,7 @@ typedef struct NexoraGameplayServicesApiV1 {
   int32_t (*get_lifecycle_api)(void *context, NexoraGameplayLifecycleApiV1 *api);
   int32_t (*get_scene_api)(void *context, NexoraGameplaySceneApiV1 *api);
   int32_t (*get_twod_effects_api)(void *context, NexoraGameplayTwoDEffectsApiV1 *api);
+  int32_t (*get_sprite_content_api)(void *context, NexoraGameplaySpriteContentApiV1 *api);
 } NexoraGameplayServicesApiV1;
 #define NEXORA_GAMEPLAY_SERVICES_V1_BASE_SIZE offsetof(NexoraGameplayServicesApiV1, get_display_api)
 #ifdef __cplusplus

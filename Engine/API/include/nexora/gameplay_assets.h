@@ -10,7 +10,13 @@ typedef enum NexoraAssetLoadPhase {
   NEXORA_ASSET_READY = 3,
   NEXORA_ASSET_FAILED = 4
 } NexoraAssetLoadPhase;
-/* Catalog kinds 1/2 are cooked Atlas/Clip; 3 is opaque game-owned bytes. */
+/* Catalog kinds are independent of content registry kinds. Existing values are unchanged. */
+typedef enum NexoraAssetCatalogKind {
+  NEXORA_ASSET_CATALOG_ATLAS = 1,
+  NEXORA_ASSET_CATALOG_CLIP = 2,
+  NEXORA_ASSET_CATALOG_OPAQUE = 3,
+  NEXORA_ASSET_CATALOG_SPRITE_SOURCE = 4
+} NexoraAssetCatalogKind;
 typedef struct NexoraAssetCatalogEntryV1 {
   uint32_t struct_size, kind;
   uint64_t file_bytes;

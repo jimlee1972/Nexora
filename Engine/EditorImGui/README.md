@@ -87,6 +87,47 @@ they retain no ImGui/model pointer and neither execute actions nor grant authori
 authority. Native fixtures still send real X11 input and check independent pixels, values, files
 and access rejection. See the [application observer contract](../../Apps/Editor/README.md#native-project-and-asset-workflow-acceptance).
 
+## Main Sprite source Inspector
+
+With `NEXORA_HAS_2D`, the main Inspector selects imported Sprite source UUIDs and clears supported
+references through `AssignSpriteSources`/`ClearSpriteSources`. A complete selection is one bounded
+metadata transaction with existing Undo/Redo and wrapped Save/Reload. The popup captures owning
+source/Atlas metadata, display paths, live NodeKeys, Content generation/revision and project scope
+once when opened. It never retains a model borrow or reads files. Subsequent frames require the
+same scope/version/selection and consecutive visible frames; context loss or draft cancellation
+releases it. Assignment rechecks exact imported owners through the model. Idle presentation reuses
+the ordinary Inspector's owning component previews and, when supported references exist, indexes
+typed source/Atlas rows once per frame. Referenced metadata/dependency checks add no per-target
+linear document/Content scans or complete Atlas validation.
+
+None, Mixed, missing source/Atlas and unsupported reserved components remain distinct. Missing
+supported references can clear without a resolvable catalog; unsupported versions/type/name/data
+disable the whole edit and remain in unavailable-component inspection. Valid references use the
+dedicated Inspector instead of appearing as unavailable plugin data. More than 4096 targets skip
+this section's reference parsing/indexing. Controls require the current project writer and writable
+Content, stopped Play, focus and ordinary scene/recovery/modal permission. Source editing does not
+change Runtime components, transforms, C/Zig tables or any scene/asset wire. Existing material,
+mesh and reflected Inspector contracts remain independent; Scene View/Build consumers are separate.
+
+For a complete selection sharing one available source, the initially collapsed **Source details**
+shows source/Atlas UUIDs, original pixel dimensions, top-left trim and Atlas region coordinates,
+bottom-left Pivot, pixels per unit, L/R/T/B borders and source-local bounds before entity transforms.
+It reads the current imported immutable metadata during this serialized frame, with no file IO,
+asset changes, retained model borrow or GPU texture registration. Only expanded details invoke
+the shared `ResolveSpriteAsset` validator/geometry resolver; collapsed idle presentation keeps
+its existing indexing cost. Inspection remains available in read-only projects and during Play.
+Mixed, unavailable, unsupported or absent references hide details. Assignment/Clear suppress the
+old component preview for that frame; the next draw resolves fresh metadata. No displayed numeric
+snapshot survives project/selection/content replacement. The private test accessor observes only
+the current expanded text and visible header center, granting no mutation capability.
+
+Private test access returns copied visible centers (including disabled controls) and a label;
+it clears observations every shell frame and grants no authoring authority. The real Linux
+X11 fixture observes stable presented geometry and then sends normal input, verifies exact scene
+bytes/history and read-only project hashes, and retains full screenshots/input/logs/receipts under
+`artifacts/editor-sprite-sources/inspector-*`. See the
+[scoped evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceInspector-Linux-2026-11-13.md).
+
 ## Project Build Settings
 
 Build > Project Build Settings edits a separate owning draft of the game's startup scene and
@@ -95,6 +136,29 @@ locator. Set Startup enables its scene; the startup checkbox/removal is protecte
 startup is chosen. Explicit path repair keeps identity. Save and Reload emit one-shot project/root
 scoped requests; the host owns enrollment, bounded file IO, catalog reconciliation and guarded
 publication. `SetProjectBuildSettings` transfers an owning observation, never a workspace borrow.
+The observation also carries up to 4096 immutable animation Clip roots. Oversized handoffs leave
+the previous ready draft untouched. Existing controls and Save/Reload/Build requests preserve that
+list. Animation assets opens an explicit Clip picker after the existing Build/Run/Stop controls.
+Only that user action captures up to 4096 ready typed Clip UUIDs and bounded display paths from
+the current Content session on the authoring thread. It owns no payload/model borrow and performs
+no filesystem IO. Separate virtualized included/available lists retain missing saved UUIDs visibly
+until deliberate removal; rename changes display paths without changing root identity. Paths are
+drawn literally, including ImGui label markers. The picker changes only the owning settings draft;
+Save/Reload/Build use the existing scoped requests and final source/settings guard.
+
+The open snapshot requires the same Content owner/root/generation/revision and consecutive visible
+frames. Stale/foreign/detached Content, incoming settings or hidden windows discard it; no popup can
+silently capture replacement context without another explicit open. Read-only projects can inspect.
+Mutation additionally requires ready settings, writer and Content access, focus, stopped Play,
+resolved recovery, idle reimport/Build/Run and existing modal/export admission. The TwoD-OFF shell
+retains missing-root inspection with selection unavailable. Oversized choices and root-limit
+addition reject without replacing the draft. Existing Build/Run/Stop positions and zero-root
+settings/package formats stay unchanged. This selects packaged assets, not gameplay playback.
+
+Private test access copies visible control centers/UUIDs and draft roots; it grants no filesystem
+or authoring authority. Actual native input selects roots, saves/reloads/reopens the project and
+builds both SceneOnly and canonical SDK ScriptProject games before source deletion/relocation.
+See the [scoped execution record](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-BuildClipPicker-Linux-2026-11-14.md).
 Read-only projects expose inspection/Reload but disable writes. Recovery, Play and export block
 mutation. Project changes close the settings window and discard pending requests; while open,
 scene/play shortcuts are blocked. Settings do not change the single editable Scene or the Editor's
@@ -170,6 +234,14 @@ Mutation buttons require both current caller authorization and a writable docume
 requests; the owning project application must revalidate path/access/revision before publication.
 No UI widget writes a project file or acquires a lease. TwoDPanelState borrows no World/asset pointer;
 replace/reset it when changing document scope to clear selection, playback and pending requests.
+Sprite source import follows the same owner-request boundary. New/current Sprite source combos
+select immutable catalog UUIDs; source geometry replaces Size/Pivot controls while tint, transforms,
+flips and sorting remain editable. Preview uses the document source resolver. Unknown stale source
+selections cannot add a Sprite, and source aliases/catalog views retain the document's lifetime rules.
+Animation can append the selected Sprite's source to a source Clip, while region and source append
+actions prevent mixed binding modes. Source frame labels display UUIDs; duration/events, reordering,
+looping and pause reuse the existing document transaction and Animator. The frame image swatch
+selects the source's validated Atlas region; scene extraction retains its full source geometry.
 Camera preview fields are kept finite and within supported preview bounds; collider projection
 follows the same rotated orthographic camera as Sprite extraction. Graphical control tests exercise
 Undo/Redo, invalid preview-camera admission and permission rejection; Linux native Studio acceptance
@@ -190,6 +262,11 @@ rectangles convert through framebuffer DPI. A disjoint native Scene is independe
 support; overlap suppresses native Scene submission to preserve GUI stacking. This is an indexed
 GUI preview, not the separate instanced Sprite path. See the [application contract](../../Apps/Editor/README.md#bounded-2d-game-view)
 and [Linux evidence](../../Tools/Build/evidence/EditorEDM3-GameTwoDPreview-Linux-2026-10-16.md).
+
+This Sprite-only translation rejects every nonzero `SceneTextureReference`, including partial
+references paired with ordinary texture IDs, before appending any geometry. Scene image bindings
+use the separate `DrawGameScene` owning integration below; this Sprite-only path cannot silently
+discard their tags.
 
 The private View-option position observer publishes only visible, enabled items in a nonhidden
 popup. ImGui's first size-measurement frame is excluded because its coordinates are not interactive
@@ -748,6 +825,15 @@ privacy, not an extension signature verifier or a telemetry transport implementa
   in-memory round trip. `ProjectWorkspace` stores that payload with an explicit schema under the
   project `.nexora` directory. The legacy schema 0 payload is read and rewritten as schema 1 on the
   next save; malformed or unsupported payloads are rejected and replaced only by a normal save.
+  After a layout is loaded, persistent shell panels use `NoFocusOnAppearing`: their first submission
+  does not replace its dock selection, and pending default Scene/Content selection is cleared.
+  New layouts retain normal appearing-panel focus. Explicit pointer, keyboard, menu and Play focus
+  requests still work.
+  `editor.layout_restart` destroys and recreates the context, verifies Hierarchy/Project and
+  Scene/Game selections, exact floating Content geometry and byte-identical saves over three restarts
+  at 100/125/150/200% DPI, then checks explicit tab focus. This is portable UI evidence; physical
+  docking/input acceptance remains separate. Test-only observation definitions are consistently
+  guarded, and the desktop CI matrix rebuilds the real graphical Editor with `BUILD_TESTING=OFF`.
 - Recovery is prompted once per discovered journal. Failed recover/discard operations keep the
   modal open and expose the data-layer error instead of silently dismissing it.
   The host owns a copied project UUID/root identity for this UI. Drawing or directly applying a
@@ -2053,3 +2139,36 @@ Scene marker test getters additionally require a currently submitted, active, vi
 non-skipped Scene window, so hidden sizing or previous-frame markers are not actionable points.
 The source-rebase test keys are copied separately; they do not alter the existing scene/file/
 Play key formats, routing, or command ownership.
+
+
+## Owning Game Scene images and source quads
+
+`DrawGameScene(reference, sprites)` targets the current physical native Game canvas before
+`EndFrame`. It prevalidates the same 4096 indexed uniform-tint Sprite limits and native texture
+generations as `DrawGameTwoDSprites`; nonzero Scene tags inside the Sprite packet still reject.
+A complete typed reference supplies the Scene image before those quads. An empty reference gives
+a Sprite-only background. Duplicate/post-EndFrame calls or invalid partial references reject.
+
+The host records the image's owning draw-list/index range, not a new public integer texture ID.
+Native flattening preserves ImGui window order and splits any merged command around that range,
+emitting its explicit `sceneTexture` and ordinary Sprite/font commands separately. An absent or
+partial image range rejects before native submission. The surface validates frame/domain/view
+identity and owns fenced sampling resources. The legacy headless RHI overload does not reinterpret
+Scene images as font textures. All per-frame image metadata clears at `BeginFrame`.
+
+The application owns source admission, GUI completion/submission and World publication; the host
+retains no gameplay, source or renderer pointer. See [configured Play ownership](../../Apps/Editor/README.md#configured-packaged-sprite-play)
+and [native acceptance](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-ConfiguredSpritePlay-Linux-2026-11-14.md).
+
+## Owning authoring Scene images
+
+`DrawSceneImage(reference)` adds one typed native image to the current Scene canvas before
+`EndFrame`. Scene and Game independently retain their owning draw-list/index/clip ranges for the
+current frame; flattening splits merged commands around up to two ordered image ranges and
+preserves floating Inspector/window order. Missing, overlapping, duplicate or partial ranges
+reject before native submission. Hidden first-use sizing windows provide no native viewport.
+The headless RHI overload rejects either typed image instead of treating it as a font texture.
+`SetSceneSpriteStatus` copies an application caption; it retains no asset/model pointers.
+The host owns no source or GPU texture lifecycle. Existing Scene/Game overlap suppression remains;
+this supports two disjoint canvases and floating auxiliary-window occlusion, not arbitrary native
+Scene/Game overlap. See [authoring source ownership](../../Apps/Editor/README.md#native-scene-sprite-sources).

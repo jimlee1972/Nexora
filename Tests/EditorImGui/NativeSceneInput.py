@@ -115,6 +115,23 @@ class NativeSceneInput:
             raise RuntimeError(f'One Play shortcut request was not issued exactly once: '
                                f'{before} -> {value}')
 
+    def focus_scene(self, deadline=None):
+        """Deliver one Ctrl+1 through processed GUI phases; the caller verifies its viewport."""
+        deadline = time.monotonic() + 12 if deadline is None else deadline
+        self.raw('windowfocus', self.window, deadline=deadline)
+        self.wait(lambda v: v['focused'] == '1' and v['text_input'] == '0'
+                  and v['game_focused'] == '0' and v['file_open_admitted'] == '1'
+                  and v['keys'] == '000000000' and v.get('scene_key') == '0',
+                  'Restored Editor is not ready for Scene focus', deadline)
+        self.raw('keydown', 'Control_L', deadline=deadline, minimum_wait=self.phase_wait)
+        self.wait(lambda v: v['keys'][0] == '1', 'Scene focus Ctrl down was not processed', deadline)
+        self.raw('keydown', '1', deadline=deadline, minimum_wait=self.phase_wait)
+        self.wait(lambda v: v.get('scene_key') == '1', 'Scene focus 1 down was not processed', deadline)
+        self.raw('keyup', '1', deadline=deadline, minimum_wait=self.phase_wait)
+        self.wait(lambda v: v.get('scene_key') == '0', 'Scene focus 1 up was not processed', deadline)
+        self.raw('keyup', 'Control_L', deadline=deadline, minimum_wait=self.phase_wait)
+        self.wait(lambda v: v['keys'][0] == '0', 'Scene focus Ctrl up was not processed', deadline)
+
     def file_open(self, deadline=None):
         """Send one Ctrl+O gesture; copied request count acknowledges actual UI admission."""
         deadline = time.monotonic() + 8 if deadline is None else deadline

@@ -3,6 +3,7 @@
 #include "Nexora/Runtime/Runtime.h"
 #if defined(NEXORA_HAS_2D)
 #include "Nexora/Editor/ProjectTwoDPlayAssets.h"
+#include "Nexora/Editor/SpriteSourceCatalog.h"
 #include "Nexora/Runtime/GameplayAudio.h"
 #include "Nexora/Runtime/GameplayGamepad.h"
 #include "Nexora/Runtime/GameplayInput.h"
@@ -18,6 +19,7 @@
 #include <chrono>
 #include <functional>
 #include <stdexcept>
+#include <unordered_set>
 #endif
 
 namespace nexora::editor::preview {
@@ -25,29 +27,116 @@ namespace nexora::editor::preview {
 struct PlayTwoDBinding final {
   runtime::Id scene{};
 #if defined(NEXORA_HAS_2D)
+  struct SourceSprite final {
+    runtime::Id entity{};
+    runtime::AssetUuid source;
+    friend bool operator==(const SourceSprite &, const SourceSprite &) = default;
+  };
   std::shared_ptr<const ProjectTwoDPlayAssets> assets;
+  std::shared_ptr<const SceneDocument::RuntimeSceneCapture> authoring{};
 #endif
 };
 
 #if defined(NEXORA_HAS_2D)
-inline std::optional<PlayTwoDBinding> CapturePlayTwoD(const ProjectWorkspace &workspace,
-                                                      const ProjectContentSession &content,
-                                                      const SceneDocument &document,
-                                                      bool authorized, std::string &error) try {
-  error.clear();
-  std::vector<runtime::AssetUuid> roots;
-  for (const auto &item : content.Browser().Items()) {
-    if (!item.twod && item.type != ".nx2atlas" && item.type != ".nx2clip")
-      continue;
-    if (roots.size() == 4096) {
-      error = "Play 2D asset selection exceeds 4096 sources.";
+enum class PlayTwoDCapture { ProjectAssets, AuthoredSources };
+
+// Bounded owning previews avoid copying arbitrary plugin payloads merely to find references.
+inline std::optional<std::vector<PlayTwoDBinding::SourceSprite>>
+CapturePlaySourceReferences(const SceneDocument &document, std::string &error) {
+  std::vector<PlayTwoDBinding::SourceSprite> result;
+  const auto components =
+      document.InspectOpaqueComponents(kSpriteSourceReferenceType, kSpriteSourceReferenceName);
+  if (!components) {
+    error = "Play Sprite reference inspection requires a live bounded Editor scene.";
+    return {};
+  }
+  for (const auto &component : *components) {
+    const auto source = ReadSpriteSourceReference(component);
+    if (!source || result.size() == 4096) {
+      error = "Play Sprite reference is unsupported, malformed or exceeds the 4096 Sprite limit.";
       return {};
     }
-    roots.push_back(item.id);
+    result.push_back({component.entity, *source});
   }
-  if (roots.empty())
+  return result;
+}
+
+inline std::optional<std::vector<PlayTwoDBinding::SourceSprite>>
+CapturePlaySourceReferences(const SceneDocument::RuntimeSceneCapture &capture, std::string &error) {
+  std::vector<PlayTwoDBinding::SourceSprite> result;
+  if (capture.nodes.size() > SceneDocument::kMaximumRuntimeCaptureEntities)
+    return {};
+  for (const auto &node : capture.nodes)
+    for (const auto &component : node.opaque) {
+      if (component.type != kSpriteSourceReferenceType &&
+          component.type_name != kSpriteSourceReferenceName)
+        continue;
+      if (component.type != kSpriteSourceReferenceType ||
+          component.type_name != kSpriteSourceReferenceName || component.data.size() != 17) {
+        error = "Frozen Play Sprite reference has an unsupported identity or size.";
+        return {};
+      }
+      OpaqueComponentInfo info{component.type, component.type_name, component.data.size(),
+                               component.data, node.key.id};
+      const auto source = ReadSpriteSourceReference(info);
+      if (!source || result.size() == 4096) {
+        error = "Frozen Play Sprite reference is unsupported, malformed or exceeds its limit.";
+        return {};
+      }
+      result.push_back({node.key.id, *source});
+    }
+  return result;
+}
+
+// Production activation rechecks the exact authored capture, including opaque reference bytes.
+// Retained bindings can still replay against their matching isolated World after owners disappear.
+inline bool MatchesPlayTwoD(const PlayTwoDBinding &binding, const SceneDocument &document,
+                            std::string &error) try {
+  error.clear();
+  if (!binding.authoring) {
+    const auto references = CapturePlaySourceReferences(document, error);
+    if (references && references->empty())
+      return true;
+  } else if (const auto current = document.CaptureRuntimeScene();
+             current && *current == *binding.authoring)
+    return true;
+  if (error.empty())
+    error = "Play Sprite references or scene changed; prepare Play again.";
+  return false;
+} catch (...) {
+  error = "Play Sprite reference recheck failed.";
+  return false;
+}
+
+inline std::optional<PlayTwoDBinding>
+CapturePlayTwoD(const ProjectWorkspace &workspace, const ProjectContentSession &content,
+                const SceneDocument &document, bool authorized, std::string &error,
+                PlayTwoDCapture scope = PlayTwoDCapture::ProjectAssets) try {
+  error.clear();
+  const auto references = CapturePlaySourceReferences(document, error);
+  if (!references)
+    return {};
+  std::vector<runtime::AssetUuid> roots;
+  if (scope == PlayTwoDCapture::AuthoredSources) {
+    std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> unique;
+    for (const auto &reference : *references)
+      if (unique.insert(reference.source).second)
+        roots.push_back(reference.source);
+  } else {
+    for (const auto &item : content.Browser().Items()) {
+      if (!item.twod && item.type != ".nx2atlas" && item.type != ".nx2clip" &&
+          item.type != ".nx2sprite")
+        continue;
+      if (roots.size() == 4096) {
+        error = "Play 2D asset selection exceeds 4096 sources.";
+        return {};
+      }
+      roots.push_back(item.id);
+    }
+  }
+  if (roots.empty() && references->empty())
     return PlayTwoDBinding{};
-  const auto source = document.CaptureRuntimeScene();
+  auto source = document.CaptureRuntimeScene();
   if (!source) {
     error = "Play 2D scene capture is unavailable.";
     return {};
@@ -57,7 +146,14 @@ inline std::optional<PlayTwoDBinding> CapturePlayTwoD(const ProjectWorkspace &wo
                                                authorized, &error);
   if (!assets)
     return {};
-  return PlayTwoDBinding{source->scene, std::move(assets)};
+  for (const auto &reference : *references)
+    if (!assets->Assets()->SpriteSource(reference.source)) {
+      error = "An authored Play Sprite source is missing from the frozen project assets.";
+      return {};
+    }
+  return PlayTwoDBinding{
+      source->scene, std::move(assets),
+      std::make_shared<const SceneDocument::RuntimeSceneCapture>(std::move(*source))};
 } catch (...) {
   error = "Play 2D asset preparation failed.";
   return {};
@@ -75,7 +171,7 @@ inline std::uint64_t PlayTextureId() {
     throw std::runtime_error("Play texture identity exhausted");
   return value;
 }
-// Borrows the actual Play clone. No second World and no authoring Sprite metadata are created.
+// Borrows the actual Play clone and owns frozen Sprite metadata copied from authored references.
 // Destroy after module callbacks and before the borrowed World. Calls serialize on its owner
 // thread.
 class PlayTwoDServices final {
@@ -397,7 +493,8 @@ public:
             return {};
           const auto texture = textures(*atlas);
           return texture ? std::optional{twod::AtlasBinding{atlas, texture}} : std::nullopt;
-        });
+        },
+        [assets = assets_](auto id) { return assets->SpriteSource(id); });
   } catch (...) {
     return {};
   }

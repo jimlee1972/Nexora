@@ -24,11 +24,14 @@ struct ProjectBuildSettings final {
   runtime::AssetUuid start_scene;
   std::vector<BuildScene> scenes;
   GameBuildSettings build{};
+  // Explicit immutable animation roots; no implicit Content-wide Clip capture.
+  std::vector<runtime::AssetUuid> animation_clips{};
   bool operator==(const ProjectBuildSettings &) const = default;
 };
 
-// Pure owning, bounded schema-1/2 codec shared by graphical and command-line build producers.
-// Legacy/default settings retain schema 1; schema 2 persists the explicit build configuration.
+// Pure owning, bounded schema-1/2/3 codec shared by graphical and command-line build producers.
+// Legacy/default settings retain schema 1; schema 2 persists explicit build configuration and
+// schema 3 additionally records nonempty immutable animation Clip roots.
 // No filesystem access; callers must resolve paths and catalog identities before building.
 [[nodiscard]] NEXORA_EDITOR_API bool ValidateProjectBuildSettings(const ProjectBuildSettings &,
                                                                   std::string *error = nullptr);

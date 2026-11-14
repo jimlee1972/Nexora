@@ -18,11 +18,35 @@ add_executable(NexoraTwoDGameplayTests GameplayBridgeTests.cpp)
 target_link_libraries(NexoraTwoDGameplayTests PRIVATE Nexora::TwoD)
 nexora_apply_defaults(NexoraTwoDGameplayTests)
 add_test(NAME twod.gameplay_bridge COMMAND NexoraTwoDGameplayTests)
+add_executable(NexoraSpriteSourceGameplayTests SpriteSourceGameplayTests.cpp)
+target_link_libraries(NexoraSpriteSourceGameplayTests PRIVATE Nexora::TwoD)
+nexora_apply_defaults(NexoraSpriteSourceGameplayTests)
+add_test(NAME twod.sprite_source_gameplay COMMAND NexoraSpriteSourceGameplayTests)
+add_executable(NexoraSourceAnimationTests SourceAnimationTests.cpp)
+target_link_libraries(NexoraSourceAnimationTests PRIVATE Nexora::TwoD)
+nexora_apply_defaults(NexoraSourceAnimationTests)
+add_test(NAME twod.source_animation COMMAND NexoraSourceAnimationTests)
+add_executable(NexoraGameplayGenerationTests GameplayGenerationTests.cpp)
+target_link_libraries(NexoraGameplayGenerationTests PRIVATE Nexora::TwoD)
+nexora_apply_defaults(NexoraGameplayGenerationTests)
+add_test(NAME twod.gameplay_generation COMMAND NexoraGameplayGenerationTests)
+if(NEXORA_ZIG_EXECUTABLE)
+  nexora_add_zig_test(gameplay.zig_sprite_source_wire_layout
+    --cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-source-cache"
+    --global-cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-source-global-cache"
+    "-I${PROJECT_SOURCE_DIR}/Engine/API/include" --dep nx
+    "-Mroot=${CMAKE_CURRENT_SOURCE_DIR}/SpriteSourceLayout.zig"
+    "-Mnx=${PROJECT_SOURCE_DIR}/Bindings/Zig/nexora.zig" -lc)
+endif()
 if(NEXORA_ENABLE_EDITOR)
   add_executable(NexoraProjectTwoDPlayAssetTests ProjectPlayAssetTests.cpp)
   target_link_libraries(NexoraProjectTwoDPlayAssetTests PRIVATE Nexora::Editor)
   nexora_apply_defaults(NexoraProjectTwoDPlayAssetTests)
   add_test(NAME twod.project_play_assets COMMAND NexoraProjectTwoDPlayAssetTests)
+  add_executable(NexoraEditorSpriteSourceTests EditorSpriteSourceTests.cpp)
+  target_link_libraries(NexoraEditorSpriteSourceTests PRIVATE Nexora::Editor)
+  nexora_apply_defaults(NexoraEditorSpriteSourceTests)
+  add_test(NAME twod.editor_sprite_sources COMMAND NexoraEditorSpriteSourceTests)
   add_executable(NexoraTwoDContentImportTests ContentImportTests.cpp)
   target_link_libraries(NexoraTwoDContentImportTests PRIVATE Nexora::Editor)
   nexora_apply_defaults(NexoraTwoDContentImportTests)
@@ -35,6 +59,33 @@ if(NEXORA_ENABLE_EDITOR)
   target_link_libraries(NexoraTwoDAuthoringTests PRIVATE Nexora::Editor)
   nexora_apply_defaults(NexoraTwoDAuthoringTests)
   add_test(NAME twod.authoring_contracts COMMAND NexoraTwoDAuthoringTests)
+  add_executable(NexoraAuthoredSourceTests AuthoredSourceTests.cpp)
+  target_link_libraries(NexoraAuthoredSourceTests PRIVATE Nexora::Editor)
+  nexora_apply_defaults(NexoraAuthoredSourceTests)
+  add_test(NAME twod.authored_sources COMMAND NexoraAuthoredSourceTests)
+  if(TARGET NexoraTwoDPlayer)
+    add_library(NexoraAuthoredSourceFixture SHARED AuthoredSourceModule.cpp)
+    target_include_directories(NexoraAuthoredSourceFixture PRIVATE "${PROJECT_SOURCE_DIR}/Engine/API/include")
+    nexora_apply_defaults(NexoraAuthoredSourceFixture)
+    set(authored_source_args --app "$<TARGET_FILE:NexoraTwoDPlayer>"
+      --fixture "$<TARGET_FILE:NexoraAuthoredSourceTests>"
+      --module "$<TARGET_FILE:NexoraAuthoredSourceFixture>"
+      --compiler "$<TARGET_FILE:NexoraTwoDAssetCompiler>")
+    if(TARGET NexoraTwoDStudio)
+      list(APPEND authored_source_args --studio "$<TARGET_FILE:NexoraTwoDStudio>")
+    endif()
+    add_test(NAME twod.authored_source_export COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/AuthoredSourceAcceptance.py" ${authored_source_args}
+      --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/authored-source-export")
+    set_tests_properties(twod.authored_source_export PROPERTIES TIMEOUT 180 LABELS "twod;source;scene;export")
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_SLANG AND
+       NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND)
+      add_test(NAME twod.authored_source_native COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/AuthoredSourceAcceptance.py" ${authored_source_args} --native
+        --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/authored-source-native")
+      set_tests_properties(twod.authored_source_native PROPERTIES TIMEOUT 180 LABELS "twod;source;scene;export;vulkan;virtual-display")
+    endif()
+  endif()
   add_executable(NexoraTwoDPlayContextTests PlayContextTests.cpp)
   target_link_libraries(NexoraTwoDPlayContextTests PRIVATE Nexora::Editor)
   nexora_apply_defaults(NexoraTwoDPlayContextTests)
@@ -165,6 +216,15 @@ if(TARGET NexoraTwoDPlayer AND (WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux"))
     "${CMAKE_CURRENT_SOURCE_DIR}/ProjectAcceptance.py" --app "$<TARGET_FILE:NexoraTwoDPlayer>"
     --module "$<TARGET_FILE:NexoraTwoDProjectFixture>")
   set_tests_properties(twod.project_export PROPERTIES TIMEOUT 90 LABELS "twod;project;export")
+  add_library(NexoraSpriteCatalogFixture SHARED SpriteCatalogModule.cpp)
+  target_include_directories(NexoraSpriteCatalogFixture PRIVATE "${PROJECT_SOURCE_DIR}/Engine/API/include")
+  nexora_apply_defaults(NexoraSpriteCatalogFixture)
+  add_test(NAME twod.sprite_catalog_export COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/SpriteCatalogAcceptance.py" --app "$<TARGET_FILE:NexoraTwoDPlayer>"
+    --module "$<TARGET_FILE:NexoraSpriteCatalogFixture>"
+    --fixture "$<TARGET_FILE:NexoraGameplayAssetsTests>"
+    --compiler "$<TARGET_FILE:NexoraTwoDAssetCompiler>")
+  set_tests_properties(twod.sprite_catalog_export PROPERTIES TIMEOUT 180 LABELS "twod;assets;project;export")
 endif()
 if(WIN32)
   add_test(NAME twod.windows_font_bake COMMAND "${Python3_EXECUTABLE}"
@@ -238,6 +298,9 @@ set_tests_properties(twod.portable_font_bake PROPERTIES TIMEOUT 45 SKIP_RETURN_C
 add_executable(NexoraGameplayAssetsTests GameplayAssetsTests.cpp)
 target_link_libraries(NexoraGameplayAssetsTests PRIVATE Nexora::TwoD Nexora::Core)
 nexora_apply_defaults(NexoraGameplayAssetsTests)
+if(MINGW)
+  target_link_options(NexoraGameplayAssetsTests PRIVATE -municode)
+endif()
 add_test(NAME twod.gameplay_assets COMMAND NexoraGameplayAssetsTests)
 add_test(NAME twod.asset_residency_stress COMMAND NexoraGameplayAssetsTests --stress)
 set_tests_properties(twod.asset_residency_stress PROPERTIES TIMEOUT 240 LABELS "twod;assets;stress")
@@ -305,6 +368,35 @@ add_test(NAME twod.scene_session COMMAND NexoraTwoDSceneSessionTests)
 
 find_program(NEXORA_SCENE_TEST_ZIG NAMES zig)
 if(NEXORA_SCENE_TEST_ZIG)
+  set(source_player_native_args)
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_NATIVE_BACKENDS AND
+     NEXORA_ENABLE_VULKAN_BACKEND AND NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL)
+    list(APPEND source_player_native_args --native)
+  endif()
+  add_test(NAME twod.sprite_source_player COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/SpriteSourcePlayerAcceptance.py"
+    --app "$<TARGET_FILE:NexoraTwoDPlayer>" --zig "${NEXORA_SCENE_TEST_ZIG}"
+    --cmake "${CMAKE_COMMAND}"
+    --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/source-player" ${source_player_native_args})
+  set_tests_properties(twod.sprite_source_player PROPERTIES TIMEOUT 300 LABELS "twod;source;zig;export")
+  add_test(NAME twod.sprite_source_catalog_player COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/SpriteSourcePlayerAcceptance.py"
+    --app "$<TARGET_FILE:NexoraTwoDPlayer>" --zig "${NEXORA_SCENE_TEST_ZIG}"
+    --cmake "${CMAKE_COMMAND}" --compiler "$<TARGET_FILE:NexoraTwoDAssetCompiler>" --catalog
+    --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/source-catalog-player" ${source_player_native_args})
+  set_tests_properties(twod.sprite_source_catalog_player PROPERTIES TIMEOUT 300 LABELS "twod;source;zig;assets;export")
+  add_test(NAME twod.sprite_source_repack_player COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/SpriteSourcePlayerAcceptance.py"
+    --app "$<TARGET_FILE:NexoraTwoDPlayer>" --zig "${NEXORA_SCENE_TEST_ZIG}"
+    --cmake "${CMAKE_COMMAND}" --compiler "$<TARGET_FILE:NexoraTwoDAssetCompiler>" --catalog --repack
+    --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/source-repack-player" ${source_player_native_args})
+  set_tests_properties(twod.sprite_source_repack_player PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE LABELS "twod;source;zig;assets;export")
+  add_test(NAME twod.source_animation_player COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/SpriteSourcePlayerAcceptance.py"
+    --app "$<TARGET_FILE:NexoraTwoDPlayer>" --zig "${NEXORA_SCENE_TEST_ZIG}"
+    --cmake "${CMAKE_COMMAND}" --compiler "$<TARGET_FILE:NexoraTwoDAssetCompiler>" --catalog --animation
+    --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/source-animation-player" ${source_player_native_args})
+  set_tests_properties(twod.source_animation_player PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE LABELS "twod;source;animation;zig;assets;export")
   add_test(NAME twod.scene_project_zig COMMAND "${Python3_EXECUTABLE}"
     "${CMAKE_CURRENT_SOURCE_DIR}/SceneProjectAcceptance.py"
     --app "$<TARGET_FILE:NexoraTwoDPlayer>" --compiler "$<TARGET_FILE:NexoraTwoDAssetCompiler>"
@@ -320,4 +412,53 @@ if(NEXORA_SCENE_TEST_ZIG AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND
     --zig "${NEXORA_SCENE_TEST_ZIG}" --cmake "${CMAKE_COMMAND}" --native)
   set_tests_properties(twod.scene_project_native PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77
     LABELS "twod;scene;zig;export;vulkan;virtual-display")
+endif()
+
+if(NEXORA_ENABLE_ZIG_GAMEPLAY)
+  include("${PROJECT_SOURCE_DIR}/CMake/Modules/NexoraGameProject.cmake")
+  if(WIN32)
+    set(source_reload_library_directory bin)
+  else()
+    set(source_reload_library_directory lib)
+  endif()
+  set(source_reload_targets)
+  set(source_reload_modules)
+  foreach(variant IN ITEMS normal prepare_fail restore_fail reloaded_fail schema_change)
+    set(manifest "${CMAKE_CURRENT_SOURCE_DIR}/SourceReloadScript/project-${variant}.json")
+    set(output "${CMAKE_CURRENT_BINARY_DIR}/source-reload-${variant}")
+    nexora_add_game_module(NexoraSourceReloadScript_${variant}
+      PROJECT "${manifest}" OUTPUT "${output}" ZIG "${NEXORA_ZIG_EXECUTABLE}")
+    file(READ "${manifest}" project)
+    string(JSON module_name GET "${project}" module_name)
+    list(APPEND source_reload_targets NexoraSourceReloadScript_${variant})
+    list(APPEND source_reload_modules
+      "${output}/${source_reload_library_directory}/${CMAKE_SHARED_LIBRARY_PREFIX}${module_name}${CMAKE_SHARED_LIBRARY_SUFFIX}")
+  endforeach()
+  add_executable(NexoraSourceReloadTests SourceReloadTests.cpp)
+  target_link_libraries(NexoraSourceReloadTests PRIVATE Nexora::TwoD ${CMAKE_DL_LIBS})
+  add_dependencies(NexoraSourceReloadTests ${source_reload_targets})
+  nexora_apply_defaults(NexoraSourceReloadTests)
+  add_test(NAME twod.source_reload_transaction COMMAND NexoraSourceReloadTests ${source_reload_modules})
+  set_tests_properties(twod.source_reload_transaction PROPERTIES TIMEOUT 120 LABELS "twod;source;reload;zig")
+  if(TARGET NexoraTwoDPlayerHost)
+    add_executable(NexoraTwoDPlayerGenerationTests PlayerGenerationTests.cpp)
+    target_link_libraries(NexoraTwoDPlayerGenerationTests PRIVATE NexoraTwoDPlayerHost)
+    add_dependencies(NexoraTwoDPlayerGenerationTests ${source_reload_targets})
+    nexora_apply_defaults(NexoraTwoDPlayerGenerationTests)
+    add_test(NAME twod.player_reload_generations COMMAND NexoraTwoDPlayerGenerationTests
+      ${source_reload_modules} "${CMAKE_BINARY_DIR}/artifacts/player-reload-generations")
+    set_tests_properties(twod.player_reload_generations PROPERTIES TIMEOUT 120
+      LABELS "twod;source;reload;zig;player")
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_SLANG AND
+       NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND)
+      target_compile_definitions(NexoraTwoDPlayerGenerationTests PRIVATE NEXORA_PLAYER_RELOAD_NATIVE=1)
+      target_link_libraries(NexoraTwoDPlayerGenerationTests PRIVATE X11::X11)
+      add_test(NAME twod.player_reload_native COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/PlayerGenerationAcceptance.py"
+        --app "$<TARGET_FILE:NexoraTwoDPlayerGenerationTests>" --modules ${source_reload_modules}
+        --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/player-reload-native")
+      set_tests_properties(twod.player_reload_native PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77
+        LABELS "twod;source;reload;zig;player;vulkan;virtual-display")
+    endif()
+  endif()
 endif()

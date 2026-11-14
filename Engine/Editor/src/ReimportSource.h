@@ -39,7 +39,7 @@ struct ReimportSource final {
 
 inline bool IsTwoDSource(std::string_view type) {
 #if defined(NEXORA_HAS_2D)
-  return type == ".nx2atlas" || type == ".nx2clip";
+  return type == ".nx2atlas" || type == ".nx2clip" || type == ".nx2sprite";
 #else
   static_cast<void>(type);
   return false;

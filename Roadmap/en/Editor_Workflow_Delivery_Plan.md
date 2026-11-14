@@ -2,10 +2,10 @@
 
 [繁體中文](../zh-TW/Editor_Workflow_Delivery_Plan.md) · [Epic #741](https://github.com/jimlee1972/Nexora/issues/741)
 
-Updated: 2026-11-01. Baseline: `8c4aa989ee7443cc0b2129d54f0f0f77c73d2b49`.
+Updated: 2026-11-12. Baseline: `8c4aa989ee7443cc0b2129d54f0f0f77c73d2b49`.
 Initial documentation publication base: `67db45d23e631b0e05b42c23716245a34ae996d5`.
 ED-WF-04 integration base: main `a21c1ca2293e4200de8dcaa4b892ffef34687c9c`, including the appearance update.
-Acceptance snapshot: **4/9 work orders (44.4%)**; ED-WF-01 merged in [PR #751](https://github.com/jimlee1972/Nexora/pull/751), ED-WF-02 in [PR #754](https://github.com/jimlee1972/Nexora/pull/754), ED-WF-03 in [PR #756](https://github.com/jimlee1972/Nexora/pull/756), ED-WF-04 in [PR #758](https://github.com/jimlee1972/Nexora/pull/758).
+Acceptance snapshot: **5/9 work orders (55.6%)**; ED-WF-01 merged in [PR #751](https://github.com/jimlee1972/Nexora/pull/751), ED-WF-02 in [PR #754](https://github.com/jimlee1972/Nexora/pull/754), ED-WF-03 in [PR #756](https://github.com/jimlee1972/Nexora/pull/756), ED-WF-04 in [PR #758](https://github.com/jimlee1972/Nexora/pull/758); ED-WF-06 is accepted through [PR #772](https://github.com/jimlee1972/Nexora/pull/772) and its prerequisite slices.
 The Epic records subsequent accepted work and its merged PR/evidence. Complete graphical Editor
 acceptance remains **0/8**; this plan does not accept physical-device or clean-host gates.
 
@@ -32,10 +32,32 @@ SortingGroup, nine-slice/Tiled rendering, masks and advanced animation state mac
 | ED-WF-03 | [#744](https://github.com/jimlee1972/Nexora/issues/744) | 01 | Source-free runtime output; development receipts and publication inventory kept outside it | ✅ PR #756 |
 | ED-WF-04 | [#745](https://github.com/jimlee1972/Nexora/issues/745) | 01 | Transactional Runtime/Zig migration; failed replacement retains the old module and World | ✅ PR #758 |
 | ED-WF-05 | [#746](https://github.com/jimlee1972/Nexora/issues/746) | 02, 04 | Background source compilation and stateful Play reload without Stop/Play | In progress; integration unaccepted |
-| ED-WF-06 | [#747](https://github.com/jimlee1972/Nexora/issues/747) | 01 | Compatible C/Zig source APIs and cooked Player dependency closure | Pending |
-| ED-WF-07 | [#748](https://github.com/jimlee1972/Nexora/issues/748) | 06 | Source indexing/Inspector/Undo/save/reopen/Play/Build/reimport in the real Editor | Pending |
+| ED-WF-06 | [#747](https://github.com/jimlee1972/Nexora/issues/747) | 01 | Compatible C/Zig source APIs and cooked Player dependency closure | ✅ PRs #767, #769, #770, #772; [acceptance](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md) |
+| ED-WF-07 | [#748](https://github.com/jimlee1972/Nexora/issues/748) | 06 | Source indexing/Inspector/Undo/save/reopen/Play/Build/reimport in the real Editor | In progress; source index, Inspector/persistence, module Play and Build support |
 | ED-WF-08 | [#749](https://github.com/jimlee1972/Nexora/issues/749) | 04, 06, 07 | Source animation anchors, live pool instances and valid handles survive replacement | Pending |
 | ED-WF-09 | [#750](https://github.com/jimlee1972/Nexora/issues/750) | 02, 03, 05, 07, 08 | Integrated native acceptance and a verified, extracted Windows Editor ZIP | Pending |
+
+✅ The independent ED-WF-06 registry slice (`nexora-whr.6.1`) adds a separately versioned C/Zig
+Sprite source registration table and immutable C++ resolver with Atlas dependency validation and
+bounded retirement. Its [Linux evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceRegistry-Linux-2026-11-12.md)
+records the executed registry gates and limits.
+
+✅ The source API slice (`nexora-whr.6.2`) adds size/version-checked C/Zig source Sprite/pool
+descriptors, compatible optional table negotiation and canonical Player registry/extraction. A real
+SDK-built Zig module runs after export, relocation and source deletion, with native pixels checking
+negative-scale pool geometry and source/Atlas replacement. See [API/Player evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceAPI-Linux-2026-11-12.md).
+Editor source workflow and source-animation reload remain open.
+The combined [ED-WF-06 acceptance](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md)
+includes the catalog and native-repack gates below. Complete Editor milestones remain **0/8**.
+
+✅ The independent catalog slice (`nexora-whr.6.3`) adds cooked Sprite sources as catalog kind 4,
+preloaded/deferred Player admission and canonical source export. Existing opaque kind 3, C/Zig
+table layouts, explicit Atlas-first loading and immutable ownership remain unchanged. The
+[Linux evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SpriteCatalog-Linux-2026-11-12.md)
+records real relocated-package admission and corruption/closure rejection. A real SDK-built Zig
+file-catalog game integrates the source API accepted in PR #769 and verifies scene/pool native
+pixels after relocation, source deletion and replacement. Editor authoring remains open in ED-WF-07; the combined ED-WF-06 acceptance below
+raises workflow completion to **5/9**, with graphical Editor still **0/8**.
 
 Each work order records exact commands/results and limitations in
 `Tools/Build/evidence/EditorWorkflow/ED-WF-XX.md`. The existing
@@ -66,7 +88,7 @@ The accepted [ED-WF-04 evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF
 [CI inventory](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04-CI.json) record 495/495 Cloud tests,
 Shipping builds, native Windows/macOS proof, all 42 successful CI checks and merged tree equality.
 Real Zig retains 32 accepted reloads and 224 expected rejections. Editor coordination, Sprite
-workflows and final delivery remain ED-WF-05 through ED-WF-09.
+authoring/animation and final delivery remain ED-WF-05, ED-WF-07, ED-WF-08 and ED-WF-09.
 Accepted count is the number of children with acceptance evidence and a merged delivery PR,
 divided by nine. Accepted rows use `✅`; pending or blocked work stays unmarked.
 

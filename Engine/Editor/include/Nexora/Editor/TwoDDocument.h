@@ -14,8 +14,15 @@ public:
   [[nodiscard]] const twod::Atlas &Atlas() const noexcept { return atlas_; }
   [[nodiscard]] const twod::Clip &Clip() const noexcept { return clip_; }
   [[nodiscard]] const twod::Tilemap &Tiles() const noexcept { return tiles_; }
+  // The view expires on mutation; an individual owner survives replacement/history/reopen.
+  [[nodiscard]] std::span<const twod::SpriteAsset> SpriteSources() const noexcept {
+    return *sources_;
+  }
+  [[nodiscard]] std::shared_ptr<const twod::SpriteAsset> SpriteSource(twod::AssetId) const;
   bool ReplaceAtlas(twod::Atlas atlas);
   bool ReplaceClip(twod::Clip clip);
+  bool ReplaceSpriteSource(twod::SpriteAsset);
+  bool RemoveSpriteSource(twod::AssetId);
   [[nodiscard]] std::optional<runtime::Id> AddSprite(twod::Sprite sprite,
                                                      runtime::Transform pose = {});
   bool EditSprite(runtime::Id id, twod::Sprite sprite, runtime::Transform pose);
@@ -42,6 +49,8 @@ private:
   twod::Atlas atlas_;
   twod::Clip clip_;
   twod::Tilemap tiles_;
+  std::shared_ptr<const std::vector<twod::SpriteAsset>> sources_{
+      std::make_shared<const std::vector<twod::SpriteAsset>>()};
   runtime::UndoStack history_;
   twod::Bytes saved_;
   std::size_t historyCount_{}, historyBytes_{};

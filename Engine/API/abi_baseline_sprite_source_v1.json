@@ -1,0 +1,40 @@
+{
+  "major": 3,
+  "extension_version": 1,
+  "twod_api_suffix": [
+    "get_source_api"
+  ],
+  "services_suffix": [
+    "get_sprite_content_api"
+  ],
+  "structures": {
+    "NexoraTwoDSourceSpriteV1": [
+      "sprite",
+      "source_high",
+      "source_low"
+    ],
+    "NexoraTwoDSourceInstanceV1": [
+      "transform",
+      "sprite"
+    ],
+    "NexoraTwoDSourceApiV1": [
+      "struct_size",
+      "abi_version",
+      "context",
+      "set_sprite",
+      "get_sprite",
+      "create_instances",
+      "read_instances",
+      "write_instances"
+    ],
+    "NexoraGameplaySpriteContentApiV1": [
+      "struct_size",
+      "abi_version",
+      "context",
+      "register_sprite_source"
+    ]
+  },
+  "zig_names": {
+    "NexoraGameplaySpriteContentApiV1": "content.SpriteApi"
+  }
+}

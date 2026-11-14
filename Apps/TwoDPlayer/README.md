@@ -57,7 +57,10 @@ Without it tile callbacks return `UNSUPPORTED`. Game logic names the configured 
 `load_scene`; this host provides one scene, a 1024-instance pool and copied component access.
 Other scene names and rendered/physics spawn descriptors return unsupported. An empty asset list
 and UI-only modules are valid. Atlas/Clip identities and dependencies must match their payloads;
-all Atlases are admitted before Clips, independently of descriptor order. No source art is bundled
+all Atlases, then Sprite sources, then Clips are admitted independently of descriptor order.
+Schema-2 source Clips require their complete preloaded source/Atlas closure, use the existing
+`clip` kind and retain region zero in C animation results; query the source API for the selected
+frame UUID. Legacy Clips keep schema 1. No source art is bundled
 by the engine. The game supplies its own assets and redistribution licenses.
 
 From a Windows x64 MSVC developer shell:
@@ -206,10 +209,21 @@ toward the aggregate startup budget. Packages may therefore exceed 64 MiB withou
 all at once. Cooked identity/hash/dependency and contained-path checks remain in place.
 
 The exported schema-1 descriptor appends `capacity A B C D E` and uses `deferred_atlas`,
-`deferred_clip` and `deferred_blob` lines. A configured `tile_atlas` may be initially unavailable
+`deferred_clip`, `deferred_sprite` and `deferred_blob` lines. A configured `tile_atlas` may be initially unavailable
 when a deferred Atlas is present; Zig must load the matching UUID before painting/rendering its
 cells. No implicit map/dependency load occurs. Old Players reject these new optional directives
 explicitly; export and run with matching versions.
+
+Sprite source entries use `{"kind": "sprite", "path": "Content/Hero.nx2sprite"}`;
+add `"preload": false` for deferred loading. Export cooks canonical files with `--compiler`,
+or copies an existing `.nxcook`. The Player validates cooked hash/type, payload/container UUID
+and exactly one matching Atlas dependency, then the registry checks region/trim compatibility.
+Preloads admit all explicit Atlas entries, then Sprite sources, then Clips regardless of descriptor
+order. A preloaded source therefore needs an explicit preloaded Atlas entry; a deferred Atlas
+cannot satisfy startup admission. Deferred sources appear as catalog kind 4 in descriptor order;
+load their Atlas first, then request the source. Kind 3 remains opaque bytes. These directives
+admit immutable source metadata for the optional source-bearing gameplay descriptors described
+below; main Editor authoring remains separate work. See [catalog validation evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SpriteCatalog-Linux-2026-11-12.md).
 
 The [asset contract](../../Engine/TwoD/GameplayAssets.md) defines request transfer, cancellation,
 clip-before-atlas removal, logical RAM/texture budgets and mandatory reader shutdown before VFS
@@ -349,3 +363,86 @@ two lifecycle owners. Entity spawning accepts live catalog instances, including 
 All authored scene Sprites and loaded Tilemaps share one sorted render extraction with the host
 pool. [Ownership and limits](../../Engine/TwoD/README.md#packaged-authored-2d-scenes) apply.
 The main 3D Editor's text `.scene` files are a different format; use 2D Studio ND2D documents here.
+
+## Strict generation ownership
+
+The Player uses Runtime's strict reload transaction from initial module Load. Each generation owns
+its Play World, Sprite/Tilemap or catalog session, animation/query/camera values, exact pool handles
+and stable host/API contexts. Render extraction resolves the current generation after replacement;
+no World, Sprite or pool reference survives publication. The existing three-argument TwoD generation
+factory remains available; an additive overload preserves a host's absent Tilemap capability.
+C++ generation consumers rebuild for the updated owner layout; stable C/Zig wires are unchanged.
+
+Initial dynamic Load and each replacement use a distinct host-owned temporary image. Snapshot
+admission checks the selected regular file's size/write time before and after copying and never
+writes the source/project directory. Candidate copies survive failure cleanup/finalizers; old
+copies retire only after Runtime closes their libraries, and final Unload removes the active copy.
+This avoids the strict Runtime rejection of reusing an already loaded image. The canonical SDK's
+self-contained gameplay images use this boundary; sibling native dependency payloads are not copied.
+Strict dynamic admission rejects TLS/Objective-C-pinned images before gameplay creation. The raw
+TwoD and HD2D entry points use the SDK's TLS-free macOS panic handler to remain unloadable.
+
+The private `GenerationHost::Reload` boundary enters read-only capture before Runtime calls
+`save_state`. Cached TwoD/source/scene and external-service operations reject with `UNSUPPORTED`
+during capture; ordinary state serialization cannot mutate published host values through them.
+Component reads and copied input remain available. Use the boundary rather than calling the raw
+Runtime Reload method. All calls, capture, staging and publication remain on the host owner thread;
+Runtime closes dispatch and drains registered work leases before state capture/staging.
+
+Candidates prepare against independent World/TwoD/scene/pool values. Input bindings, content and
+deferred assets, UI, audio, storage, display/window, lifecycle and effects retain their host owners;
+candidate operations through those external tables reject instead of changing live state. Their
+tables may be negotiated and cached during preparation and become callable after publication.
+Games opting into the canonical SDK reload lifecycle serialize values and retained handles, and
+must handle unsupported preparation effects. A failed preparation owns its partial cleanup under
+the SDK contract. Reload does not create a second native window or perform file compilation.
+
+Old cached API contexts stay bound to the retired generation through Stop, Destroy and library
+finalizers. Its World cleanup affects only retired values, and external service operations reject.
+Rejected candidates retain their contexts through Destroy/finalizers before rollback. Normal final
+Unload still allows the active generation to clean up external resources. Allocator counters outlive
+all contexts, so candidate and retired state deallocations remain valid. Host API tables and scene
+formats retain their C/Zig layouts; new helper ownership is private to the Player application.
+
+The engine-owned raw Zig sample advertises its existing side-effect-free create/restored-start
+behavior as reload-lifecycle capable and uses the SDK's TLS-free macOS panic handler for unloadable
+dynamic images. Project-mode commands retain their explicit module selection;
+this embedding work supplies no project file watcher or compiler. Packaged main Editor
+source-animation/pool gameplay services and complete Editor reload acceptance remain separate work.
+
+
+The focused `twod.player_reload_generations` fixture links the actual Player host factory and
+generation owner. Its Linux native companion exercises 32 canonical SDK replacements, 128
+rejected candidates, source reimport/repack and 192 acknowledged presentations, comparing complete
+source/pool image rows before and after publication or rejection. Cached service calls from
+prepare/Stop/Destroy and actual ELF/Mach-O unload finalizers exercise lifetime isolation. A
+separate existing native sample process covers the complete Player loop with its bounded reload.
+This does not establish 32 source SDK replacements through that entire application loop, a project
+watcher, production Editor reload or complete ED-WF-08 acceptance. Full local validation passes531/531 and all14gates; fresh exact-head hosted CI
+is required before delivery.
+
+## Gameplay Sprite sources
+
+The Player supplies `nx.getSpriteContent(services)` and `nx.getTwoDSources(twod)` after acquiring
+the usual services/TwoD tables. Register an Atlas through Content first, then the canonical
+96-byte Sprite source through `register_sprite_source`. Set its UUID in `TwoDSourceSpriteV1`
+(or `TwoDSourceInstanceV1` for the pool); use the old pool table to destroy handles. Always check
+optional acquisition results. Source-aware Player extraction resolves the immutable registry each
+frame, including replacement geometry and Atlas generations; unresolved sources are unavailable.
+
+Games may embed cooked bytes in their module and register them at Start, or use the preloaded
+`sprite`/deferred `deferred_sprite` file directives above. Catalog kind 4 admits sources; kind 3
+still means opaque bytes. The file-catalog Zig fixture removes its initial raw source/Atlas before
+module compilation, then verifies relocated source Sprite/pool geometry and native pixels through
+the same API. Editor source capture and source-animation reload remain open. The
+[real Zig/relocated Player evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceAPI-Linux-2026-11-12.md)
+checks scene and pooled source instances, negative scale, source/Atlas replacement and native pixels.
+
+## Authored Sprite source documents
+
+ND2D schema-2 scene documents embed a bounded immutable Sprite source catalog. Startup admits their
+Atlas/Clip/source closure into the existing registry before module callbacks. Repeated UUIDs across
+documents or file assets require identical encoded metadata; conflicts reject startup. Schema-1
+source-free documents and all C/Zig tables remain compatible. The existing global capacity and
+retirement budgets apply. Source paths and authoring files are unnecessary after export/relocation.
+See [the shared wire contract](../../Engine/TwoD/README.md#packaged-authored-2d-scenes).

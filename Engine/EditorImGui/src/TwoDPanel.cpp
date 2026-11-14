@@ -61,6 +61,9 @@ void DrawTwoDPanel(TwoDDocument &doc, TwoDPanelState &state, bool allowed, std::
   ImGui::SameLine();
   if (detail::IconButton("Import clip", detail::EditorIcon::Animation))
     state.importClipRequested = true;
+  ImGui::SameLine();
+  if (detail::IconButton("Import Sprite source", detail::EditorIcon::Import))
+    state.importSpriteRequested = true;
   ImGui::EndDisabled();
   if (!state.status.empty())
     ImGui::TextWrapped("%s", state.status.c_str());
@@ -74,11 +77,24 @@ void DrawTwoDPanel(TwoDDocument &doc, TwoDPanelState &state, bool allowed, std::
       const auto &atlas = doc.Atlas();
       if (!state.region && !atlas.regions.empty())
         state.region = atlas.regions.front().id;
-      ImGui::BeginDisabled(!writable || !texture || !atlas.Find(state.region));
+      ImGui::BeginDisabled(!writable);
+      const auto sourceLabel = state.newSpriteSource ? state.newSpriteSource->ToString() : "None";
+      if (ImGui::BeginCombo("New Sprite source", sourceLabel.c_str())) {
+        if (ImGui::Selectable("None", !state.newSpriteSource))
+          state.newSpriteSource.reset();
+        for (const auto &source : doc.SpriteSources())
+          if (ImGui::Selectable(source.id.ToString().c_str(), state.newSpriteSource == source.id))
+            state.newSpriteSource = source.id;
+        ImGui::EndCombo();
+      }
+      ImGui::EndDisabled();
+      ImGui::BeginDisabled(!writable || !texture || !atlas.Find(state.region) ||
+                           (state.newSpriteSource && !doc.SpriteSource(*state.newSpriteSource)));
       if (detail::IconButton("Add sprite", detail::EditorIcon::Add)) {
         twod::Sprite s;
         s.atlas = atlas.id;
         s.region = state.region;
+        s.source = state.newSpriteSource;
         auto id = doc.AddSprite(s);
         if (id)
           state.selected = *id;
@@ -101,10 +117,28 @@ void DrawTwoDPanel(TwoDDocument &doc, TwoDPanelState &state, bool allowed, std::
         float xy[]{float(pose.x), float(pose.y)}, scale[]{float(pose.sx), float(pose.sy)};
         bool changed = false;
         ImGui::BeginDisabled(!writable);
+        const auto label = sprite.source ? sprite.source->ToString() : "None";
+        if (ImGui::BeginCombo("Sprite source", label.c_str())) {
+          if (ImGui::Selectable("None", !sprite.source)) {
+            sprite.source.reset();
+            changed = true;
+          }
+          for (const auto &source : doc.SpriteSources())
+            if (ImGui::Selectable(source.id.ToString().c_str(), sprite.source == source.id)) {
+              sprite.source = source.id;
+              changed = true;
+            }
+          ImGui::EndCombo();
+        }
         changed |= ImGui::DragFloat2("Position", xy, 0.02F);
         changed |= ImGui::DragFloat2("Scale", scale, 0.02F);
-        changed |= ImGui::DragFloat2("Size", &sprite.size.x, 0.02F, 0.001F, 1000);
-        changed |= ImGui::DragFloat2("Pivot", &sprite.pivot.x, 0.01F, -10, 10);
+        if (!sprite.source) {
+          changed |= ImGui::DragFloat2("Size", &sprite.size.x, 0.02F, 0.001F, 1000);
+          changed |= ImGui::DragFloat2("Pivot", &sprite.pivot.x, 0.01F, -10, 10);
+        } else if (const auto source = doc.SpriteSource(*sprite.source)) {
+          ImGui::Text("Source canvas: %u x %u; pixels/unit: %.3f", source->sourceWidth,
+                      source->sourceHeight, source->pixelsPerUnit);
+        }
         changed |= ImGui::ColorEdit4("Tint", sprite.color.data());
         changed |= ImGui::Checkbox("Flip X", &sprite.flipX);
         ImGui::SameLine();
@@ -164,7 +198,8 @@ void DrawTwoDPanel(TwoDDocument &doc, TwoDPanelState &state, bool allowed, std::
       if (texture) {
         if (auto tiles = doc.Tiles().Extract(state.camera, resolve))
           Frame(*draw, *tiles, origin);
-        if (auto frame = doc.Scene().Extract(state.camera, resolve))
+        if (auto frame = doc.Scene().Extract(state.camera, resolve,
+                                             [&](auto id) { return doc.SpriteSource(id); }))
           Frame(*draw, *frame, origin);
       }
       const auto scale = double(state.camera.height) / state.camera.verticalSize;
@@ -215,7 +250,8 @@ void DrawTwoDPanel(TwoDDocument &doc, TwoDPanelState &state, bool allowed, std::
     }
     if (ImGui::BeginTabItem("Animation", nullptr, flags(TwoDPanelTab::Animation))) {
       auto clip = doc.Clip();
-      ImGui::BeginDisabled(!writable || !doc.Atlas().Find(state.region));
+      ImGui::BeginDisabled(!writable);
+      ImGui::BeginDisabled(!doc.Atlas().Find(state.region) || twod::ClipUsesSources(clip));
       if (detail::IconButton("Append selected region", detail::EditorIcon::Add)) {
         if (clip.frames.empty()) {
           clip.id = {doc.Atlas().id.high ^ 0x434c4950U, doc.Atlas().id.low};
@@ -224,6 +260,19 @@ void DrawTwoDPanel(TwoDDocument &doc, TwoDPanelState &state, bool allowed, std::
         clip.frames.push_back({state.region, 0.1, {}});
         Result(state, doc.ReplaceClip(clip));
       }
+      ImGui::EndDisabled();
+      const auto *selected = doc.Scene().Find(state.selected);
+      ImGui::BeginDisabled(!selected || !selected->source ||
+                           (!clip.frames.empty() && !twod::ClipUsesSources(clip)));
+      if (detail::IconButton("Append selected Sprite source", detail::EditorIcon::Add)) {
+        if (clip.frames.empty()) {
+          clip.id = {doc.Atlas().id.high ^ 0x434c4950U, doc.Atlas().id.low};
+          clip.atlas = {};
+        }
+        clip.frames.push_back({0, 0.1, {}, selected->source});
+        Result(state, doc.ReplaceClip(clip));
+      }
+      ImGui::EndDisabled();
       bool changed = ImGui::Checkbox("Loop", &clip.loop);
       for (std::size_t i = 0; i < clip.frames.size(); ++i) {
         ImGui::PushID(int(i));
@@ -237,7 +286,10 @@ void DrawTwoDPanel(TwoDDocument &doc, TwoDPanelState &state, bool allowed, std::
           f.event = event;
           changed = true;
         }
-        ImGui::Text("Region %u", f.region);
+        if (f.source)
+          ImGui::Text("Sprite source: %s", f.source->ToString().c_str());
+        else
+          ImGui::Text("Region %u", f.region);
         if (i > 0 && detail::IconButton("Move earlier", detail::EditorIcon::Earlier)) {
           std::swap(clip.frames[i], clip.frames[i - 1]);
           changed = true;
@@ -262,7 +314,8 @@ void DrawTwoDPanel(TwoDDocument &doc, TwoDPanelState &state, bool allowed, std::
       state.preview.Pause(state.previewPaused);
       if (auto update = state.preview.Advance(std::clamp(double(seconds), 0.0, 0.25))) {
         if (texture) {
-          if (const auto *r = doc.Atlas().Find(update->region)) {
+          const auto source = update->source ? doc.SpriteSource(*update->source) : nullptr;
+          if (const auto *r = doc.Atlas().Find(source ? source->region : update->region)) {
             const auto &a = doc.Atlas();
             ImGui::Image(ImTextureID(texture), {128, 128},
                          {float(r->x) / float(a.width), float(r->y) / float(a.height)},

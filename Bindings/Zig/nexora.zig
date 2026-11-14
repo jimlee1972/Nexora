@@ -36,8 +36,16 @@ pub const GameplayServicesApiV1 = extern struct {
     get_lifecycle_api: ?*const fn (?*anyopaque, *lifecycle.Api) callconv(.c) i32 = null,
     get_scene_api: ?*const fn (?*anyopaque, *scene.Api) callconv(.c) i32 = null,
     get_twod_effects_api: ?*const fn (?*anyopaque, *twod_effects.Api) callconv(.c) i32 = null,
+    get_sprite_content_api: ?*const fn (?*anyopaque, *content.SpriteApi) callconv(.c) i32 = null,
 };
 pub const services_v1_base_size: u32 = @offsetOf(GameplayServicesApiV1, "get_display_api");
+pub fn getSpriteContent(services: GameplayServicesApiV1) ?content.SpriteApi {
+    if (services.abi_version != 1 or services.struct_size < @offsetOf(GameplayServicesApiV1, "get_sprite_content_api") + @sizeOf(@FieldType(GameplayServicesApiV1, "get_sprite_content_api"))) return null;
+    const get = services.get_sprite_content_api orelse return null;
+    var api = content.SpriteApi{};
+    if (get(services.context, &api) != 0 or !api.valid()) return null;
+    return api;
+}
 pub fn getTwoDEffects(services: GameplayServicesApiV1) ?twod_effects.Api {
     if (services.struct_size < @offsetOf(GameplayServicesApiV1, "get_twod_effects_api") + @sizeOf(@FieldType(GameplayServicesApiV1, "get_twod_effects_api"))) return null;
     const get = services.get_twod_effects_api orelse return null;
@@ -284,6 +292,7 @@ pub const TwoDApiV1 = extern struct {
     destroy_instances: ?*const fn (?*anyopaque, ?[*]const TwoDInstanceHandle, u32) callconv(.c) i32 = null,
     read_instances: ?*const fn (?*anyopaque, ?[*]const TwoDInstanceHandle, u32, ?[*]TwoDInstance) callconv(.c) i32 = null,
     write_instances: ?*const fn (?*anyopaque, ?[*]const TwoDInstanceHandle, u32, ?[*]const TwoDInstance) callconv(.c) i32 = null,
+    get_source_api: ?*const fn (?*anyopaque, *TwoDSourceApiV1) callconv(.c) i32 = null,
 };
 
 pub const TwoDInstanceHandle = extern struct {
@@ -295,6 +304,39 @@ pub const TwoDInstance = extern struct {
     transform: TransformV2 = .{},
     sprite: TwoDSprite = .{},
 };
+pub const TwoDSourceSpriteV1 = extern struct {
+    sprite: TwoDSprite = .{},
+    source_high: u64 = 0,
+    source_low: u64 = 0,
+};
+pub const TwoDSourceInstanceV1 = extern struct {
+    transform: TransformV2 = .{},
+    sprite: TwoDSourceSpriteV1 = .{},
+};
+pub const TwoDSourceApiV1 = extern struct {
+    struct_size: u32 = @sizeOf(TwoDSourceApiV1),
+    abi_version: u32 = 1,
+    context: ?*anyopaque = null,
+    set_sprite: ?*const fn (?*anyopaque, u64, ?*const TwoDSourceSpriteV1) callconv(.c) i32 = null,
+    get_sprite: ?*const fn (?*anyopaque, u64, *TwoDSourceSpriteV1) callconv(.c) i32 = null,
+    create_instances: ?*const fn (?*anyopaque, ?[*]const TwoDSourceInstanceV1, u32, ?[*]TwoDInstanceHandle) callconv(.c) i32 = null,
+    read_instances: ?*const fn (?*anyopaque, ?[*]const TwoDInstanceHandle, u32, ?[*]TwoDSourceInstanceV1) callconv(.c) i32 = null,
+    write_instances: ?*const fn (?*anyopaque, ?[*]const TwoDInstanceHandle, u32, ?[*]const TwoDSourceInstanceV1) callconv(.c) i32 = null,
+    pub fn valid(self: *const TwoDSourceApiV1) bool {
+        return self.struct_size >= @sizeOf(TwoDSourceApiV1) and self.abi_version == 1 and
+            self.set_sprite != null and self.get_sprite != null and self.create_instances != null and
+            self.read_instances != null and self.write_instances != null;
+    }
+};
+pub const twod_v1_base_size: u32 = @offsetOf(TwoDApiV1, "get_source_api");
+pub const twod_v1_source_size: u32 = @offsetOf(TwoDApiV1, "get_source_api") + @sizeOf(@FieldType(TwoDApiV1, "get_source_api"));
+pub fn getTwoDSources(twod: TwoDApiV1) ?TwoDSourceApiV1 {
+    if (twod.struct_size < twod_v1_source_size or twod.abi_version != 1) return null;
+    const get = twod.get_source_api orelse return null;
+    var api = TwoDSourceApiV1{};
+    if (get(twod.context, &api) != 0 or !api.valid()) return null;
+    return api;
+}
 
 /// Always inspect the V3 prefix before reading the optional appended callback.
 pub fn getTwoD(host: *const GameplayHostV3) ?TwoDApiV1 {
@@ -303,9 +345,9 @@ pub fn getTwoD(host: *const GameplayHostV3) ?TwoDApiV1 {
     const get = host.get_twod_api orelse return null;
     var api = TwoDApiV1{};
     if (get(host.context, &api) != 0 or api.abi_version != 1 or
-        api.struct_size < @sizeOf(TwoDApiV1)) return null;
+        api.struct_size < twod_v1_base_size) return null;
     inline for (@typeInfo(TwoDApiV1).@"struct".fields[3..]) |field| {
-        if (@field(api, field.name) == null) return null;
+        if (@offsetOf(TwoDApiV1, field.name) < twod_v1_base_size and @field(api, field.name) == null) return null;
     }
     return api;
 }

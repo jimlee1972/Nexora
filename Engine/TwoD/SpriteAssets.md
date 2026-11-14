@@ -1,6 +1,6 @@
 # Sprite source assets (S01 and scene bindings)
 
-This additive source-geometry slice extends the existing TwoD module. Atlas/Clip formats,
+This additive source-geometry slice extends the existing TwoD module. Atlas and legacy Clip formats,
 linear straight-alpha color, native Sprite instance records and C/Zig service prefixes remain
 unchanged. Public C++ consumers rebuild for the appended optional `Sprite::source` identity and
 `SpriteInstance` local quad. Source-bearing scenes use the additive NX2S schema 3 below; scenes
@@ -8,6 +8,10 @@ without sources retain byte-for-byte schema-2 encoding. The
 [full 2D roadmap](../../Roadmap/en/2D_Roadmap.md) retains its existing platform verdicts; this supporting work does not accept M6/M7 or the complete Sprite expansion.
 
 ## Identity and wire
+
+Source animation additionally uses Clip schema 2, described in the
+[TwoD contract](README.md#source-animation-clips). Legacy region Clips retain schema 1 bytes.
+Both formats use the same import, cook, registry and gameplay animation services.
 
 `SpriteAsset` owns values only: its UUID, Atlas UUID, stable region ID, untrimmed canvas size,
 trim rectangle, pixel Pivot, PixelsPerUnit and four borders. Renaming source files or repacking an
@@ -122,10 +126,16 @@ embedded or rewritten during scene save; repacking/reloading refreshes geometry 
 next extraction while existing frames retain their prior Atlas generation. Isolated Play can load
 these scenes and preserves the existing authoring-only Restore rule.
 
-This completes portable C++ scene/general extraction source binding. Main Editor project indexing,
-Inspector/Play capture and Player catalogs still need explicit source admission; C/Zig descriptors,
-automatic source-asset animation and pool publication remain separate work. Passing only a resolved
-legacy `Sprite` to `SpriteScene::Set` still discards its transient quad; store `source` instead.
+This completes portable C++ scene/general extraction source binding. The optional
+[GameplayContent source table](GameplayContent.md#optional-sprite-source-registry-table) now registers
+and resolves immutable sources with dependency and retirement protection. The canonical Player
+advertises source-content registration and the optional [source Sprite/pool API](README.md), with
+source-aware extraction. Player file admission supports preloaded `sprite` and deferred
+`deferred_sprite` cooked files with Atlas closure validation through [catalog kind 4](GameplayAssets.md).
+Main Editor typed source indexing/reimport and immutable Play capture resolve the same geometry
+through frozen Atlas closure. Inspector assignment, authoring persistence, Build capture, automatic
+source animation and reload publication remain separate work. Passing only a resolved legacy
+`Sprite` to `SpriteScene::Set` still discards its transient quad; store `source` instead.
 
 ## Manifest and CLI
 
@@ -196,3 +206,11 @@ checks; they are not fresh native pixel, minimum-PC or Windows/Mac/mobile accept
 
 See the [source foundation evidence](evidence/SpriteSource-Linux-2026-10-28.md) and
 [scene binding evidence](evidence/SpriteSourceScenes-Linux-2026-10-28.md) for executed commands.
+
+The real SDK/C ABI consumer `twod.sprite_source_repack_player` adds asymmetric native quadrant
+checks for X/Y/combined flips, Pivot-relative trim mirroring and negative-scale pool composition.
+An Atlas-only replacement changes extent and packed region coordinates while source UUIDs,
+authored transforms, style and handles stay fixed. The relocated file-catalog game runs after raw
+source deletion; both original embedded and catalog fixtures remain. Development and strict
+Monolithic Shipping native checks are recorded in the
+[native source evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-NativeSource-Linux-2026-11-12.md).

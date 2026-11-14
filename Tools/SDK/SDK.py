@@ -125,7 +125,7 @@ def main():
     for field in ('build', 'output', 'redist', 'ninja', 'ninja-license'):
         pack.add_argument('--'+field, type=Path, required=True)
     pack.add_argument('--commit', required=True)
-    pack.add_argument('--version', default='0.3.0')
+    pack.add_argument('--version', default='0.3.1')
     args = parser.parse_args()
     if args.command == 'verify':
         print(json.dumps(verify(args.root), indent=2))

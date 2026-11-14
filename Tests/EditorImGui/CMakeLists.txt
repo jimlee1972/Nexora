@@ -144,6 +144,13 @@ target_link_libraries(NexoraEditorContextLifetimeTests PRIVATE Nexora::EditorImG
 nexora_apply_defaults(NexoraEditorContextLifetimeTests)
 add_test(NAME editor.imgui_context_lifetime COMMAND NexoraEditorContextLifetimeTests)
 
+add_executable(NexoraEditorLayoutRestartTests LayoutRestartTests.cpp)
+target_include_directories(NexoraEditorLayoutRestartTests
+  PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraEditorLayoutRestartTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
+nexora_apply_defaults(NexoraEditorLayoutRestartTests)
+add_test(NAME editor.layout_restart COMMAND NexoraEditorLayoutRestartTests)
+
 add_executable(NexoraEditorSceneFrameTests SceneFrameTests.cpp)
 target_include_directories(NexoraEditorSceneFrameTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src" "${PROJECT_SOURCE_DIR}/Apps/Editor")
 target_link_libraries(NexoraEditorSceneFrameTests PRIVATE Nexora::EditorImGui)
@@ -878,6 +885,44 @@ target_include_directories(NexoraReflectedInspectorUiTests PRIVATE "${PROJECT_SO
 target_link_libraries(NexoraReflectedInspectorUiTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraReflectedInspectorUiTests)
 add_test(NAME editor.reflected_inspector_ui COMMAND NexoraReflectedInspectorUiTests)
+if(NEXORA_ENABLE_2D)
+  if(NEXORA_ENABLE_ASSET_PIPELINE)
+    add_executable(NexoraPackagedSpritePlayTests PackagedSpritePlayTests.cpp)
+    target_include_directories(NexoraPackagedSpritePlayTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+    target_link_libraries(NexoraPackagedSpritePlayTests PRIVATE Nexora::EditorImGui)
+    nexora_apply_defaults(NexoraPackagedSpritePlayTests)
+    add_test(NAME editor.packaged_sprite_play COMMAND NexoraPackagedSpritePlayTests)
+    if(NEXORA_ZIG_EXECUTABLE)
+      include("${PROJECT_SOURCE_DIR}/CMake/Modules/NexoraGameProject.cmake")
+      nexora_add_game_module(NexoraPackagedSpriteScriptFixture
+        PROJECT "${CMAKE_CURRENT_SOURCE_DIR}/PackagedSpriteScript/project.json"
+        OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/packaged-sprite-script"
+        ZIG "${NEXORA_ZIG_EXECUTABLE}")
+      add_dependencies(NexoraPackagedSpritePlayTests NexoraPackagedSpriteScriptFixture)
+    endif()
+  endif()
+  add_executable(NexoraSpriteSourceInspectorTests SpriteSourceInspectorTests.cpp)
+  add_executable(NexoraBuildAnimationPickerTests BuildAnimationPickerTests.cpp)
+  target_include_directories(NexoraBuildAnimationPickerTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+  target_link_libraries(NexoraBuildAnimationPickerTests PRIVATE Nexora::EditorImGui)
+  nexora_apply_defaults(NexoraBuildAnimationPickerTests)
+  add_test(NAME editor.build_animation_picker COMMAND NexoraBuildAnimationPickerTests)
+  set_tests_properties(editor.build_animation_picker PROPERTIES TIMEOUT 90)
+  target_include_directories(NexoraSpriteSourceInspectorTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+  target_link_libraries(NexoraSpriteSourceInspectorTests PRIVATE Nexora::EditorImGui)
+  nexora_apply_defaults(NexoraSpriteSourceInspectorTests)
+  add_test(NAME editor.sprite_source_inspector COMMAND NexoraSpriteSourceInspectorTests)
+  set_tests_properties(editor.sprite_source_inspector PROPERTIES TIMEOUT 90)
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE
+      AND NEXORA_ENABLE_VULKAN_BACKEND AND NEXORA_ENABLE_SLANG)
+    add_test(NAME editor.linux_sprite_source_inspector
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxSpriteSourceInspector.py"
+        --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraSpriteSourceInspectorTests>"
+        --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+    set_tests_properties(editor.linux_sprite_source_inspector PROPERTIES TIMEOUT 120
+      LABELS "editor;vulkan;virtual-display" WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+  endif()
+endif()
 add_executable(NexoraPrefabIsolationUiTests PrefabIsolationTests.cpp)
 target_include_directories(NexoraPrefabIsolationUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
 target_link_libraries(NexoraPrefabIsolationUiTests PRIVATE Nexora::EditorImGui)
@@ -903,6 +948,11 @@ if(NEXORA_ENABLE_2D)
   target_link_libraries(NexoraPlayTwoDServicesTests PRIVATE Nexora::EditorImGui Nexora::TwoD)
   nexora_apply_defaults(NexoraPlayTwoDServicesTests)
   add_test(NAME editor.play_twod_services COMMAND NexoraPlayTwoDServicesTests)
+  add_executable(NexoraEditorSpriteSourcePlayTests EditorSpriteSourcePlayTests.cpp)
+  target_include_directories(NexoraEditorSpriteSourcePlayTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+  target_link_libraries(NexoraEditorSpriteSourcePlayTests PRIVATE Nexora::EditorImGui Nexora::TwoD)
+  nexora_apply_defaults(NexoraEditorSpriteSourcePlayTests)
+  add_test(NAME editor.sprite_source_play COMMAND NexoraEditorSpriteSourcePlayTests)
 endif()
 
 if(TARGET NexoraPlayTwoDServicesTests AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND
@@ -919,6 +969,17 @@ if(TARGET NexoraPlayTwoDServicesTests AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND
     --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/editor-play-2d")
   set_tests_properties(editor.play_twod_native PROPERTIES TIMEOUT 45 SKIP_RETURN_CODE 77
     LABELS "twod;editor;vulkan;virtual-display")
+  add_executable(NexoraEditorSpriteSourceNativeTests EditorSpriteSourcePlayTests.cpp)
+  target_compile_definitions(NexoraEditorSpriteSourceNativeTests PRIVATE NEXORA_EDITOR_SOURCE_NATIVE=1)
+  target_include_directories(NexoraEditorSpriteSourceNativeTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+  target_link_libraries(NexoraEditorSpriteSourceNativeTests PRIVATE Nexora::EditorImGui Nexora::TwoD X11::X11)
+  nexora_apply_defaults(NexoraEditorSpriteSourceNativeTests)
+  add_test(NAME editor.sprite_source_native COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/Tests/Showcase/LinuxVulkanSceneAcceptance.py"
+    --native-test "$<TARGET_FILE:NexoraEditorSpriteSourceNativeTests>"
+    --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/editor-sprite-sources")
+  set_tests_properties(editor.sprite_source_native PROPERTIES TIMEOUT 45 SKIP_RETURN_CODE 77
+    LABELS "twod;editor;source;vulkan;virtual-display")
 endif()
 
 if(NEXORA_ENABLE_2D)
@@ -943,6 +1004,23 @@ if(NEXORA_ENABLE_2D AND NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
       --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/editor-game-twod")
   set_tests_properties(editor.linux_native_game_twod PROPERTIES
     TIMEOUT 180 RUN_SERIAL TRUE LABELS "editor;twod;vulkan;virtual-display")
+  add_test(NAME editor.linux_authored_preview
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxAuthoredPreview.py"
+      --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraGameTwoDPreviewTests>"
+      --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}"
+      --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/editor-authored-preview")
+  set_tests_properties(editor.linux_authored_preview PROPERTIES
+    TIMEOUT 180 RUN_SERIAL TRUE LABELS "editor;twod;source;vulkan;virtual-display")
+  if(TARGET NexoraPackagedSpriteScriptFixture AND TARGET NexoraGameSpriteBuildTests)
+    add_test(NAME editor.linux_packaged_sprites
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxPackagedSprites.py"
+        --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraGameSpriteBuildTests>"
+        --module "${CMAKE_CURRENT_BINARY_DIR}/packaged-sprite-script/lib/${CMAKE_SHARED_LIBRARY_PREFIX}PackagedSpriteFixture${CMAKE_SHARED_LIBRARY_SUFFIX}"
+        --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}"
+        --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/editor-packaged-sprites")
+    set_tests_properties(editor.linux_packaged_sprites PROPERTIES
+      TIMEOUT 180 RUN_SERIAL TRUE LABELS "editor;twod;source;vulkan;virtual-display")
+  endif()
 endif()
 
 add_executable(NexoraContentDependencyTests ContentDependencyTests.cpp)
@@ -1026,4 +1104,21 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
       --editor "$<TARGET_FILE:NexoraEditor>" --xvfb "${NEXORA_XVFB_EXECUTABLE}"
       --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
   set_tests_properties(editor.linux_appearance PROPERTIES TIMEOUT 90 LABELS "vulkan;virtual-display")
+endif()
+
+if(NEXORA_ENABLE_2D AND NEXORA_ENABLE_ASSET_PIPELINE)
+  add_executable(NexoraSceneSpritePreviewTests SceneSpritePreviewTests.cpp)
+  target_include_directories(NexoraSceneSpritePreviewTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+  target_link_libraries(NexoraSceneSpritePreviewTests PRIVATE Nexora::EditorImGui Nexora::TwoD)
+  nexora_apply_defaults(NexoraSceneSpritePreviewTests)
+  add_test(NAME editor.scene_sprite_preview COMMAND NexoraSceneSpritePreviewTests)
+  if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
+    add_test(NAME editor.linux_scene_sprites
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxSceneSprites.py"
+        --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraSceneSpritePreviewTests>"
+        --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}"
+        --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/editor-scene-sprites")
+    set_tests_properties(editor.linux_scene_sprites PROPERTIES
+      TIMEOUT 180 RUN_SERIAL TRUE LABELS "editor;twod;source;vulkan;virtual-display")
+  endif()
 endif()

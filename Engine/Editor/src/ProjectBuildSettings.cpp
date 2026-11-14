@@ -144,9 +144,22 @@ public:
     ProjectBuildSettings settings;
     const auto read_field = [&](unsigned key) {
       if (key == 0)
-        return Take(schema == 1 ? "1" : "2");
+        return Take(std::to_string(schema));
       if (key == 1)
         return Uuid(settings.start_scene);
+      if (key == 4) {
+        if (!Take("["))
+          return false;
+        if (Take("]"))
+          return true;
+        do {
+          runtime::AssetUuid id;
+          if (settings.animation_clips.size() == 4096 || !Uuid(id))
+            return false;
+          settings.animation_clips.push_back(id);
+        } while (Take(","));
+        return Take("]");
+      }
       if (key == 3)
         return Object<3>({"mode", "script_manifest", "output"}, [&](unsigned build_key) {
           const auto value = String();
@@ -195,9 +208,11 @@ public:
       } while (Take(","));
       return Take("]");
     };
-    const bool complete = schema == 1
-                              ? Object<3>({"schema", "start_scene", "scenes"}, read_field)
-                              : Object<4>({"schema", "start_scene", "scenes", "build"}, read_field);
+    const bool complete =
+        schema == 1   ? Object<3>({"schema", "start_scene", "scenes"}, read_field)
+        : schema == 2 ? Object<4>({"schema", "start_scene", "scenes", "build"}, read_field)
+                      : Object<5>({"schema", "start_scene", "scenes", "build", "animation_clips"},
+                                  read_field);
     if (!complete)
       return {};
     Space();
@@ -279,6 +294,12 @@ bool ValidateProjectBuildSettings(const ProjectBuildSettings &settings, std::str
     return Fail(error, "Build configuration requires a safe output folder and a .json manifest in "
                        "a dedicated source directory.");
   std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> ids;
+  if (settings.animation_clips.size() > 4096)
+    return Fail(error, "Build animation roots exceed 4096 Clips.");
+  for (const auto id : settings.animation_clips)
+    if (id == runtime::AssetUuid{} || !ids.insert(id).second)
+      return Fail(error, "Build animation roots require unique nonzero Clip UUIDs.");
+  ids.clear();
   std::unordered_set<std::string> paths;
   bool startup = false;
   for (const auto &scene : settings.scenes) {
@@ -297,6 +318,8 @@ std::optional<ProjectBuildSettings> ParseProjectBuildSettings(std::string_view b
     auto result = Reader(bytes).Read(1);
     if (!result)
       result = Reader(bytes).Read(2);
+    if (!result)
+      result = Reader(bytes).Read(3);
     if (result && ValidateProjectBuildSettings(*result, error))
       return result;
   }
@@ -307,8 +330,12 @@ std::optional<std::string> SerializeProjectBuildSettings(const ProjectBuildSetti
                                                          std::string *error) {
   if (!ValidateProjectBuildSettings(settings, error))
     return {};
-  const bool extended = settings.build != GameBuildSettings{};
-  std::string text = "{\n  \"schema\": " + std::string(extended ? "2" : "1") +
+  const bool clips = !settings.animation_clips.empty();
+  const bool extended = clips || settings.build != GameBuildSettings{};
+  std::string text = "{\n  \"schema\": " +
+                     std::string(clips      ? "3"
+                                 : extended ? "2"
+                                            : "1") +
                      ",\n  \"start_scene\": \"" + settings.start_scene.ToString() +
                      "\",\n  \"scenes\": [\n";
   for (std::size_t i = 0; i < settings.scenes.size(); ++i) {
@@ -329,6 +356,12 @@ std::optional<std::string> SerializeProjectBuildSettings(const ProjectBuildSetti
                                                                             : "scene-only") +
             "\", \"script_manifest\": \"" + settings.build.script_manifest + "\", \"output\": \"" +
             settings.build.output + "\"}";
+  }
+  if (clips) {
+    text += ",\n  \"animation_clips\": [";
+    for (std::size_t i = 0; i < settings.animation_clips.size(); ++i)
+      text += (i ? ", " : "") + std::string("\"") + settings.animation_clips[i].ToString() + "\"";
+    text += "]";
   }
   text += "\n}\n";
   if (text.size() > ProjectBuildSettings::kMaximumBytes) {

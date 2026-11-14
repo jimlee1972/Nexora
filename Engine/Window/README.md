@@ -67,8 +67,12 @@ repeat. A separate held M is released in a second window after focus loss; refoc
 window and pressing M again must yield two M presses and only its final M release there, proving
 that focus loss cleared held-key deduplication state. A test-only preload interposer observes the
 same client Display's detectable-repeat state;
-its second run injects capability-request rejection to exercise the legacy path. This is injected
-unavailability, not evidence from a physically unsupported X server. The test interposer and its
+its second run injects capability-request rejection to exercise the legacy path. That run confirms
+the consumer is stopped, injects a real held XTEST N gesture on the owned server, synchronizes its
+release, then resumes the consumer. The observer requires every repeated release to have its
+matching press already buffered; a live split arrival is outside the fallback contract above.
+Normal mode still consumes its held gesture live. This is injected unavailability, not evidence
+from a physically unsupported X server. The test interposer and its
 mode variable do not form part of the production Window API. Pure matcher regressions reject
 synthetic or mismatched release/press pairs. Raw native events, input commands, capability observations,
 and summary facts are retained under the build artifacts directory for successful and failed attempts.
@@ -77,8 +81,10 @@ The test-only native observer also counts the exact KeyPress/KeyRelease stream c
 backend. Every genuine N press must yield one committed N text event, while Window emits only
 one physical press/release. Normal mode must receive one genuine native release; injected legacy
 mode must actually receive repeated releases. These checks distinguish physical normalization
-from lost text or an unexercised fallback. The probe/shim are identical for old and repaired
-libraries, and `/proc` library-path/hash diagnostics supplement the functional input oracles.
+from lost text or an unexercised fallback. Historical old/repaired-library comparisons use the
+same probe/shim. The current observer additionally records buffered-repeat evidence without
+reading or consuming another event. `/proc` library-path/hash diagnostics supplement the
+functional input oracles.
 
 Normal mode also exercises 20 genuine XTEST B tap pairs after confirming the consumer is stopped;
 XSync processes the complete burst before resuming it in a finally block. The test requires all

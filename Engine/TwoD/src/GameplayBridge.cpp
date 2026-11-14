@@ -67,6 +67,29 @@ NexoraTwoDInstance Encode(const Instance &v) {
   const auto &t = v.transform;
   return {{{t.x, t.y, t.z}, {t.qx, t.qy, t.qz, t.qw}, {t.sx, t.sy, t.sz}}, Encode(v.sprite)};
 }
+Sprite Decode(const NexoraTwoDSourceSpriteV1 &v) {
+  auto sprite = Decode(v.sprite);
+  if (v.source_high || v.source_low)
+    sprite.source = AssetId{v.source_high, v.source_low};
+  return sprite;
+}
+NexoraTwoDSourceSpriteV1 EncodeSource(const Sprite &v) {
+  return {Encode(v), v.source ? v.source->high : 0, v.source ? v.source->low : 0};
+}
+std::optional<Instance> Decode(const NexoraTwoDSourceInstanceV1 &v) {
+  const auto &t = v.transform;
+  auto transform = runtime::NormalizedTransform({t.position.x, t.position.y, t.position.z,
+                                                 t.rotation.x, t.rotation.y, t.rotation.z,
+                                                 t.rotation.w, t.scale.x, t.scale.y, t.scale.z});
+  auto sprite = Decode(v.sprite);
+  if (!transform || v.sprite.sprite.flags > 15 || !ValidateSprite(sprite))
+    return std::nullopt;
+  return Instance{*transform, sprite};
+}
+NexoraTwoDSourceInstanceV1 EncodeSource(const Instance &v) {
+  const auto &t = v.transform;
+  return {{{t.x, t.y, t.z}, {t.qx, t.qy, t.qz, t.qw}, {t.sx, t.sy, t.sz}}, EncodeSource(v.sprite)};
+}
 } // namespace
 
 struct GameplayBridge::State {
@@ -84,6 +107,7 @@ struct GameplayBridge::State {
   struct Playback {
     Animator animator;
     AssetId atlas;
+    std::shared_ptr<const Clip> owner;
   };
   std::map<runtime::Id, Playback> animations;
   std::array<SpatialIndex, 2> indices;
@@ -144,6 +168,130 @@ struct GameplayBridge::State {
       return Unsupported;
     return Ok;
   }
+  int32_t SetSprite(runtime::Id id, const Sprite *value) {
+    if (!Live(id))
+      return Invalid;
+    if (!value) {
+      Scene(id)->Remove(id);
+      animations.erase(id);
+      return Ok;
+    }
+    if (!Scene(id)->Set(id, *value))
+      return Invalid;
+    const auto it = animations.find(id);
+    if (it != animations.end()) {
+      const auto source = it->second.animator.SourceId();
+      if (source ? value->source != source : value->source || it->second.atlas != value->atlas)
+        animations.erase(it);
+    }
+    return Ok;
+  }
+  NexoraTwoDSourceApiV1 SourceApi() {
+    NexoraTwoDSourceApiV1 api{};
+    api.struct_size = sizeof(api);
+    api.abi_version = 1;
+    api.context = this;
+    api.set_sprite = [](void *p, uint64_t id, const NexoraTwoDSourceSpriteV1 *v) {
+      return Call(p, [&](auto &s) -> int32_t {
+        if (!v)
+          return s.SetSprite(id, nullptr);
+        if (v->sprite.flags > 15)
+          return Invalid;
+        const auto value = Decode(*v);
+        return s.SetSprite(id, &value);
+      });
+    };
+    api.get_sprite = [](void *p, uint64_t id, NexoraTwoDSourceSpriteV1 *v) {
+      return Call(p, [&](auto &s) -> int32_t {
+        if (!v || !s.Live(id))
+          return Invalid;
+        const auto *sprite = s.Scene(id)->Find(id);
+        if (!sprite)
+          return Invalid;
+        *v = EncodeSource(*sprite);
+        return Ok;
+      });
+    };
+    api.create_instances = [](void *p, const NexoraTwoDSourceInstanceV1 *v, uint32_t count,
+                              NexoraTwoDInstanceHandle *handles) {
+      return Call(p, [&](auto &s) -> int32_t {
+        if (!s.pool)
+          return Unsupported;
+        if (count > 100000 || (count && (!v || !handles)))
+          return Invalid;
+        std::vector<Instance> instances;
+        instances.reserve(count);
+        for (uint32_t i = 0; i < count; ++i) {
+          const auto value = Decode(v[i]);
+          if (!value)
+            return Invalid;
+          instances.push_back(*value);
+        }
+        const auto created = s.pool->Create(instances);
+        if (!created)
+          return Invalid;
+        for (std::size_t i = 0; i < created->size(); ++i) {
+          const auto h = (*created)[i];
+          handles[i] = {h.owner, h.index, h.generation};
+        }
+        return Ok;
+      });
+    };
+    api.read_instances = [](void *p, const NexoraTwoDInstanceHandle *v, uint32_t count,
+                            NexoraTwoDSourceInstanceV1 *values) {
+      return Call(p, [&](auto &s) -> int32_t {
+        if (!s.pool)
+          return Unsupported;
+        if (count > 100000 || (count && (!v || !values)))
+          return Invalid;
+        if (!count)
+          return Ok;
+        std::vector<NexoraTwoDSourceInstanceV1> copies;
+        copies.reserve(count);
+        for (uint32_t i = 0; i < count; ++i) {
+          const auto *value = s.pool->Find(Decode(v[i]));
+          if (!value)
+            return Invalid;
+          copies.push_back(EncodeSource(*value));
+        }
+        std::copy(copies.begin(), copies.end(), values);
+        return Ok;
+      });
+    };
+    api.write_instances = [](void *p, const NexoraTwoDInstanceHandle *v, uint32_t count,
+                             const NexoraTwoDSourceInstanceV1 *values) {
+      return Call(p, [&](auto &s) -> int32_t {
+        if (!s.pool)
+          return Unsupported;
+        if (count > 100000 || (count && (!v || !values)))
+          return Invalid;
+        std::vector<std::pair<Instance *, Instance>> updates;
+        updates.reserve(count);
+        std::set<std::uint32_t> seen;
+        for (uint32_t i = 0; i < count; ++i) {
+          auto *target = s.pool->Find(Decode(v[i]));
+          const auto value = Decode(values[i]);
+          if (!target || !value || !seen.insert(v[i].index).second)
+            return Invalid;
+          updates.emplace_back(target, *value);
+        }
+        for (const auto &[target, value] : updates)
+          *target = value;
+        return Ok;
+      });
+    };
+    return api;
+  }
+  static int32_t GetSources(void *p, NexoraTwoDSourceApiV1 *output) noexcept {
+    return Call(p, [&](auto &s) -> int32_t {
+      if (!output)
+        return Invalid;
+      if (output->struct_size < sizeof(*output))
+        return Unsupported;
+      *output = s.SourceApi();
+      return Ok;
+    });
+  }
   NexoraTwoDApiV1 Api() {
     NexoraTwoDApiV1 api{};
     api.struct_size = sizeof(api);
@@ -151,19 +299,12 @@ struct GameplayBridge::State {
     api.context = this;
     api.set_sprite = [](void *p, uint64_t id, const NexoraTwoDSprite *v) {
       return Call(p, [&](auto &s) -> int32_t {
-        if (!s.Live(id))
+        if (!v)
+          return s.SetSprite(id, nullptr);
+        if (v->flags > 15)
           return Invalid;
-        if (!v) {
-          s.Scene(id)->Remove(id);
-          s.animations.erase(id);
-          return Ok;
-        }
-        if (v->flags > 15 || !s.Scene(id)->Set(id, Decode(*v)))
-          return Invalid;
-        auto it = s.animations.find(id);
-        if (it != s.animations.end() && it->second.atlas != s.Scene(id)->Find(id)->atlas)
-          s.animations.erase(it);
-        return Ok;
+        const auto value = Decode(*v);
+        return s.SetSprite(id, &value);
       });
     };
     api.get_sprite = [](void *p, uint64_t id, NexoraTwoDSprite *v) {
@@ -227,7 +368,7 @@ struct GameplayBridge::State {
         if (!s.Live(id) || !s.Scene(id)->Find(id) || (!hi && !lo) || !std::isfinite(speed) ||
             speed <= 0 || speed > 1000)
           return Invalid;
-        if (s.Scene(id)->Find(id)->source.has_value() || !s.clips)
+        if (!s.clips)
           return Unsupported;
         const auto clip = s.clips({hi, lo});
         if (!clip)
@@ -235,13 +376,21 @@ struct GameplayBridge::State {
         const auto *current = s.Scene(id)->Find(id);
         if (!s.Live(id) || !current)
           return Invalid;
+        const bool sources = ClipUsesSources(*clip);
+        if (sources != current->source.has_value())
+          return Unsupported;
         Playback playback;
         playback.atlas = clip->atlas;
-        if (clip->id != AssetId{hi, lo} || clip->atlas != current->atlas ||
+        if (sources)
+          playback.owner = clip;
+        if (clip->id != AssetId{hi, lo} || (!sources && clip->atlas != current->atlas) ||
             !playback.animator.Play(*clip, speed))
           return Invalid;
         auto sprite = *current;
-        sprite.region = *playback.animator.RegionId();
+        if (sources)
+          sprite.source = playback.animator.SourceId();
+        else
+          sprite.region = *playback.animator.RegionId();
         s.animations.insert_or_assign(id, std::move(playback));
         s.Scene(id)->Set(id, sprite);
         return Ok;
@@ -263,7 +412,8 @@ struct GameplayBridge::State {
         if (!result || (!events && capacity) || capacity > 65536 || !s.Live(id) ||
             !s.Scene(id)->Find(id) || it == s.animations.end())
           return Invalid;
-        if (s.Scene(id)->Find(id)->source.has_value())
+        const auto current_source = it->second.animator.SourceId();
+        if (s.Scene(id)->Find(id)->source != current_source)
           return Unsupported;
         auto candidate = it->second.animator;
         auto update = candidate.Advance(delta);
@@ -277,7 +427,10 @@ struct GameplayBridge::State {
           return events ? Unsupported : Ok;
         }
         auto sprite = *s.Scene(id)->Find(id);
-        sprite.region = update->region;
+        if (update->source)
+          sprite.source = update->source;
+        else
+          sprite.region = update->region;
         if (!s.Scene(id)->Set(id, sprite))
           return Invalid;
         it->second.animator = std::move(candidate);
@@ -483,6 +636,7 @@ struct GameplayBridge::State {
         return Ok;
       });
     };
+    api.get_source_api = GetSources;
     return api;
   }
 };
@@ -544,11 +698,18 @@ int32_t GameplayBridge::GetApi(NexoraTwoDApiV1 *output) noexcept {
   return State::Call(state_.get(), [&](auto &s) -> int32_t {
     if (!output)
       return Invalid;
-    if (output->struct_size < sizeof(NexoraTwoDApiV1))
+    if (output->struct_size < NEXORA_2D_API_V1_BASE_SIZE)
       return Unsupported;
-    *output = s.Api();
+    auto api = s.Api();
+    const auto bytes =
+        output->struct_size >= sizeof(api) ? sizeof(api) : NEXORA_2D_API_V1_BASE_SIZE;
+    api.struct_size = static_cast<uint32_t>(bytes);
+    std::memcpy(output, &api, bytes);
     return Ok;
   });
+}
+int32_t GameplayBridge::GetSourceApi(NexoraTwoDSourceApiV1 *output) noexcept {
+  return State::GetSources(state_.get(), output);
 }
 Camera GameplayBridge::RenderCamera(std::uint32_t width, std::uint32_t height) const {
   if (state_->thread != std::this_thread::get_id())

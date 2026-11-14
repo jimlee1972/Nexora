@@ -1,4 +1,5 @@
 #include "Nexora/Editor/TwoDPlayAssets.h"
+#include "Nexora/TwoD/Scene.h"
 #include <unordered_set>
 
 namespace nexora::editor {
@@ -58,28 +59,54 @@ TwoDPlayAssets::Capture(runtime::AssetGenerationStore &store, std::uint64_t gene
       result->atlases_.emplace(id, std::make_shared<const twod::Atlas>(std::move(*atlas)));
     } else if (blob->type == "sprite_clip") {
       auto clip = twod::DecodeClip(blob->payload);
-      if (!clip || clip->id != id || blob->dependencies.size() != 1 ||
-          blob->dependencies.front() != clip->atlas)
+      if (!clip || clip->id != id || blob->dependencies != twod::ClipDependencies(*clip))
         return fail("A cooked Clip is invalid or has inconsistent UUID dependencies.");
-      if (seen.insert(clip->atlas).second) {
+      for (const auto dependency : blob->dependencies)
+        if (seen.insert(dependency).second) {
+          if (pending.size() == limits.assets)
+            return fail("The 2D Play dependency closure exceeds the asset budget.");
+          pending.push_back(dependency);
+        }
+      result->clips_.emplace(id, std::make_shared<const twod::Clip>(std::move(*clip)));
+    } else if (blob->type == "sprite_source") {
+      auto source = twod::DecodeSpriteAsset(blob->payload);
+      if (!source || source->id != id || blob->dependencies.size() != 1 ||
+          blob->dependencies.front() != source->atlas)
+        return fail("A cooked Sprite source is invalid or has inconsistent UUID dependencies.");
+      if (seen.insert(source->atlas).second) {
         if (pending.size() == limits.assets)
           return fail("The 2D Play dependency closure exceeds the asset budget.");
-        pending.push_back(clip->atlas);
+        pending.push_back(source->atlas);
       }
-      result->clips_.emplace(id, std::make_shared<const twod::Clip>(std::move(*clip)));
+      result->sources_.emplace(id, std::make_shared<const twod::SpriteAsset>(std::move(*source)));
     } else {
-      return fail("The cooked asset is not a supported 2D Atlas or Clip.");
+      return fail("The cooked asset is not a supported 2D Atlas, Clip or Sprite source.");
     }
     result->payload_bytes_ += blob->payload.size();
   }
   for (const auto &[id, clip] : result->clips_) {
     static_cast<void>(id);
+    if (twod::ClipUsesSources(*clip)) {
+      for (const auto &frame : clip->frames)
+        if (!result->SpriteSource(*frame.source))
+          return fail("A Clip frame references an unavailable Sprite source.");
+      continue;
+    }
     const auto atlas = result->Atlas(clip->atlas);
     if (!atlas)
       return fail("A Clip dependency is not an Atlas.");
     for (const auto &frame : clip->frames)
       if (!atlas->Find(frame.region))
         return fail("A Clip frame references an unavailable Atlas region.");
+  }
+  for (const auto &[id, source] : result->sources_) {
+    static_cast<void>(id);
+    const auto atlas = result->Atlas(source->atlas);
+    twod::SpriteInstance witness;
+    witness.id = 1;
+    witness.matrix = runtime::ToMatrix({});
+    if (!atlas || !twod::ResolveSpriteAsset(*source, *atlas, std::move(witness)))
+      return fail("A Sprite source has an incompatible Atlas dependency or trim/region geometry.");
   }
   if (error)
     error->clear();
@@ -94,5 +121,10 @@ std::shared_ptr<const twod::Atlas> TwoDPlayAssets::Atlas(runtime::AssetUuid id) 
 std::shared_ptr<const twod::Clip> TwoDPlayAssets::Clip(runtime::AssetUuid id) const {
   const auto found = clips_.find(id);
   return found == clips_.end() ? nullptr : found->second;
+}
+
+std::shared_ptr<const twod::SpriteAsset> TwoDPlayAssets::SpriteSource(runtime::AssetUuid id) const {
+  const auto found = sources_.find(id);
+  return found == sources_.end() ? nullptr : found->second;
 }
 } // namespace nexora::editor

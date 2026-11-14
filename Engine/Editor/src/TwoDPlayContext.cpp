@@ -25,6 +25,8 @@ std::unique_ptr<TwoDPlayContext> TwoDPlayContext::Create(const TwoDDocument &doc
     if (twod::ValidateClip(document.Clip()))
       result->clip_ = std::make_shared<const twod::Clip>(document.Clip());
     result->tiles_ = document.Tiles();
+    result->sources_ = std::make_shared<const std::vector<twod::SpriteAsset>>(
+        document.SpriteSources().begin(), document.SpriteSources().end());
     result->bridge_ = std::make_unique<twod::GameplayBridge>(
         result->world_, *result->scene_,
         [clip = result->clip_](twod::AssetId id) {
@@ -85,6 +87,16 @@ std::optional<twod::SpriteFrame> TwoDPlayContext::ExtractFrame(std::uint32_t wid
           if (!atlas || atlas->id != id)
             return std::nullopt;
           return twod::AtlasBinding{atlas, texture};
+        },
+        [sources = sources_](twod::AssetId id) -> std::shared_ptr<const twod::SpriteAsset> {
+          const auto found = std::lower_bound(
+              sources->begin(), sources->end(), id, [](const auto &source, auto key) {
+                return source.id.high != key.high ? source.id.high < key.high
+                                                  : source.id.low < key.low;
+              });
+          return found == sources->end() || found->id != id
+                     ? nullptr
+                     : std::shared_ptr<const twod::SpriteAsset>(sources, &*found);
         });
   } catch (...) {
     return std::nullopt;

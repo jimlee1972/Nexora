@@ -145,12 +145,16 @@ std::optional<Atlas> DecodeAtlas(std::span<const std::byte> bytes) {
   return a;
 }
 bool ValidateClip(const Clip &clip) noexcept {
-  if (!detail::ValidId(clip.id) || !detail::ValidId(clip.atlas) || clip.frames.empty() ||
-      clip.frames.size() > 4096)
+  if (!detail::ValidId(clip.id) || clip.frames.empty() || clip.frames.size() > 4096)
+    return false;
+  const bool sources = ClipUsesSources(clip);
+  if (sources ? clip.atlas != AssetId{} : !detail::ValidId(clip.atlas))
     return false;
   double total = 0;
   for (const auto &f : clip.frames) {
-    if (!f.region || !std::isfinite(f.seconds) || f.seconds < 0.000001 || f.seconds > 3600 ||
+    if (f.source.has_value() != sources ||
+        (sources ? (f.region || !detail::ValidId(*f.source) || *f.source == clip.id) : !f.region) ||
+        !std::isfinite(f.seconds) || f.seconds < 0.000001 || f.seconds > 3600 ||
         f.event.size() > 256)
       return false;
     for (unsigned char c : f.event)
@@ -160,12 +164,29 @@ bool ValidateClip(const Clip &clip) noexcept {
   }
   return std::isfinite(total);
 }
+bool ClipUsesSources(const Clip &clip) noexcept {
+  return !clip.frames.empty() && clip.frames.front().source.has_value();
+}
+std::vector<AssetId> ClipDependencies(const Clip &clip) {
+  if (!ValidateClip(clip))
+    return {};
+  if (!ClipUsesSources(clip))
+    return {clip.atlas};
+  std::vector<AssetId> result;
+  result.reserve(clip.frames.size());
+  for (const auto &frame : clip.frames)
+    result.push_back(*frame.source);
+  std::ranges::sort(
+      result, [](auto a, auto b) { return a.high != b.high ? a.high < b.high : a.low < b.low; });
+  result.erase(std::unique(result.begin(), result.end()), result.end());
+  return result;
+}
 Bytes EncodeClip(const Clip &clip) {
   if (!ValidateClip(clip))
     return {};
   detail::Writer w;
   w.U32(0x4332444e);
-  w.U32(1);
+  w.U32(ClipUsesSources(clip) ? 2 : 1);
   w.Id(clip.id);
   w.Id(clip.atlas);
   w.U32(clip.loop ? 1U : 0U);
@@ -174,12 +195,15 @@ Bytes EncodeClip(const Clip &clip) {
     w.U32(f.region);
     w.Double(f.seconds);
     w.Text(f.event);
+    if (f.source)
+      w.Id(*f.source);
   }
   return std::move(w.bytes);
 }
 std::optional<Clip> DecodeClip(std::span<const std::byte> bytes) {
   detail::Reader r(bytes);
-  if (r.U32() != 0x4332444e || r.U32() != 1)
+  const auto magic = r.U32(), version = r.U32();
+  if (magic != 0x4332444e || (version != 1 && version != 2))
     return std::nullopt;
   Clip c;
   c.id = r.Id();
@@ -193,7 +217,9 @@ std::optional<Clip> DecodeClip(std::span<const std::byte> bytes) {
     AnimationFrame f;
     f.region = r.U32();
     f.seconds = r.Double();
-    f.event = r.Text();
+    f.event = r.Text(256);
+    if (version == 2)
+      f.source = r.Id();
     c.frames.push_back(std::move(f));
   }
   if (!r.Done() || !ValidateClip(c))
@@ -215,7 +241,8 @@ bool RegisterImporters(runtime::ImporterRegistry &registry) {
         auto clip = DecodeClip(source.bytes);
         if (!clip || clip->id != source.id)
           return std::nullopt;
-        return runtime::CanonicalAsset{source.id, "sprite_clip", {clip->atlas}, EncodeClip(*clip)};
+        return runtime::CanonicalAsset{source.id, "sprite_clip", ClipDependencies(*clip),
+                                       EncodeClip(*clip)};
       });
   const bool s = candidate.Register(
       ".nx2sprite",
@@ -247,10 +274,13 @@ bool Animator::Play(const Clip &clip, double speed) {
 std::optional<std::uint32_t> Animator::RegionId() const noexcept {
   return ready_ ? std::optional(clip_.frames[frame_].region) : std::nullopt;
 }
+std::optional<AssetId> Animator::SourceId() const noexcept {
+  return ready_ ? clip_.frames[frame_].source : std::nullopt;
+}
 std::optional<AnimationUpdate> Animator::Advance(double seconds) {
   if (!ready_ || !std::isfinite(seconds) || seconds < 0 || !std::isfinite(seconds * speed_))
     return std::nullopt;
-  AnimationUpdate result{clip_.frames[frame_].region, {}, finished_};
+  AnimationUpdate result{clip_.frames[frame_].region, {}, finished_, clip_.frames[frame_].source};
   if (paused_ || finished_)
     return result;
   double elapsed = elapsed_ + seconds * speed_;
@@ -278,6 +308,7 @@ std::optional<AnimationUpdate> Animator::Advance(double seconds) {
   finished_ = finished;
   result.region = clip_.frames[frame].region;
   result.finished = finished;
+  result.source = clip_.frames[frame].source;
   return result;
 }
 } // namespace nexora::twod

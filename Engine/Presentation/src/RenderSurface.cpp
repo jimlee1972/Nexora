@@ -112,6 +112,11 @@ SurfaceStatus RenderSurface::RenderUi(const UiDrawData &draw_data) {
                                       : state_->surface->RenderUi(draw_data);
 }
 
+SurfaceStatus RenderSurface::ReleaseSceneTextures(std::span<const std::uint64_t> ids) {
+  return !state_ || state_->destroyed ? SurfaceStatus::SurfaceLost
+                                      : state_->surface->ReleaseSceneTextures(ids);
+}
+
 SurfaceStatus RenderSurface::ReleaseSpriteTextures(std::span<const std::uint64_t> ids) {
   return !state_ || state_->destroyed ? SurfaceStatus::SurfaceLost
                                       : state_->surface->ReleaseSpriteTextures(ids);
@@ -157,6 +162,10 @@ SurfaceStatus RenderSurface::DrawSpritesLinear(const UiDrawData &sprites, const 
 SurfaceStatus RenderSurface::DrawScene(const SceneDrawData &draw_data) {
   return !state_ || state_->destroyed ? SurfaceStatus::SurfaceLost
                                       : state_->surface->DrawScene(draw_data);
+}
+std::optional<SceneTextureReference> RenderSurface::SceneTexture() const noexcept {
+  return state_ && !state_->destroyed && state_->surface ? state_->surface->SceneTexture()
+                                                         : std::nullopt;
 }
 
 bool RenderSurface::SupportsSceneGeometryResidency() const noexcept {

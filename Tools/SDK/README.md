@@ -78,3 +78,18 @@ including authored Title Sprite rendering and scene transitions in headless/nati
 Promotion requires the exact archive hash, prior HD2D/offline checks and both scene receipts.
 0.2.0 remains immutable. A candidate is not a published SDK until its release and receipts exist;
 consumers must pin the newly published archive's actual SHA-256.
+
+
+## 0.3.1 device-discovery candidate
+
+The candidate replaces periodic steady-state DirectInput enumeration with initial discovery and
+PnP/XInput-slot changes. Notification callbacks only mark copied atomic state; DirectInput objects
+remain on the input owner thread. Unsupported notification APIs retain a logged bounded fallback.
+See the [input contract](../../Engine/Runtime/GameplayInput.md#native-gamepad-adapter-and-evidence)
+and [pre-fix measurement](../../Engine/Runtime/evidence/GamepadDiscovery-Windows-2026-11-04.json).
+
+The isolated native Windows consumer must observe `discovery=device_notifications`; its receipt
+sets `gamepad_device_notifications=true`. Promotion of 0.3.1 or newer requires that flag in addition
+to the existing exact source/archive, HD2D, offline rebuild and authored-scene checks. The candidate
+still requires full CI and immutable publication. A physical game stutter/PS4 hotplug retest is a
+separate gate; registration and unit scheduling tests do not establish physical acceptance.

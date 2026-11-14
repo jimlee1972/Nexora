@@ -1239,6 +1239,11 @@ See [GameplayLifecycle.md](GameplayLifecycle.md) for owner-thread ownership, ret
 sequences, explicit close opt-in/tokens, bounded XInput output, errors and Zig pause/save policy.
 Native physical Windows acceptance remains separate from the portable contract.
 
+Windows gamepad discovery now uses a copied pending PnP notification instead of periodic full
+DirectInput enumeration on stable input frames. The owner thread retains all device COM references
+and drains notification callbacks before teardown; unsupported notifications retain an explicitly
+reported bounded fallback. See [the input contract](GameplayInput.md#native-gamepad-adapter-and-evidence).
+
 ## Typed Zig script lifecycle
 
 The optional [packaged game scene session](GameSceneSession.md) adds queued Replace/Additive/unload
@@ -1282,3 +1287,11 @@ resources or copy another module's metadata. `CollectUnloadedScenes` is an expli
 collection point after deferred unload and host/native reader retirement. It removes only already
 Unloaded records, does not recycle IDs, and expires all scene-vector borrows. The optional TwoD
 module uses these generic operations without adding a Runtime dependency on TwoD or Editor.
+
+## Optional Sprite source-content service
+
+GameplayServices appends `get_sprite_content_api` and preserves every complete historical prefix.
+A missing registration returns `UNSUPPORTED` without changing the caller's output. The TwoD
+embedding owns the registered table/context until module teardown; Runtime only copies and
+negotiates it, with no TwoD implementation dependency or asset IO. Owner-thread checks apply to
+acquisition. See [the registry contract](../TwoD/GameplayContent.md#optional-sprite-source-registry-table).

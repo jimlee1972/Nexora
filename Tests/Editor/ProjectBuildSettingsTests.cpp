@@ -42,6 +42,29 @@ void Codec() {
   Require(script_bytes && script_bytes->find("\"schema\": 2") != script_bytes->npos &&
               editor::ParseProjectBuildSettings(*script_bytes) == scripted,
           "versioned script configuration lost on roundtrip");
+  auto animated = scripted;
+  animated.animation_clips = {{11, 12}, {13, 14}};
+  const auto animated_bytes = editor::SerializeProjectBuildSettings(animated);
+  Require(animated_bytes && animated_bytes->find("\"schema\": 3") != animated_bytes->npos &&
+              editor::ParseProjectBuildSettings(*animated_bytes) == animated,
+          "explicit animation roots lost on roundtrip");
+  for (const auto &roots :
+       {std::vector<runtime::AssetUuid>{{}}, std::vector<runtime::AssetUuid>{{11, 12}, {11, 12}},
+        std::vector<runtime::AssetUuid>(4097, {11, 12})}) {
+    auto bad = animated;
+    bad.animation_clips = roots;
+    Require(!editor::SerializeProjectBuildSettings(bad), "invalid animation roots accepted");
+  }
+  for (const auto replacement : {"\"animation_clips\": [] , \"animation_clips\": []",
+                                 "\"animation_clips\": [\"bad\"]", "\"unknown\": []"}) {
+    auto bad = *animated_bytes;
+    const auto begin = bad.find("\"animation_clips\":");
+    bad.replace(begin, bad.find(']', begin) - begin + 1, replacement);
+    Require(!editor::ParseProjectBuildSettings(bad), "malformed animation roots accepted");
+  }
+  animated.animation_clips.clear();
+  Require(editor::SerializeProjectBuildSettings(animated) == script_bytes,
+          "clearing Clip roots changed legacy schema2 settings bytes");
   for (const auto &[before, after] : std::array<std::pair<std::string_view, std::string_view>, 5>{
            {{"\"mode\": \"script-project\"", "\"mode\": \"unknown\""},
             {"\"schema\": 2", "\"schema\": 3"},
@@ -148,6 +171,7 @@ void Session(const std::filesystem::path &root) {
   editor::ProjectBuildSettings settings{b->id, {*a, *b}};
   settings.build = {editor::GameBuildMode::ScriptProject, "Scripts/project.json",
                     "Build/Native Game"};
+  settings.animation_clips = {{17, 18}, {19, 20}};
   if (!session.Save(settings, catalog, &error))
     throw std::runtime_error(error);
   auto saved = Read(root / "project.build.json");

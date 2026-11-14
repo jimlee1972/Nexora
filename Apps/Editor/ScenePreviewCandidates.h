@@ -2,6 +2,9 @@
 
 #include "Nexora/EditorImGui/EditorImGui.h"
 #include "SceneMeshPreview.h"
+#if defined(NEXORA_HAS_2D)
+#include "SceneSpritePreview.h"
+#endif
 
 #include <unordered_map>
 #include <unordered_set>
@@ -47,6 +50,10 @@ struct NativeSceneMeshes final {
   std::unordered_map<nexora::runtime::Id, nexora::editor::MeshAssetSnapshot> entities;
   std::unordered_map<std::uint64_t, nexora::editor::preview::MeshRange> ranges;
   std::size_t unavailable{};
+#if defined(NEXORA_HAS_2D)
+  std::optional<SceneSpritePlanes> sprites;
+  std::unordered_map<runtime::Id, MeshRange> sprite_ranges;
+#endif
 };
 
 [[nodiscard]] inline std::vector<nexora::editor::PickCandidate>
@@ -66,8 +73,16 @@ NativeSceneProxyCandidates(const nexora::editor::SceneDocument &scene,
         std::abs(pose->sx) > 100000.0 || std::abs(pose->sy) > 100000.0 ||
         std::abs(pose->sz) > 100000.0)
       continue;
+    const MeshGeometry *sprite_geometry{};
+#if defined(NEXORA_HAS_2D)
+    if (meshes && meshes->sprites && meshes->sprite_ranges.contains(node.id)) {
+      const auto found = meshes->sprites->entities.find(node.id);
+      if (found != meshes->sprites->entities.end())
+        sprite_geometry = &found->second->geometry;
+    }
+#endif
     auto matrix = nexora::runtime::ToMatrix(*pose);
-    if (meshes && meshes->entities.contains(node.id)) {
+    if (meshes && (meshes->entities.contains(node.id) || sprite_geometry)) {
       const auto exact = scene.WorldMatrix(node.id);
       if (!exact || !nexora::editor::preview::AffineInstance(*exact))
         continue;
@@ -84,7 +99,7 @@ NativeSceneProxyCandidates(const nexora::editor::SceneDocument &scene,
                : std::unordered_map<nexora::runtime::Id,
                                     nexora::editor::MeshAssetSnapshot>::const_iterator{};
     const auto *geometry =
-        meshes && found != meshes->entities.end() ? found->second.geometry.get() : nullptr;
+        meshes && found != meshes->entities.end() ? found->second.geometry.get() : sprite_geometry;
     const std::array<double, 3> low =
         geometry ? std::array<double, 3>{geometry->minimum[0], geometry->minimum[1],
                                          geometry->minimum[2]}
@@ -107,6 +122,19 @@ NativeSceneProxyCandidates(const nexora::editor::SceneDocument &scene,
           candidate.max.y = std::max(candidate.max.y, py);
           candidate.max.z = std::max(candidate.max.z, pz);
         }
+    if (sprite_geometry && sprite_geometry != geometry)
+      for (const auto &vertex : sprite_geometry->vertices) {
+        const auto &p = vertex.position;
+        const double x = matrix[0] * p[0] + matrix[4] * p[1] + matrix[8] * p[2] + matrix[12];
+        const double y = matrix[1] * p[0] + matrix[5] * p[1] + matrix[9] * p[2] + matrix[13];
+        const double z = matrix[2] * p[0] + matrix[6] * p[1] + matrix[10] * p[2] + matrix[14];
+        candidate.min.x = std::min(candidate.min.x, x);
+        candidate.min.y = std::min(candidate.min.y, y);
+        candidate.min.z = std::min(candidate.min.z, z);
+        candidate.max.x = std::max(candidate.max.x, x);
+        candidate.max.y = std::max(candidate.max.y, y);
+        candidate.max.z = std::max(candidate.max.z, z);
+      }
     if (!std::isfinite(candidate.min.x) || !std::isfinite(candidate.min.y) ||
         !std::isfinite(candidate.min.z) || !std::isfinite(candidate.max.x) ||
         !std::isfinite(candidate.max.y) || !std::isfinite(candidate.max.z))
@@ -150,6 +178,36 @@ NativeSceneProxyCandidates(const nexora::editor::SceneDocument &scene,
     }
     result.entities.emplace(candidate.entity, *mesh);
   }
+#if defined(NEXORA_HAS_2D)
+  result.sprites = CaptureSceneSpritePlanes(scene, content.Browser());
+  if (result.sprites) {
+    std::unordered_map<runtime::AssetUuid, MeshRange, runtime::AssetUuidHash> source_ranges;
+    for (const auto &candidate : NativeSceneProxyCandidates(scene)) {
+      const auto source = result.sprites->entities.find(candidate.entity);
+      if (source == result.sprites->entities.end())
+        continue;
+      const auto matrix = scene.WorldMatrix(candidate.entity);
+      const auto asset = source->second->assets.source->id;
+      if (!matrix || !AffineInstance(*matrix)) {
+        ++result.sprites->unavailable;
+        result.sprites->entities.erase(source);
+        continue;
+      }
+      auto range = source_ranges.find(asset);
+      if (range == source_ranges.end()) {
+        const auto appended = result.geometry.Append(source->second->geometry);
+        if (!appended) {
+          ++result.sprites->unavailable;
+          result.sprites->entities.erase(source);
+          continue;
+        }
+        range = source_ranges.emplace(asset, *appended).first;
+      }
+      result.sprite_ranges.emplace(candidate.entity, range->second);
+    }
+    result.sprites->unavailable += result.sprites->entities.size() - result.sprite_ranges.size();
+  }
+#endif
   return result;
 }
 

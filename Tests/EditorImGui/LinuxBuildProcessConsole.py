@@ -115,7 +115,22 @@ def main():
         require((root / ".nexora/scenes/Main.scene").exists(), "Native authoring save failed")
         scene_before = (root / ".nexora/scenes/Main.scene").read_bytes()
         # B is not part of the existing copied key set; observe the opened panel itself.
-        tool('key', '--clearmodifiers', '--delay', '60', 'ctrl+alt+b')
+        deadline = time.monotonic() + 12
+        driver.wait(lambda value: value['focused'] == '1' and value['keys'] == '000000000',
+                    'Build console chord was not released', deadline)
+        try:
+            for key, index in [('Control_L', 0), ('Alt_L', 1)]:
+                driver.raw('keydown', key, deadline=deadline, minimum_wait=driver.phase_wait)
+                driver.wait(lambda value, index=index: value['keys'][index] == '1',
+                            'Build console modifier was not observed', deadline)
+            driver.raw('keydown', 'b', deadline=deadline, minimum_wait=driver.phase_wait)
+            wait_for(lambda: 'control0' in controls(),
+                     'Actual Build console did not open from one native chord', deadline)
+        finally:
+            for key in ['b', 'Alt_L', 'Control_L']:
+                driver.raw('keyup', key, deadline=deadline, minimum_wait=driver.phase_wait)
+        driver.wait(lambda value: value['keys'] == '000000000',
+                    'Build console chord release was not observed', deadline)
         executable = str(Path(args.fixture).resolve())
         replace_field(0, 'executable_hex', executable)
         deadline = time.monotonic() + 12

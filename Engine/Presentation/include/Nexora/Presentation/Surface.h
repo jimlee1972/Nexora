@@ -147,6 +147,13 @@ struct SpriteGpuInstance final {
 };
 static_assert(sizeof(SpriteGpuInstance) == 44);
 
+// Opaque value for one prepared offscreen LDR view in one acquired frame. No native handle or
+// persistent texture ID. Only the producing surface may consume it, before that frame's UI pass.
+struct SceneTextureReference final {
+  std::uint64_t surface{}, frame{};
+  std::uint32_t view{};
+  friend bool operator==(const SceneTextureReference &, const SceneTextureReference &) = default;
+};
 struct UiDrawCommand final {
   std::int32_t clipX{};
   std::int32_t clipY{};
@@ -159,6 +166,9 @@ struct UiDrawCommand final {
   // Nonzero selects six generated vertices per instance; index/vertex offsets must be zero.
   std::uint32_t instanceCount{};
   std::uint32_t firstInstance{};
+  // All-zero preserves the ordinary textureId path. Scene references require textureId == 0
+  // and indexed geometry. Existing C/Gameplay/Zig command layouts are unchanged.
+  SceneTextureReference sceneTexture{};
 };
 
 struct UiTextureUpload final {
@@ -490,6 +500,9 @@ struct SceneDrawData final {
   // Optional exact-content mesh residency. Always provide current geometry; unavailable meshes
   // cannot be recovered by an ID alone. Unsupported adapters report Unsupported when requested.
   bool retainMeshGeometry{};
+  // Explicit LDR offscreen opt-in. Prepare a fenced SceneTexture reference for the frame's one
+  // RenderUi submission. Default scenes retain their existing composition/resource behavior.
+  bool sampledByUi{};
 };
 
 // Call only after material/batch validation. Returned values own their scalar storage.
@@ -583,8 +596,9 @@ TwoDLinearClip(const UiDrawCommand &command, const std::array<std::uint32_t, 4> 
         if (!std::isfinite(f) || std::abs(f) > 1e12F)
           return false;
     for (const auto &command : packet->commands) {
-      if (!command.textureId || command.clipX < 0 || command.clipY < 0 ||
-          std::uint32_t(command.clipX) > width || std::uint32_t(command.clipY) > height ||
+      if (command.sceneTexture != SceneTextureReference{} || !command.textureId ||
+          command.clipX < 0 || command.clipY < 0 || std::uint32_t(command.clipX) > width ||
+          std::uint32_t(command.clipY) > height ||
           command.clipWidth > width - std::uint32_t(command.clipX) ||
           command.clipHeight > height - std::uint32_t(command.clipY))
         return false;
@@ -693,12 +707,23 @@ public:
   virtual SurfaceStatus ReleaseSpriteTextures(std::span<const std::uint64_t>) {
     return SurfaceStatus::Unsupported;
   }
+  // Owner thread, between acquired frames. Drain before reclaiming named immutable Scene
+  // RGBA/linear textures and their descriptors. At most64 nonzero, nonreserved IDs; unknown
+  // IDs and duplicates are idempotent. Validate the complete request before changing resources.
+  virtual SurfaceStatus ReleaseSceneTextures(std::span<const std::uint64_t>) {
+    return SurfaceStatus::Unsupported;
+  }
   // Draws one indexed, depth-tested, lit mesh into the acquired image or, when offscreen is
   // requested, a fence-owned private color/depth target requiring CompositeScene. Backends without
   // a real geometry pipeline report Unsupported rather than silently falling back to a 2D
   // composite. A bounded direct scene draw may follow UI to replace only its viewport pixels;
   // offscreen and default full-surface draws must precede UI.
   virtual SurfaceStatus DrawScene(const SceneDrawData &) { return SurfaceStatus::Unsupported; }
+  // Owner-thread value, offered only after a successful offscreen LDR DrawScene and before UI.
+  // RenderUi validates references before uploads/recording and samples the fenced attachment.
+  [[nodiscard]] virtual std::optional<SceneTextureReference> SceneTexture() const noexcept {
+    return {};
+  }
   // Composites a completed offscreen scene entirely on the GPU: legacy color copy, or HDR
   // exposure/ACES/display transfer into the acquired image. A pending
   // offscreen draw must be composited once before UI/Present; direct scene callers need no copy.

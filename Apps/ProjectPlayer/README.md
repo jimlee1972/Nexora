@@ -228,3 +228,25 @@ module teardown and caught-error reporting. Each launch creates a unique run dir
 `~/.local/state/Nexora/Logs`; Apple uses `~/Library/Logs/Nexora`. Set `NEXORA_LOG_DIR` to select a
 writable root; the selected run path is printed to stderr. Keep the whole run directory when
 reporting a failure. See [capture/retention/platform limits](../../Roadmap/en/Crash_Logging_Delivery_Plan.md).
+
+## Main-game Sprite source references
+
+With optional TwoD/native support, capability-3 `Game.nxgame` catalogs carry saved source UUID
+references plus a deduplicated cooked source/Atlas closure. Both `--verify-game-package` and
+`--verify-native-game-package` perform typed admission; a feature-OFF consumer rejects these games.
+The Runtime-only loader's structural checks alone do not establish typed Sprite validity.
+Source-free games retain capability 2 and prior bytes. No authored paths are accessed at runtime.
+
+`--run-game-package` and zero-argument installed-game execution draw the remapped references with
+the common source-aware extractor, default white Sprite style and actual live World transforms.
+Source crop/Pivot and negative scale retain their geometry. The centered vertical-size-20 2D camera
+projects an overlay after existing 3D drawing. Scene transitions prepare the candidate Sprite frame
+before native submission/World commit; failed candidates keep the existing transaction policy.
+Gameplay may change World transforms or destroy authored entities, while the frozen source assets
+remain immutable. This does not advertise optional gameplay 2D/animation/pool services.
+
+`RENDERED_GAME_PACKAGE` adds actual `sprite_draw_calls` and last-frame `visible_sprites`; zero is
+reported for source-free games. All module callbacks finish and the surface drains before asset
+owners are destroyed. The [Build acceptance](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-Linux-2026-11-13.md)
+uses the actual Editor producer, compiled Zig lifecycle, source deletion, Unicode relocation,
+zero-argument launch, exact Sprite color masks and unchanged underlying native 3D pixels.

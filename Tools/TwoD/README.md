@@ -35,7 +35,12 @@ gutters and bytes are independent of manifest input order. The C++ compiler reje
 IDs, capacity failures and invalid frames with a diagnostic and leaves the previous output intact.
 
 Clip manifests declare `type: "clip"`, id, atlas UUID, optional loop and ordered frames with
-region, seconds and optional ASCII event. See [fixtures](Fixtures/) for complete examples.
+region, seconds and optional ASCII event. Source Clip manifests omit `atlas` and instead use ordered
+frames with `source: [high, low]`, seconds and optional event. They produce Clip schema 2; mixing
+source/region frames or specifying an Atlas/region in source mode rejects before publication.
+Legacy manifests still produce identical schema-1 bytes. See [fixtures](Fixtures/) for complete examples.
+Studio startup imports the Atlas, then a supplied Sprite source, then its Clip before opening
+the native preview; a new document can therefore admit a source Clip through the existing CLI.
 Preparation uses only Python's standard library; `.nx2atlas`/`.nx2clip` validation and cooking
 use existing Runtime import/Cook services. Publication uses Core VFS atomic writes on all desktops.
 
@@ -44,7 +49,8 @@ use existing Runtime import/Cook services. Publication uses Core VFS atomic writ
 The additive [Sprite source metadata workflow](../../Engine/TwoD/SpriteAssets.md) also supports
 `type: "sprite"` manifests and `.nx2sprite` validation/cooking. Atlas grid images accept an
 explicit `cells` list, optional `margin` and `spacing`; region IDs follow original cell indices,
-not selection order. The main Editor/Player do not yet bind Sprite source references automatically.
+not selection order. Studio documents and Player authored scenes support source bindings;
+the main Editor Inspector/project authoring workflow remains separate.
 
 ```bash
 build/linux-development/Tools/TwoD/NexoraTwoDStudio --workspace work --atlas atlas.nx2atlas --clip clip.nx2clip --document scene.nx2doc
@@ -59,6 +65,15 @@ or reloads their 16x16 chunk. Save/Open preserves all authored metadata and asse
 is bounded to 256 transactions and 64 MiB retained bytes. A new transaction resets older history at that budget boundary; a single transaction exceeding
 64 MiB rejects. Reopen clears history after validation.
 An empty document can be opened without an atlas, then imported through the configured paths.
+
+Use `--sprite source.nx2sprite` alongside its matching `--atlas` to configure source import.
+**Import Sprite source** emits an owner request, and **New Sprite source** / **Sprite source**
+select an existing metadata UUID for new/current Sprites. Size/Pivot come from the source; position,
+scale, tint, flips and sort settings remain instance edits. Selecting None restores the stored
+legacy fields. Preview, Undo/Redo, Save/Open and isolated Play use the same owning source catalog.
+Invalid dependencies or removing a referenced source reject the complete edit. Schema 2 embeds
+metadata without source paths, while source-free documents retain schema 1. Exported authored scenes
+run after relocation and source deletion; this does not accept main Editor Inspector/Build integration.
 
 Studio checks `CloseRequested()` again after `BeginFrame()` pumps native events. A normal close
 leaves the frame loop before validating acquisition status, then drains/destroys the surface;
@@ -343,7 +358,12 @@ of identical GDI output or accepted Windows typography.
 
 ### SP-03 deferred export
 
-`ExportGame.py` preserves optional capacity settings and deferred Atlas/Clip/opaque-byte entries.
+`ExportGame.py` preserves optional capacity settings and deferred Atlas/Clip/Sprite/opaque-byte entries.
+Sprite entries use `kind: "sprite"`, a canonical `.nx2sprite` (requires `--compiler`) or an
+existing `.nxcook`, and optional `preload: false`. They become `sprite`/`deferred_sprite` manifest
+directives. Export cooking validates source metadata; copied cooked envelopes and Atlas dependency
+closure are validated by the Player when loading. Include an explicit Atlas entry and load it
+before its source. No implicit dependency discovery or source-bound render descriptor is added.
 It checks each source/cooked file against 64 MiB, but applies the aggregate 64 MiB limit only to
 preloaded files. It stages/copies/hashes every packaged file without holding all payloads resident.
 See [the Player descriptor](../../Apps/TwoDPlayer/README.md#deferred-chapter-assets-sp-03) and

@@ -4,8 +4,8 @@
 
 
 核准的 [Editor 工作流程交付計畫](Editor_Workflow_Delivery_Plan.md)以
-[Epic #741](https://github.com/jimlee1972/Nexora/issues/741) 追蹤尚待完成的 Sprite 來源
-C／Zig／catalog、Editor 編輯、動畫及 pool 整合。計畫驗收為 4/9（44.4%）：ED-WF-01 ✅ PR #751、ED-WF-02 ✅ PR #754、ED-WF-03 ✅ PR #756, ED-WF-04 ✅ PR #758，不因此提高完整
+[Epic #741](https://github.com/jimlee1972/Nexora/issues/741) 追蹤 Sprite 來源 C／Zig／catalog 交付，
+以及尚待完成的 Editor 編輯、動畫及 pool 整合。計畫驗收為 5/9（55.6%）：ED-WF-01 ✅ PR #751、ED-WF-02 ✅ PR #754、ED-WF-03 ✅ PR #756、ED-WF-04 ✅ PR #758；ED-WF-06 ✅ [驗收](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md)，不因此提高完整
 Editor、實體 M6／M7 或進階 Sprite 繪製的驗收完成度。
 
 > 版本：v1.7 | 狀態：雲端能力交付已驗收，PC 主機 gate 待完成 | 更新：2026-10-19
@@ -59,6 +59,13 @@ Windows 原生 Adapter 保留 XInput，並新增 DirectInput 搖桿路徑及 DUA
 其他型號使用可重綁的控制值，實際相容性以受測型號與連線方式為準。
 作業系統辨識到 DUALSHOCK／其他 HID 裝置本身，不等於遊戲已收到輸入。
 實作範圍見[輸入契約](../../Engine/Runtime/GameplayInput.md#native-gamepad-adapter-and-evidence)。
+
+Windows裝置探索修正（`nexora-573`，驗證待完成）：穩定輸入幀不再週期性列舉全部DirectInput
+控制器；首次探索、PnP介面變更及XInput席位變更才要求owner-thread掃描，保留掃描途中通知，
+失敗從完成時間起限速重試。實機消費端API探針的舊掃描8次全部超過33ms（中位290.123ms、
+最大437.260ms）；此為同步阻塞證據，不等同正式遊戲效能通過。0.3.1 SDK候選／提升須有真實原生
+消費端啟用通知探索的收據。CI、SDK發布、遊戲卡頓及PS4熱插拔補驗仍待完成；M7乾淨主機與正式
+效能gate保持原狀。
 
 ### M7 Runtime／Shipping 驗收範圍（2026-10-19 修訂）
 
@@ -828,8 +835,8 @@ NX2S schema 3 新增明確的來源存在標記及身分；不含來源的場景
 
 [契約](../../Engine/TwoD/SpriteAssets.md#source-references-in-scenes-and-extraction) ·
 [Linux 驗證](../../Engine/TwoD/evidence/SpriteSourceScenes-Linux-2026-10-28.md)。
-C++ 消費端須重建。主 Editor 的來源索引／Inspector／Play 擷取、Player catalog、C／Zig 來源描述、
-來源動畫／物件池發布及新的原生／平台驗收仍屬後續工作。本次可攜場景切片不關閉 Editor M3-08、
+C++ 消費端須重建。來源 descriptor、模組內嵌 Player 擷取，以及 Editor 來源索引／不可變 Play
+擷取已於下方交付；Inspector 來源指定、檔案 catalog、來源動畫重載及完整原生／平台驗收仍屬後續工作。本次可攜場景切片不關閉 Editor M3-08、
 M6／M7，也不改變 9/11（82%）。
 
 ## HD-2D 擴充工單
@@ -864,3 +871,228 @@ HD2D-07 SDK 發布保留不可移動來源93a8dd51與 main Build／候選包通�
 ## 2D authored scene 目錄接入（2026-11-03）
 
 引擎實作新增共用 ND2D 文件解碼、World 新 ID 實例化、延後執行的 Scene V1 管理、Player 起始場景／目錄封裝與 2D Studio 場景檔選單。驗證與尚待交付的 SDK／消費端 gate 記於[場景證據](../../Engine/TwoD/evidence/AuthoredScenes-Linux-2026-11-03.md)。此配套接入不變更 M6／M7 或主 3D Editor Sprite 持久化的驗收判定。
+
+## ✅ Gameplay Sprite source 註冊表（2026-11-12）
+
+ED-WF-06 supporting 註冊表切片提供獨立且檢查 size 的 C 表、Zig wire／wrapper，以及持有
+不可變來源的 resolver；來源／Atlas 相依閉包、拒絕保護、快照保留與 active／live 預算的
+[Linux 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceRegistry-Linux-2026-11-12.md)
+獨立記錄。既有 Gameplay descriptor 與 Content 表不變。Content kind 3 僅在內容註冊表代表
+Sprite source；Asset catalog kind 3 維持 opaque bytes。標準 Player 能力曝光、來源 descriptor
+與模組內嵌 Player 擷取已於下方交付；Editor 製作及來源動畫重載仍待完成。ED-WF 驗收維持 5/9，
+2D 維持 9/11（82%），M6／M7 實機及乾淨主機驗收另計。
+
+## ✅ Gameplay Sprite 來源 API 與 Player 擷取（2026-11-12）
+
+獨立固定 80／160 bytes 的來源 wire 與 optional C／Zig 表保留舊 64／144 bytes descriptor，
+並相容所有既有 services／TwoD prefix。場景及 pool 操作保留來源身分，失敗批次以 staging
+保持原子性，沿用既有 handle 擁有權。Player 提供來源註冊並擷取不可變來源／Atlas 閉包。
+真正由 SDK 建置的 Zig 遊戲驗證搬移、刪除來源後的模組內嵌內容，以及幾何／Atlas 替換的
+原生像素；詳見[驗收證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SourceAPI-Linux-2026-11-12.md)。
+Inspector 來源指定、製作場景持久化／Build 擷取及來源動畫重載仍待完成。
+ED-WF 驗收維持 5/9、Editor 0/8、2D 9/11；M6／M7 實機驗收判定不變。
+
+✅ 獨立 [Sprite catalog 切片](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-SpriteCatalog-Linux-2026-11-12.md)
+新增目錄種類 4、Player 預載／延後檔案准入，以及檢查明確 Atlas 閉包的標準來源匯出。
+搬移成品的 C ABI 測試保留 opaque 種類 3 與無來源參照的消費端行為。真正的 Zig 檔案目錄
+遊戲另透過已驗收的來源 API 檢查搬移後的來源 Sprite／pool 原生像素與替換。主 Editor 製作仍屬 ED-WF-07；
+下方完整 ED-WF-06 驗收將流程進度提高為 5/9，圖形化 Editor 及 2D 里程碑數字不變。
+
+## ✅ Editor Sprite 來源快照（2026-11-12）
+
+型別化來源索引／重匯入現可保有既有 Sprite metadata，凍結的專案／cooked Play 擷取會驗證
+精確 Atlas 相依閉包。主 Editor gameplay 場景／pool 實例可解析這些不可變快照；真實合成
+原生像素驗證裁切／Pivot 幾何、負縮放與重匯入後的舊擁有者保留。[證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md)。
+主 Scene View、已設定套件 Play／Build、來源動畫／重載與完整 Editor 驗收仍待完成。
+ED-WF 維持 5/9、Editor 0/8、2D 9/11；M6／M7 實機 gate 不變。
+
+✅ 無模組主場景消費端（`nexora-whr.7.6`）只擷取實際參照的來源／Atlas 閉包，在真正 Play
+clone 擁有自有預覽。32 次真實 Editor 原生場次驗證來源像素、Pause／Step／Resume、精確
+重啟遮罩及 Stop 清理，製作畫面／位元組不變；無來源 3D Play 忽略無關的不可用資產。
+已設定套件 Play／Build、Scene View 及動畫／重載仍屬後續；已合併的 Inspector 指定能力已保留。
+流程 **5/9**、Editor **0/8**、2D **9/11** 與實機 gate 不變。
+[契約](../../Apps/Editor/README.md#module-free-main-scene-sprite-play)與
+[證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-ModuleFreePlay-Linux-2026-11-13.md)。
+
+✅ 主 module Play 現可在 module Create 前凍結並綁定製作來源 UUID 參照（`nexora-whr.7.4`），
+精確重查製作變動並拒絕過期／缺失／不支援綁定。legacy／製作參照／legacy 原生快照在
+重匯入與來源／專案釋放後，仍保留來源／Pivot 幾何與負縮放 pool。Scene View、
+已設定套件 Play／Build 及動畫／重載仍待完成；進度不變。
+[契約與證據](Editor_Workflow_Delivery_Plan.md#-主-editor-module-play-的製作來源參照2026-11-13)。
+
+✅ 2026-11-13 的主 Editor 參照模型基礎（`nexora-whr.7.3`）新增擁有來源／Atlas 的查詢，
+以及完整選取 UUID 指定／清除的一次 Undo／Redo 與場景儲存／重開。精確 Content 世代／修訂
+拒絕重匯入前的過期操作。本次未新增 Inspector 控件、製作繪製、主 Play 轉換、Build 匯出或
+ND2D 目錄；進度數字不變。[契約與證據](Editor_Workflow_Delivery_Plan.md#-主-editor-sprite-來源參照模型2026-11-13)。
+
+## ✅ ED-WF-06 來源 API 與 Player 驗收（2026-11-12）
+
+真正由 SDK 建置的 Zig 檔案目錄案例現可驗證非對稱貼圖的 X／Y／雙軸 Flip、繞 Pivot 的
+幾何鏡射及負縮放 pool，接著只替換 Atlas 尺寸與打包區域，保留來源身分和 handle。
+Development 與嚴格 Shipping 原生擷取通過；原有內嵌／catalog 模式及 C-only 相容性案例
+保持不變。[證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06-NativeSource-Linux-2026-11-12.md)
+保留初次案例／設定失敗。完整回歸 486/486 通過，沒有失敗或跳過；全部 41 項指定版本最新 hosted 檢查通過，PR #772 已合併。
+完整[驗收紀錄](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md)整合舊消費端相容性、
+不可變 cooked 閉包及 feature-OFF 建置，完成 ED-WF-06。流程驗收為 5/9（55.6%）；
+Editor 0/8、2D 9/11 及實機／乾淨主機 gate 維持不變。
+
+## ✅ 主 Editor Sprite 來源 Inspector（2026-11-13）
+
+配套子項 `nexora-whr.7.5` 在實際主 Inspector 提供已匯入來源的選擇與清除。
+完整選取共用一次 metadata Undo／Redo，並隨場景包裝存檔／重開；混合、缺失來源／Atlas
+與不支援的參照分別呈現，不支援的位元組持續保留。每次操作檢查專案寫入權、停止的 Play、
+焦點／復原限制、存活選取與匯入版本。選單自有有界不可變目錄、路徑與節點鍵，過期匯入
+或上下文變更會取消操作；控件不執行檔案 IO，也不修改 Runtime Sprite。
+實際 1×／2× 控件與 Linux X11 操作驗證批次指派、清除、精確 Undo／Redo、存檔重開及
+唯讀專案位元組不變。詳見[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceInspector-Linux-2026-11-13.md)。
+模組主 Play 已由獨立的 `nexora-whr.7.4`／PR #776 交付；Scene View、已設定套件 Play、Build、來源動畫／熱重載及
+完整 ED-WF-07 仍開放。工作流 **5/9**、圖形 Editor **0/8**、TwoD **9/11** 與實機驗收維持不變。
+
+### ✅ 來源幾何資訊檢視（2026-11-14）
+
+支援工作 `nexora-whr.7.10` 在主 Inspector 新增預設收合的唯讀來源詳細資訊，顯示來源／Atlas UUID、
+原始尺寸、左上起算裁切／Atlas 區域、左下起算 Pivot、PPU、邊框及套用實體變換前的來源局部範圍。
+共用幾何解析器讀取目前已匯入的不可變資料，不讀寫檔案、不修改編輯資料、不註冊 GPU 紋理。
+實際 1×／2× 控制驗證指派與歷史、混合／缺失／不支援參考、重新匯入、唯讀／Play 檢視及內容移除。
+Linux X11 驗證非對稱數值、實際呈現畫面、精確 Undo／Redo／儲存／重開及唯讀專案雜湊不變。
+完整 Linux **511/511**、Shipping、TwoD-OFF／testing-OFF 與圖形 Monolithic gates 通過；
+交付仍須確切提交的 hosted CI。見[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceDetails-Linux-2026-11-14.md)。
+工作流程 **5/9**、Editor **0/8**、TwoD **9/11** 不變；完整 ED-WF-07／08、正式動畫／重載與實體／
+乾淨主機驗收仍開放。獨立 Clip 目錄工作由 PR #786 負責。
+
+## ✅ Sprite source 作者文件持久化（2026-11-13）
+
+ED-WF-07 配套子項 `nexora-whr.7.2` 在 ND2D schema 2、TwoDDocument 歷史／重開與獨立 Play
+加入自有 source 目錄，並提供 Studio 來源匯入／指派／預覽。無 source 的 schema-1 位元組與
+C/Zig 表格維持相容。Player 在 gameplay 前接納內嵌相依閉包；搬移套件刪除作者來源後仍可執行。
+原生像素驗證持久化 trim／Pivot 與負縮放幾何，錯誤匯出及衝突來源持續被拒絕。
+參照驗證每份文件只完整檢查 Atlas 一次，再共用逐筆 source 的解析器檢查；
+回歸案例同時涵蓋 4096 sources 與 1024 Atlas regions。
+詳見[雲端證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-AuthoredSources-Linux-2026-11-13.md)。
+主 Editor 製作畫面／已設定套件 Play／Build 轉換、來源動畫／熱重載與完整 ED-WF-07 仍未完成。
+工作流 **5/9**、圖形 Editor **0/8**、2D **9/11** 及 M6／M7 實機驗收維持不變。
+
+## ✅ 主場景 Sprite 來源 Build 支援（2026-11-13）
+
+支援工作 `nexora-whr.7.7` 擷取已存檔的來源 UUID 參照，擁有去重後的來源／Atlas 相依資料與
+精確發佈基準。含來源遊戲使用 capability 3，無來源 capability 2 位元組保持相容；Runtime 不依賴
+選用 TwoD 的型別編碼器。標準 Player 驗證型別相依關係，將重映射後的實際 World 變換繪成 2D 覆蓋層。
+CPU 案例涵蓋過期、損壞、缺失相依資料、擁有者生命週期與 additive ID 重映射；實際 Build／SDK Zig、
+刪除專案、中文路徑搬移及無參數啟動 Player 驗證完整 Sprite 色彩遮罩，底下的原生 3D 像素保持完全相同。
+詳見 [Build 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-Linux-2026-11-13.md)。
+設定式套件 Play 預覽、Scene View、來源動畫／物件池與熱重載仍未完成；保留獨立的無模組 Play 工作。
+ED-WF-07 保持開啟。工作流 **5/9**、圖形編輯器 **0/8**、TwoD **9/11** 與實體／乾淨主機驗收不變。
+
+與已獨立交付的無模組 Play（PR #778、main `2e900aa2`）整合後，詳見
+[主線整合補充證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-MainIntegration-Linux-2026-11-13.md)：
+完整 **521/521**、零失敗／略過，實際 Development／Shipping 原生像素、Monolithic 與 2D-OFF 組建通過。
+原生測試傳輸修正保留相同逾時與全部原有斷言；前輪失敗的完整測試分開保留，父項驗收與里程碑數字不變。
+
+## ✅ 來源動畫 Clip 基礎（2026-11-13）
+
+支援工作 `nexora-whr.8.1` 新增純來源 Clip schema 2，保留舊 Clip 的精確位元組與 C/Zig 表格。
+型別匯入／cook／目錄及 Editor 快照驗證完整來源／Atlas 相依；明確 Play／Advance、保留的不可變
+Clip 擁有者、ND2D 歷史與 Studio 預覽保留來源身分及樣式。實際 SDK／搬移 Player 的 Development
+與 Shipping 像素涵蓋 trim／Pivot、翻轉、負縮放、第二組預載來源／Atlas，以及穩定的來源物件池 handle。
+完整 Linux **523/523**、零失敗／略過，Shipping／原生、Monolithic 與 TwoD-OFF 驗證通過。
+[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-SourceAnimation-Linux-2026-11-13.md) 分別保留前輪失敗及中斷紀錄。
+來源重匯入、32 次實際 Zig 重載／失敗回復、主 Editor 設定式套件 Play 及完整 ED-WF-07／08 仍未完成；
+原生 `repacked` 階段只是預載動畫影格的名稱，不代表即時重匯入。工作流 **5/9**、圖形 Editor **0/8**、
+TwoD **9/11** 及實體／乾淨主機驗收維持不變。
+
+[編譯器可攜性補充證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-SourceAnimation-Portability-Linux-2026-11-13.md) 記錄修正後完整
+**523/523**、零失敗／略過，以及 Development／Shipping 原生、Monolithic 與 TwoD-OFF 驗證。
+GNU 15.2 前後對照重現原始 benchmark 暫存值警告，並驗證全部 17 個受影響 C++ 翻譯單元；
+測試採明確且有界的整數型別處理 MSVC 警告。警告規則與原生斷言維持不變，初始 `1ec968b6`
+的本機成功及 CI 失敗分開保留；完整 ED-WF-07／08 與里程碑數字不變。
+
+`nexora-whr.8.1` 額外原生測試可攜性修正通過523/523及全部12項本機驗證；GCC15.2編譯全部309個
+實際TwoD消費端命令版本，包含既有CPU／原生PlayContext測試。[最終原生版本證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-SourceAnimation-NativeContext-Linux-2026-11-13.md)
+保留兩份先前已提交紀錄及新增的雲端CI失敗。正式32次來源重載、設定式套件Play及完整ED-WF-07／08
+仍未完成；**5/9**、**0/8**、**9/11**維持不變。
+
+## ✅ 獨立來源重載世代基礎（2026-11-13）
+
+支援工作 `nexora-whr.8.2.1` 暫存獨立TwoD World／中繼資料、相機／查詢、動畫時鐘／暫停／樣式、
+場景請求／版本及精確物件池handle；配置、准入與重入失敗不改動正式值。實際標準SDK測試通過32次
+獨立程式庫替換、128次候選拒絕、舊程式工作租約等待，以及保留錨點的來源UUID重匯入。
+完整525/525、Shipping／原生回歸、Monolithic及TwoD-OFF通過；[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-GenerationStaging-Linux-2026-11-13.md)
+保留初期失敗與中斷紀錄。這是可重用的獨立TwoD先決基礎；`nexora-whr.8.2` 的正式Player／Editor
+服務與原生重載整合仍未完成，完整ED-WF-07／08、**5/9**、**0/8**、**9/11**及實體／乾淨主機驗收不變。
+
+## ✅ 單次UI中的受柵欄保護Scene影像（2026-11-13）
+
+支援工作 `nexora-whr.7.8.1` 提供明確的離屏LDR Scene參照，在單次UI提交內取樣；上傳前拒絕
+過期／異表面參照，各視圖資源由完成柵欄保護。實際Linux Development／Shipping各通過12影格、
+24次Scene繪製、48個UI命令、兩次縮放及非對稱像素／遮擋檢查；反轉UV的負向對照如預期失敗。
+完整527/527、Monolithic與TwoD-OFF通過；[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SceneUiComposition-Linux-2026-11-13.md)
+保留初期失敗並區分本機Linux與託管平台檢查。`nexora-whr.7.8` 的正式設定封裝Editor來源Play
+仍有保護且未完成；正式重載、完整ED-WF-07／08、Workflow **5/9**、Editor **0/8**、TwoD **9/11**
+及實體／乾淨主機驗收維持不變。
+
+## ✅ Editor Sprite 拒絕 Scene 標記（2026-11-14）
+
+支援工作 `nexora-whr.7.8.1` 在既有索引 Sprite 轉譯器附加 ImGui 幾何前，拒絕所有非零 Scene
+參照。同一個實際外部測試對舊函式庫失敗、套用正式檢查後通過；完整／不完整標記均拒絕，普通
+提交仍有效。新一輪完整 527/527、Shipping 原生、Monolithic 五項及 TwoD-OFF 通過；
+[補充證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SceneUiComposition-EditorTag-Linux-2026-11-14.md) 保留原始兩份原生證據與實際重現失敗。
+這尚未實作有擁有者的 ImGui Scene 綁定或受保護的封裝來源 Play；`nexora-whr.7.8`、正式重載、
+完整 ED-WF-07／08、**5/9**、**0/8**、**9/11** 及實體／乾淨主機驗收仍未完成／維持不變。
+
+## ✅ 設定式套件 Sprite Play（2026-11-14）
+
+支援工作 `nexora-whr.7.8` 將已交付的 Build 目錄與受柵欄保護的 Scene 影像整合進實際主 Editor。
+Play 前先准入全部套件 Atlas；候選場景的重映射來源與完整 Scene／Sprite／GUI 單次提交成功後，
+才發布 World 並執行初始回呼。唯讀原生驗收重複32次操作，檢查完整裁切／Pivot／鏡像遮罩及未變的
+底層3D像素，再以實際 SDK Zig 驗證 Additive／Replace／返回、浮動視窗遮擋、縮放與模組 Start 前
+拒絕過期來源。保留無來源的直接3D路徑及 TwoD-OFF 明確拒絕。
+[契約](../../Apps/Editor/README.md#configured-packaged-sprite-play) 與
+[執行紀錄](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-ConfiguredSpritePlay-Linux-2026-11-14.md)。
+前述底層基礎紀錄描述各自交付範圍；設定式 Play 現由本獨立消費端完成。Scene View 製作畫面、
+正式來源發布／重載與完整 ED-WF-07／08 仍未完成。Workflow **5/9**、完整圖形 Editor **0/8**、
+TwoD **9/11** 及實體／乾淨主機驗收維持不變。
+
+## ✅ 獨立 Player 嚴格重載整合（2026-11-14）
+
+支援子項 `nexora-whr.8.2.2` 已在正式 Player 主機採用隔離 TwoD 世代，包含穩定位址的快取服務
+context、唯讀存狀態階段，以及候選／退役世代的外部服務准入。聚焦的正式主機 fixture 通過32次
+canonical SDK 替換與128次拒絕；Linux 原生版本在替換、回復與來源重新匯入／重打包過程中，
+驗證192次有呈現識別標記的來源／物件池畫面。另一個完整原生 Player 範例行程回歸亦通過。
+[所有權契約](../../Apps/TwoDPlayer/README.md#strict-generation-ownership) 區分 fixture 與完整行程範圍。
+完整531/531、14本機 gates 與十組實際 GCC15 編譯命令皆通過；交付仍須確切提交的雲端 CI。主程式封裝 Editor／Player
+來源動畫／物件池服務、專案監看及完整 ED-WF-07／08 仍開放；Workflow **5/9**、Editor **0/8**、TwoD **9/11** 不變。
+
+[完整本機執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-PlayerGeneration-Linux-2026-11-14.md) 保留初期失敗及完整範圍。
+
+## ✅ 原生 Scene Sprite 來源預覽（2026-11-14）
+
+支援項目 `nexora-whr.7.9` 在實際原生 3D Scene View，以持有已匯入來源／Atlas 的 cutout
+平面顯示 Sprite。Trim／Pivot／PPU、鏡像與完整階層矩陣、來源／mesh 聯集精確邊界、透明度
+選取，以及一般變形預覽／Undo／Redo 共用相同來源幾何。單一應用 Scene 紋理 owner 持有精確
+不可變 Atlas，於幀之間退役被替換的原生紋理。兩個 fence 保護的 LDR 取樣視圖先於同一次
+所屬 GUI 提交；保留無來源繪圖及設定式 Play 的發布保護。Scene／Game 畫布仍須不相交，浮動
+輔助視窗依 GUI 順序遮擋。
+[契約](../../Apps/Editor/README.md#native-scene-sprite-sources) 與
+[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SceneSpritePreview-Linux-2026-11-14.md)。
+此功能沿用線性 PBR 取樣及 alpha cutoff0.5。部分透明混色、像素精確 2D／XY 編輯、主程式封裝來源
+動畫／物件池／發布／reload 與完整 ED-WF-07/08 仍未完成。完整 Linux 510/510、Shipping、實際 TwoD-OFF／noTests 與圖形 Monolithic gates 通過；
+交付仍須確切提交的 hosted CI。工作單
+**5/9**、圖形 Editor **0/8**、TwoD **9/11** 及實體／乾淨主機驗收維持不變。
+
+## ✅ 主遊戲明確動畫根資產擷取（2026-11-14）
+
+支援工作 `nexora-whr.8.3.1` 在 Build 設定加入明確且不可變的 Clip 根資產、完整擁有的
+Clip／來源／Atlas 擷取，以及獨立的遊戲封裝能力版本 4。沒有根資產的設定與能力版本 2／3
+封裝維持既有位元組。型別驗證檢查傳統影格區域與完整來源依賴；保留的 Clip 在產生者與
+原始檔移除後仍擁有影格 UUID。完整 Linux **536/536**、零失敗／略過、**2184.80 秒**、13 項本機閘門、
+Development／Shipping 原生像素、Monolithic 與 TwoD-OFF 明確拒絕均通過。
+[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-GameClipRoots-Linux-2026-11-14.md) 記錄所有權與相容性。
+交付前仍須精確提交的最新雲端 CI。主程式來源／動畫／
+物件池服務、即時發布與完整 ED-WF-07/08 仍未完成。流程 **5/9**、
+Editor **0/8**、TwoD **9/11** 與實體機／乾淨主機驗收維持不變。
+
+## ✅ 圖形化動畫根資產選取（2026-11-14）
+
+支援子任務 `nexora-whr.8.3.2` 透過主編輯器 Build Settings 的 Animation assets 視窗明確加入／移除不可變 Clip 根資產。有界擁有式中繼資料快照與獨立虛擬清單保留失效 UUID，拒絕過期／外來／忙碌／唯讀編輯，維持既有 Build／Run／Stop 位置。實際 1x／2x 控制及原生 X11 儲存／重載／唯讀重開，接上 SceneOnly 與標準 SDK ScriptProject Build；刪除來源並搬移至 Unicode 路徑後，兩種原生模式均驗證 8192 個 Sprite 像素、獨立中央 80x80 的 3D 區域與完整排空。完整 Linux **538/538**、零失敗／跳過、**2273.16 秒**、**13 組本地關卡**、四個實際 GCC15 編譯命令、Shipping 原生、Monolithic 五項 CPU 及實際 TwoD-OFF 拒絕均通過。
+
+[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-BuildClipPicker-Linux-2026-11-14.md) 保留原始失敗與精確範圍；交付前仍須通過確切提交的雲端 CI。主遊戲動畫／物件池／發布／熱重載與完整 ED-WF-07/08 仍未完成；流程 **5/9**、Editor **0/8**、TwoD **9/11** 及實體／乾淨主機驗收維持不變。

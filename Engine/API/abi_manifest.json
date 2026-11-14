@@ -1247,6 +1247,78 @@
       "threading": "Serialized host owner thread only. Debug view publishes at the next frame boundary. Diagnostics query never waits for GPU work.",
       "errors": "0 success; -1 invalid argument or debug selection; -2 missing prefix/provider/native feature or version; -3 wrong thread, provider or allocation/lifecycle failure. Failure preserves outputs/snapshots.",
       "determinism": "Debug settings persist through copied frame replacements; unchanged settings do not advance revisions. Timings identify completed native frames and mark unavailable measurements explicitly; allocations are not physical VRAM."
+    },
+    {
+      "name": "NexoraTwoDApiV1.get_source_api",
+      "since": "ABI 3 optional Sprite Source V1",
+      "ownership": "Returns a copied source table with a borrowed bridge/context; valid until bridge destruction after module teardown.",
+      "nullability": "Context and output non-null; initialize output struct_size. Inspect parent suffix size and version before reading getter.",
+      "threading": "Serialized bridge construction thread only; reentry rejects.",
+      "errors": "0 success; -1 null output; -2 short output; -3 owner-thread, reentry or execution failure. Rejection preserves output.",
+      "determinism": "Copies only the independent V1 source table, preserving enlarged caller tails. Legacy descriptor and table prefixes remain supported."
+    },
+    {
+      "name": "NexoraGameplayServicesApiV1.get_sprite_content_api",
+      "since": "ABI 3 optional Sprite Source V1",
+      "ownership": "Returns a copied table with a borrowed embedding-owned registry/context; valid through module teardown.",
+      "nullability": "Context and output table non-null; initialize output struct_size and abi_version.",
+      "threading": "Serialized GameplayServices owner thread only; no IO or module callback.",
+      "errors": "0 success; -1 null output; -2 short output, wrong version or absent registration; -3 wrong thread. Rejection preserves output.",
+      "determinism": "Optional aggregate suffix; every complete historical services prefix remains supported. Runtime owns no source metadata or TwoD implementation."
+    },
+    {
+      "name": "NexoraGameplaySpriteContentApiV1.register_sprite_source",
+      "since": "ABI 3 optional Sprite Source V1",
+      "ownership": "Input bytes borrowed during the call; successful publication owns immutable decoded source metadata. UUID outputs are copied.",
+      "nullability": "Context, nonempty bytes and both UUID outputs non-null.",
+      "threading": "Serialized GameplayContent construction thread only; reentry rejects; no IO or module callback.",
+      "errors": "0 success; -1 malformed source, identity collision, invalid region or incompatible trim; -2 missing or non-Atlas dependency; -3 owner-thread, execution, allocation or budget failure. Rejection preserves outputs and registry.",
+      "determinism": "Decodes existing 96-byte schema 1 and validates current Atlas closure. Identical publication reuses its owner; replacement preserves retained snapshots and dependency-safe Atlas removal/replacement."
+    },
+    {
+      "name": "NexoraTwoDSourceApiV1.set_sprite",
+      "since": "ABI 3 optional Sprite Source V1",
+      "ownership": "Bridge/context borrowed through module teardown. Descriptors and handle buffers borrowed only during the call; outputs copied. Pool ownership stays with the host.",
+      "nullability": "Context and get output non-null; a null set Sprite removes metadata from an existing bound-scene entity.",
+      "threading": "Serialized bridge construction thread only; reentry rejects; no IO, worker or module callback.",
+      "errors": "0 success; -1 invalid entity, descriptor, handle or batch; -2 missing pool; -3 wrong thread, reentry, allocation or execution failure. Rejection preserves state and outputs.",
+      "determinism": "Fixed independent source wires preserve old descriptor strides. Zero source UUID means absent. Nonzero source overrides geometry while retaining authored style and transform. Set clears legacy animation on source binding; unresolved source references remain authored and extract as unavailable."
+    },
+    {
+      "name": "NexoraTwoDSourceApiV1.get_sprite",
+      "since": "ABI 3 optional Sprite Source V1",
+      "ownership": "Bridge/context borrowed through module teardown. Descriptors and handle buffers borrowed only during the call; outputs copied. Pool ownership stays with the host.",
+      "nullability": "Context and get output non-null; a null set Sprite removes metadata from an existing bound-scene entity.",
+      "threading": "Serialized bridge construction thread only; reentry rejects; no IO, worker or module callback.",
+      "errors": "0 success; -1 invalid entity, descriptor, handle or batch; -2 missing pool; -3 wrong thread, reentry, allocation or execution failure. Rejection preserves state and outputs.",
+      "determinism": "Fixed independent source wires preserve old descriptor strides. Zero source UUID means absent. Nonzero source overrides geometry while retaining authored style and transform. Set clears legacy animation on source binding; unresolved source references remain authored and extract as unavailable."
+    },
+    {
+      "name": "NexoraTwoDSourceApiV1.create_instances",
+      "since": "ABI 3 optional Sprite Source V1",
+      "ownership": "Bridge/context borrowed through module teardown. Descriptors and handle buffers borrowed only during the call; outputs copied. Pool ownership stays with the host.",
+      "nullability": "Context non-null; count 0 accepts null buffers. Otherwise handles and descriptors/outputs non-null, aligned and nonaliasing; maximum count 100000.",
+      "threading": "Serialized bridge construction thread only; reentry rejects; no IO, worker or module callback.",
+      "errors": "0 success; -1 invalid entity, descriptor, handle or batch; -2 missing pool; -3 wrong thread, reentry, allocation or execution failure. Rejection preserves state and outputs.",
+      "determinism": "Fixed independent source wires preserve old descriptor strides. Zero source UUID means absent. Nonzero source overrides geometry while retaining authored style and transform. The entire batch stages before publication or output. Existing owner/index/generation handles and legacy destruction are reused; duplicate writes and stale/foreign handles reject."
+    },
+    {
+      "name": "NexoraTwoDSourceApiV1.read_instances",
+      "since": "ABI 3 optional Sprite Source V1",
+      "ownership": "Bridge/context borrowed through module teardown. Descriptors and handle buffers borrowed only during the call; outputs copied. Pool ownership stays with the host.",
+      "nullability": "Context non-null; count 0 accepts null buffers. Otherwise handles and descriptors/outputs non-null, aligned and nonaliasing; maximum count 100000.",
+      "threading": "Serialized bridge construction thread only; reentry rejects; no IO, worker or module callback.",
+      "errors": "0 success; -1 invalid entity, descriptor, handle or batch; -2 missing pool; -3 wrong thread, reentry, allocation or execution failure. Rejection preserves state and outputs.",
+      "determinism": "Fixed independent source wires preserve old descriptor strides. Zero source UUID means absent. Nonzero source overrides geometry while retaining authored style and transform. The entire batch stages before publication or output. Existing owner/index/generation handles and legacy destruction are reused; duplicate writes and stale/foreign handles reject."
+    },
+    {
+      "name": "NexoraTwoDSourceApiV1.write_instances",
+      "since": "ABI 3 optional Sprite Source V1",
+      "ownership": "Bridge/context borrowed through module teardown. Descriptors and handle buffers borrowed only during the call; outputs copied. Pool ownership stays with the host.",
+      "nullability": "Context non-null; count 0 accepts null buffers. Otherwise handles and descriptors/outputs non-null, aligned and nonaliasing; maximum count 100000.",
+      "threading": "Serialized bridge construction thread only; reentry rejects; no IO, worker or module callback.",
+      "errors": "0 success; -1 invalid entity, descriptor, handle or batch; -2 missing pool; -3 wrong thread, reentry, allocation or execution failure. Rejection preserves state and outputs.",
+      "determinism": "Fixed independent source wires preserve old descriptor strides. Zero source UUID means absent. Nonzero source overrides geometry while retaining authored style and transform. The entire batch stages before publication or output. Existing owner/index/generation handles and legacy destruction are reused; duplicate writes and stale/foreign handles reject."
     }
   ]
 }

@@ -37,6 +37,7 @@ private:
   std::optional<twod::SpriteScene> scene_;
   std::shared_ptr<const twod::Atlas> atlas_;
   std::shared_ptr<const twod::Clip> clip_;
+  std::shared_ptr<const std::vector<twod::SpriteAsset>> sources_;
   twod::Tilemap tiles_;
   twod::InstancePool pool_;
   // Last member: destroy callbacks/context before every owner it borrows.

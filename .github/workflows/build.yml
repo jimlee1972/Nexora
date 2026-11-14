@@ -130,7 +130,7 @@ jobs:
       - name: Require the graphical Editor contract
         shell: bash
         run: |
-          ctest --preset ${{ matrix.preset }} -N -R '^editor\.imgui_contract$' | grep -q 'Total Tests: 1'
+          ctest --preset ${{ matrix.preset }} -N -R '^editor\.(imgui_contract|layout_restart)$' | grep -q 'Total Tests: 2'
       - name: Require the Windows DPI and IME contract
         if: runner.os == 'Windows'
         shell: bash
@@ -139,6 +139,10 @@ jobs:
       - run: ctest --preset ${{ matrix.preset }} -V --output-log build/${{ matrix.preset }}/development-tests.log
       - name: Verify Development Showcase package
         run: cmake --build --preset ${{ matrix.preset }} --target NexoraShowcasePackageDevelopmentEvidence
+      - name: Configure graphical Editor without test access
+        run: cmake --preset ${{ matrix.preset }} -DBUILD_TESTING=OFF
+      - name: Build graphical Editor without test access
+        run: cmake --build --preset ${{ matrix.preset }} --target NexoraEditor
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -150,6 +154,9 @@ jobs:
             build/${{ matrix.preset }}/artifacts/metal-scene.ppm
             build/${{ matrix.preset }}/artifacts/twod-linear*
             build/${{ matrix.preset }}/artifacts/hd2d-zig-*/
+            build/${{ matrix.preset }}/artifacts/source-player/
+            build/${{ matrix.preset }}/artifacts/editor-sprite-sources/
+            build/${{ matrix.preset }}/artifacts/authored-source*/
             build/${{ matrix.preset }}/Testing/Temporary/LastTest.log
             build/${{ matrix.preset }}/development-tests.log
             build/${{ matrix.preset }}/Tests/Editor/editor-startup-splash*.bmp
@@ -311,6 +318,7 @@ jobs:
             build/linux-development/native-validation.log
             build/linux-development/native-player-tests.log
             build/linux-development/artifacts/editor-packaged-play/
+            build/linux-development/artifacts/editor-sprite-sources/
             build/linux-development/Testing/Temporary/LastTest*.log
           if-no-files-found: warn
 
@@ -427,6 +435,8 @@ jobs:
       - name: Native Vulkan isolated-copy screenshots and full guided tour
         shell: pwsh
         run: |
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File Tools/Package/TestShowcaseStateExport.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $evidence = 'build/windows-showcase-vulkan-shipping/artifacts/showcase-windows-v1'
           & powershell.exe -NoProfile -ExecutionPolicy Bypass -File Tools/Package/AcceptShowcaseWindows.ps1 -PackageRoot build/windows-showcase-vulkan-shipping/package/NexoraShowcase-Shipping -EvidenceDirectory $evidence -ExpectedBuildId ($env:GITHUB_SHA.Substring(0, 12)) -Backend vulkan -CompleteGuidedTour -ExpectedVulkanDriverLibrary $env:NEXORA_CI_VULKAN_DRIVER_LIBRARY
           $code = $LASTEXITCODE
@@ -434,6 +444,17 @@ jobs:
           if ($code -ne 0) {
             Get-Content "$evidence/stderr.log" -ErrorAction SilentlyContinue
             Get-Content "$evidence/acceptance.json" -ErrorAction SilentlyContinue
+            foreach ($name in @('tour-replayed', 'tour-completion-progress', 'tour-state')) {
+              $tourPath = Join-Path $evidence ($name + '.json')
+              if (Test-Path -LiteralPath $tourPath) {
+                try {
+                  $tourSnapshot = Get-Content -LiteralPath $tourPath -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+                  [ordered]@{ evidence = $name; selected = $tourSnapshot.selected; ticks = $tourSnapshot.ticks; tour = $tourSnapshot.tour } | ConvertTo-Json -Depth 4 -Compress | Write-Host
+                } catch {
+                  Write-Host "Could not decode tour evidence ${name}: $($_.Exception.Message)"
+                }
+              }
+            }
             exit $code
           }
           $accepted = Get-Content "$evidence/acceptance.json" -Raw | ConvertFrom-Json

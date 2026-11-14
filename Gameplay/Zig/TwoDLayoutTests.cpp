@@ -86,6 +86,7 @@ int main() {
   assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDApiV1, destroy_instances));
   assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDApiV1, read_instances));
   assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDApiV1, write_instances));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDApiV1, get_source_api));
   assert(NexoraTwoDLayout(index) == UINT64_MAX);
   NexoraGameplayHostV3 host{};
   host.struct_size = NEXORA_GAMEPLAY_HOST_V3_BASE_SIZE;
@@ -109,4 +110,12 @@ int main() {
   std::memcpy(oldTwoD.data(), &host, oldTwoD.size());
   assert(NexoraTwoDProbe(reinterpret_cast<const NexoraGameplayHostV3 *>(oldTwoD.data())) == 1 &&
          "a later optional suffix must not reject a valid legacy 2D host");
+  host.get_twod_api = [](void *context, NexoraTwoDApiV1 *api) {
+    // Emulate a historical host that only writes the original TwoD table prefix.
+    api->struct_size = NEXORA_2D_API_V1_BASE_SIZE;
+    return static_cast<nexora::twod::GameplayBridge *>(context)->GetApi(api);
+  };
+  std::memcpy(oldTwoD.data(), &host, oldTwoD.size());
+  assert(NexoraTwoDProbe(reinterpret_cast<const NexoraGameplayHostV3 *>(oldTwoD.data())) == 1 &&
+         "the current Zig binding must accept a historical TwoD table without the source suffix");
 }

@@ -203,11 +203,19 @@ def compile_manifest(manifest, root, compiler, output):
         if not 1 <= len(frames) <= 4096: raise ValueError('frame budget')
         loop = manifest.get('loop', True)
         if type(loop) is not bool: raise ValueError('loop must be bool')
-        data = struct.pack('<II', 0x4332444e, 1)+uuid(manifest['id'])+uuid(manifest['atlas'])+struct.pack('<II', int(loop), len(frames))
+        sources = 'source' in frames[0]
+        if any(('source' in f) != sources for f in frames):
+            raise ValueError('Clip frames must use one binding mode')
+        if sources and ('atlas' in manifest or any('region' in f for f in frames)):
+            raise ValueError('Source Clip cannot specify Atlas or region bindings')
+        data = (struct.pack('<II', 0x4332444e, 2 if sources else 1)+uuid(manifest['id'])
+                +(bytes(16) if sources else uuid(manifest['atlas']))
+                +struct.pack('<II', int(loop), len(frames)))
         for f in frames:
             event = f.get('event', '').encode('ascii')
             if len(event) > 256: raise ValueError('event budget')
-            data += struct.pack('<IdI', integer(f['region'], 1, 2**32-1), float(f['seconds']), len(event))+event
+            data += struct.pack('<IdI', 0 if sources else integer(f['region'], 1, 2**32-1), float(f['seconds']), len(event))+event
+            if sources: data += uuid(f['source'])
         command = 'clip'
     else: raise ValueError('unknown manifest type')
     with tempfile.TemporaryDirectory(prefix='nexora-2d-') as temp:

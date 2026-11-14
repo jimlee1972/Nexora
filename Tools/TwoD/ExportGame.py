@@ -387,7 +387,7 @@ def export(descriptor, runtime, output, compiler=None, allow_development=False, 
             if set(entry) - {'kind', 'path', 'id', 'preload'}:
                 raise ValueError('unknown asset field')
             kind = entry['kind']
-            if kind not in ('atlas', 'clip', 'wave', 'font', 'blob') or entry['path'] in paths:
+            if kind not in ('atlas', 'clip', 'sprite', 'wave', 'font', 'blob') or entry['path'] in paths:
                 raise ValueError('invalid or duplicate asset')
             paths.add(entry['path'])
             source = local(descriptor.parent, entry['path'])
@@ -400,11 +400,11 @@ def export(descriptor, runtime, output, compiler=None, allow_development=False, 
             total += size if preload else 0
             if total > 64 * 1024 * 1024:
                 raise ValueError('preloaded source assets exceed 64 MiB')
-            suffix = '.nxcook' if kind in ('atlas', 'clip') else '.wav' if kind == 'wave' else '.nxfont' if kind == 'font' else '.bin'
+            suffix = '.nxcook' if kind in ('atlas', 'clip', 'sprite') else '.wav' if kind == 'wave' else '.nxfont' if kind == 'font' else '.bin'
             target = staging / 'assets' / (f'{index:04d}' + suffix)
-            if kind in ('atlas', 'clip') and source.suffix.lower() != '.nxcook':
+            if kind in ('atlas', 'clip', 'sprite') and source.suffix.lower() != '.nxcook':
                 if not compiler or source.suffix.lower() != '.nx2' + kind:
-                    raise ValueError('canonical Atlas/Clip sources require --compiler')
+                    raise ValueError('canonical Atlas/Clip/Sprite sources require --compiler')
                 canonical = Path(temporary) / ('source.nx2' + kind)
                 shutil.copy2(source, canonical)
                 subprocess.run([str(compiler.resolve()), 'cook', canonical.name,

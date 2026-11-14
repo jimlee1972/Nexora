@@ -10,12 +10,13 @@ struct TwoDPanelState final {
   std::optional<std::size_t> requestedScene;
   runtime::Id selected{};
   std::uint32_t region{};
+  std::optional<twod::AssetId> newSpriteSource;
   twod::Camera camera;
   twod::Animator preview;
   std::uint64_t previewRevision{UINT64_MAX};
   std::int32_t tileX{}, tileY{}, tileLayer{};
   bool collision{}, previewPaused{}, saveRequested{}, openRequested{}, importAtlasRequested{},
-      importClipRequested{};
+      importClipRequested{}, importSpriteRequested{};
   std::string status;
 };
 // Called inside the host frame. Texture is a host-registered atlas handle. Buttons emit

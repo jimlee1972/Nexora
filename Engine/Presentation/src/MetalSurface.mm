@@ -11,6 +11,7 @@
 #include "ScenePbrMetalShaders.h"
 #include "SceneTextureMipmaps.h"
 #include "SceneToneMetalShaders.h"
+#include "SceneUiComposition.h"
 #include "SceneViewAdmission.h"
 #include "ToneParametersUpload.h"
 #include "ToneVertexUpload.h"
@@ -135,6 +136,7 @@ public:
       sceneViews_.Reset();
       sceneViewSlot_ = 0;
       ++diagnostics_.acquiredFrames;
+      sceneUi_.Begin(diagnostics_.acquiredFrames);
       return SurfaceStatus::Ready;
     }
   }
@@ -158,7 +160,7 @@ public:
         [encoder endEncoding];
       }
 #if defined(NEXORA_METAL_SCENE_TESTING)
-      if (!sceneOffscreen_)
+      if (!sceneOffscreen_ || sceneUi_.Sampled())
         compositedTesting_ = drawable_.texture;
 #endif
       [commands_ presentDrawable:drawable_];
@@ -173,14 +175,24 @@ public:
       return SurfaceStatus::Ready;
     }
   }
+  std::optional<SceneTextureReference> SceneTexture() const noexcept override {
+    if (thread_ != std::this_thread::get_id() || !drawable_ || !commands_ || !sceneOffscreen_ ||
+        sceneHdr_ || sceneComposited_ || uiRendered_)
+      return {};
+    return sceneUi_.Reference();
+  }
   SurfaceStatus RenderUi(const UiDrawData &drawData) override {
     @autoreleasepool {
       if (thread_ != std::this_thread::get_id())
         return SurfaceStatus::WrongThread;
-      if (!drawable_ || !commands_ || uiRendered_ || (sceneOffscreen_ && !sceneComposited_) ||
-          drawData.vertices.empty() || drawData.indices.empty())
+      if (!drawable_ || !commands_ || uiRendered_ || drawData.vertices.empty() ||
+          drawData.indices.empty())
         return SurfaceStatus::InvalidDescriptor;
       if (!ValidateUi(drawData) || !ValidateSpriteInstances(drawData))
+        return SurfaceStatus::InvalidDescriptor;
+      const auto scenePlan = sceneUi_.Validate(drawData, width_, height_);
+      if (!scenePlan.valid || ((sceneOffscreen_ && !sceneComposited_) && !scenePlan.sampled) ||
+          (scenePlan.sampled && (!sceneOffscreen_ || sceneHdr_ || sceneComposited_)))
         return SurfaceStatus::InvalidDescriptor;
       if (!twoDLinearRecorded_)
         ResetTwoDLinearFrame(twoDLinearFrames_[frame_]);
@@ -219,7 +231,8 @@ public:
       diagnostics_.spriteInstanceUploadBytes += instances.size();
       MTLRenderPassDescriptor *pass = [MTLRenderPassDescriptor renderPassDescriptor];
       pass.colorAttachments[0].texture = drawable_.texture;
-      pass.colorAttachments[0].loadAction = sceneDrawn_ ? MTLLoadActionLoad : MTLLoadActionClear;
+      pass.colorAttachments[0].loadAction =
+          sceneDrawn_ && !scenePlan.sampled ? MTLLoadActionLoad : MTLLoadActionClear;
       pass.colorAttachments[0].storeAction = MTLStoreActionStore;
       pass.colorAttachments[0].clearColor = MTLClearColorMake(0.04, 0.08, 0.16, 1.0);
       id<MTLRenderCommandEncoder> encoder = [commands_ renderCommandEncoderWithDescriptor:pass];
@@ -234,15 +247,21 @@ public:
       [encoder setFragmentSamplerState:uiSampler_ atIndex:0];
       for (const auto &command : drawData.commands) {
         const auto texture = uiTextures_.find(command.textureId);
-        if (texture == uiTextures_.end()) {
+        const bool sceneTexture = command.sceneTexture != SceneTextureReference{};
+        if (!sceneTexture && texture == uiTextures_.end()) {
           ++diagnostics_.nativeUiRejectedTextures;
           continue;
         }
-        [encoder setFragmentSamplerState:uiTextureMetadata_.at(command.textureId).nearest
+        [encoder setFragmentSamplerState:!sceneTexture &&
+                                                 uiTextureMetadata_.at(command.textureId).nearest
                                              ? uiNearestSampler_
                                              : uiSampler_
                                  atIndex:0];
-        [encoder setFragmentTexture:texture->second atIndex:0];
+        [encoder setFragmentTexture:sceneTexture
+                                        ? (command.sceneTexture.view ? secondarySceneColors_[frame_]
+                                                                     : sceneColors_[frame_])
+                                        : texture->second
+                            atIndex:0];
         const MTLScissorRect scissor{static_cast<NSUInteger>(command.clipX),
                                      static_cast<NSUInteger>(command.clipY), command.clipWidth,
                                      command.clipHeight};
@@ -275,6 +294,12 @@ public:
       }
       [encoder endEncoding];
       uiRendered_ = true;
+      if (scenePlan.sampled) {
+        sceneUi_.Complete();
+        sceneComposited_ = true;
+        sceneViews_.SampledOffscreen(scenePlan.bounds);
+        ++diagnostics_.sceneComposites;
+      }
       return SurfaceStatus::Ready;
     }
   }
@@ -285,6 +310,8 @@ public:
       if (srgbUiOutput_)
         return SurfaceStatus::Unsupported;
       if (!drawable_ || !commands_ || !scenePipeline_)
+        return SurfaceStatus::InvalidDescriptor;
+      if (drawData.sampledByUi && (!drawData.offscreen || drawData.hdr))
         return SurfaceStatus::InvalidDescriptor;
       const auto viewport = ResolveSceneViewport(drawData.viewport, width_, height_);
       const bool defaultViewport = drawData.viewport.x == 0 && drawData.viewport.y == 0 &&
@@ -419,8 +446,9 @@ public:
       if (drawData.shadow && !RecordShadow(drawData, instanceOffset))
         return SurfaceStatus::DeviceLost;
       const bool reflection = drawData.planarReflection.has_value();
+      const bool secondarySample = drawData.sampledByUi && sceneViewSlot_ == 1;
       if (!EnsureSceneTargets(drawData.offscreen, drawData.hdr, HasSceneRefraction(drawData),
-                              reflection))
+                              reflection, secondarySample))
         return SurfaceStatus::DeviceLost;
       struct SceneConstants final {
         float mvp[16];
@@ -433,10 +461,12 @@ public:
       std::memcpy(constants.light, drawData.light_color, sizeof(drawData.light_color));
       std::memcpy(constants.color, drawData.base_color, sizeof(constants.color));
       const bool refraction = HasSceneRefraction(drawData);
+      const auto sceneColor =
+          secondarySample ? secondarySceneColors_[frame_] : sceneColors_[frame_];
       MTLRenderPassDescriptor *pass = [MTLRenderPassDescriptor renderPassDescriptor];
       pass.colorAttachments[0].texture =
           reflection ? reflectionColors_[frame_]
-                     : (drawData.offscreen ? sceneColors_[frame_] : drawable_.texture);
+                     : (drawData.offscreen ? sceneColor : drawable_.texture);
       pass.colorAttachments[0].loadAction =
           reflection || !uiRendered_ ? MTLLoadActionClear : MTLLoadActionLoad;
       pass.colorAttachments[0].storeAction = MTLStoreActionStore;
@@ -587,6 +617,8 @@ public:
         }
         [encoder endEncoding];
       }
+      if (drawData.sampledByUi && !sceneUi_.Publish(sceneViewSlot_))
+        return SurfaceStatus::Unsupported;
       static_cast<void>(sceneViews_.Commit(drawData, width_, height_, uiRendered_));
       sceneDrawn_ = true;
       sceneOffscreen_ = drawData.offscreen;
@@ -664,7 +696,8 @@ public:
                                        options:MTLResourceStorageModeShared];
     auto command = [queue_ commandBuffer];
     auto encoder = [command blitCommandEncoder];
-    auto texture = !sceneOffscreen_ || sceneHdr_ ? compositedTesting_ : sceneColors_[frame_];
+    auto texture = !sceneOffscreen_ || sceneHdr_ || sceneUi_.Sampled() ? compositedTesting_
+                                                                       : sceneColors_[frame_];
     if (!buffer || !encoder || !texture)
       return {};
     [encoder copyFromTexture:texture
@@ -692,6 +725,29 @@ public:
     auto result = diagnostics_;
     result.twoDTextureCount = uiTextures_.size();
     return result;
+  }
+  SurfaceStatus ReleaseSceneTextures(std::span<const std::uint64_t> ids) override {
+    if (thread_ != std::this_thread::get_id())
+      return SurfaceStatus::WrongThread;
+    if (destroyed_)
+      return SurfaceStatus::SurfaceLost;
+    if (drawable_ || commands_)
+      return SurfaceStatus::InvalidDescriptor;
+    if (ids.size() > 64)
+      return SurfaceStatus::InvalidDescriptor;
+    for (const auto id : ids)
+      if (!id || id >= UINT64_MAX - 1)
+        return SurfaceStatus::InvalidDescriptor;
+    if (ids.empty())
+      return SurfaceStatus::Ready;
+    if (!DrainFrames())
+      return SurfaceStatus::DeviceLost;
+    for (const auto id : ids) {
+      sceneTextures_.erase(id);
+      sceneSrgbTextures_.erase(id);
+      sceneLinearTextures_.erase(id);
+    }
+    return SurfaceStatus::Ready;
   }
   SurfaceStatus ReleaseSpriteTextures(std::span<const std::uint64_t> ids) override {
     if (thread_ != std::this_thread::get_id())
@@ -739,6 +795,7 @@ public:
         sceneDepths_[i] = nil;
         shadowColors_[i] = shadowDepths_[i] = nil;
         sceneColors_[i] = nil;
+        secondarySceneColors_[i] = nil;
         refractionColors_[i] = nil;
         reflectionColors_[i] = nil;
       }
@@ -1043,7 +1100,8 @@ private:
     ++diagnostics_.sceneShadowPasses;
     return true;
   }
-  bool EnsureSceneTargets(bool offscreen, bool hdr, bool refraction, bool reflection) {
+  bool EnsureSceneTargets(bool offscreen, bool hdr, bool refraction, bool reflection,
+                          bool secondary = false) {
     const auto ensure = [&](id<MTLTexture> __strong &texture, MTLPixelFormat format) {
       if (texture && texture.width == width_ && texture.height == height_ &&
           texture.pixelFormat == format)
@@ -1057,11 +1115,12 @@ private:
       texture = [device_ newTextureWithDescriptor:descriptor];
       return texture != nil;
     };
+    auto &color = secondary ? secondarySceneColors_[frame_] : sceneColors_[frame_];
     return (!reflection || ensure(reflectionColors_[frame_], MTLPixelFormatRGBA16Float)) &&
            (!refraction || ensure(refractionColors_[frame_], MTLPixelFormatRGBA16Float)) &&
            ensure(sceneDepths_[frame_], MTLPixelFormatDepth32Float) &&
-           (!offscreen || ensure(sceneColors_[frame_],
-                                 hdr ? MTLPixelFormatRGBA16Float : MTLPixelFormatBGRA8Unorm));
+           (!offscreen ||
+            ensure(color, hdr ? MTLPixelFormatRGBA16Float : MTLPixelFormatBGRA8Unorm));
   }
   id<MTLTexture> CreateTexture(const UiTextureUpload &upload, bool scene = false,
                                std::uint32_t levels = 1) {
@@ -1436,9 +1495,11 @@ private:
     return sceneUploads_[frame_][sceneViewSlot_];
   }
   detail::SceneViewAdmission sceneViews_;
+  detail::SceneUiComposition sceneUi_;
   std::size_t sceneViewSlot_{};
   std::array<id<MTLTexture>, kFrames> sceneDepths_{};
-  std::array<id<MTLTexture>, kFrames> sceneColors_{}, refractionColors_{}, reflectionColors_{};
+  std::array<id<MTLTexture>, kFrames> sceneColors_{}, secondarySceneColors_{}, refractionColors_{},
+      reflectionColors_{};
   std::unordered_map<std::uint64_t, id<MTLTexture>> sceneTextures_;
   std::unordered_map<std::uint64_t, id<MTLTexture>> sceneSrgbTextures_;
   std::unordered_map<std::uint64_t, id<MTLTexture>> sceneLinearTextures_;

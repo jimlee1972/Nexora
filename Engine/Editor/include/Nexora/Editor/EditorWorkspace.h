@@ -377,6 +377,11 @@ public:
   [[nodiscard]] std::optional<std::vector<OpaqueComponent>> OpaqueComponents(NodeKey entity) const;
   [[nodiscard]] std::optional<std::vector<OpaqueComponentInfo>>
   InspectOpaqueComponents(NodeKey entity) const;
+  // Linear whole-scene inspection of matching type OR reserved name, using owning 64-byte
+  // previews. Validates live Editor entity membership once; no per-node Key lookup or Runtime
+  // serialization. Existing 100000-entity/4096-record bounds apply. Invalid scope rejects.
+  [[nodiscard]] std::optional<std::vector<OpaqueComponentInfo>>
+  InspectOpaqueComponents(runtime::TypeId type, std::string_view reserved_name) const;
   bool SetTransforms(std::span<const NodeKey> entities,
                      std::span<const runtime::Transform> transforms);
   // Applies one local TRS and its matching finite authored Euler values to a nonempty,

@@ -125,6 +125,12 @@ public:
   AppearancePosition(const EditorImGuiHost &, std::size_t);
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ProjectBuildSettingsPosition(const EditorImGuiHost &, std::size_t);
+  // Open/close and visible asset control centers; copied observations only.
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  BuildAnimationPosition(const EditorImGuiHost &, std::size_t);
+  [[nodiscard]] static std::vector<std::pair<runtime::AssetUuid, std::array<float, 2>>>
+  BuildAnimationAssetPositions(const EditorImGuiHost &, bool remove);
+  [[nodiscard]] static std::vector<runtime::AssetUuid> BuildAnimationRoots(const EditorImGuiHost &);
   [[nodiscard]] static bool ProjectGameBuildBusy(const EditorImGuiHost &);
   [[nodiscard]] static bool ProjectGameRunBusy(const EditorImGuiHost &);
   [[nodiscard]] static std::optional<GameBuildStage> ProjectGameBuildStage(const EditorImGuiHost &);
@@ -153,6 +159,9 @@ public:
   [[nodiscard]] static SceneComparisonSnapshot SceneComparisonStatus(const EditorImGuiHost &);
   [[nodiscard]] static SceneShortcutObservation
   SceneShortcutInput(const EditorImGuiHost &) noexcept;
+  // Raw processed keys for native preview acceptance: Ctrl,S,Z,Y,1,3,W,Home,F5,F6,F10,A.
+  [[nodiscard]] static std::array<bool, 12> ScenePreviewKeys(const EditorImGuiHost &) noexcept;
+
   [[nodiscard]] static std::uint32_t SceneComparisonRenderedRows(const EditorImGuiHost &);
   [[nodiscard]] static std::optional<std::array<float, 2>>
   SceneMergePosition(const EditorImGuiHost &, std::size_t control);
@@ -399,6 +408,16 @@ public:
   // Control 0: combo; 1: first available typed material; 2: Unassigned in its popup.
   [[nodiscard]] static std::optional<std::array<float, 2>>
   InspectorMaterialPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
+  [[nodiscard]] static std::string_view
+  InspectorSpriteSourceLabel(const EditorImGuiHost &host) noexcept;
+  // Current expanded text, empty for collapsed/unavailable details. Frame-only observation.
+  [[nodiscard]] static std::string_view
+  InspectorSpriteSourceDetails(const EditorImGuiHost &host) noexcept;
+  // Visible centers, including disabled controls: combo, first choice, clear, details (0..3).
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  InspectorSpriteSourcePosition(const EditorImGuiHost &host, std::size_t control) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  InspectorSpriteSourceChoicePosition(const EditorImGuiHost &host, runtime::AssetUuid) noexcept;
   static void FocusInspector(EditorImGuiHost &host) noexcept;
   // Visible, enabled local TRS input bounds; rows Position/Rotation/Scale, axes X/Y/Z.
   [[nodiscard]] static std::optional<std::array<float, 4>>

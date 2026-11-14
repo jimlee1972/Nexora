@@ -116,10 +116,12 @@ void Measure(std::ostream &report, std::size_t count, bool overlap, bool native,
   twod::FixedStepper step;
   twod::SpatialIndex index(2);
   twod::Animator animation;
-  Check(animation.Play(sourceClip
-                           ? *sourceClip
-                           : twod::Clip{{18, 19}, atlas->id, true, {{sprite.region, 0.1, "tick"}}}),
-        "animation");
+  if (sourceClip) {
+    Check(animation.Play(*sourceClip), "animation");
+  } else {
+    const twod::Clip fallback{{18, 19}, atlas->id, true, {{sprite.region, 0.1, "tick"}}};
+    Check(animation.Play(fallback), "animation");
+  }
   twod::Camera camera;
   camera.width = 640;
   camera.height = 480;

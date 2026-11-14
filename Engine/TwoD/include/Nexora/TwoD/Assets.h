@@ -54,6 +54,7 @@ struct AnimationFrame final {
   std::uint32_t region{};
   double seconds{0.1};
   std::string event;
+  std::optional<AssetId> source{};
 };
 struct Clip final {
   AssetId id, atlas;
@@ -61,12 +62,16 @@ struct Clip final {
   std::vector<AnimationFrame> frames;
 };
 [[nodiscard]] NEXORA_2D_API bool ValidateClip(const Clip &clip) noexcept;
+// Clips use either legacy Atlas regions or exclusively source UUIDs, never a mixed binding.
+[[nodiscard]] NEXORA_2D_API bool ClipUsesSources(const Clip &) noexcept;
+[[nodiscard]] NEXORA_2D_API std::vector<AssetId> ClipDependencies(const Clip &);
 [[nodiscard]] NEXORA_2D_API Bytes EncodeClip(const Clip &clip);
 [[nodiscard]] NEXORA_2D_API std::optional<Clip> DecodeClip(std::span<const std::byte> bytes);
 struct AnimationUpdate final {
   std::uint32_t region{};
   std::vector<std::string> events;
   bool finished{};
+  std::optional<AssetId> source{};
 };
 class NEXORA_2D_API Animator final {
 public:
@@ -75,6 +80,7 @@ public:
   void Pause(bool paused) noexcept { paused_ = paused; }
   [[nodiscard]] std::optional<AnimationUpdate> Advance(double seconds);
   [[nodiscard]] std::optional<std::uint32_t> RegionId() const noexcept;
+  [[nodiscard]] std::optional<AssetId> SourceId() const noexcept;
 
 private:
   Clip clip_;

@@ -554,6 +554,7 @@ public:
   SceneCanvasViewport() const noexcept;
   // Current frame's Game canvas during Play. Concurrent Scene needs the supplied backend
   // capability and disjoint physical rectangles; overlapping native views fall back to UI.
+  // A first-use hidden sizing window has no drawable native canvas and returns empty.
   [[nodiscard]] std::optional<Nexora::Presentation::SceneViewport>
   NativeGameViewport() const noexcept;
   // Preview-only choice for the current Play session; zero requests the automatic active camera.
@@ -570,9 +571,19 @@ public:
   // indexed uniform-tint quads into the Game window draw list; textures must be live native IDs.
   // Malformed/stale packets reject before appending. No uploads, instances or borrowed data remain.
   bool DrawGameTwoDSprites(const Nexora::Presentation::UiDrawData &);
+  // Native Game canvas: append its current-frame Scene image before the same bounded Sprite
+  // quads in the owning window. The surface validates the typed reference at the single UI
+  // submission. An empty reference draws a Sprite-only background. No public texture ID is
+  // reserved.
+  bool DrawGameScene(Nexora::Presentation::SceneTextureReference,
+                     const Nexora::Presentation::UiDrawData &);
+  // Owning native Scene canvas image, appended before EndFrame. Copies only a complete typed
+  // acquired-frame reference; preserves ImGui window order alongside the separate Game image.
+  bool DrawSceneImage(Nexora::Presentation::SceneTextureReference);
   void SetConcurrentNativeViews(bool available) noexcept;
   void SetNativeScenePreview(bool enabled) noexcept;
   void SetNativeScenePreviewAvailable(bool available) noexcept;
+  void SetSceneSpriteStatus(std::string message);
   [[nodiscard]] NativeSceneOrbit GetNativeSceneOrbit() const noexcept;
   [[nodiscard]] NativeSceneTool GetNativeSceneTool() const noexcept;
   [[nodiscard]] bool NativeSceneLocalAxes() const noexcept;
@@ -612,6 +623,8 @@ public:
   [[nodiscard]] std::string_view RecoveryError() const noexcept;
 
 private:
+  bool DrawGameSprites(const Nexora::Presentation::UiDrawData &, bool,
+                       Nexora::Presentation::SceneTextureReference);
   void DrawGitStatusInternal(GitStatusProvider &, GitDiffProvider *, std::uint64_t,
                              const std::filesystem::path &, bool);
   friend class EditorImGuiTestAccess;

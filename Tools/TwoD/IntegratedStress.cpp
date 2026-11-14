@@ -225,13 +225,16 @@ void IntegratedStress(std::ostream &report, std::ostream &trace, const Integrate
   std::uint64_t font{};
   Check(api.get_font(api.context, 0, &font) == 0, "integrated UI font");
   Animator animation;
-  Check(animation.Play(sourceClip ? *sourceClip
-                                  : Clip{{18, 19},
-                                         atlas->id,
-                                         true,
-                                         {{atlas->regions.front().id, 0.1, "tick"},
-                                          {atlas->regions.back().id, 0.1, "tick"}}}),
-        "integrated animation");
+  if (sourceClip) {
+    Check(animation.Play(*sourceClip), "integrated animation");
+  } else {
+    const Clip fallback{
+        {18, 19},
+        atlas->id,
+        true,
+        {{atlas->regions.front().id, 0.1, "tick"}, {atlas->regions.back().id, 0.1, "tick"}}};
+    Check(animation.Play(fallback), "integrated animation");
+  }
   FixedStepper step;
   SpatialIndex index(2);
   core::TrackingAllocator allocator;

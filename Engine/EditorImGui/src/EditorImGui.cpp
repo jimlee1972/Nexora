@@ -6,6 +6,10 @@
 #include "Nexora/Editor/PrefabAssets.h"
 #include "Nexora/Editor/ViewportMath.h"
 #include "Nexora/Runtime/RenderSync.h"
+#if defined(NEXORA_HAS_2D)
+#include "Nexora/Editor/SpriteSourceCatalog.h"
+#include "Nexora/TwoD/Scene.h"
+#endif
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
 #include "EditorImGuiTestAccess.h"
 #include <set>
@@ -193,6 +197,23 @@ struct EditorImGuiHost::State final {
   std::array<std::optional<std::array<float, 2>>, 3> saved_game_decision_positions{};
   std::array<std::optional<std::array<float, 2>>, 16 + ProjectBuildSettings::kMaximumScenes * 3>
       build_settings_positions{};
+  struct BuildAnimationPicker final {
+    struct Choice final {
+      runtime::AssetUuid id;
+      std::string path;
+    };
+    std::uintptr_t owner{};
+    std::filesystem::path root;
+    std::uint64_t generation{}, revision{};
+    int frame{};
+    std::vector<Choice> choices;
+    std::unordered_map<runtime::AssetUuid, std::size_t, runtime::AssetUuidHash> index;
+    std::string error;
+  };
+  std::optional<BuildAnimationPicker> build_animation_picker;
+  std::array<std::optional<std::array<float, 2>>, 2> build_animation_positions{};
+  std::vector<std::pair<runtime::AssetUuid, std::array<float, 2>>> build_animation_add_positions,
+      build_animation_remove_positions;
   SceneComparisonSnapshot scene_comparison;
   std::optional<SceneFileToken> scene_comparison_request;
   bool scene_comparison_busy{}, scene_comparison_open{}, scene_comparison_in_overwrite{};
@@ -328,6 +349,7 @@ struct EditorImGuiHost::State final {
   bool initial_dock_layout_built = false;
   bool focus_initial_content = false;
   bool focus_initial_scene = false;
+  bool loaded_layout = false;
   ImGuiTextFilter console_filter;
   int console_min_severity = 0;
   runtime::RuntimeConsole *console_scope = nullptr;
@@ -381,7 +403,18 @@ struct EditorImGuiHost::State final {
   bool game_two_d_available{}, game_two_d_selected{}, game_two_d_frame_open{}, game_two_d_drawn{};
   std::string game_two_d_status;
   std::optional<Nexora::Presentation::SceneViewport> game_two_d_viewport;
-  ImDrawList *game_two_d_draw_list{};
+  ImDrawList *game_two_d_draw_list{}, *game_native_draw_list{};
+  bool game_native_composed{};
+  ImVec2 game_native_clip_min{}, game_native_clip_max{};
+  struct SceneImage final {
+    ImDrawList *list{};
+    unsigned first{}, count{};
+    Nexora::Presentation::SceneTextureReference reference{};
+  };
+  std::optional<SceneImage> game_scene_image, authoring_scene_image;
+  std::string scene_sprite_status;
+  ImDrawList *authoring_scene_draw_list{};
+  ImVec2 authoring_scene_clip_min{}, authoring_scene_clip_max{};
   ImVec2 game_two_d_clip_min{}, game_two_d_clip_max{};
   std::optional<std::array<float, 2>> game_view_combo;
   std::array<std::optional<std::array<float, 2>>, 2> game_view_options;
@@ -514,6 +547,23 @@ struct EditorImGuiHost::State final {
   std::array<std::optional<std::array<float, 2>>, 3> inspector_material_positions{};
   std::string inspector_mesh_label;
   std::array<std::optional<std::array<float, 2>>, 3> inspector_mesh_positions{};
+#if defined(NEXORA_HAS_2D)
+  struct SpriteSourcePopup final {
+    std::uintptr_t owner{};
+    std::filesystem::path root;
+    SpriteSourceContentVersion version;
+    std::vector<SceneDocument::NodeKey> keys;
+    SpriteSourceCatalog catalog;
+    std::vector<std::pair<runtime::AssetUuid, std::string>> choices;
+    std::string error;
+    int frame{};
+  };
+  std::optional<SpriteSourcePopup> inspector_sprite_popup;
+  std::string inspector_sprite_label;
+  std::string inspector_sprite_details;
+  std::array<std::optional<std::array<float, 2>>, 4> inspector_sprite_positions{};
+  std::vector<std::pair<runtime::AssetUuid, std::array<float, 2>>> inspector_sprite_choices;
+#endif
   std::uint32_t inspector_selection = 0;
   std::vector<OpaqueComponentInfo> inspector_opaque_info;
   ReflectedInspector reflected_inspector;
@@ -770,6 +820,9 @@ template <typename StateT> void CancelSceneGestures(StateT &state) {
 }
 
 template <typename StateT> void CancelInspectorDrafts(StateT &state) {
+#if defined(NEXORA_HAS_2D)
+  state.inspector_sprite_popup.reset();
+#endif
   ++state.reflected_draft_generation;
   state.reflected_pending.reset();
   if (std::ranges::any_of(state.inspector_transform_active, [](bool active) { return active; }) ||
@@ -816,6 +869,10 @@ std::string PanelWindowName(std::string_view id) {
   if (panel == panels.end())
     return std::string(id);
   return std::string(panel->title) + "###" + std::string(panel->id);
+}
+
+template <typename StateT> ImGuiWindowFlags PanelWindowFlags(const StateT &state) {
+  return state.loaded_layout ? ImGuiWindowFlags_NoFocusOnAppearing : ImGuiWindowFlags_None;
 }
 
 std::string PathLabel(const std::filesystem::path &path) {
@@ -3344,12 +3401,15 @@ void AcceptInspectorMeshDrop(StateT &state, ProjectContentSession *content,
 #include "PrefabPlacementRebasePanel.inl"
 #include "PrefabPlacementSourcePanel.inl"
 #include "ReflectedInspectorPanel.inl"
+#if defined(NEXORA_HAS_2D)
+#include "SpriteSourceInspectorPanel.inl"
+#endif
 
 template <typename StateT>
 void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *content,
                    const MeshAssetCatalog *meshes, const MaterialAssetCatalog *materials,
-                   bool editable, bool copy_allowed, bool override_readable,
-                   bool override_writable) {
+                   bool editable, bool copy_allowed, bool override_readable, bool override_writable,
+                   [[maybe_unused]] bool source_editable) {
   DrawPrefabPlacementSource(state, scene, copy_allowed);
   DrawPrefabPlacementOverrides(state, override_readable, override_writable);
   DrawPrefabPlacementRebase(state, override_readable, override_writable);
@@ -3442,7 +3502,15 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
           present != has_material_reference || reference != material_reference;
     }
   }
+#if defined(NEXORA_HAS_2D)
+  DrawSpriteSourceInspector(state, *scene, content, keys, state.inspector_opaque_info,
+                            source_editable);
+#endif
   std::erase_if(state.inspector_opaque_info, [&](const auto &info) {
+#if defined(NEXORA_HAS_2D)
+    if (ReadSpriteSourceReference(info))
+      return true;
+#endif
     return ReadMaterialAssetReference(info).has_value() ||
            std::ranges::find(state.reflected_rendered_types, info.type) !=
                state.reflected_rendered_types.end();
@@ -4085,17 +4153,26 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
     ImGui::TextWrapped("%s", state.inspector_error.c_str());
 }
 
+#include "BuildAnimationPicker.inl"
+
 template <typename StateT>
 void DrawProjectBuildSettings(StateT &state, const ProjectWorkspace *workspace,
-                              const SceneDocument *scene, bool blocked) {
+                              const SceneDocument *scene, ProjectContentSession *content,
+                              bool blocked) {
+  state.build_animation_positions = {};
+  state.build_animation_add_positions.clear();
+  state.build_animation_remove_positions.clear();
   for (std::size_t i = 2; i < state.build_settings_positions.size(); ++i)
     state.build_settings_positions[i].reset();
-  if (!state.build_settings_open)
+  if (!state.build_settings_open) {
+    state.build_animation_picker.reset();
     return;
+  }
   if (!workspace || workspace->Root() != state.build_settings_root ||
       workspace->Project().id != state.build_settings_project) {
     state.build_settings_open = false;
     state.build_settings_request.reset();
+    state.build_animation_picker.reset();
     return;
   }
   const auto capture = [&](std::size_t index) {
@@ -4251,6 +4328,8 @@ void DrawProjectBuildSettings(StateT &state, const ProjectWorkspace *workspace,
                                   : ProjectBuildSettingsAction::CancelBuild);
     capture(14);
     ImGui::EndDisabled();
+    ImGui::SameLine();
+    DrawBuildAnimationPicker(state, *workspace, content, blocked);
     ImGui::TextDisabled("Build uses saved settings and scenes; output contains no project source.");
     if (state.game_build_progress_available) {
       const auto label = GameBuildStageLabel(state.game_build_progress.stage);
@@ -4280,7 +4359,8 @@ void DrawProjectBuildSettings(StateT &state, const ProjectWorkspace *workspace,
         ImGui::EndChild();
       }
     }
-  }
+  } else
+    state.build_animation_picker.reset();
   ImGui::End();
 }
 
@@ -4313,7 +4393,7 @@ void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
   const auto window = PanelWindowName("nexora.project");
   state.project_file_positions.clear();
   state.project_file_ids.clear();
-  if (!ImGui::Begin(window.c_str())) {
+  if (!ImGui::Begin(window.c_str(), nullptr, PanelWindowFlags(state))) {
     ImGui::End();
     return;
   }
@@ -4446,7 +4526,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   state.content_focused_asset.reset();
   for (auto &positions : state.content_path_positions)
     positions.clear();
-  if (!ImGui::Begin(window.c_str())) {
+  if (!ImGui::Begin(window.c_str(), nullptr, PanelWindowFlags(state))) {
     state.content_reveal.reset();
     state.content_rename_target.reset();
     if (ImGui::BeginPopupModal("Rename asset###editor.content.rename", nullptr,
@@ -5413,6 +5493,11 @@ void EditorImGuiHost::BeginFrame(float delta_seconds) {
   state_->native_game_viewport.reset();
   state_->game_two_d_viewport.reset();
   state_->game_two_d_draw_list = nullptr;
+  state_->game_native_draw_list = nullptr;
+  state_->game_native_composed = false;
+  state_->game_scene_image.reset();
+  state_->authoring_scene_image.reset();
+  state_->authoring_scene_draw_list = nullptr;
   state_->game_two_d_frame_open = true;
   state_->game_two_d_drawn = false;
   state_->game_view_combo.reset();
@@ -5755,6 +5840,12 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                                        const MeshAssetCatalog *meshes,
                                        const MaterialAssetCatalog *materials) {
   Activate(state_->context);
+#if defined(NEXORA_HAS_2D)
+  state_->inspector_sprite_label.clear();
+  state_->inspector_sprite_details.clear();
+  state_->inspector_sprite_positions = {};
+  state_->inspector_sprite_choices.clear();
+#endif
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
   state_->game_canvas_hovered = state_->game_canvas_clicked = state_->game_capture_allowed = false;
 #endif
@@ -6065,7 +6156,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     ImGui::EndMainMenuBar();
   }
   state_->build_settings_positions[0] = state_->static_export_positions[0];
-  DrawProjectBuildSettings(*state_, workspace, scene,
+  DrawProjectBuildSettings(*state_, workspace, scene, content,
                            recovery_available || game_running || state_->static_export_busy ||
                                close_confirmation_open || state_->play_apply_open);
   if (state_->saved_game_decision_pending && !ImGui::IsPopupOpen("Saved project scenes"))
@@ -6308,14 +6399,17 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     state_->focus_initial_scene = true;
   }
   const auto hierarchy_window = PanelWindowName("nexora.hierarchy");
-  const bool hierarchy_visible = ImGui::Begin(hierarchy_window.c_str());
+  // A restored layout owns initial selection; a new layout retains normal appearing-panel focus.
+  // Explicit keyboard/menu/Play focus requests still select their intended panel.
+  const bool hierarchy_visible =
+      ImGui::Begin(hierarchy_window.c_str(), nullptr, PanelWindowFlags(*state_));
   ApplyPendingHierarchyRequests(*state_, scene, scene_editable, rename_open && rename_editable,
                                 !hierarchy_visible);
   if (hierarchy_visible)
     DrawHierarchy(*state_, scene, shell, interaction_blocked, scene_editable, rename_editable);
   ImGui::End();
   const auto inspector_window = PanelWindowName("nexora.inspector");
-  if (ImGui::Begin(inspector_window.c_str())) {
+  if (ImGui::Begin(inspector_window.c_str(), nullptr, PanelWindowFlags(*state_))) {
     if (game_running) {
       if (ImGui::RadioButton("Editor", !state_->inspect_play_selection))
         state_->inspect_play_selection = false;
@@ -6339,14 +6433,17 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       DrawInspector(*state_, scene, content, meshes, materials, scene_editable,
                     !interaction_blocked,
                     !external_modal_open && !rename_open && !state_->content_rename_target,
-                    rename_editable && !rename_open);
+                    rename_editable && !rename_open,
+                    scene_editable && writable && !game_running && !recovery_available &&
+                        !state_->close_prompt_requested && state_->app_focused && content &&
+                        workspace && content->Root() == workspace->Root());
     }
   } else {
     CancelInspectorDrafts(*state_);
   }
   ImGui::End();
   const auto scene_window = PanelWindowName("nexora.scene");
-  if (ImGui::Begin(scene_window.c_str())) {
+  if (ImGui::Begin(scene_window.c_str(), nullptr, PanelWindowFlags(*state_))) {
     if (state_->scene_tabs.empty() && scene && workspace) {
       ImGui::AlignTextToFramePadding();
       ImGui::TextUnformatted(state_->scene_file_path
@@ -6501,6 +6598,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         ImGui::EndDisabled();
         if (!state_->native_scene_preview_available)
           ImGui::TextUnformatted("Native 3D preview is unavailable on this backend.");
+        if (!state_->scene_sprite_status.empty())
+          ImGui::TextWrapped("%s", state_->scene_sprite_status.c_str());
         const auto available = ImGui::GetContentRegionAvail();
         ImGui::InvisibleButton(
             "##scene-native-preview", {std::max(available.x, 1.0F), std::max(available.y, 160.0F)},
@@ -6508,6 +6607,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                 ImGuiButtonFlags_MouseButtonMiddle);
         CaptureCanvasViewport(state_->scene_canvas_viewport, ImGui::GetItemRectMin(),
                               ImGui::GetItemRectMax());
+        if (!ImGui::GetCurrentWindow()->Hidden) {
+          state_->authoring_scene_draw_list = ImGui::GetWindowDrawList();
+          state_->authoring_scene_clip_min = state_->authoring_scene_draw_list->GetClipRectMin();
+          state_->authoring_scene_clip_max = state_->authoring_scene_draw_list->GetClipRectMax();
+        }
         const auto &io = ImGui::GetIO();
         // Resolve tool input before picking/starting a drag in the same input frame.
         if (state_->app_focused && !interaction_blocked &&
@@ -6643,7 +6747,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   if (game_running && !state_->game_was_running && !state_->play_memory_open)
     ImGui::SetNextWindowFocus();
   state_->game_was_running = game_running;
-  if (ImGui::Begin(game_window.c_str())) {
+  if (ImGui::Begin(game_window.c_str(), nullptr, PanelWindowFlags(*state_))) {
     if (play == nullptr) {
       ImGui::TextDisabled("Play session unavailable.");
     } else {
@@ -6867,7 +6971,14 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           DrawPlayOverview(snapshot);
         } else {
           ImGui::InvisibleButton("##game-native-preview", size);
-          state_->native_game_viewport = candidate;
+          // First-use sizing can submit widgets while excluding this hidden window's draw list.
+          // An owning Scene image must never be published for that measurement-only canvas.
+          if (!ImGui::GetCurrentWindow()->Hidden) {
+            state_->native_game_viewport = candidate;
+            state_->game_native_draw_list = ImGui::GetWindowDrawList();
+            state_->game_native_clip_min = state_->game_native_draw_list->GetClipRectMin();
+            state_->game_native_clip_max = state_->game_native_draw_list->GetClipRectMax();
+          }
         }
       } else {
         if (game_running)
@@ -6967,7 +7078,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     ImGui::End();
   }
   const auto console_window = PanelWindowName("nexora.console");
-  if (ImGui::Begin(console_window.c_str())) {
+  if (ImGui::Begin(console_window.c_str(), nullptr, PanelWindowFlags(*state_))) {
     if (console == nullptr) {
       ImGui::Text("Last command: %.*s", static_cast<int>(shell.LastCommand().size()),
                   shell.LastCommand().data());
@@ -7064,7 +7175,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   }
   ImGui::End();
   const auto profiler_window = PanelWindowName("nexora.profiler");
-  if (ImGui::Begin(profiler_window.c_str())) {
+  if (ImGui::Begin(profiler_window.c_str(), nullptr, PanelWindowFlags(*state_))) {
     if (profile == nullptr) {
       ImGui::TextDisabled("Frame capture unavailable.");
     } else {
@@ -8437,6 +8548,7 @@ void EditorImGuiHost::SetSceneMergeCandidateStatus(SceneMergeCandidateSnapshot s
   }
   state_->scene_merge_status = std::move(snapshot);
 }
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::SceneComparisonPosition(const EditorImGuiHost &host, std::size_t index) {
   return index < host.state_->scene_comparison_positions.size()
@@ -8457,7 +8569,6 @@ SceneComparisonSnapshot EditorImGuiTestAccess::SceneComparisonStatus(const Edito
 std::uint32_t EditorImGuiTestAccess::SceneComparisonRenderedRows(const EditorImGuiHost &host) {
   return host.state_->scene_comparison_rendered_rows;
 }
-#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::SceneMergePosition(const EditorImGuiHost &host, std::size_t control) {
   return control < host.state_->scene_merge_positions.size()
@@ -8810,6 +8921,7 @@ void EditorImGuiHost::SetProjectBuildSettings(const ProjectWorkspace &workspace,
       settings.build.script_manifest.size() > ProjectBuildSettings::kMaximumPathBytes ||
       !foundation::IsValidUtf8(settings.build.output) ||
       !foundation::IsValidUtf8(settings.build.script_manifest) ||
+      settings.animation_clips.size() > 4096 ||
       settings.scenes.size() > ProjectBuildSettings::kMaximumScenes || status.size() > 4096 ||
       !foundation::IsValidUtf8(status) ||
       std::ranges::any_of(settings.scenes, [](const auto &entry) {
@@ -8840,6 +8952,7 @@ void EditorImGuiHost::SetProjectBuildSettings(const ProjectWorkspace &workspace,
   std::copy(settings.build.script_manifest.begin(), settings.build.script_manifest.end(),
             std::begin(state_->game_build_manifest));
   state_->build_settings = std::move(settings);
+  state_->build_animation_picker.reset();
   state_->build_settings_ready = ready;
   state_->build_settings_status = std::move(status);
 }
@@ -8905,6 +9018,21 @@ EditorImGuiTestAccess::ProjectBuildSettingsPosition(const EditorImGuiHost &host,
              : std::nullopt;
 }
 std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::BuildAnimationPosition(const EditorImGuiHost &host, std::size_t index) {
+  return index < host.state_->build_animation_positions.size()
+             ? host.state_->build_animation_positions[index]
+             : std::nullopt;
+}
+std::vector<std::pair<runtime::AssetUuid, std::array<float, 2>>>
+EditorImGuiTestAccess::BuildAnimationAssetPositions(const EditorImGuiHost &host, bool remove) {
+  return remove ? host.state_->build_animation_remove_positions
+                : host.state_->build_animation_add_positions;
+}
+std::vector<runtime::AssetUuid>
+EditorImGuiTestAccess::BuildAnimationRoots(const EditorImGuiHost &host) {
+  return host.state_->build_settings.animation_clips;
+}
+std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::SavedGameDecisionPosition(const EditorImGuiHost &host, std::size_t index) {
   return index < host.state_->saved_game_decision_positions.size()
              ? host.state_->saved_game_decision_positions[index]
@@ -8939,6 +9067,8 @@ std::uint32_t EditorImGuiHost::Render(nexora::rhi::Device &device,
                                       std::uint32_t height, nexora::rhi::ResourceState before,
                                       bool prepare_for_present) {
   Activate(state_->context);
+  if (state_->game_scene_image || state_->authoring_scene_image)
+    return 0; // Typed acquired-frame Scene images require the native RenderSurface owner.
   const auto *draw = ImGui::GetDrawData();
   if (draw == nullptr || draw->CmdListsCount == 0 || width == 0 || height == 0 ||
       HasUnsupportedDrawCallbacks(*draw))
@@ -9198,6 +9328,9 @@ bool EditorImGuiHost::LoadLayout(std::string_view layout) {
   Activate(state_->context);
   ImGui::LoadIniSettingsFromMemory(layout.data(), layout.size());
   state_->initial_dock_layout_built = true;
+  state_->loaded_layout = true;
+  state_->focus_initial_content = false;
+  state_->focus_initial_scene = false;
   return true;
 }
 
@@ -9235,15 +9368,29 @@ EditorImGuiHost::GameTwoDViewport() const noexcept {
   return state_->game_two_d_viewport;
 }
 bool EditorImGuiHost::DrawGameTwoDSprites(const Nexora::Presentation::UiDrawData &packet) {
+  return DrawGameSprites(packet, false, {});
+}
+bool EditorImGuiHost::DrawGameScene(Nexora::Presentation::SceneTextureReference scene,
+                                    const Nexora::Presentation::UiDrawData &packet) {
+  return DrawGameSprites(packet, true, scene);
+}
+bool EditorImGuiHost::DrawGameSprites(const Nexora::Presentation::UiDrawData &packet, bool native,
+                                      Nexora::Presentation::SceneTextureReference scene) {
   Activate(state_->context);
-  if (!state_->game_two_d_frame_open || state_->game_two_d_drawn || !state_->game_two_d_available ||
-      !state_->game_two_d_selected || !state_->game_two_d_viewport ||
-      !state_->game_two_d_draw_list || !packet.indices32Bit || !packet.textureUploads.empty() ||
-      !packet.spriteInstances.empty() || packet.vertices.size() > 4096 * 4 ||
+  const auto target = native ? state_->native_game_viewport : state_->game_two_d_viewport;
+  auto *list = native ? state_->game_native_draw_list : state_->game_two_d_draw_list;
+  if (!state_->game_two_d_frame_open || !target || !list ||
+      (native ? state_->game_native_composed
+              : (state_->game_two_d_drawn || !state_->game_two_d_available ||
+                 !state_->game_two_d_selected)) ||
+      (scene != Nexora::Presentation::SceneTextureReference{} && (!scene.surface || !scene.frame)))
+    return false;
+  if (!packet.indices32Bit || !packet.textureUploads.empty() || !packet.spriteInstances.empty() ||
+      packet.vertices.size() > 4096 * 4 ||
       packet.indices.size() > 4096 * 6 * sizeof(std::uint32_t) ||
       packet.indices.size() % sizeof(std::uint32_t) || packet.commands.size() > 4096)
     return false;
-  const auto viewport = *state_->game_two_d_viewport;
+  const auto viewport = *target;
   const auto scale = ImGui::GetIO().DisplayFramebufferScale;
   if (!std::isfinite(scale.x) || !std::isfinite(scale.y) || scale.x <= 0 || scale.y <= 0)
     return false;
@@ -9263,7 +9410,8 @@ bool EditorImGuiHost::DrawGameTwoDSprites(const Nexora::Presentation::UiDrawData
       return false;
   std::size_t quads{};
   for (const auto &command : packet.commands) {
-    if (!command.elementCount || command.elementCount % 6 || command.instanceCount ||
+    if (command.sceneTexture != Nexora::Presentation::SceneTextureReference{} ||
+        !command.elementCount || command.elementCount % 6 || command.instanceCount ||
         command.firstInstance || command.indexOffset > index_count ||
         command.elementCount > index_count - command.indexOffset || command.clipX < 0 ||
         command.clipY < 0 || !command.clipWidth || !command.clipHeight ||
@@ -9294,8 +9442,21 @@ bool EditorImGuiHost::DrawGameTwoDSprites(const Nexora::Presentation::UiDrawData
           return false;
     }
   }
-  auto *list = state_->game_two_d_draw_list;
-  list->PushClipRect(state_->game_two_d_clip_min, state_->game_two_d_clip_max, false);
+  const ImVec2 low{float(viewport.x) / scale.x, float(viewport.y) / scale.y};
+  const ImVec2 high{float(viewport.x + viewport.width) / scale.x,
+                    float(viewport.y + viewport.height) / scale.y};
+  list->PushClipRect(native ? state_->game_native_clip_min : state_->game_two_d_clip_min,
+                     native ? state_->game_native_clip_max : state_->game_two_d_clip_max, false);
+  list->PushClipRect(low, high, true);
+  if (native) {
+    if (scene != Nexora::Presentation::SceneTextureReference{}) {
+      const auto first = static_cast<unsigned>(list->IdxBuffer.Size);
+      // The owning index range, not an integer texture convention, carries the Scene binding.
+      list->AddImage(ImTextureID(0), low, high);
+      state_->game_scene_image = State::SceneImage{list, first, 6, scene};
+    } else
+      list->AddRectFilled(low, high, IM_COL32(10, 20, 41, 255));
+  }
   for (const auto &command : packet.commands) {
     list->PushClipRect({(float(viewport.x) + static_cast<float>(command.clipX)) / scale.x,
                         (float(viewport.y) + static_cast<float>(command.clipY)) / scale.y},
@@ -9326,7 +9487,11 @@ bool EditorImGuiHost::DrawGameTwoDSprites(const Nexora::Presentation::UiDrawData
     list->PopClipRect();
   }
   list->PopClipRect();
-  state_->game_two_d_drawn = true;
+  list->PopClipRect();
+  if (native)
+    state_->game_native_composed = true;
+  else
+    state_->game_two_d_drawn = true;
   return true;
 }
 
@@ -9341,6 +9506,26 @@ void EditorImGuiHost::SetNativeGameStatus(std::string message, bool available) {
   state_->native_game_status = std::move(message);
   state_->native_game_available = available;
 }
+bool EditorImGuiHost::DrawSceneImage(Nexora::Presentation::SceneTextureReference image) {
+  Activate(state_->context);
+  const auto viewport = NativeScenePreviewViewport();
+  if (!state_->game_two_d_frame_open || !viewport || state_->authoring_scene_image ||
+      !image.surface || !image.frame)
+    return false;
+  const auto scale = ImGui::GetIO().DisplayFramebufferScale;
+  if (!std::isfinite(scale.x) || !std::isfinite(scale.y) || scale.x <= 0 || scale.y <= 0)
+    return false;
+  auto *list = state_->authoring_scene_draw_list;
+  list->PushClipRect(state_->authoring_scene_clip_min, state_->authoring_scene_clip_max, false);
+  const auto first = static_cast<unsigned>(list->IdxBuffer.Size);
+  list->AddImage(ImTextureID(0), {float(viewport->x) / scale.x, float(viewport->y) / scale.y},
+                 {float(viewport->x + viewport->width) / scale.x,
+                  float(viewport->y + viewport->height) / scale.y});
+  list->PopClipRect();
+  state_->authoring_scene_image = State::SceneImage{list, first, 6, image};
+  return true;
+}
+
 void EditorImGuiHost::SetConcurrentNativeViews(bool available) noexcept {
   state_->concurrent_native_views = available;
 }
@@ -9358,6 +9543,10 @@ void EditorImGuiHost::SetNativeScenePreview(bool enabled) noexcept {
 
 void EditorImGuiHost::SetNativeScenePreviewAvailable(bool available) noexcept {
   state_->native_scene_preview_available = available;
+}
+
+void EditorImGuiHost::SetSceneSpriteStatus(std::string message) {
+  state_->scene_sprite_status = std::move(message);
 }
 
 void EditorImGuiHost::CancelNativeSceneTransform() noexcept {
@@ -9394,7 +9583,8 @@ bool EditorImGuiHost::SetNativeSceneOrbit(NativeSceneOrbit orbit) noexcept {
 
 std::optional<Nexora::Presentation::SceneViewport>
 EditorImGuiHost::NativeScenePreviewViewport() const noexcept {
-  return state_->native_scene_preview && !state_->overlapping_native_views
+  return state_->native_scene_preview && state_->authoring_scene_draw_list &&
+                 !state_->overlapping_native_views
              ? state_->scene_canvas_viewport
              : std::nullopt;
 }
@@ -9482,6 +9672,8 @@ EditorImGuiHost::Render(Nexora::Presentation::RenderSurface &surface, std::uint3
   std::vector<Nexora::Presentation::UiDrawCommand> commands;
   vertices.reserve(static_cast<std::size_t>(draw->TotalVtxCount));
   indices.reserve(static_cast<std::size_t>(draw->TotalIdxCount) * sizeof(ImDrawIdx));
+  const std::array images{&state_->authoring_scene_image, &state_->game_scene_image};
+  std::array<bool, 2> scene_consumed{};
   std::uint32_t vertex_base = 0;
   std::uint32_t index_base = 0;
   for (int list_index = 0; list_index < draw->CmdListsCount; ++list_index) {
@@ -9511,6 +9703,26 @@ EditorImGuiHost::Render(Nexora::Presentation::RenderSurface &surface, std::uint3
                    (command.ClipRect.w - draw->DisplayPos.y) * draw->FramebufferScale.y);
       if (right <= left || bottom <= top)
         continue;
+      struct ImageRange final {
+        std::size_t slot{};
+        const State::SceneImage *image{};
+      };
+      std::array<ImageRange, 2> ranges{};
+      std::size_t range_count{};
+      unsigned image_elements{};
+      const auto first = command.IdxOffset, end = first + command.ElemCount;
+      for (std::size_t slot = 0; slot < images.size(); ++slot) {
+        const auto &image = *images[slot];
+        if (!image || image->list != &list || image->first >= end ||
+            image->first + image->count <= first)
+          continue;
+        if (scene_consumed[slot] || image->first < first || image->first + image->count > end)
+          return Nexora::Presentation::SurfaceStatus::InvalidDescriptor;
+        ranges[range_count++] = {slot, &*image};
+        image_elements += image->count;
+      }
+      if (range_count == 2 && ranges[0].image->first > ranges[1].image->first)
+        std::swap(ranges[0], ranges[1]);
       const auto texture_id = static_cast<std::uint64_t>(command.GetTexID());
       const auto texture_index = static_cast<std::uint32_t>(texture_id);
       const auto texture_generation = static_cast<std::uint32_t>(texture_id >> 32U);
@@ -9520,18 +9732,43 @@ EditorImGuiHost::Render(Nexora::Presentation::RenderSurface &surface, std::uint3
           state_->native_textures[texture_index].generation == texture_generation) {
         // Backend cache keys are bounded slots; public generations are checked before binding.
         native_id = TextureId(texture_index, 1);
-      } else if (texture_id != native_id) {
+      } else if (texture_id != native_id && image_elements != command.ElemCount) {
         ++state_->renderer_metrics.rejected_textures;
       }
-      commands.push_back({static_cast<std::int32_t>(left), static_cast<std::int32_t>(top),
-                          static_cast<std::uint32_t>(right - left),
-                          static_cast<std::uint32_t>(bottom - top), native_id, command.ElemCount,
-                          index_base + command.IdxOffset,
-                          static_cast<std::int32_t>(vertex_base + command.VtxOffset)});
+      const auto append = [&](unsigned offset, unsigned count, const State::SceneImage *sampled) {
+        if (!count)
+          return;
+        Nexora::Presentation::UiDrawCommand output{
+            static_cast<std::int32_t>(left),
+            static_cast<std::int32_t>(top),
+            static_cast<std::uint32_t>(right - left),
+            static_cast<std::uint32_t>(bottom - top),
+            sampled ? 0 : native_id,
+            count,
+            index_base + offset,
+            static_cast<std::int32_t>(vertex_base + command.VtxOffset)};
+        if (sampled)
+          output.sceneTexture = sampled->reference;
+        commands.push_back(output);
+      };
+      auto cursor = first;
+      for (std::size_t index = 0; index < range_count; ++index) {
+        const auto &range = ranges[index];
+        if (range.image->first < cursor)
+          return Nexora::Presentation::SurfaceStatus::InvalidDescriptor;
+        append(cursor, range.image->first - cursor, nullptr);
+        append(range.image->first, range.image->count, range.image);
+        cursor = range.image->first + range.image->count;
+        scene_consumed[range.slot] = true;
+      }
+      append(cursor, end - cursor, nullptr);
     }
     vertex_base += static_cast<std::uint32_t>(list.VtxBuffer.Size);
     index_base += static_cast<std::uint32_t>(list.IdxBuffer.Size);
   }
+  for (std::size_t index = 0; index < images.size(); ++index)
+    if (*images[index] && !scene_consumed[index])
+      return Nexora::Presentation::SurfaceStatus::InvalidDescriptor;
   // ImGui legitimately produces no geometry while windows are still sizing themselves (the first
   // frame), and the surface contract rejects empty draw data. Nothing to draw is not a failure.
   if ((vertices.empty() || indices.empty() || commands.empty()) && overlay.commands.empty())
@@ -9638,6 +9875,26 @@ EditorImGuiTestAccess::DiagnosticPosition(const EditorImGuiHost &host, std::size
 }
 std::array<std::size_t, 2> EditorImGuiTestAccess::DiagnosticRows(const EditorImGuiHost &host) {
   return {host.state_->diagnostic_visible_events, host.state_->diagnostic_excluded_events};
+}
+
+std::array<bool, 12> EditorImGuiTestAccess::ScenePreviewKeys(const EditorImGuiHost &host) noexcept {
+  Activate(host.state_->context);
+  const std::array keys{ImGuiKey(ImGuiMod_Ctrl),
+                        ImGuiKey_S,
+                        ImGuiKey_Z,
+                        ImGuiKey_Y,
+                        ImGuiKey_1,
+                        ImGuiKey_3,
+                        ImGuiKey_W,
+                        ImGuiKey_Home,
+                        ImGuiKey_F5,
+                        ImGuiKey_F6,
+                        ImGuiKey_F10,
+                        ImGuiKey_A};
+  std::array<bool, 12> result{};
+  for (std::size_t index = 0; index < keys.size(); ++index)
+    result[index] = ImGui::GetKeyData(keys[index])->Down;
+  return result;
 }
 
 SceneShortcutObservation
@@ -9809,6 +10066,51 @@ std::string_view EditorImGuiTestAccess::ProjectSelectorRoot(const EditorImGuiHos
 
 bool EditorImGuiTestAccess::ProjectSelectorErrorVisible(const EditorImGuiHost &host) noexcept {
   return host.state_->selector_error_visible;
+}
+
+std::string_view
+EditorImGuiTestAccess::InspectorSpriteSourceLabel(const EditorImGuiHost &host) noexcept {
+#if defined(NEXORA_HAS_2D)
+  return host.state_->inspector_sprite_label;
+#else
+  static_cast<void>(host);
+  return {};
+#endif
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::InspectorSpriteSourcePosition(const EditorImGuiHost &host,
+                                                     std::size_t control) noexcept {
+#if defined(NEXORA_HAS_2D)
+  return control < host.state_->inspector_sprite_positions.size()
+             ? host.state_->inspector_sprite_positions[control]
+             : std::nullopt;
+#else
+  static_cast<void>(host);
+  static_cast<void>(control);
+  return std::nullopt;
+#endif
+}
+std::string_view
+EditorImGuiTestAccess::InspectorSpriteSourceDetails(const EditorImGuiHost &host) noexcept {
+#if defined(NEXORA_HAS_2D)
+  return host.state_->inspector_sprite_details;
+#else
+  static_cast<void>(host);
+  return {};
+#endif
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::InspectorSpriteSourceChoicePosition(const EditorImGuiHost &host,
+                                                           runtime::AssetUuid asset) noexcept {
+#if defined(NEXORA_HAS_2D)
+  for (const auto &[id, position] : host.state_->inspector_sprite_choices)
+    if (id == asset)
+      return position;
+#else
+  static_cast<void>(host);
+  static_cast<void>(asset);
+#endif
+  return std::nullopt;
 }
 
 void EditorImGuiTestAccess::ConfigureSyntheticInput(EditorImGuiHost &host,

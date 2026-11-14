@@ -21,6 +21,7 @@ public:
   GameplayBridge &operator=(const GameplayBridge &) = delete;
   // Caller sets output->struct_size. Failure leaves output unchanged.
   [[nodiscard]] int32_t GetApi(NexoraTwoDApiV1 *output) noexcept;
+  [[nodiscard]] int32_t GetSourceApi(NexoraTwoDSourceApiV1 *output) noexcept;
   // Rendering remains host-owned. Width/height are supplied by the current surface.
   [[nodiscard]] Camera RenderCamera(std::uint32_t width, std::uint32_t height) const;
   // Call for each WorldCommandBuffer::LastDestroyed(), including descendants, before teardown.
@@ -38,6 +39,9 @@ public:
                                      InstancePool * = nullptr) noexcept;
 
 private:
+  friend class GameplayGeneration;
+  [[nodiscard]] bool CanStage() const noexcept;
+  void CopyStagedState(GameplayBridge &) const;
   struct State;
   std::unique_ptr<State> state_;
 };

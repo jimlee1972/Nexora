@@ -34,6 +34,21 @@ SceneSession::SceneSession(runtime::World &world, std::vector<SceneEntry> catalo
       throw std::invalid_argument("Invalid 2D scene catalog");
 }
 SceneSession::~SceneSession() { Stop(); }
+std::unique_ptr<SceneSession> SceneSession::StageInto(runtime::World &world) const {
+  if (!Owner() || processing_)
+    return {};
+  auto result = std::make_unique<SceneSession>(world, catalog_);
+  result->instances_ = instances_;
+  for (auto &instance : result->instances_)
+    instance.sprites.world_ = &world;
+  result->pending_ = pending_;
+  result->status_ = status_;
+  result->completed_ = completed_;
+  result->primary_ = primary_;
+  result->next_ = next_;
+  result->revision_ = revision_;
+  return result;
+}
 bool SceneSession::Owner() const noexcept {
   return owner_ == std::this_thread::get_id() && !stopped_;
 }

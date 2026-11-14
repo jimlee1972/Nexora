@@ -35,6 +35,27 @@ function Write-Acceptance {
 function Require([bool]$condition, [string]$message) {
     if (-not $condition) { throw $message }
 }
+function Read-ShowcaseStateSnapshot([string]$jsonPath, [string]$markdownPath, [DateTime]$deadline) {
+    $lastError = 'Snapshot files are not published.'
+    while ([DateTime]::UtcNow -lt $deadline) {
+        try {
+            # File existence precedes stream close. ReadAllText denies concurrent writers on Windows;
+            # retain both strings so evidence never reopens files while the next export is starting.
+            $json = [IO.File]::ReadAllText($jsonPath)
+            $markdown = [IO.File]::ReadAllText($markdownPath)
+            $state = $json | ConvertFrom-Json -ErrorAction Stop
+            if ($json.TrimStart().StartsWith('{') -and $state -is [PSCustomObject] -and
+                -not [string]::IsNullOrWhiteSpace($markdown)) {
+                return [PSCustomObject]@{ Json = $json; Markdown = $markdown; State = $state }
+            }
+            $lastError = 'Snapshot JSON object or Markdown is empty.'
+        } catch {
+            $lastError = $_.Exception.Message
+        }
+        Start-Sleep -Milliseconds 50
+    }
+    throw "Fresh Runtime state export is missing or incomplete: $lastError"
+}
 try {
     Require ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) 'Windows is required.'
     Add-Type -AssemblyName System.Drawing
@@ -362,7 +383,7 @@ public static class NexoraAcceptanceWindow {
         [IO.File]::WriteAllText((Join-Path $evidence ($name + '.json')), $jsonText, $utf8)
         [IO.File]::WriteAllText((Join-Path $evidence ($name + '.md')), $markdownText, $utf8)
         Press-Key 114
-        return $snapshot
+        return $snapshot.State
     }
     function Require-Metric($probe, [string]$name, [string]$expected) {
         $metric = @($probe.metrics | Where-Object { $_.name -eq $name })

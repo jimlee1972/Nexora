@@ -81,6 +81,14 @@ Build output expands a bounded sanitized tail. No percentage or gameplay success
 from a running compiler or a completed build. See the [workflow delivery plan](../../Roadmap/en/Editor_Workflow_Delivery_Plan.md)
 for the remaining integration and platform acceptance.
 
+Explicit animation assets can be listed by UUID in schema-3 `project.build.json` using
+`animation_clips` (see [the settings contract](../../Engine/Editor/README.md#project-build-scene-settings)).
+The Animation assets action in Build Settings selects imported ready Clips and removes explicit
+roots. Save applies the draft; Reload/reopen preserve exact UUIDs. Missing roots remain visible
+for deliberate repair. Read-only projects can inspect the list. Build/Play/busy/recovery and stale
+Content contexts cannot mutate it. See the [graphical selection evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-BuildClipPicker-Linux-2026-11-14.md).
+Build freezes the selected Clips and complete source/Atlas closure, without starting animation.
+
 These settings feed the accepted [multi-scene game delivery](../../Roadmap/en/Project_Scene_Delivery_Plan.md)
 producer and Play path. Export StaticView remains a separate command for the current Scene.
 
@@ -1592,6 +1600,23 @@ in the [target-host list](../../Tools/TwoD/WindowsAcceptance.md).
 
 ## Native project and asset workflow acceptance
 
+`editor.linux_sprite_source_inspector` uses the test-only scene GUI observation stream to locate
+actual Sprite source combo/choice/Clear controls, including disabled ones. These copied centers
+carry no mutation capability. Real X11 events select two entities, assign an imported source,
+Clear, Undo/Redo, save and reopen read-only; exact wrapped scene/plugin bytes and complete project
+hashes provide the independent result checks. Full presented screenshots and input/log/receipt
+files stay in `artifacts/editor-sprite-sources/inspector-*`. This accepts reference authoring;
+Scene View, configured package Play and Build are documented as separate consumers below;
+production source animation/reload remains open.
+With `NEXORA_SPRITE_SOURCE_INSPECTOR_TEST_EVIDENCE`, a separate test-only frame heartbeat proves
+that stable positions were observed across new frames; ordinary geometry output stays change-only.
+The same opt-in observer emits change-only copies of the currently expanded Sprite source details.
+The native fixture checks asymmetric trim/Pivot/PPU/Atlas-region values and independent local bounds
+in writable and read-only launches, captures the presented panel and verifies unchanged scene and
+source files. This inspection executes no authoring command; exact Undo/Redo and read-only whole
+project hashes retain their existing independent assertions. No source metadata is logged unless
+the explicit test evidence flag is set.
+
 `editor.linux_project_asset_workflow` drives the real project selector and Content widgets
 with X11 pointer/key events: create, asynchronous initial OBJ import, filtering and selection,
 authored mesh creation/native Scene submission, folder drag/drop, external-source reimport,
@@ -1694,6 +1719,11 @@ operations, and native Game viewport/pixel/runtime/source assertions still verif
 The native Game fixture acknowledges only those reserved Play keys; movement/input-routing
 keys retain their original runtime path because game capture intentionally bypasses ImGui.
 Each start gesture and its Game viewport result share the original twelve-second deadline.
+The read-only reopen uses one Ctrl+1 gesture with processed Ctrl/digit-down/up observations
+before verifying the actual Scene viewport. The copied `scene_key` bit is available independently
+of TwoD and never changes focus. Readiness, all four native phases and viewport verification share
+the original twelve-second deadline; no retry or direct focus operation is added. The earlier
+unacknowledged intermittent failure remains unexplained; passing probes do not establish a fix.
 Both binary streams have one reader across every reopen, failures retain project/input/output,
 and short four-frame checks validate complete output with their original shutdown bounds.
 
@@ -1818,3 +1848,186 @@ module teardown and caught-error reporting. Each launch creates a unique run dir
 `~/.local/state/Nexora/Logs`; Apple uses `~/Library/Logs/Nexora`. Set `NEXORA_LOG_DIR` to select a
 writable root; the selected run path is printed to stderr. Keep the whole run directory when
 reporting a failure. See [capture/retention/platform limits](../../Roadmap/en/Crash_Logging_Delivery_Plan.md).
+
+## Optional gameplay Sprite source access
+
+Editor Play's shared TwoD bridge offers the optional source Sprite/pool table while preserving
+legacy descriptor strides. Typed project indexing and synchronous/queued reimport admit existing
+`.nx2sprite` metadata. Project/cooked capture freezes and validates its Atlas closure with exact
+source/sidecar provenance; extraction resolves scene/pool source UUIDs from that snapshot. Retained
+snapshots survive later reimport and project/store destruction. The immutable embedding's source-
+content registration service still returns `UNSUPPORTED`. Inspector source assignment, authoring
+persistence, animation/reload and Build acceptance remain ED-WF-07/08 work. See the
+[executed snapshot/native evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md).
+
+### Authored source references in module-backed Play
+
+Main scene `editor.sprite.source` UUID references now become default styled Sprites in the actual
+isolated Play scene before gameplay module `Create`. The host captures a bounded owning
+`SceneDocument::RuntimeSceneCapture` together with immutable project 2D assets. References store
+UUIDs; project capture retains provenance paths for activation rechecks, while binding/rendering
+uses owned asset data without reading those paths. Reference inspection uses bounded owning
+previews in one indexed scene traversal, rejects unsupported reserved
+type/name/version/size/zero identities, and requires every source in the validated frozen asset
+closure. Empty Content cannot silently discard a present reference. An asset-free scene without
+references retains the existing empty binding path.
+
+Immediately before production module loading, `MatchesPlayTwoD` compares the exact current Runtime
+and opaque authoring capture, including document/entity generations. Asset provenance and current
+writer/recovery policy still require `ProjectTwoDPlayAssets::Matches` independently. Reference-only
+changes and document reopen invalidate activation. Bind then checks the active Play scene against
+the frozen Runtime bytes and decodes references from the immutable owning capture. Missing source,
+foreign/duplicate entity, malformed metadata or changed clone rejects before module callbacks;
+partially constructed private Sprite metadata is discarded without World mutation. Existing scene
+membership checks remain preparation work; no new per-frame reference scan is introduced.
+
+Capture retains the existing separate Runtime (100000 entities/64 MiB), opaque metadata
+(4096 records/16 MiB payload) and 2D asset (4096 assets/64 MiB) limits, rather than promising a total
+process-memory bound. Bound services retain private Sprite values and immutable CPU assets, rather
+than the preparation's document/provenance capture. Runtime transforms are borrowed from the actual
+Play World. Source geometry uses the existing frozen resolver, and gameplay may
+read/style/replace a bound source through the existing C/Zig source API. Gameplay-created Sprites
+and pools retain their legacy path. Stop/destroy callbacks retain services until they finish;
+then the Sprite owner is released before its borrowed Play World. Retained captures can replay
+their matching Runtime scene after Content/project/source destruction, while fresh production
+activation requires current provenance. All calls are serialized on the host owner thread.
+
+Scene View conversion, configured package Play/Build export and the module-free main-scene
+consumer are documented below; production source animation/reload remains open.
+C/Zig ABI, NX2S/ND2D/asset codecs and module dependencies are unchanged; changed C++ application
+and test consumers rebuild. The 2D-OFF embedding remains source-free. See
+[Play reference evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-PlayReferences-Linux-2026-11-13.md).
+
+### Module-free main-scene Sprite Play
+
+The main scene-clone Play path can own authored source Sprites without a gameplay library.
+`CapturePlayTwoD(..., PlayTwoDCapture::AuthoredSources)` inspects the reserved references first,
+deduplicates their UUID roots and freezes only their source/Atlas dependency closure. Missing or
+unsupported references reject before activation; unrelated unavailable 2D assets are not roots.
+A source-free scene returns its existing asset-free binding without scanning Content assets or
+serializing Runtime. Module-backed capture keeps its complete project-asset scope.
+
+The host rechecks the same exact authoring capture and current writer/Content/provenance authority
+before binding. `PlayGameplayModule::BindAuthoredPreview` requires owning authoring metadata with
+at least one supported reference and a matching active isolated Play scene. It owns the same
+private Sprite service while `IsLoaded()` remains false and `IsBoundTo()` identifies the actual
+clone. It loads no library, invokes no module callback and opens no native audio output. Rendering,
+Pause, manual Step and Resume retain static source geometry; this adds no animation clock.
+
+The existing Game View selector defaults to 3D each session. Selecting 2D extracts the clone's
+actual poses and frozen source geometry, registers its immutable Atlas owners and composes the
+same clipped Game draw list using the existing default orthographic camera (center 0,0; vertical
+size 20). This does not add camera authoring controls. Frames retain their CPU owners through
+submission. The existing
+Unload-before-Stop order releases the preview before its borrowed World; native registrations are
+retired between acquired frames. A later module load replaces the preview through the same Unload
+path. Authoring Runtime bytes, metadata/history and source files are never changed by preview.
+Calls remain serialized on the Editor owner thread; existing separate capture/frame/texture
+budgets apply. No C/Zig ABI, codec, optional-module dependency or shared exported C++ API changes.
+
+This consumer covers the main scene clone when `project.build.json` is absent. Configured package
+Play and main Build export need their own source-reference packaging integration and remain open,
+alongside Scene View and animation/reload. It does not accept complete
+ED-WF-07 or change milestone counts. The 2D-OFF embedding keeps its source-free path.
+
+`editor.play_authored_sprites` covers 32 callback-free preview owners, exact Runtime/authoring
+preservation, rejection, retained frame/asset lifetime and source-free/unrelated-asset behavior.
+`editor.linux_authored_preview` drives the actual Editor with a saved wrapped scene and no module
+or package configuration. It checks 32 native 3D/2D selections, red/blue source masks, Pause/Step/
+Resume, exact restart geometry and Stop registration cleanup, while concurrent Scene pixels and
+source bytes stay unchanged. Full 1280x720 window captures are retained. This is Linux Vulkan
+integration evidence, not physical-host or performance acceptance; see the
+[module-free Play evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-ModuleFreePlay-Linux-2026-11-13.md).
+
+## Sprite source Build acceptance
+
+The shared Build producer exports supported saved main-scene Sprite source references and their
+owning source/Atlas closure through both SceneOnly and ScriptProject. Exact source/sidecar baselines
+remain in the existing publication guard, and output contains only runtime artifacts. The explicit
+source package capability requires the optional TwoD-capable Player; legacy source-free bytes stay
+unchanged. See [the contract](../../Engine/Editor/GameBuild.md#main-scene-sprite-source-export).
+
+`editor.game_sprite_build` verifies owning capture, exact stale-source/sidecar rejection, canonical
+shared multi-scene closure, frozen pre-change legacy bytes, typed malformed-source rejection and
+actual remapped additive extraction after all authoring owners/files are gone.
+`editor.linux_game_sprite_build` invokes the real Build CLI and SDK Zig compiler, deletes the
+project, relocates the game under a Unicode path and launches `Game` without arguments. X11 reads
+actual native pixels: complete crop/Pivot/mirrored color masks and exact underlying 3D pixels
+against an independently built source-free SceneOnly baseline. WM close verifies gameplay
+Stop/Destroy and native drain; authored and runtime file hashes remain unchanged. Attempts,
+logs, screenshots and receipts live under `artifacts/editor-sprite-sources/build-*`.
+Configured packaged Play now owns a separate one-UI-pass source compositor, documented below.
+Native Scene View source rendering is documented below. Production animation/pool/reload and full
+ED-WF-07 acceptance remain open. See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-Linux-2026-11-13.md).
+
+The [main integration evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-MainIntegration-Linux-2026-11-13.md)
+validates this producer together with the independently delivered module-free preview on main2e900.
+It retains the original execution record and documents the exact native readiness/chord test repairs.
+
+
+## Configured packaged Sprite Play
+
+A saved `project.build.json` with capability-3 source references now runs in the main Game View.
+The existing Build producer supplies owning source/Atlas closure; `PackagedPlayContext` performs
+canonical typed admission before requesting its startup scene. `PackagedSpriteTextures` registers
+all package Atlases, including hidden/culled sources, within the existing **64 registrations /
+16 MiB combined GUI pixel** budget. Failed staging releases only its own registrations. Frames
+require the exact immutable Atlas owner, not just an equal UUID, before remapping native IDs.
+The application rechecks every captured source/sidecar baseline immediately before borrowing the
+Play World. Invalid/stale data or preview capacity failure leaves Play stopped and logs the reason.
+
+After callbacks and `GameWorld::EndFrame`, each unpublished candidate supplies its actual remapped
+World poses. The host prepares its offscreen LDR 3D Scene, obtains a typed current-frame image,
+and adds that image followed by source quads to the owning Game ImGui draw list. It then ends and
+submits the **complete GUI once, before candidate World publication or initial module callbacks**.
+Thus native Sprite/Atlas uploads must succeed before commit. Empty/hidden canvases submit the
+ordinary GUI and complete Atlas uploads without inventing an on-screen viewport. Candidates with
+no mesh geometry use a Sprite-only canvas. CPU/admission rejection retains the old World/palette;
+native failures follow the existing surface recovery/teardown policy. An already ended GUI frame
+is never replayed for a second UI submission.
+
+Source quads use the canonical default 2D camera (center0, vertical20), trim/Pivot and live affine
+poses, including negative scale, over the primary 3D camera image. This adds static authored source
+composition; it does not add camera controls, depth-aware Sprite rendering, pool styling, live
+source publication or hot reload. Ordinary GUI stacking preserves floating-window occlusion.
+Every acquired frame obtains a new Scene reference; resize/Stop never reuses an old image. Module
+Stop/Destroy and the Play borrow finish before releasing the context/texture owner. Native uploads
+retire behind surface fences and the surface drains at shutdown. Authoring World/history/files stay
+unchanged. Source-free packages retain the existing direct 3D path, and TwoD-OFF still rejects
+source-bearing packages explicitly. C/Zig V1 layouts, package/asset codecs and module graph stay
+unchanged; consumers of the added C++ ImGui API rebuild.
+
+`editor.packaged_sprite_play` checks pre-publication World conservation, complete texture admission,
+foreign same-UUID owners, typed malformed closure, capacity rejection, Additive/Replace remapping
+and 32 clean owners. `editor.linux_packaged_sprites` drives the actual read-only Editor through32
+Play/Pause/Step/Resume/Stop sessions, checks complete native crop/Pivot/mirror masks and exact
+underlying 3D pixels against an independent source-free Editor, then exercises a real SDK Zig
+Additive/Replace/return sequence, floating Inspector occlusion, resize and external stale-source
+rejection before callbacks. Full native captures, original fixture failures and exact verification
+commands are in the [execution record](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-ConfiguredSpritePlay-Linux-2026-11-14.md).
+
+## Native Scene Sprite sources
+
+The native 3D Scene View displays referenced imported Sprite sources as world-space cutout planes.
+Immutable source/Atlas owners and source-local geometry are captured only from imported referenced
+assets, without IO or borrowed document/content pointers. Trim, Pivot and PPU determine geometry;
+full hierarchical matrices preserve mirrors and shear. Source/mesh union bounds drive Frame All
+and transform handles. Selection intersects the real plane and its linearly filtered alpha, so
+transparent texels do not intercept picks. Missing/unsupported/oversized sources show unavailable
+status and Console diagnostics; the source-free direct Scene path remains available.
+
+This uses the existing unlit PBR emission/linear sampler with alpha cutoff0.5 and native output
+transfer. Partial alpha blending, nearest-filtered pixel-perfect2D authoring and a new XY camera
+remain separate. Existing 3D ground/depth occlusion applies. Preview and camera navigation never
+change source/reference bytes or undo history; actual authoring transforms use the existing
+preview/commit/cancel and Undo/Redo transactions.
+
+One application owner allocates immutable Scene texture IDs monotonically across project changes,
+deduplicates exact immutable Atlas owners, and admits at most16 Atlases per packet. It is separate
+from the GUI texture cache. Replaced IDs retire through `ReleaseSceneTextures` before BeginFrame
+and final drain. Future Scene texture producers must share this allocator. Source Pivot-only
+reimports retain the same Atlas binding; Atlas replacement receives a fresh ID. Pending geometry
+is revalidated against document generation, imported content revision and exact source references
+before submission. Scene and Game prepare up to two fenced sampled images before the single
+owning GUI packet; configured Play still publishes its candidate only after complete submission.
+See [native ownership](../../Engine/Presentation/SceneUiComposition.md).

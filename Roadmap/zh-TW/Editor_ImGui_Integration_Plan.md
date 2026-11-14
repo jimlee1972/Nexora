@@ -13,6 +13,12 @@
 > font-atlas retirement、所有 DPI bucket，與有界的 512-frame docking/layout soak。Physical-display Linux
 > 與 Windows DPI／IME target-host evidence 仍待完成，因此 foundation 打勾不得解讀成 ED-M0 已驗收。
 
+✅ 限定重啟／建置修復（2026-11-12）：四個 DPI 層級的 portable fresh-context 回歸保留保存的
+停靠分頁、浮動 Content 位置／大小與完整版面資料；真實 X11 程序重開 gate 也核對已選取的
+停靠分頁。明確焦點操作維持可用。測試觀察函式補齊條件保護，桌面矩陣另建置
+`BUILD_TESTING=OFF` 圖形版 Editor。[證據](../../Tools/Build/evidence/EditorLayoutBuild-Linux-2026-11-12.md)。
+此修復不完成 WP4 實體停靠／輸入 gate 或 ED-M0 驗收。
+
 ## 1. 目標、驗收邊界與目前事實
 
 ADR-0001 已選定支援 docking 的 Dear ImGui。本文件是 AI agent 完成 ED-M0 時必須遵守的施工規格，
