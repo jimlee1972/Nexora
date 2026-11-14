@@ -2261,6 +2261,18 @@ ED-WF 維持 5/9、Editor 0/8、2D 9/11；M6／M7 實機 gate 不變。
 模組主 Play 已由獨立的 `nexora-whr.7.4`／PR #776 交付；Scene View、已設定套件 Play、Build、來源動畫／熱重載及
 完整 ED-WF-07 仍開放。工作流 **5/9**、圖形 Editor **0/8**、TwoD **9/11** 與實機驗收維持不變。
 
+### ✅ 來源幾何資訊檢視（2026-11-14）
+
+支援工作 `nexora-whr.7.10` 在主 Inspector 新增預設收合的唯讀來源詳細資訊，顯示來源／Atlas UUID、
+原始尺寸、左上起算裁切／Atlas 區域、左下起算 Pivot、PPU、邊框及套用實體變換前的來源局部範圍。
+共用幾何解析器讀取目前已匯入的不可變資料，不讀寫檔案、不修改編輯資料、不註冊 GPU 紋理。
+實際 1×／2× 控制驗證指派與歷史、混合／缺失／不支援參考、重新匯入、唯讀／Play 檢視及內容移除。
+Linux X11 驗證非對稱數值、實際呈現畫面、精確 Undo／Redo／儲存／重開及唯讀專案雜湊不變。
+完整 Linux **511/511**、Shipping、TwoD-OFF／testing-OFF 與圖形 Monolithic gates 通過；
+交付仍須確切提交的 hosted CI。見[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceDetails-Linux-2026-11-14.md)。
+工作流程 **5/9**、Editor **0/8**、TwoD **9/11** 不變；完整 ED-WF-07／08、正式動畫／重載與實體／
+乾淨主機驗收仍開放。獨立 Clip 目錄工作由 PR #786 負責。
+
 ## ✅ 獨立 source 作者文件（2026-11-13）
 
 TwoDDocument 現在持有有界不可變 source 目錄，支援來源指派、交易式中繼資料替換／移除、

@@ -2343,6 +2343,20 @@ Module-backed main Play was independently delivered by `nexora-whr.7.4` / PR #77
 source animation/reload and full ED-WF-07 remain open. Workflow **5/9**, Editor **0/8**, TwoD **9/11**
 and physical acceptance are unchanged.
 
+### ✅ Source geometry inspection (2026-11-14)
+
+Supporting `nexora-whr.7.10` adds initially collapsed, read-only main Inspector details for
+source/Atlas UUIDs, original size, top-left trim/Atlas region, bottom-left Pivot, PPU, borders
+and source-local bounds before entity transforms. The shared geometry resolver reads current
+imported immutable metadata without file IO, authoring mutation or GPU texture registration.
+Actual 1×/2× widgets cover assignment/history, mixed/missing/unsupported references, reimport,
+read-only/Play inspection and context removal. Native Linux X11 checks asymmetric values,
+presented pixels, exact Undo/Redo/save/reopen and unchanged read-only project hashes.
+Full Linux **511/511**, Shipping, TwoD-OFF/testing-OFF and graphical Monolithic gates pass;
+exact-head hosted CI is required before delivery. See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceDetails-Linux-2026-11-14.md).
+Workflow **5/9**, Editor **0/8**, TwoD **9/11**, full ED-WF-07/08, production animation/reload
+and physical/clean-host acceptance remain unchanged/open. PR #786 owns the independent Clip catalog.
+
 ## ✅ Isolated source-bearing authoring documents (2026-11-13)
 
 TwoDDocument now owns a bounded immutable source catalog with source assignment, transactional

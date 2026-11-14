@@ -42,6 +42,27 @@ void Assets(const std::filesystem::path &root) {
   Write(root / "Content/First.nx2sprite", twod::EncodeSpriteAsset(Source(sourceId)));
   Write(root / "Content/Second.nx2sprite", twod::EncodeSpriteAsset(Source(secondId, 3)));
 }
+void DetailsAssets(const std::filesystem::path &root) {
+  twod::Atlas atlas{
+      atlasId, 16, 16, 1, false, {{1, 3, 4, 7, 9}}, twod::Bytes(16 * 16 * 4, std::byte{255})};
+  auto source = Source(sourceId);
+  source.sourceWidth = 19;
+  source.sourceHeight = 23;
+  source.trimX = 3;
+  source.trimY = 5;
+  source.trimWidth = 7;
+  source.trimHeight = 9;
+  source.pivotX = 4.5F;
+  source.pivotY = 8.25F;
+  source.pixelsPerUnit = 2;
+  Check(twod::ValidateAtlas(atlas) && twod::ValidateSpriteAsset(source),
+        "asymmetric source geometry fixture");
+  Write(root / "Content/Atlas.nx2atlas", twod::EncodeAtlas(atlas));
+  Write(root / "Content/First.nx2sprite", twod::EncodeSpriteAsset(source));
+  source.id = secondId;
+  source.pivotX = 6.5F;
+  Write(root / "Content/Second.nx2sprite", twod::EncodeSpriteAsset(source));
+}
 void Populate(editor::SceneDocument &scene) {
   const auto first = scene.Create("First"), second = scene.Create("Second");
   Check(scene.SetTransform(first, {-1, 0, 0}) && scene.SetTransform(second, {1, 0, 0}) &&
@@ -52,6 +73,7 @@ void NativeFixture(const std::filesystem::path &root) {
   editor::ProjectWorkspace workspace;
   Check(workspace.Create(root, "Native Sprite Inspector"), "native project fixture");
   Assets(root);
+  DetailsAssets(root);
   runtime::World world;
   editor::SceneDocument scene(world, world.LoadScene("Native Sprite Inspector"));
   Populate(scene);
@@ -133,6 +155,13 @@ void Run(float dpi) {
               editor::ReadSpriteSourceReference(scene, keys[1]) == second,
           "Sprite reference result differs from actual control input");
   };
+  const auto detail = [&](std::string_view expected) {
+    Check(Access::InspectorSpriteSourceDetails(ui).find(expected) != std::string_view::npos,
+          "current Sprite source detail differs from independent geometry oracle");
+  };
+  const auto noDetails = [&] {
+    Check(Access::InspectorSpriteSourceDetails(ui).empty(), "stale Sprite source details remain");
+  };
   send(EventType::FocusChanged, 1);
   settle();
   Access::FocusInspector(ui);
@@ -140,6 +169,11 @@ void Run(float dpi) {
   Check(Access::InspectorSpriteSourceLabel(ui) == "None", "empty source label");
   choose(sourceId);
   refs(sourceId, sourceId);
+  noDetails(); // Closed by default; inspection is an explicit user action.
+  click(point(3));
+  detail("Original: 4 x 4 px");
+  detail("Pivot (bottom-left): 2, 2 px");
+  detail("(-1, 0) to (0, 1)");
   Check(world.SaveScene(id) == runtimeBefore && scene.Undo() &&
             scene.PrepareSave()->Bytes() == initial && scene.Redo(),
         "one atomic metadata Undo");
@@ -149,14 +183,17 @@ void Run(float dpi) {
   const auto baseline = scene.PrepareSave()->Bytes();
   choose(secondId);
   refs(secondId, secondId);
+  detail("Pivot (bottom-left): 3, 2 px");
   Check(scene.Undo() && !scene.Dirty(), "saved baseline Undo");
   settle();
+  detail("Pivot (bottom-left): 2, 2 px");
   choose(sourceId);
   Check(scene.Redo(), "equal assignment consumed pending Redo");
   refs(secondId, secondId);
   settle();
   click(point(2));
   refs({}, {});
+  noDetails();
   Check(scene.Undo(), "clear batch Undo");
   refs(secondId, secondId);
   settle();
@@ -164,6 +201,7 @@ void Run(float dpi) {
   Check(scene.SetOpaqueComponent(keys[0], editor::SpriteSourceReference(sourceId)), "mixed setup");
   settle();
   Check(Access::InspectorSpriteSourceLabel(ui) == "Mixed", "mixed source label");
+  noDetails();
   click(point(2));
   refs({}, {});
   Check(scene.Undo(), "mixed batch Undo");
@@ -171,6 +209,7 @@ void Run(float dpi) {
   settle();
   Check(Access::InspectorSpriteSourceLabel(ui) == "Missing source or Atlas",
         "missing source label");
+  noDetails();
   click(point(2));
   refs({}, {});
   Check(scene.Undo(), "missing clear Undo");
@@ -180,6 +219,7 @@ void Run(float dpi) {
   settle();
   const auto unsupportedBytes = scene.PrepareSave()->Bytes();
   Check(Access::InspectorSpriteSourceLabel(ui) == "Unsupported reference", "unsupported label");
+  noDetails();
   click(point(2));
   click(point(0));
   Check(scene.PrepareSave()->Bytes() == unsupportedBytes &&
@@ -192,6 +232,7 @@ void Run(float dpi) {
   workspace = &reader;
   current = &readonly;
   settle();
+  detail("Pivot (bottom-left): 2, 2 px");
   click(point(2));
   click(point(0));
   Check(scene.PrepareSave()->Bytes() == stable, "read-only UI mutated document");
@@ -200,6 +241,7 @@ void Run(float dpi) {
   settle();
   Check(play.Start(.1, [](runtime::World &, double) { return true; }), "Play fixture start");
   settle();
+  detail("Original: 4 x 4 px");
   click(clear);
   Check(scene.PrepareSave()->Bytes() == stable, "Play source edit admitted");
   play.Stop();
@@ -217,6 +259,7 @@ void Run(float dpi) {
   Check(content.Reimport(sourceId), "source reimport");
   click(staleChoice);
   Check(scene.PrepareSave()->Bytes() == stable, "stale reimport popup assigned");
+  detail("Pivot (bottom-left): 4, 2 px");
   choose(secondId);
   refs(secondId, secondId);
   Check(scene.Undo(), "fresh reimport assignment Undo");
@@ -240,6 +283,7 @@ void Run(float dpi) {
   settle();
   Check(Access::InspectorSpriteSourceLabel(ui) == "Missing source or Atlas",
         "missing Atlas closure label");
+  noDetails();
   click(point(0));
   Check(!Access::InspectorSpriteSourcePosition(ui, 1) && scene.PrepareSave()->Bytes() == stable,
         "incomplete closure offered a source choice");
@@ -267,6 +311,38 @@ void Run(float dpi) {
   keys = {*scene.Key(keys[0].id), *scene.Key(keys[1].id)};
   Check(scene.Select(keys) && scene.PrepareSave()->Bytes() == baseline, "reopen identity or bytes");
   refs(sourceId, sourceId);
+  DetailsAssets(root);
+  Check(content.Reimport(atlasId) && content.Reimport(sourceId), "details geometry reimport");
+  settle();
+  detail("Original: 19 x 23 px");
+  detail("Trim (top-left): 3, 5; 7 x 9 px");
+  detail("Pivot (bottom-left): 4.5, 8.25 px");
+  detail("Pixels per unit: 2");
+  detail("Borders (L/R/T/B): 0 / 0 / 0 / 0 px");
+  detail("Atlas: 16 x 16 px");
+  detail("Region 1 (top-left): 3, 4; 7 x 9 px");
+  detail("(-0.75, 0.375) to (2.75, 4.875)");
+  const auto inspected = scene.PrepareSave()->Bytes();
+  const auto sourceBytes =
+      twod::EncodeSpriteAsset(*content.Browser().Find(sourceId)->twod->SpriteSource());
+  click(point(3));
+  noDetails();
+  click(point(3));
+  detail("(-0.75, 0.375) to (2.75, 4.875)");
+  Check(scene.PrepareSave()->Bytes() == inspected && world.SaveScene(id) == runtimeBefore &&
+            scene.Undo() == false && scene.Redo() == false,
+        "read-only geometry inspection modified document/Runtime/history");
+  std::ifstream sourceFile(root / "Content/First.nx2sprite", std::ios::binary);
+  const std::string sourceRead{std::istreambuf_iterator<char>(sourceFile), {}};
+  Check(sourceRead ==
+            std::string(reinterpret_cast<const char *>(sourceBytes.data()), sourceBytes.size()),
+        "geometry inspection modified source bytes");
+  current = nullptr;
+  settle();
+  noDetails();
+  current = &content;
+  settle();
+  detail("Original: 19 x 23 px");
   // A single source can be shared by many selected entities in a large unrelated catalog.
   // Exercise actual idle presentation without an O(selected * Content rows) lookup path.
   auto rows = std::vector<editor::ContentItem>(content.Browser().Items().begin(),
