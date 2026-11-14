@@ -5,6 +5,9 @@ embedding: a Play `World`, Sprite/collider metadata, Tilemaps, an `InstancePool`
 `SceneSession` and `GameplayBridge`. It owns no gameplay library, renderer, native surface or
 external service. Single-scene creation loads an empty scene; the embedding activates it.
 Catalog creation retains immutable authored sources and starts with no live scene.
+The existing single-scene factory retains its signature and Tilemap-enabled default. An additive
+four-argument overload can disable the Tilemap bridge capability; staging preserves that choice.
+C++ consumers rebuild for the updated owner layout. The C/Zig wire contracts do not change.
 
 ## Staging contract
 
@@ -47,6 +50,11 @@ their contexts at stable addresses through module callbacks and dynamic-library 
 The owner remains responsible for full service isolation, work leases and native frame/resource
 retirement. This reusable boundary does not itself implement production Player/Editor reload or
 source-file watching. Main packaged Sprite services and native integration remain separate tasks.
+
+The standalone [Player embedding](../../Apps/TwoDPlayer/README.md#strict-generation-ownership)
+now supplies per-generation host/API contexts and external-service admission around this owner.
+It also guards save-state capture before Runtime starts the staging hook. Those policies belong to
+the application; `Stage()` itself continues to copy only the TwoD values described above.
 
 ## Regression coverage
 

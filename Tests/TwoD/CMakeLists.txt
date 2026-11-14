@@ -440,4 +440,25 @@ if(NEXORA_ENABLE_ZIG_GAMEPLAY)
   nexora_apply_defaults(NexoraSourceReloadTests)
   add_test(NAME twod.source_reload_transaction COMMAND NexoraSourceReloadTests ${source_reload_modules})
   set_tests_properties(twod.source_reload_transaction PROPERTIES TIMEOUT 120 LABELS "twod;source;reload;zig")
+  if(TARGET NexoraTwoDPlayerHost)
+    add_executable(NexoraTwoDPlayerGenerationTests PlayerGenerationTests.cpp)
+    target_link_libraries(NexoraTwoDPlayerGenerationTests PRIVATE NexoraTwoDPlayerHost)
+    add_dependencies(NexoraTwoDPlayerGenerationTests ${source_reload_targets})
+    nexora_apply_defaults(NexoraTwoDPlayerGenerationTests)
+    add_test(NAME twod.player_reload_generations COMMAND NexoraTwoDPlayerGenerationTests
+      ${source_reload_modules} "${CMAKE_BINARY_DIR}/artifacts/player-reload-generations")
+    set_tests_properties(twod.player_reload_generations PROPERTIES TIMEOUT 120
+      LABELS "twod;source;reload;zig;player")
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_SLANG AND
+       NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND)
+      target_compile_definitions(NexoraTwoDPlayerGenerationTests PRIVATE NEXORA_PLAYER_RELOAD_NATIVE=1)
+      target_link_libraries(NexoraTwoDPlayerGenerationTests PRIVATE X11::X11)
+      add_test(NAME twod.player_reload_native COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/PlayerGenerationAcceptance.py"
+        --app "$<TARGET_FILE:NexoraTwoDPlayerGenerationTests>" --modules ${source_reload_modules}
+        --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/player-reload-native")
+      set_tests_properties(twod.player_reload_native PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77
+        LABELS "twod;source;reload;zig;player;vulkan;virtual-display")
+    endif()
+  endif()
 endif()

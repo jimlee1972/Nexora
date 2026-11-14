@@ -364,6 +364,63 @@ All authored scene Sprites and loaded Tilemaps share one sorted render extractio
 pool. [Ownership and limits](../../Engine/TwoD/README.md#packaged-authored-2d-scenes) apply.
 The main 3D Editor's text `.scene` files are a different format; use 2D Studio ND2D documents here.
 
+## Strict generation ownership
+
+The Player uses Runtime's strict reload transaction from initial module Load. Each generation owns
+its Play World, Sprite/Tilemap or catalog session, animation/query/camera values, exact pool handles
+and stable host/API contexts. Render extraction resolves the current generation after replacement;
+no World, Sprite or pool reference survives publication. The existing three-argument TwoD generation
+factory remains available; an additive overload preserves a host's absent Tilemap capability.
+C++ generation consumers rebuild for the updated owner layout; stable C/Zig wires are unchanged.
+
+Initial dynamic Load and each replacement use a distinct host-owned temporary image. Snapshot
+admission checks the selected regular file's size/write time before and after copying and never
+writes the source/project directory. Candidate copies survive failure cleanup/finalizers; old
+copies retire only after Runtime closes their libraries, and final Unload removes the active copy.
+This avoids the strict Runtime rejection of reusing an already loaded image. The canonical SDK's
+self-contained gameplay images use this boundary; sibling native dependency payloads are not copied.
+Strict dynamic admission rejects TLS/Objective-C-pinned images before gameplay creation. The raw
+TwoD and HD2D entry points use the SDK's TLS-free macOS panic handler to remain unloadable.
+
+The private `GenerationHost::Reload` boundary enters read-only capture before Runtime calls
+`save_state`. Cached TwoD/source/scene and external-service operations reject with `UNSUPPORTED`
+during capture; ordinary state serialization cannot mutate published host values through them.
+Component reads and copied input remain available. Use the boundary rather than calling the raw
+Runtime Reload method. All calls, capture, staging and publication remain on the host owner thread;
+Runtime closes dispatch and drains registered work leases before state capture/staging.
+
+Candidates prepare against independent World/TwoD/scene/pool values. Input bindings, content and
+deferred assets, UI, audio, storage, display/window, lifecycle and effects retain their host owners;
+candidate operations through those external tables reject instead of changing live state. Their
+tables may be negotiated and cached during preparation and become callable after publication.
+Games opting into the canonical SDK reload lifecycle serialize values and retained handles, and
+must handle unsupported preparation effects. A failed preparation owns its partial cleanup under
+the SDK contract. Reload does not create a second native window or perform file compilation.
+
+Old cached API contexts stay bound to the retired generation through Stop, Destroy and library
+finalizers. Its World cleanup affects only retired values, and external service operations reject.
+Rejected candidates retain their contexts through Destroy/finalizers before rollback. Normal final
+Unload still allows the active generation to clean up external resources. Allocator counters outlive
+all contexts, so candidate and retired state deallocations remain valid. Host API tables and scene
+formats retain their C/Zig layouts; new helper ownership is private to the Player application.
+
+The engine-owned raw Zig sample advertises its existing side-effect-free create/restored-start
+behavior as reload-lifecycle capable and uses the SDK's TLS-free macOS panic handler for unloadable
+dynamic images. Project-mode commands retain their explicit module selection;
+this embedding work supplies no project file watcher or compiler. Packaged main Editor
+source-animation/pool gameplay services and complete Editor reload acceptance remain separate work.
+
+
+The focused `twod.player_reload_generations` fixture links the actual Player host factory and
+generation owner. Its Linux native companion exercises 32 canonical SDK replacements, 128
+rejected candidates, source reimport/repack and 192 acknowledged presentations, comparing complete
+source/pool image rows before and after publication or rejection. Cached service calls from
+prepare/Stop/Destroy and actual ELF/Mach-O unload finalizers exercise lifetime isolation. A
+separate existing native sample process covers the complete Player loop with its bounded reload.
+This does not establish 32 source SDK replacements through that entire application loop, a project
+watcher, production Editor reload or complete ED-WF-08 acceptance. Full local validation passes531/531 and all14gates; fresh exact-head hosted CI
+is required before delivery.
+
 ## Gameplay Sprite sources
 
 The Player supplies `nx.getSpriteContent(services)` and `nx.getTwoDSources(twod)` after acquiring

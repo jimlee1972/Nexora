@@ -1,6 +1,13 @@
 //! Engine-owned 2D sample: Zig controls copied state, never windows or GPU objects.
 const nx = @import("nexora");
 const std = @import("std");
+const builtin = @import("builtin");
+// Match the canonical SDK's unloadable macOS entry: retain safety traps without the default
+// panic recursion counter's implicit TLS, which would pin this raw sample image in dyld.
+pub const panic = if (builtin.os.tag == .macos and !builtin.is_test)
+    std.debug.simple_panic
+else
+    std.debug.FullPanic(std.debug.defaultPanic);
 const State = extern struct {
     schema: u32 = 1,
     events: u32 = 0,
@@ -149,7 +156,8 @@ export fn NexoraGameModuleLoad(requested: u32, out: ?*nx.GameModuleV3) i32 {
     if (requested != nx.abi_version) return -2;
     const module = out orelse return -1;
     if (module.struct_size < @sizeOf(nx.GameModuleV3)) return -2;
-    module.* = .{ .struct_size = @sizeOf(nx.GameModuleV3), .abi_version = nx.abi_version, .capabilities = 3, .module_state = null, .create = create, .on_start = start, .fixed_update = fixedUpdate, .update = update, .on_stop = stop, .destroy = destroy, .save_state = save, .load_state = restore };
+    // create only binds its own host/state; restored start does not recreate World or pool data.
+    module.* = .{ .struct_size = @sizeOf(nx.GameModuleV3), .abi_version = nx.abi_version, .capabilities = 3 | nx.reload_lifecycle_capability, .module_state = null, .create = create, .on_start = start, .fixed_update = fixedUpdate, .update = update, .on_stop = stop, .destroy = destroy, .save_state = save, .load_state = restore };
     return 0;
 }
 

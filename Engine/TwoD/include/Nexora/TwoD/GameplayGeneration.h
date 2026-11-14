@@ -16,6 +16,10 @@ class NEXORA_2D_API GameplayGeneration final {
 public:
   [[nodiscard]] static std::unique_ptr<GameplayGeneration>
   CreateSingleScene(std::string name, std::size_t poolCapacity = 1024, ClipResolver = {}) noexcept;
+  // Preserve the embedding's optional Tilemap capability in every staged generation.
+  [[nodiscard]] static std::unique_ptr<GameplayGeneration>
+  CreateSingleScene(std::string name, std::size_t poolCapacity, ClipResolver,
+                    bool enableTilemap) noexcept;
   [[nodiscard]] static std::unique_ptr<GameplayGeneration>
   CreateCatalog(std::vector<SceneEntry>, std::size_t poolCapacity = 1024,
                 ClipResolver = {}) noexcept;
@@ -49,6 +53,7 @@ private:
   std::unique_ptr<SceneSession> catalog_;
   InstancePool pool_;
   std::unique_ptr<GameplayBridge> bridge_;
+  bool has_tiles_{true};
   mutable bool staging_{};
   const std::thread::id owner_{std::this_thread::get_id()};
 };
