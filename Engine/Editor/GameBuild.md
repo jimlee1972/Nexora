@@ -216,8 +216,10 @@ owners. The catalog and Clips survive source removal/relocation. Unrooted Clips 
 asset reject. No-root settings/package writers retain their exact prior schema-1/2 and capability-2/3
 bytes. The C/Zig ABI and Clip/Atlas/source codecs are unchanged; C++ consumers rebuild.
 
-This delivers asset capture/admission. There is no implicit animation start, packaged main gameplay
-2D/source/pool service, live source publication or completed strict Editor reload acceptance.
+This producer captures and admits assets without starting animation. The main native Player consumes
+the immutable catalog through [GameSpriteSession](../TwoD/GameSpriteSession.md), exposing the
+existing optional 2D/source/animation/pool APIs on its same live Runtime World. Configured Editor
+adoption, live source publication and completed strict Editor reload acceptance remain open.
 
 The graphical Build Settings Animation assets popup edits these same roots. Its bounded owning
 UUID/path snapshot comes from typed ready Content metadata; it reads no source files. Save/Reload

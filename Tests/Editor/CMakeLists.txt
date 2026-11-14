@@ -97,6 +97,15 @@ if(NEXORA_ENABLE_ASSET_PIPELINE)
             --zig "${NEXORA_ZIG_EXECUTABLE}")
         set_tests_properties(editor.linux_game_animation_build PROPERTIES TIMEOUT 150
           WORKING_DIRECTORY "${PROJECT_BINARY_DIR}" RUN_SERIAL TRUE)
+        add_test(NAME editor.linux_game_source_services
+          COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxGameSourceServices.py"
+            --editor "$<TARGET_FILE:NexoraEditor>" --player "$<TARGET_FILE:NexoraProjectPlayer>"
+            --fixture "$<TARGET_FILE:NexoraGameSpriteBuildTests>"
+            --xvfb "${NEXORA_SPRITE_BUILD_XVFB}" --xdotool "${NEXORA_SPRITE_BUILD_XDOTOOL}"
+            --cmake "${CMAKE_COMMAND}" --ninja "${NEXORA_EDITOR_GAME_NINJA_EXECUTABLE}"
+            --zig "${NEXORA_ZIG_EXECUTABLE}")
+        set_tests_properties(editor.linux_game_source_services PROPERTIES TIMEOUT 240
+          WORKING_DIRECTORY "${PROJECT_BINARY_DIR}" RUN_SERIAL TRUE)
         add_test(NAME editor.linux_build_animation_picker
           COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxBuildAnimationPicker.py"
             --editor "$<TARGET_FILE:NexoraEditor>" --player "$<TARGET_FILE:NexoraProjectPlayer>"

@@ -115,3 +115,9 @@ validates full Clip codecs/embedded identities, exact payload dependency agreeme
 region and every source/Atlas/trim edge under the shared 64 MiB payload budget. `ResolveClip` returns
 shared immutable ownership. Feature-OFF Player modes reject these auxiliary assets before callbacks.
 Roots are asset capture authority, not playback commands or a gameplay source/pool service promise.
+
+The optional main native Player embedding separately supplies existing gameplay 2D/source/pool
+services through [GameSpriteSession](../TwoD/GameSpriteSession.md). That owner augments this
+Runtime session's same live World and prepares metadata before its existing commit boundary.
+Runtime still imports no TwoD payload codec or gameplay metadata implementation. The package
+capability alone grants no playback, mutable asset publication or strict reload acceptance.

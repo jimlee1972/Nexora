@@ -11,6 +11,7 @@
 #include "Nexora/Runtime/GameplayStorage.h"
 #include "Nexora/Runtime/ProjectPackage.h"
 
+#include <functional>
 #include <iostream>
 #include <limits>
 #include <new>
@@ -32,6 +33,9 @@ struct PlayerGameplay final {
   std::unique_ptr<runtime::GameplayStorage> storage;
   runtime::Id scene{};
   std::uint64_t updates{}, fixed_updates{};
+  // Optional application-owned adapter. Its stable context outlives every module callback;
+  // source-free/StaticView hosts leave this empty and retain the original capability table.
+  std::function<std::int32_t(NexoraTwoDApiV1 *)> get_twod;
 
   bool InitializeServices(runtime::AssetUuid project_id,
                           const std::filesystem::path &save_directory) {
@@ -119,6 +123,16 @@ struct PlayerGameplay final {
         NEXORA_GAMEPLAY_CAPABILITY_HOST_ALLOCATOR | NEXORA_GAMEPLAY_CAPABILITY_SCENE_API;
     host.capabilities |= NEXORA_GAMEPLAY_CAPABILITY_SERVICES_API;
     host.context = this;
+    if (get_twod) {
+      host.capabilities |= NEXORA_GAMEPLAY_CAPABILITY_2D_API;
+      host.get_twod_api = [](void *context, NexoraTwoDApiV1 *api) -> std::int32_t {
+        try {
+          return static_cast<PlayerGameplay *>(context)->get_twod(api);
+        } catch (...) {
+          return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
+        }
+      };
+    }
     host.get_services_api = [](void *context, NexoraGameplayServicesApiV1 *api) -> int32_t {
       return static_cast<PlayerGameplay *>(context)->services.GetApi(api);
     };

@@ -456,3 +456,14 @@ that survives catalog destruction. The same asset/byte budgets cover Clips and n
 implicitly. This is packaged reference rendering and asset admission, not gameplay Sprite/pool APIs,
 live source animation or hot reload.
 See [the Runtime boundary](../Runtime/GameProjectPackage.md#sprite-source-capability-3).
+
+## Main packaged-game gameplay metadata
+
+The optional [GameSpriteSession](GameSpriteSession.md) augments the main native Player's existing
+Runtime World and scene service with owning mutable Sprite/collider values, a stable source-aware
+GameplayBridge and a bounded pool. Candidate scene metadata/frame admission precedes World commit;
+retained instances preserve gameplay styles, animator clocks and pool handles. Current-frame
+extraction combines remapped scene and pooled values without replaying immutable references.
+The existing optional C/Zig 2D/source/animation/pool APIs are reused, with no Tilemap or mutable
+content registration. Source-free/StaticView hosts retain their prior table. Main configured Editor
+adoption, source watching/publication and complete strict reload remain parent work.

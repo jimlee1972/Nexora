@@ -136,8 +136,12 @@ std::optional<SpriteFrame> GameSpriteAssets::Extract(const runtime::GameSceneVie
     }
   }
   std::ranges::sort(sprites, {}, &SpriteInstance::id);
+  return Extract(sprites, Camera{{}, 20, 0, width, height});
+}
+std::optional<SpriteFrame> GameSpriteAssets::Extract(std::span<const SpriteInstance> sprites,
+                                                     const Camera &camera) const {
   return ExtractSprites(
-      sprites, Camera{{}, 20, 0, width, height},
+      sprites, camera,
       [&](AssetId id) -> std::optional<AtlasBinding> {
         const auto atlas = ResolveAtlas(id);
         const auto texture = textures_.find(id);

@@ -2434,12 +2434,18 @@ Clip／來源／Atlas 擷取，以及獨立的遊戲封裝能力版本 4。沒�
 原始檔移除後仍擁有影格 UUID。完整 Linux **536/536**、零失敗／略過、**2184.80 秒**、13 項本機閘門、
 Development／Shipping 原生像素、Monolithic 與 TwoD-OFF 明確拒絕均通過。
 [執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-GameClipRoots-Linux-2026-11-14.md) 記錄所有權與相容性。
-交付前仍須精確提交的最新雲端 CI。主程式來源／動畫／
-物件池服務、即時發布與完整 ED-WF-07/08 仍未完成。流程 **5/9**、
+交付前仍須精確提交的最新雲端 CI。設定 Editor 來源／動畫／
+物件池接合、即時發布與完整 ED-WF-07/08 仍未完成。流程 **5/9**、
 Editor **0/8**、TwoD **9/11** 與實體機／乾淨主機驗收維持不變。
 
 ## ✅ 圖形化動畫根資產選取（2026-11-14）
 
 支援子任務 `nexora-whr.8.3.2` 透過主編輯器 Build Settings 的 Animation assets 視窗明確加入／移除不可變 Clip 根資產。有界擁有式中繼資料快照與獨立虛擬清單保留失效 UUID，拒絕過期／外來／忙碌／唯讀編輯，維持既有 Build／Run／Stop 位置。實際 1x／2x 控制及原生 X11 儲存／重載／唯讀重開，接上 SceneOnly 與標準 SDK ScriptProject Build；刪除來源並搬移至 Unicode 路徑後，兩種原生模式均驗證 8192 個 Sprite 像素、獨立中央 80x80 的 3D 區域與完整排空。完整 Linux **538/538**、零失敗／跳過、**2273.16 秒**、**13 組本地關卡**、四個實際 GCC15 編譯命令、Shipping 原生、Monolithic 五項 CPU 及實際 TwoD-OFF 拒絕均通過。
 
-[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-BuildClipPicker-Linux-2026-11-14.md) 保留原始失敗與精確範圍；交付前仍須通過確切提交的雲端 CI。主遊戲動畫／物件池／發布／熱重載與完整 ED-WF-07/08 仍未完成；流程 **5/9**、Editor **0/8**、TwoD **9/11** 及實體／乾淨主機驗收維持不變。
+[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-BuildClipPicker-Linux-2026-11-14.md) 保留原始失敗與精確範圍；交付前仍須通過確切提交的雲端 CI。設定 Editor 動畫／物件池接合、發布／熱重載與完整 ED-WF-07/08 仍未完成；流程 **5/9**、Editor **0/8**、TwoD **9/11** 及實體／乾淨主機驗收維持不變。
+
+## ✅ 主原生 Game Player 來源服務（2026-11-14）
+
+支援子任務 `nexora-whr.8.3.4` 在同一 Runtime World 提供主原生 Player 的 Sprite／碰撞器狀態及既有可選 2D／來源／動畫／物件池 API。候選中繼資料及原生影格先準備，成功後才發布 World；保留的樣式、動畫時鐘與全域物件池控制代碼能跨 Replace／Additive／卸載存活。缺失來源、過期對映、未完成準備及外來執行緒均拒絕。來源空白／StaticView 表與 C／Zig／套件／素材格式保持相容；不新增自動播放／時鐘、Tilemap 或可變內容註冊。
+
+完整 Linux **540/540**、零失敗／跳過、**2671.41 秒**、**14 組本地關卡**及 **13 個實際 GNU15 編譯命令**均通過。Development／Shipping 標準 SDK 主 Build、刪除來源後搬移至 Unicode 路徑及五階段原生輸入，驗證 **65,536** 個獨立 Sprite／物件池像素、第二次穩定擷取、完全相同的中央 80x80 3D 像素、保留的物件池身分及真正 SDK 關閉。Monolithic 圖形化 Editor／Player 與七項 CPU、實際 TwoD-OFF 拒絕也通過。[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-MainGameServices-Linux-2026-11-14.md) 保留範圍與歷史；交付前仍須確切提交 CI。設定 Editor 接合、來源監看／發布、完整嚴格熱重載／32 次替換及 ED-WF-07/08 仍未完成；流程 **5/9**、Editor **0/8**、TwoD **9/11** 與實體／乾淨主機驗收維持不變。

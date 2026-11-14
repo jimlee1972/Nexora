@@ -132,6 +132,12 @@ public:
 private:
   friend class SceneSession;
   friend class GameplayGeneration;
+  friend class GameSpriteSession;
+  // Unpublished metadata is bound to the final World object, without inspecting/mutating its
+  // current contents. GameSpriteSession validates against a separate read-only candidate view.
+  struct PreparedMetadata {};
+  SpriteScene(runtime::World &world, runtime::Id scene, PreparedMetadata) noexcept
+      : world_(&world), scene_(scene) {}
   runtime::World *world_;
   runtime::Id scene_;
   std::map<runtime::Id, Sprite> sprites_;

@@ -88,6 +88,10 @@ roots. Save applies the draft; Reload/reopen preserve exact UUIDs. Missing roots
 for deliberate repair. Read-only projects can inspect the list. Build/Play/busy/recovery and stale
 Content contexts cannot mutate it. See the [graphical selection evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-BuildClipPicker-Linux-2026-11-14.md).
 Build freezes the selected Clips and complete source/Atlas closure, without starting animation.
+The main native packaged Player can negotiate existing 2D/source/animation/pool APIs on those
+immutable assets; see [its same-World contract](../../Engine/TwoD/GameSpriteSession.md).
+Configured packaged Editor Play adoption, source watching/publication and complete strict reload
+remain separate work; selecting a Clip grants none of those operations implicitly.
 
 These settings feed the accepted [multi-scene game delivery](../../Roadmap/en/Project_Scene_Delivery_Plan.md)
 producer and Play path. Export StaticView remains a separate command for the current Scene.
@@ -1677,6 +1681,13 @@ Native fixtures retain real X11 pointer/key phases and independent rendered-pixe
 value, exact-file, Undo/Redo, restart and read-only result checks. Terminal close gestures are
 acknowledged by their existing exit/file assertions after release rather than waiting for a
 GUI phase from a process that has exited.
+The base Linux display fixture also retains every failed project, per-user state, native input,
+both main Editor streams and failure traceback. Close cancellation and one processed Ctrl+S
+gesture share the original five-second save deadline; readiness and all key-down/up phases
+consume that same bound. Saved scene contents, Play stepping, layout/camera persistence and
+asset identity remain the acceptance oracles. An earlier unretained Save failure remains open
+as `nexora-49s`; passing unchanged-binary diagnostics do not establish its cause.
+
 Native comparison/publication and center/mesh fixtures acknowledge one physical key phase at a
 time using `NativeSceneInput.py`, and retain input/output records on failure. Comparison waits
 start before the gesture so an acknowledged phase cannot consume and hide an already-finished

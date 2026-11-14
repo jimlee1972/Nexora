@@ -1,4 +1,5 @@
 #include "Nexora/TwoD/GameplayBridge.h"
+#include "Nexora/TwoD/GameSpriteSession.h"
 #include "Nexora/TwoD/SceneSession.h"
 #include <algorithm>
 #include <cmath>
@@ -96,6 +97,7 @@ struct GameplayBridge::State {
   runtime::World *world;
   SpriteScene *scene{};
   SceneSession *session{};
+  GameSpriteSession *game{};
   std::uint64_t revision{};
   runtime::Id primary{};
   ClipResolver clips;
@@ -121,8 +123,11 @@ struct GameplayBridge::State {
       : world(&w), session(&s), revision(s.Revision()), primary(s.Primary()),
         clips(std::move(resolve)), tiles(nullptr), pool(p),
         indices{SpatialIndex{4}, SpatialIndex{4}} {}
+  State(runtime::World &w, GameSpriteSession &s, ClipResolver resolve, InstancePool *p)
+      : world(w), game(&s), revision(s.Revision()), primary(s.Primary()), clips(std::move(resolve)),
+        tiles(nullptr), pool(p), indices{SpatialIndex{4}, SpatialIndex{4}} {}
   SpriteScene *Scene(runtime::Id entity) const {
-    return session ? session->FindEntity(entity) : scene;
+    return game ? game->FindEntity(entity) : session ? session->FindEntity(entity) : scene;
   }
   Tilemap *Tiles() const { return session ? session->PrimaryTiles() : tiles; }
   bool Live(runtime::Id entity) const {
@@ -134,20 +139,21 @@ struct GameplayBridge::State {
                        [entity](const auto &e) { return e.id == entity; });
   }
   void Synchronize() {
-    if (!session || revision == session->Revision())
+    if ((!session && !game) || revision == (game ? game->Revision() : session->Revision()))
       return;
     ready = {};
     std::erase_if(animations, [&](const auto &entry) { return !Live(entry.first); });
-    if (primary != session->Primary())
+    const auto current = game ? game->Primary() : session->Primary();
+    if (primary != current)
       camera = {{0, 0}, 20, 0};
-    primary = session->Primary();
-    revision = session->Revision();
+    primary = current;
+    revision = game ? game->Revision() : session->Revision();
   }
   template <class F> static int32_t Call(void *opaque, F &&f) noexcept {
     if (!opaque)
       return Invalid;
     auto &s = *static_cast<State *>(opaque);
-    if (s.thread != std::this_thread::get_id() || s.entered)
+    if (s.thread != std::this_thread::get_id() || s.entered || (s.game && !s.game->Available()))
       return Lifecycle;
     s.entered = true;
     struct Leave {
@@ -449,6 +455,7 @@ struct GameplayBridge::State {
         if (status != Ok)
           return status;
         auto shapes = source      ? s.Tiles()->CollisionShapes()
+                      : s.game    ? s.game->CollisionShapes()
                       : s.session ? s.session->CollisionShapes()
                                   : s.scene->CollisionShapes();
         if (!shapes || !s.indices[source].Build(*shapes))
@@ -654,27 +661,14 @@ GameplayBridge::GameplayBridge(runtime::World &world, SceneSession &session, Cli
     throw std::invalid_argument("2D scene session must belong to the supplied World");
 }
 GameplayBridge::~GameplayBridge() = default;
-std::unique_ptr<GameplayBridge> GameplayBridge::ForkForReload(runtime::World &world,
-                                                              SpriteScene &scene, Tilemap *tiles,
-                                                              InstancePool *pool) const {
-  if (state_->thread != std::this_thread::get_id() || state_->entered || state_->session)
-    return {};
-  const auto *record = world.FindScene(scene.SceneId());
-  if (&world == state_->world || &scene == state_->scene ||
-      state_->world->Kind() != runtime::WorldKind::Play ||
-      world.Kind() != runtime::WorldKind::Play || &scene.WorldOwner() != &world ||
-      scene.SceneId() != state_->scene->SceneId() || bool(tiles) != bool(state_->tiles) ||
-      bool(pool) != bool(state_->pool) || (tiles && tiles == state_->tiles) ||
-      (pool && (pool == state_->pool || pool->owner_ != state_->pool->owner_)) || !record ||
-      record->state == runtime::SceneState::Unloaded ||
-      record->state == runtime::SceneState::Unloading)
-    return {};
-  auto branch = std::make_unique<GameplayBridge>(world, scene, state_->clips, tiles, pool);
-  branch->state_->camera = state_->camera;
-  branch->state_->animations = state_->animations;
-  branch->state_->indices = state_->indices;
-  branch->state_->ready = state_->ready;
-  return branch;
+GameplayBridge::GameplayBridge(runtime::World &world, GameSpriteSession &session,
+                               ClipResolver clips, InstancePool *pool)
+    : state_(std::make_unique<State>(world, session, std::move(clips), pool)) {
+  if (&session.WorldOwner() != &world)
+    throw std::invalid_argument("Main game Sprite session must belong to the supplied World");
+}
+bool GameplayBridge::CanStage() const noexcept {
+  return state_->thread == std::this_thread::get_id() && !state_->entered;
 }
 bool GameplayBridge::RebindForReload(runtime::World &world, SpriteScene &scene, Tilemap *tiles,
                                      InstancePool *pool) noexcept {
@@ -721,7 +715,9 @@ Camera GameplayBridge::RenderCamera(std::uint32_t width, std::uint32_t height) c
 void GameplayBridge::ForgetEntity(runtime::Id entity) {
   if (state_->thread != std::this_thread::get_id() || state_->entered)
     throw std::logic_error("2D gameplay teardown requires serialized owner thread");
-  if (state_->session)
+  if (state_->game)
+    state_->game->ForgetEntity(entity);
+  else if (state_->session)
     state_->session->ForgetEntity(entity);
   else {
     state_->scene->Remove(entity);
