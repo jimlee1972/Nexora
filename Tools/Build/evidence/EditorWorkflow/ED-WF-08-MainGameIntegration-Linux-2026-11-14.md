@@ -1,6 +1,6 @@
 # Main Game/reload bridge integration repair — Linux Cloud, 2026-11-14
 
-Combined final-source Linux Development acceptance passes **549/549**, zero failures/skips, **2289.04 s**, all **14 local gates**, **16 actual GNU15 commands** and **10 Monolithic CPU cases**. Exact-head repair CI is required before delivery.
+Combined final-source Linux Development acceptance passes **549/549**, zero failures/skips, **2280.01 s**, all **15 local gates**, **16 actual GNU15 commands** and **10 Monolithic CPU cases**. Exact-head repair CI is required before delivery.
 
 The original main Game source/animation/pool generation `08498a00` / tree `bdb6ba74` passed
 540/540 unfiltered Linux tests, fourteen local gates, thirteen actual GNU15 compiler commands
@@ -85,14 +85,33 @@ generic proxy tests. New assertions check legacy parent prefix/tails, the Source
 cached Capture write rejection with unchanged source/World state. `nexora-whr.8.3.5.2` remains
 open until fresh combined full/linkage/CI acceptance.
 
+## Retained Windows export-consumer integration failure
+
+Repair head `146b3475` passed full549/549 (2289.04 s), all fourteen local gates and
+metadata. Its twelve C++ source hashes remain unchanged. Hosted Windows SDK producer/consumer
+passed, but four push/PR DX12/Vulkan native package jobs failed the same Scene snapshot assertion.
+Merged main30fc had replaced the existing owning snapshot-reader call with raw JSON decoding,
+while retaining `return $snapshot.State`; the raw root has no such wrapper member.
+
+The production export again calls `Read-ShowcaseStateSnapshot`, copies its owning JSON/Markdown
+and returns its decoded State. The expanded actual PowerShell regression loads both production
+functions, demonstrates the old consumer returns no scene state, and passes after restoration.
+It retains the exclusive-writer race, eight invalid/incomplete states, stale-file removal, exactly
+one fresh X request and exact scene/evidence values. Native gestures, five-second bounds and
+scene assertions remain unchanged. The four failed hosted logs and initial read-only PowerShell
+cache initialization failure are preserved separately. Portable PowerShell7.4.6 is staged outside
+the repository with its published SHA256 verified. A fresh full549/fifteen-gate generation and
+new exact-head CI are required; no earlier successful generation is reused as final acceptance.
+
 ## Executed combined generation
 
 - Full Linux Development configure, all-target build and unfiltered CTest: 549/549, zero failures/skips.
 - Sixteen actual GNU15 command variants across fifteen producer/consumer sources, including main Editor/Player, TwoDPlayer, bridge/generation, new main session and both PlayContext variants plus the Editor reload facade consumer. All original warnings remain enabled.
+- Actual PowerShell snapshot reader and Export-State consumer pass, including exclusive publication, stale-file removal, one fresh input request, exact owning scene evidence and eight invalid/incomplete states. The existing Windows-only race regression also loads the same reader and preserves exact tour/Markdown evidence, bounded incomplete rejection and no rejected publication; it was executed separately after fixing its loader, with product sources unchanged from the full549 run.
 - Full Shipping build; both the canonical SDK main Game five-phase services test and existing static animation-root native regression pass. Development and Shipping each verify 65,536 independently expected Sprite/pool pixels, stable second captures, unchanged central 80x80 3D pixels, source deletion/Unicode relocation, pool identity and SDK Stop/Destroy/native drain.
 - Monolithic graphical Editor/Player build plus ten CPU cases, including both reload families and packaged Sprite typed admission/rollback/retirement.
 - Actual TwoD-OFF/testing-OFF Editor/Player build and capability-4 package refusal.
-- Stable API/documentation utilities, twelve touched C++/inline files, twelve Markdown files/three bilingual pairs and unchanged root README are checked separately before commit.
+- Stable API/documentation utilities, twelve touched C++/inline files, thirteen Markdown files/three bilingual pairs and unchanged root README are checked separately before commit.
 
 Original successful, externally merged failing, intermediate focused/build-failing and final
 combined generations remain distinct. The machine receipt preserves commands, source hashes,

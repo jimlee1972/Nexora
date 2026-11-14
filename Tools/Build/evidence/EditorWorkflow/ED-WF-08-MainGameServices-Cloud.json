@@ -1502,13 +1502,13 @@
     }
   },
   "integrated_delivery": {
-    "status": "repair_combined_local_549_and_14_gates_passed_ci_pending",
+    "status": "repair_combined_local_549_and_15_gates_passed_ci_pending",
     "head": "0d439a7782c50305d9d771972f0e4c2b0b74ac11",
     "merge": "30fcf6fdfd862189fafb49370d772c050eac5ddf",
     "repair_task": "nexora-whr.8.3.5",
     "evidence": "Tools/Build/evidence/EditorWorkflow/ED-WF-08-MainGameIntegration-Linux-2026-11-14.md",
     "repair_full_passed": 549,
-    "repair_full_seconds": 2289.04,
+    "repair_full_seconds": 2280.01,
     "repair_evidence": "Tools/Build/evidence/EditorWorkflow/ED-WF-08-MainGameIntegration-Cloud.json"
   }
 }

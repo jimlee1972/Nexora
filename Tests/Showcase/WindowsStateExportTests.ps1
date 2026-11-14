@@ -7,7 +7,7 @@ $tokens = $null
 $errors = $null
 $ast = [Management.Automation.Language.Parser]::ParseFile($AcceptanceScript, [ref]$tokens, [ref]$errors)
 if ($errors.Count) { throw 'Acceptance script has parser errors.' }
-foreach ($name in @('Clear-StateOutput', 'Export-State')) {
+foreach ($name in @('Read-ShowcaseStateSnapshot', 'Clear-StateOutput', 'Export-State')) {
     $function = $ast.Find({ param($node)
         $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name
     }, $true)
@@ -60,7 +60,7 @@ try {
     $rejected = $false
     $clock = [Diagnostics.Stopwatch]::StartNew()
     try { Export-State 'incomplete' | Out-Null } catch {
-        if ($_.Exception.Message -notlike 'Fresh*Runtime state export is missing.') { throw }
+        if (-not $_.Exception.Message.StartsWith('Fresh Runtime state export is missing or incomplete:')) { throw }
         $rejected = $true
     }
     $script:writer.Join()
