@@ -39,6 +39,8 @@ public:
   [[nodiscard]] std::optional<std::vector<Shape>> CollisionShapes() const;
 
 private:
+  friend class GameplayGeneration;
+  [[nodiscard]] std::unique_ptr<SceneSession> StageInto(runtime::World &) const;
   struct Request {
     std::uint64_t id{};
     AssetId asset;

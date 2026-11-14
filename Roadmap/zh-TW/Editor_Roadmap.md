@@ -2329,3 +2329,12 @@ GNU 15.2 前後對照重現原始 benchmark 暫存值警告，並驗證全部 17
 實際TwoD消費端命令版本，包含既有CPU／原生PlayContext測試。[最終原生版本證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-SourceAnimation-NativeContext-Linux-2026-11-13.md)
 保留兩份先前已提交紀錄及新增的雲端CI失敗。正式32次來源重載、設定式套件Play及完整ED-WF-07／08
 仍未完成；**5/9**、**0/8**、**9/11**維持不變。
+
+## ✅ 獨立來源重載世代基礎（2026-11-13）
+
+支援工作 `nexora-whr.8.2.1` 暫存獨立TwoD World／中繼資料、相機／查詢、動畫時鐘／暫停／樣式、
+場景請求／版本及精確物件池handle；配置、准入與重入失敗不改動正式值。實際標準SDK測試通過32次
+獨立程式庫替換、128次候選拒絕、舊程式工作租約等待，以及保留錨點的來源UUID重匯入。
+完整525/525、Shipping／原生回歸、Monolithic及TwoD-OFF通過；[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-GenerationStaging-Linux-2026-11-13.md)
+保留初期失敗與中斷紀錄。這是可重用的獨立TwoD先決基礎；`nexora-whr.8.2` 的正式Player／Editor
+服務與原生重載整合仍未完成，完整ED-WF-07／08、**5/9**、**0/8**、**9/11**及實體／乾淨主機驗收不變。

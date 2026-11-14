@@ -1128,3 +1128,14 @@ PlayContext test. [Final native-context evidence](../../Tools/Build/evidence/Edi
 preserves both earlier committed receipts and the additional failed hosted head. Production32
 source reloads/configured packaged Play and complete ED-WF-07/08 remain open; **5/9**, **0/8**, **9/11**
 are unchanged.
+
+## ✅ Isolated source reload generation foundation (2026-11-13)
+
+Supporting `nexora-whr.8.2.1` stages independent TwoD World/metadata, camera/query, animation
+clock/pause/style, scene requests/revisions and exact pool handles. Allocation/admission/reentry
+failures preserve live values. Actual canonical SDK tests pass32 unique library replacements,
+128 candidate rejections, leased old-code quiescence and sourceUUID reimport preserving anchors.
+Full525/525, Shipping/native regression, Monolithic and TwoD-OFF gates pass; [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-GenerationStaging-Linux-2026-11-13.md)
+retains initial failures and the interrupted run. This is a reusable isolated TwoD prerequisite:
+production Player/Editor services and native reload integration remain open under `nexora-whr.8.2`;
+full ED-WF-07/08, **5/9**, **0/8**, **9/11** and physical/clean-host acceptance are unchanged.

@@ -26,6 +26,8 @@ InstancePool::InstancePool(std::size_t capacity) : owner_(Owner()) {
   for (std::size_t i = capacity; i > 0; --i)
     free_.push_back(static_cast<std::uint32_t>(i - 1));
 }
+InstancePool::InstancePool(const InstancePool &source, StagedCopy)
+    : owner_(source.owner_), slots_(source.slots_), free_(source.free_), count_(source.count_) {}
 Instance *InstancePool::Find(InstanceHandle h) noexcept {
   if (h.owner != owner_ || h.index >= slots_.size())
     return nullptr;

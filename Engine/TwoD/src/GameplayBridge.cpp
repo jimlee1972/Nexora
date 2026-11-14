@@ -654,6 +654,19 @@ GameplayBridge::GameplayBridge(runtime::World &world, SceneSession &session, Cli
     throw std::invalid_argument("2D scene session must belong to the supplied World");
 }
 GameplayBridge::~GameplayBridge() = default;
+bool GameplayBridge::CanStage() const noexcept {
+  return state_->thread == std::this_thread::get_id() && !state_->entered;
+}
+void GameplayBridge::CopyStagedState(GameplayBridge &destination) const {
+  auto &target = *destination.state_;
+  target.clips = state_->clips;
+  target.revision = state_->revision;
+  target.primary = state_->primary;
+  target.camera = state_->camera;
+  target.animations = state_->animations;
+  target.indices = state_->indices;
+  target.ready = state_->ready;
+}
 int32_t GameplayBridge::GetApi(NexoraTwoDApiV1 *output) noexcept {
   return State::Call(state_.get(), [&](auto &s) -> int32_t {
     if (!output)

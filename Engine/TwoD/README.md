@@ -319,6 +319,13 @@ explicit content removal, retained-generation budgets and snapshot-aware native 
 The Player retains legacy preload defaults and adds deferred Atlas/Clip/opaque files plus
 configurable content/pool capacities. Games own transition and event policy in Zig.
 
+## Gameplay generation staging
+
+The optional [gameplay generation owner](GameplayGeneration.md) stages complete mutable TwoD
+values for strict Runtime transactions, retaining source clocks, queries, scene requests and exact
+pool handles. Embeddings own callback quiescence, candidate/retired contexts and isolation of other
+services. Production Player/Editor reload and native acceptance remain separate integration work.
+
 ## HD2D effects snapshots
 
 The [optional effects service](GameplayEffects.md) validates and owns atomic pending/active
