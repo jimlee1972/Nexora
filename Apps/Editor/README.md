@@ -2030,6 +2030,12 @@ CPU acceptance checks 32 successful replacements and 160 failures, while the act
 test checks five initial-generation source/pool pixel phases. This does not establish source
 reimport or 32 native Zig replacements; ED-WF-07/08 stay open.
 
+The configured host's despawn hook routes through `GameplayBridge::ForgetEntity`, clearing
+metadata and animation state and invalidating cached overlap/sweep snapshots immediately. The
+CPU test primes both queries after the 32 replacements, deletes through the actual host callback,
+checks Lifecycle with unchanged outputs before rebuilding, and then verifies empty hits, a valid
+retained pool handle/value and a drawable composed frame.
+
 `editor.packaged_sprite_play` checks pre-publication World conservation, complete texture admission,
 foreign same-UUID owners, typed malformed closure, capacity rejection, Additive/Replace remapping
 and 32 clean owners. `editor.linux_packaged_sprites` drives the actual read-only Editor through32

@@ -1,11 +1,11 @@
 {
   "schema": 1,
   "task": "nexora-whr.8.3.6",
-  "status": "local_full550_and14gates_passed_exact_head_ci_required_before_merge",
+  "status": "review_query_cleanup_fixed_full550_and14gates_passed_exact_new_head_ci_required",
   "base": "d5800c86b037e9cbb2d46a9d8b70744013e769db",
   "implementation_sha256": {
     "Apps/Editor/PackagedPlayContext.h": "c1b1fff495e42d8f14a0623808cb6e0474afb298ffe33963f4390647617c1a25",
-    "Apps/Editor/PlayGameplayModule.h": "a38ed6bdbf8dba70ed64ab13bec171da53d0ace83c989495751ddf4140166bc5",
+    "Apps/Editor/PlayGameplayModule.h": "84e398253249ffbcdcf590a989f19b0c1637e5828aa8f5d64edeff7014e9c129",
     "Apps/Editor/PlayTwoDApiProxy.h": "eab5cbf4ea5c05c99a3cb46220ec6d31affaf0b8211bf34173532fb4127f2d81",
     "Apps/Editor/PlayTwoDServices.h": "78c37a3d2d13f94efc8959ccd86a0aeb67d478cd9b52152c02e060193b334f33",
     "Apps/Editor/PlayWorldReload.h": "e90d60fd74bc3953e1a1662de80be344f7104be78b7df3d13bd03321c40b2205",
@@ -20,7 +20,7 @@
     "Engine/TwoD/src/Scene.cpp": "65f57f8a0316bfb469e1c06e65199aad584f778454227d73a3c4479c1c07d3f6",
     "Tests/EditorImGui/CMakeLists.txt": "9dc149f7b024c74de72b892b68bde456683041545d34091f30cf865f93792e4a",
     "Tests/EditorImGui/LinuxPackagedSourceServices.py": "4f55d21b96d94c0694b8e9a6135c84dc446f484c0fb1a180f6c8ff730c53fc4c",
-    "Tests/EditorImGui/PackagedGameSourceReloadTests.inl": "a2e8787f9c9b711fdb5bcba92e6040aee6790f3b3d6b72194df8d6bd2935492c",
+    "Tests/EditorImGui/PackagedGameSourceReloadTests.inl": "45aac972980b91928dde8662d1e20418496d07f60f539594aa29187cc6b273e2",
     "Tests/EditorImGui/PackagedSpritePlayTests.cpp": "f98e9419683f7586a58e32ca380e8e224e133a278c246b5207a0a775c8d305ed",
     "Tests/TwoD/GameSpriteSessionTests.cpp": "e048b4ef3b959bbda4d3d6fdfb207e447be18e1d532fc389dc3803a37db03ae2"
   },
@@ -28,8 +28,8 @@
     "passed": 550,
     "failed": 0,
     "skipped": 0,
-    "seconds": 2273.63,
-    "log_sha256": "783174dc853a5cdbb99abc0bae9525f51d0ea454d35c70263e115f89e5aa1922"
+    "seconds": 2289.26,
+    "log_sha256": "fc280baf92fda655389b54e33361f3eb8f9b8dd86e767a6dd425221e84021dca"
   },
   "gates": [
     {
@@ -37,10 +37,17 @@
       "command": [
         "cmake",
         "--preset",
-        "linux-development"
+        "linux-development",
+        "-DNEXORA_BUILD_SHOWCASE=ON",
+        "-DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON",
+        "-DNEXORA_ENABLE_SLANG=ON",
+        "-DNEXORA_ENABLE_ZIG_GAMEPLAY=ON",
+        "-DNEXORA_ZIG_EXECUTABLE=/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/ziglang/zig",
+        "-DNEXORA_BUILD_PROJECT_PLAYER=ON",
+        "-DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON"
       ],
       "exit": 0,
-      "log_sha256": "04025a1821ac0d5913641afada0a020fa92d35c64e2f1c8bb24cc3268534016e",
+      "log_sha256": "4b310d48cbc00a3f095ee28dd93f95b405006894fae1629f239f27a669e36936",
       "log_bytes": 183
     },
     {
@@ -52,14 +59,14 @@
         "linux-development"
       ],
       "exit": 0,
-      "log_sha256": "83221b1703ea0a850c714eff3592f02b51a6ac4e4a749edc3d9bd175fecdd964",
-      "log_bytes": 7701
+      "log_sha256": "c6807f1cec68647a57327efb96fda2aee03d5c69830f1f6a6f10dc58a429e4d1",
+      "log_bytes": 40053
     },
     {
       "name": "development-gcc15",
       "command": [
         "python3",
-        "/workspace/work/engine-goal-20261112/authoring/editor-main-services/compile-gcc15.py",
+        "/workspace/work/engine-goal-20261112/authoring/editor-main-services-review-fix/compile-gcc15.py",
         "build/linux-development",
         "development"
       ],
@@ -76,7 +83,7 @@
         "--output-on-failure"
       ],
       "exit": 0,
-      "log_sha256": "783174dc853a5cdbb99abc0bae9525f51d0ea454d35c70263e115f89e5aa1922",
+      "log_sha256": "fc280baf92fda655389b54e33361f3eb8f9b8dd86e767a6dd425221e84021dca",
       "log_bytes": 83105
     },
     {
@@ -109,8 +116,8 @@
         "linux-shipping"
       ],
       "exit": 0,
-      "log_sha256": "8ec7f964b6595e728224e83dd01c9273b1327bc01d75074cdfeb92f55af13d60",
-      "log_bytes": 2702
+      "log_sha256": "b521b43d1ba15daeedc8e6fdb0624764de17d3da25d7bc02658f7d929a7eeb16",
+      "log_bytes": 919
     },
     {
       "name": "shipping-services-native",
@@ -141,7 +148,7 @@
         "-DNEXORA_ZIG_EXECUTABLE=/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/ziglang/zig"
       ],
       "exit": 0,
-      "log_sha256": "47a17de91124e6d159a8650c2c20068989e6e5fa3045c01037e3a2a93eb9f4d7",
+      "log_sha256": "3f4c96c84c85a03768b96395d2dd9cfe5a217dff00319af936c1607cc719e9d7",
       "log_bytes": 190
     },
     {
@@ -166,8 +173,8 @@
         "NexoraPlayTwoDServicesTests"
       ],
       "exit": 0,
-      "log_sha256": "094d737d9171c21af63f35526c71da69c84daf9362b600eb0de781f3af760130",
-      "log_bytes": 6656
+      "log_sha256": "c72d254968a4631205ea61c077560d3643fd55d1ebd207ff55599f0a6de38f46",
+      "log_bytes": 3653
     },
     {
       "name": "monolithic-test",
@@ -180,7 +187,7 @@
         "--output-on-failure"
       ],
       "exit": 0,
-      "log_sha256": "a28a583a0651903ddb7f38d83245bd18cac4f332a241ce2e7667e3b18878a62c",
+      "log_sha256": "ccd09ae0459583349a2775837b63d16182f1dd4f909b98ad063170ed2cfa6069",
       "log_bytes": 1400
     },
     {
@@ -194,7 +201,7 @@
         "--output-on-failure"
       ],
       "exit": 0,
-      "log_sha256": "eef72512328043122b44e2f631ec5d8ff334339f89549231d5b3d625df0e700d",
+      "log_sha256": "be19fd7b8b5c36ec9ee8e6e5c20d3283d34dc565c5c62fc6eed7f33796ff5622",
       "log_bytes": 522
     },
     {
@@ -235,10 +242,10 @@
       "name": "feature-off-refusal",
       "command": [
         "python3",
-        "/workspace/work/engine-goal-20261112/authoring/editor-main-services/verify-off.py"
+        "/workspace/work/engine-goal-20261112/authoring/editor-main-services-review-fix/verify-off.py"
       ],
       "exit": 0,
-      "log_sha256": "2decb54396b896013621234f3d73040b2fd75c48592c4e010592e5c91ca44061",
+      "log_sha256": "c1e19fc2f4f84683d6277c4a65c0ed2d9b4d9932745587f657a4841fc320b88c",
       "log_bytes": 511
     }
   ],
@@ -283,7 +290,7 @@
           "-Wpedantic",
           "-Werror",
           "-o",
-          "/workspace/work/engine-goal-20261112/authoring/editor-main-services/gcc15/development/Apps_ProjectPlayer_main-0.o",
+          "/workspace/work/engine-goal-20261112/authoring/editor-main-services-review-fix/gcc15/development/Apps_ProjectPlayer_main-0.o",
           "-c",
           "/workspace/Nexora-delivery-773/Apps/ProjectPlayer/main.cpp"
         ],
@@ -333,7 +340,7 @@
           "-Wpedantic",
           "-Werror",
           "-o",
-          "/workspace/work/engine-goal-20261112/authoring/editor-main-services/gcc15/development/Apps_Editor_main-0.o",
+          "/workspace/work/engine-goal-20261112/authoring/editor-main-services-review-fix/gcc15/development/Apps_Editor_main-0.o",
           "-c",
           "/workspace/Nexora-delivery-773/Apps/Editor/main.cpp"
         ],
@@ -376,7 +383,7 @@
           "-Wpedantic",
           "-Werror",
           "-o",
-          "/workspace/work/engine-goal-20261112/authoring/editor-main-services/gcc15/development/Apps_TwoDPlayer_TwoDPlayer-0.o",
+          "/workspace/work/engine-goal-20261112/authoring/editor-main-services-review-fix/gcc15/development/Apps_TwoDPlayer_TwoDPlayer-0.o",
           "-c",
           "/workspace/Nexora-delivery-773/Apps/TwoDPlayer/TwoDPlayer.cpp"
         ],
@@ -429,7 +436,7 @@
           "-Wpedantic",
           "-Werror",
           "-o",
-          "/workspace/work/engine-goal-20261112/authoring/editor-main-services/gcc15/development/Engine_EditorImGui_src_EditorImGui-0.o",
+          "/workspace/work/engine-goal-20261112/authoring/editor-main-services-review-fix/gcc15/development/Engine_EditorImGui_src_EditorImGui-0.o",
           "-c",
           "/workspace/Nexora-delivery-773/Engine/EditorImGui/src/EditorImGui.cpp"
         ],
@@ -474,7 +481,7 @@
           "-Wpedantic",
           "-Werror",
           "-o",
-          "/workspace/work/engine-goal-20261112/authoring/editor-main-services/gcc15/development/Engine_TwoD_src_GameSpriteSession-0.o",
+          "/workspace/work/engine-goal-20261112/authoring/editor-main-services-review-fix/gcc15/development/Engine_TwoD_src_GameSpriteSession-0.o",
           "-c",
           "/workspace/Nexora-delivery-773/Engine/TwoD/src/GameSpriteSession.cpp"
         ],
@@ -519,7 +526,7 @@
           "-Wpedantic",
           "-Werror",
           "-o",
-          "/workspace/work/engine-goal-20261112/authoring/editor-main-services/gcc15/development/Engine_TwoD_src_GameSpriteAssets-0.o",
+          "/workspace/work/engine-goal-20261112/authoring/editor-main-services-review-fix/gcc15/development/Engine_TwoD_src_GameSpriteAssets-0.o",
           "-c",
           "/workspace/Nexora-delivery-773/Engine/TwoD/src/GameSpriteAssets.cpp"
         ],
@@ -564,7 +571,7 @@
           "-Wpedantic",
           "-Werror",
           "-o",
-          "/workspace/work/engine-goal-20261112/authoring/editor-main-services/gcc15/development/Engine_TwoD_src_GameplayBridge-0.o",
+          "/workspace/work/engine-goal-20261112/authoring/editor-main-services-review-fix/gcc15/development/Engine_TwoD_src_GameplayBridge-0.o",
           "-c",
           "/workspace/Nexora-delivery-773/Engine/TwoD/src/GameplayBridge.cpp"
         ],
@@ -606,7 +613,7 @@
           "-Wpedantic",
           "-Werror",
           "-o",
-          "/workspace/work/engine-goal-20261112/authoring/editor-main-services/gcc15/development/Tests_TwoD_GameSpriteSessionTests-0.o",
+          "/workspace/work/engine-goal-20261112/authoring/editor-main-services-review-fix/gcc15/development/Tests_TwoD_GameSpriteSessionTests-0.o",
           "-c",
           "/workspace/Nexora-delivery-773/Tests/TwoD/GameSpriteSessionTests.cpp"
         ],
@@ -648,7 +655,7 @@
           "-Wpedantic",
           "-Werror",
           "-o",
-          "/workspace/work/engine-goal-20261112/authoring/editor-main-services/gcc15/development/Tests_TwoD_GameplayBridgeTests-0.o",
+          "/workspace/work/engine-goal-20261112/authoring/editor-main-services-review-fix/gcc15/development/Tests_TwoD_GameplayBridgeTests-0.o",
           "-c",
           "/workspace/Nexora-delivery-773/Tests/TwoD/GameplayBridgeTests.cpp"
         ],
@@ -690,7 +697,7 @@
           "-Wpedantic",
           "-Werror",
           "-o",
-          "/workspace/work/engine-goal-20261112/authoring/editor-main-services/gcc15/development/Tests_TwoD_SourceAnimationTests-0.o",
+          "/workspace/work/engine-goal-20261112/authoring/editor-main-services-review-fix/gcc15/development/Tests_TwoD_SourceAnimationTests-0.o",
           "-c",
           "/workspace/Nexora-delivery-773/Tests/TwoD/SourceAnimationTests.cpp"
         ],
@@ -732,7 +739,7 @@
           "-Wpedantic",
           "-Werror",
           "-o",
-          "/workspace/work/engine-goal-20261112/authoring/editor-main-services/gcc15/development/Tests_TwoD_GameplayGenerationTests-0.o",
+          "/workspace/work/engine-goal-20261112/authoring/editor-main-services-review-fix/gcc15/development/Tests_TwoD_GameplayGenerationTests-0.o",
           "-c",
           "/workspace/Nexora-delivery-773/Tests/TwoD/GameplayGenerationTests.cpp"
         ],
@@ -777,7 +784,7 @@
           "-Wpedantic",
           "-Werror",
           "-o",
-          "/workspace/work/engine-goal-20261112/authoring/editor-main-services/gcc15/development/Tests_TwoD_PlayContextTests-0.o",
+          "/workspace/work/engine-goal-20261112/authoring/editor-main-services-review-fix/gcc15/development/Tests_TwoD_PlayContextTests-0.o",
           "-c",
           "/workspace/Nexora-delivery-773/Tests/TwoD/PlayContextTests.cpp"
         ],
@@ -825,7 +832,7 @@
           "-Wpedantic",
           "-Werror",
           "-o",
-          "/workspace/work/engine-goal-20261112/authoring/editor-main-services/gcc15/development/Tests_TwoD_PlayContextTests-1.o",
+          "/workspace/work/engine-goal-20261112/authoring/editor-main-services-review-fix/gcc15/development/Tests_TwoD_PlayContextTests-1.o",
           "-c",
           "/workspace/Nexora-delivery-773/Tests/TwoD/PlayContextTests.cpp"
         ],
@@ -870,7 +877,7 @@
           "-Wpedantic",
           "-Werror",
           "-o",
-          "/workspace/work/engine-goal-20261112/authoring/editor-main-services/gcc15/development/Engine_TwoD_src_GameplayGeneration-0.o",
+          "/workspace/work/engine-goal-20261112/authoring/editor-main-services-review-fix/gcc15/development/Engine_TwoD_src_GameplayGeneration-0.o",
           "-c",
           "/workspace/Nexora-delivery-773/Engine/TwoD/src/GameplayGeneration.cpp"
         ],
@@ -918,7 +925,7 @@
           "-Wpedantic",
           "-Werror",
           "-o",
-          "/workspace/work/engine-goal-20261112/authoring/editor-main-services/gcc15/development/Tests_EditorImGui_ReloadablePlayTests-0.o",
+          "/workspace/work/engine-goal-20261112/authoring/editor-main-services-review-fix/gcc15/development/Tests_EditorImGui_ReloadablePlayTests-0.o",
           "-c",
           "/workspace/Nexora-delivery-773/Tests/EditorImGui/ReloadablePlayTests.cpp"
         ],
@@ -964,7 +971,7 @@
           "-Wpedantic",
           "-Werror",
           "-o",
-          "/workspace/work/engine-goal-20261112/authoring/editor-main-services/gcc15/development/Tests_Editor_PlayAuthoredSpriteTests-0.o",
+          "/workspace/work/engine-goal-20261112/authoring/editor-main-services-review-fix/gcc15/development/Tests_Editor_PlayAuthoredSpriteTests-0.o",
           "-c",
           "/workspace/Nexora-delivery-773/Tests/Editor/PlayAuthoredSpriteTests.cpp"
         ],
@@ -1009,7 +1016,7 @@
           "-Wpedantic",
           "-Werror",
           "-o",
-          "/workspace/work/engine-goal-20261112/authoring/editor-main-services/gcc15/development/Engine_TwoD_src_Scene-0.o",
+          "/workspace/work/engine-goal-20261112/authoring/editor-main-services-review-fix/gcc15/development/Engine_TwoD_src_Scene-0.o",
           "-c",
           "/workspace/Nexora-delivery-773/Engine/TwoD/src/Scene.cpp"
         ],
@@ -1056,7 +1063,7 @@
           "-Wpedantic",
           "-Werror",
           "-o",
-          "/workspace/work/engine-goal-20261112/authoring/editor-main-services/gcc15/development/Tests_EditorImGui_PackagedSpritePlayTests-0.o",
+          "/workspace/work/engine-goal-20261112/authoring/editor-main-services-review-fix/gcc15/development/Tests_EditorImGui_PackagedSpritePlayTests-0.o",
           "-c",
           "/workspace/Nexora-delivery-773/Tests/EditorImGui/PackagedSpritePlayTests.cpp"
         ],
@@ -1103,7 +1110,7 @@
           "-Wpedantic",
           "-Werror",
           "-o",
-          "/workspace/work/engine-goal-20261112/authoring/editor-main-services/gcc15/development/Tests_EditorImGui_PlayTwoDServicesTests-0.o",
+          "/workspace/work/engine-goal-20261112/authoring/editor-main-services-review-fix/gcc15/development/Tests_EditorImGui_PlayTwoDServicesTests-0.o",
           "-c",
           "/workspace/Nexora-delivery-773/Tests/EditorImGui/PlayTwoDServicesTests.cpp"
         ],
@@ -1153,7 +1160,7 @@
           "-Wpedantic",
           "-Werror",
           "-o",
-          "/workspace/work/engine-goal-20261112/authoring/editor-main-services/gcc15/development/Tests_EditorImGui_PlayTwoDServicesTests-1.o",
+          "/workspace/work/engine-goal-20261112/authoring/editor-main-services-review-fix/gcc15/development/Tests_EditorImGui_PlayTwoDServicesTests-1.o",
           "-c",
           "/workspace/Nexora-delivery-773/Tests/EditorImGui/PlayTwoDServicesTests.cpp"
         ],
@@ -1165,8 +1172,8 @@
   "editor_native": [
     {
       "label": "modular Editor",
-      "receipt": "build/linux-development/artifacts/editor-packaged-source-services/source-services-1794709299494966482/receipt.json",
-      "sha256": "4e2621a57437359519faf86a6998c12bba1c65258555f371118890e323653557",
+      "receipt": "build/linux-development/artifacts/editor-packaged-source-services/source-services-1794716595729189135/receipt.json",
+      "sha256": "29eae356f7f081994123c441947ba0f9116de7532b13f9dc9c13a27c3fe3c7e4",
       "data": {
         "passed": true,
         "scope": "configured Editor SDK source/animation/pool adoption",
@@ -1271,34 +1278,34 @@
         "captures": [
           {
             "file": "legacy.png",
-            "sha256": "298744a66dbb83b58bd351d37c6f4d3e1f77d8ca2a4f0a3cb27d6b9189c1158a"
+            "sha256": "5e326c91fe99d7f2a7ff8a3b57141ac295cf6b164e50da2a8dfa4307301623e0"
           },
           {
             "file": "phase-0.png",
-            "sha256": "12f1ff9953aae82a12477961d3f2fbfa88b4c028ee0931015de3262913979062"
+            "sha256": "30f96620aa9d67046bfcd5ed3fa920db315c96c3f3c91a25e6294d394a318d7a"
           },
           {
             "file": "phase-1.png",
-            "sha256": "e6c202d71e85fea5bd6198d12db3a9829e6beaa03e5a6430782d1897db699bff"
+            "sha256": "a0d4f22f03775c70c5573c2a93958056a6981580f5832ba9912a6dcf40b24ec6"
           },
           {
             "file": "phase-2.png",
-            "sha256": "0f6347da461b2e1e9ae21da4e0d65b1304e40119afbdfc61293b4d236bd6e0f7"
+            "sha256": "9628157949dd6dae9ab58f407f4de5b8d353522994831e945d840b2004b50bf1"
           },
           {
             "file": "phase-3.png",
-            "sha256": "252cf436adacacde6c2b68a307eccec1f9a713d8727cb8892746ddcf8beb5778"
+            "sha256": "d9292688713f390e3d93f9bfa63652864ab1621da266139a818c2dfa4fb0cdb6"
           },
           {
             "file": "phase-4.png",
-            "sha256": "99059844d6d7d32260041046a81cc044b46b74d203efc724d29dc4540a1a9fc6"
+            "sha256": "8027f50226ec83dd45bf408246144a1f865b858d5b81792c82c97d9ee7e60dfc"
           }
         ],
         "commands": [
           [
             "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--write-animation-fixture",
-            "/tmp/nexora-editor-source-services-muklf17c/project \u4f86\u6e90"
+            "/tmp/nexora-editor-source-services-ovl2t5m6/project \u4f86\u6e90"
           ],
           [
             "/workspace/Nexora-delivery-773/build/linux-development/Apps/Editor/NexoraEditor",
@@ -1307,8 +1314,8 @@
             "--read-only",
             "--frames=100000",
             "--play",
-            "--project=/tmp/nexora-editor-source-services-muklf17c/legacy",
-            "--recent-projects=/tmp/nexora-editor-source-services-muklf17c/legacy-recent"
+            "--project=/tmp/nexora-editor-source-services-ovl2t5m6/legacy",
+            "--recent-projects=/tmp/nexora-editor-source-services-ovl2t5m6/legacy-recent"
           ],
           [
             "/workspace/Nexora-delivery-773/build/linux-development/Apps/Editor/NexoraEditor",
@@ -1317,13 +1324,13 @@
             "--read-only",
             "--frames=100000",
             "--play",
-            "--project=/tmp/nexora-editor-source-services-muklf17c/project \u4f86\u6e90",
-            "--recent-projects=/tmp/nexora-editor-source-services-muklf17c/sdk-recent"
+            "--project=/tmp/nexora-editor-source-services-ovl2t5m6/project \u4f86\u6e90",
+            "--recent-projects=/tmp/nexora-editor-source-services-ovl2t5m6/sdk-recent"
           ]
         ],
         "source_hashes": {
           ".nexora/editor-layout.ini": "68cef9354077ebba83f3d9e8baa9db875f293262a4769f048952e15d9546b143",
-          ".nexora/editor.lock": "d16241e2282c919da834dc5934228d9f4ad42c5a435536b5ff1d1968633736a6",
+          ".nexora/editor.lock": "c625c939776ccad1449e732f349635a85ba1fa3ab24fbf78da8d244af8964a20",
           ".nexora/scenes/Main.scene": "2084bbff51d5f3c986d7e991ab3129f3f1c28255640a2c3fb7c3a837e6235263",
           ".nexora/workspace": "103b92e45253890820db806383c5f4c25ae009d8cbada5f175afac93ddd445d1",
           "Content/Animation.nx2clip": "c48a4c2975611ee0096d03681b01406f6e05cecf01e874213bdefba5136cfff1",
@@ -1347,7 +1354,7 @@
           "Scripts/project.json": "a8e85ca2ed3344be6ca8fe41c8916dc58d7ebdbd8f98d325627dd6c5094f66a2",
           "Title.scene": "2084bbff51d5f3c986d7e991ab3129f3f1c28255640a2c3fb7c3a837e6235263",
           "project.build.json": "dad6c7422ede2766b0619ce0f2e212b74c74c0ea1eec54df2ffdde97219041d8",
-          "project.nexora": "86697177ffd8ee7acc7f87b86e238091aee9cc32a4b07e2ba4a769237f10d8cd"
+          "project.nexora": "1c209fa9fa16af4e390a2763a30fcf7342a90996198909f205a684482dabe844"
         },
         "pool_handle": "1:0:1",
         "sdk_compiled_from_saved_settings": true,
@@ -1356,8 +1363,8 @@
     },
     {
       "label": "monolithic Editor",
-      "receipt": "build/source-reload-monolithic/artifacts/editor-packaged-source-services/source-services-1794707263198432046/receipt.json",
-      "sha256": "626df48aef982d2c6f511406ae41071aa251b41f2b163b4745dc4b8ef12b41be",
+      "receipt": "build/source-reload-monolithic/artifacts/editor-packaged-source-services/source-services-1794717227605459733/receipt.json",
+      "sha256": "f136d3981dbd23d19a10a2752369a3a199f17d720464afe9875881f55fafc523",
       "data": {
         "passed": true,
         "scope": "configured Editor SDK source/animation/pool adoption",
@@ -1466,30 +1473,30 @@
           },
           {
             "file": "phase-0.png",
-            "sha256": "7c09fa2f1f09b965d4d2fbda849f8329f3a4ef3f0b608e59e11a513517bf68af"
+            "sha256": "7a7031db4db0e3cbe56e63122d867c176fc62f51c4e0bc848d7835c46bcd4833"
           },
           {
             "file": "phase-1.png",
-            "sha256": "df2efcbcb58f8539f5f98a47d9c97f7f697c937d0b3abe115e6fe40b52e502eb"
+            "sha256": "3a1809b47cf9975beb59ca780c256a0ed7a3b6486b5817c83fc171066351b445"
           },
           {
             "file": "phase-2.png",
-            "sha256": "35ec5d05075392c2646d1bfea6843f7a009c2895b9dd391aea5964b0df5e183a"
+            "sha256": "1d554901c6fa8ef7ee65c8005a5fb602f7b4890d75aa099265f8bcc2be7c7f79"
           },
           {
             "file": "phase-3.png",
-            "sha256": "6f40accf977f9df2a46df74ea56c088adc5f197e4d6ef32aa22da5a21ac5aecf"
+            "sha256": "2302cfac80b5ae54093b8a77a4269a8934f755e4beb9cf9672a9349818bfe9d2"
           },
           {
             "file": "phase-4.png",
-            "sha256": "ab8990d7c517383d90c02444e908868514957f4a1c048ab8537e8a0073e8025d"
+            "sha256": "27baf7679cc13fc7ed6ebe72139e7db63d8d483affd04b49c7a57bbfd432f224"
           }
         ],
         "commands": [
           [
             "/workspace/Nexora-delivery-773/build/source-reload-monolithic/Tests/Editor/NexoraGameSpriteBuildTests",
             "--write-animation-fixture",
-            "/tmp/nexora-editor-source-services-in_yw1xu/project \u4f86\u6e90"
+            "/tmp/nexora-editor-source-services-hx4fb3nb/project \u4f86\u6e90"
           ],
           [
             "/workspace/Nexora-delivery-773/build/source-reload-monolithic/Apps/Editor/NexoraEditor",
@@ -1498,8 +1505,8 @@
             "--read-only",
             "--frames=100000",
             "--play",
-            "--project=/tmp/nexora-editor-source-services-in_yw1xu/legacy",
-            "--recent-projects=/tmp/nexora-editor-source-services-in_yw1xu/legacy-recent"
+            "--project=/tmp/nexora-editor-source-services-hx4fb3nb/legacy",
+            "--recent-projects=/tmp/nexora-editor-source-services-hx4fb3nb/legacy-recent"
           ],
           [
             "/workspace/Nexora-delivery-773/build/source-reload-monolithic/Apps/Editor/NexoraEditor",
@@ -1508,13 +1515,13 @@
             "--read-only",
             "--frames=100000",
             "--play",
-            "--project=/tmp/nexora-editor-source-services-in_yw1xu/project \u4f86\u6e90",
-            "--recent-projects=/tmp/nexora-editor-source-services-in_yw1xu/sdk-recent"
+            "--project=/tmp/nexora-editor-source-services-hx4fb3nb/project \u4f86\u6e90",
+            "--recent-projects=/tmp/nexora-editor-source-services-hx4fb3nb/sdk-recent"
           ]
         ],
         "source_hashes": {
           ".nexora/editor-layout.ini": "68cef9354077ebba83f3d9e8baa9db875f293262a4769f048952e15d9546b143",
-          ".nexora/editor.lock": "e10a1f8e8cb49209122c35c72c7d1eedf1c3a3bb3f68448fdf6d0cd76848e994",
+          ".nexora/editor.lock": "057f0cf2ff88a27b38379e5d684fb2c93b680b003aab68fa0e19fca438f3f4de",
           ".nexora/scenes/Main.scene": "2084bbff51d5f3c986d7e991ab3129f3f1c28255640a2c3fb7c3a837e6235263",
           ".nexora/workspace": "103b92e45253890820db806383c5f4c25ae009d8cbada5f175afac93ddd445d1",
           "Content/Animation.nx2clip": "c48a4c2975611ee0096d03681b01406f6e05cecf01e874213bdefba5136cfff1",
@@ -1538,7 +1545,7 @@
           "Scripts/project.json": "a8e85ca2ed3344be6ca8fe41c8916dc58d7ebdbd8f98d325627dd6c5094f66a2",
           "Title.scene": "2084bbff51d5f3c986d7e991ab3129f3f1c28255640a2c3fb7c3a837e6235263",
           "project.build.json": "dad6c7422ede2766b0619ce0f2e212b74c74c0ea1eec54df2ffdde97219041d8",
-          "project.nexora": "d1b578dd0e7ae710b11523fdcb904d4aa55e7e63f0aeebb74836d459faf3ff14"
+          "project.nexora": "89f7d901259709e5701629ca86e6859da48f4ca5b37ffad8e621dffe39e58162"
         },
         "pool_handle": "1:0:1",
         "sdk_compiled_from_saved_settings": true,
@@ -1549,8 +1556,8 @@
   "player_native": [
     {
       "label": "development Player",
-      "receipt": "build/linux-development/artifacts/editor-sprite-sources/game-services-1794709425328828185/receipt.json",
-      "sha256": "33b4168e9f5960bc369b4fec5e263857afa4fff0640596e82b2bf2cfbbc24fa4",
+      "receipt": "build/linux-development/artifacts/editor-sprite-sources/game-services-1794716726693056802/receipt.json",
+      "sha256": "dcb4315f64dabd029256926df4ce0d230ed391718b354b2241ca0a2d0a80f0f8",
       "data": {
         "passed": true,
         "shipping": false,
@@ -1559,14 +1566,14 @@
           [
             "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--write-animation-fixture",
-            "/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794709425328828185/project \u4f86\u6e90"
+            "/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794716726693056802/project \u4f86\u6e90"
           ],
           [
             "/workspace/Nexora-delivery-773/build/linux-development/Apps/Editor/NexoraEditor",
-            "--build-game=/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794709425328828185/project \u4f86\u6e90",
-            "--output=/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794709425328828185/built game",
+            "--build-game=/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794716726693056802/project \u4f86\u6e90",
+            "--output=/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794716726693056802/built game",
             "--runtime-profile=/workspace/Nexora-delivery-773/build/linux-development/Apps/ProjectPlayer/GameRuntime.profile",
-            "--build-records=/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794709425328828185/records",
+            "--build-records=/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794716726693056802/records",
             "--script-project=Scripts/project.json",
             "--cmake=/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/cmake/data/bin/cmake",
             "--ninja=/workspace/work/engine-goal-20261112/tools/bin/ninja",
@@ -1574,10 +1581,10 @@
           ],
           [
             "/workspace/Nexora-delivery-773/build/linux-development/Apps/Editor/NexoraEditor",
-            "--build-game=/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794709425328828185/legacy project",
-            "--output=/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794709425328828185/legacy game",
+            "--build-game=/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794716726693056802/legacy project",
+            "--output=/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794716726693056802/legacy game",
             "--runtime-profile=/workspace/Nexora-delivery-773/build/linux-development/Apps/ProjectPlayer/GameRuntime.profile",
-            "--build-records=/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794709425328828185/legacy records",
+            "--build-records=/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794716726693056802/legacy records",
             "--scene-only"
           ]
         ],
@@ -1689,14 +1696,14 @@
           "status": "VERIFIED_GAME_PACKAGE",
           "schema_version": 1,
           "capability": 4,
-          "start_scene": "e699109a-705d-c0a8-0935-76c921505434",
+          "start_scene": "889bd84e-d4af-3084-04d9-a74c38e01300",
           "scene_count": 2,
           "asset_count": 9,
           "native_rendering": false,
           "gameplay_loaded": false
         },
         "authored_hashes": {
-          ".nexora/editor.lock": "b680c0d7fe6f87215b839e4976a038d4f0ee4671e108439ad71e3c4bd706efe9",
+          ".nexora/editor.lock": "9cfee7b5c9ea83c7ab59d7c49583a0ad3b7c66efbeb92027bfc4735a99f9fab5",
           ".nexora/workspace": "103b92e45253890820db806383c5f4c25ae009d8cbada5f175afac93ddd445d1",
           "Content/Animation.nx2clip": "c48a4c2975611ee0096d03681b01406f6e05cecf01e874213bdefba5136cfff1",
           "Content/Animation.nx2clip.meta": "0f1b6a3ec081215e5d1d2262e9adebe2aa15832798fd0fa90515648d68c9f8e6",
@@ -1718,15 +1725,15 @@
           "Scripts/game.zig": "4d5879a9ebc2217efcd01ff3fe2403fede731f419e9df2c7acfe416137e81842",
           "Scripts/project.json": "b04d3cf43fe96b99b3cc6f669097eb7083fe5103d3b278cefb124d7a26aeee72",
           "Title.scene": "2084bbff51d5f3c986d7e991ab3129f3f1c28255640a2c3fb7c3a837e6235263",
-          "project.build.json": "cd857ea1849f0185dcc8b9b46592a5133d218f0844601d9ff82550ed0fee73bd",
-          "project.nexora": "ac0ac13b30edc4a82de55d337da0f367b5adf583a254b676231f9580c243baba"
+          "project.build.json": "3759a5c2f5f837bd78c8fc0d627cb88e3696a6dc76909f2fe82359fc8b9ff5f3",
+          "project.nexora": "adeeea81d81408e4ae533bf6a143e062b95bb43e3f13f4034a5e51f2bdf31c43"
         },
         "source_deleted": true,
         "legacy": {
           "status": "RENDERED_GAME_PACKAGE",
           "native_rendering": true,
-          "start_scene": "e699109a-705d-c0a8-0935-76c921505434",
-          "active_scene": "e699109a-705d-c0a8-0935-76c921505434",
+          "start_scene": "889bd84e-d4af-3084-04d9-a74c38e01300",
+          "active_scene": "889bd84e-d4af-3084-04d9-a74c38e01300",
           "camera": "0",
           "gameplay_loaded": false,
           "gameplay_updates": 0,
@@ -1735,13 +1742,13 @@
           "scene_records": 1,
           "instances": 1,
           "stored_entities": 3,
-          "presented_frames": 550,
-          "scene_draw_calls": 550,
+          "presented_frames": 434,
+          "scene_draw_calls": 434,
           "sprite_draw_calls": 0,
           "visible_sprites": 0,
           "geometry_residency_available": true,
           "geometry_uploads": 1,
-          "geometry_hits": 549,
+          "geometry_hits": 433,
           "geometry_native_bytes": 4096,
           "geometry_cpu_bytes": 150,
           "scene_texture_uploads": 3,
@@ -1751,23 +1758,23 @@
         "native": {
           "status": "RENDERED_GAME_PACKAGE",
           "native_rendering": true,
-          "start_scene": "e699109a-705d-c0a8-0935-76c921505434",
-          "active_scene": "e699109a-705d-c0a8-0935-76c921505434",
+          "start_scene": "889bd84e-d4af-3084-04d9-a74c38e01300",
+          "active_scene": "889bd84e-d4af-3084-04d9-a74c38e01300",
           "camera": "0",
           "gameplay_loaded": true,
-          "gameplay_updates": 5768,
+          "gameplay_updates": 7630,
           "scene_commits": 4,
           "rejected_requests": 0,
           "scene_records": 1,
           "instances": 1,
           "stored_entities": 3,
-          "presented_frames": 5769,
-          "scene_draw_calls": 5769,
-          "sprite_draw_calls": 5769,
+          "presented_frames": 7631,
+          "scene_draw_calls": 7631,
+          "sprite_draw_calls": 7631,
           "visible_sprites": 3,
           "geometry_residency_available": true,
           "geometry_uploads": 1,
-          "geometry_hits": 6898,
+          "geometry_hits": 9095,
           "geometry_native_bytes": 4096,
           "geometry_cpu_bytes": 150,
           "scene_texture_uploads": 3,
@@ -1777,12 +1784,12 @@
         "package_unchanged": true,
         "pool_handle": "1:0:1"
       },
-      "sdk_commands": "{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794709425328828185/nexora-game-175360901578759-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-development/Apps/ProjectPlayer/NexoraProjectPlayer\",\"--verify-native-game-package\",\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794709425328828185/nexora-game-175360901578759-0/package/Game.nxgame\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794709425328828185/nexora-game-175360901578759-0/nexora-script-175360999675320-0\",\"argv\":[\"/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/cmake/data/bin/cmake\",\"-S\",\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794709425328828185/nexora-game-175360901578759-0/nexora-script-175360999675320-0\",\"-B\",\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794709425328828185/nexora-game-175360901578759-0/nexora-script-175360999675320-0/compile\",\"-G\",\"Ninja\",\"-DCMAKE_MAKE_PROGRAM=/workspace/work/engine-goal-20261112/tools/bin/ninja\",\"-DNEXORA_GAME_MANIFEST=/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794709425328828185/nexora-game-175360901578759-0/nexora-script-175360999675320-0/source/Scripts/project.json\",\"-DNEXORA_GAME_ZIG=/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/ziglang/zig\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794709425328828185/nexora-game-175360901578759-0/nexora-script-175360999675320-0\",\"argv\":[\"/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/cmake/data/bin/cmake\",\"--build\",\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794709425328828185/nexora-game-175360901578759-0/nexora-script-175360999675320-0/compile\",\"--target\",\"GameModule\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794709425328828185/nexora-game-175360901578759-0/nexora-script-175360999675320-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-development/Apps/ProjectPlayer/NexoraProjectPlayer\",\"--verify-game-module\",\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794709425328828185/nexora-game-175360901578759-0/nexora-script-175360999675320-0/nexora-script-175360999675320-0.so\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794709425328828185/nexora-game-175360901578759-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794709425328828185/nexora-game-175360901578759-0/package/Game\",\"--verify-native-game-package\",\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794709425328828185/nexora-game-175360901578759-0/package/Game.nxgame\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794709425328828185/nexora-game-175360901578759-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794709425328828185/nexora-game-175360901578759-0/package/Game\",\"--verify-game-module\",\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794709425328828185/nexora-game-175360901578759-0/package/libGame.so\"]}\n"
+      "sdk_commands": "{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794716726693056802/nexora-game-182662233778445-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-development/Apps/ProjectPlayer/NexoraProjectPlayer\",\"--verify-native-game-package\",\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794716726693056802/nexora-game-182662233778445-0/package/Game.nxgame\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794716726693056802/nexora-game-182662233778445-0/nexora-script-182662313906557-0\",\"argv\":[\"/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/cmake/data/bin/cmake\",\"-S\",\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794716726693056802/nexora-game-182662233778445-0/nexora-script-182662313906557-0\",\"-B\",\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794716726693056802/nexora-game-182662233778445-0/nexora-script-182662313906557-0/compile\",\"-G\",\"Ninja\",\"-DCMAKE_MAKE_PROGRAM=/workspace/work/engine-goal-20261112/tools/bin/ninja\",\"-DNEXORA_GAME_MANIFEST=/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794716726693056802/nexora-game-182662233778445-0/nexora-script-182662313906557-0/source/Scripts/project.json\",\"-DNEXORA_GAME_ZIG=/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/ziglang/zig\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794716726693056802/nexora-game-182662233778445-0/nexora-script-182662313906557-0\",\"argv\":[\"/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/cmake/data/bin/cmake\",\"--build\",\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794716726693056802/nexora-game-182662233778445-0/nexora-script-182662313906557-0/compile\",\"--target\",\"GameModule\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794716726693056802/nexora-game-182662233778445-0/nexora-script-182662313906557-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-development/Apps/ProjectPlayer/NexoraProjectPlayer\",\"--verify-game-module\",\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794716726693056802/nexora-game-182662233778445-0/nexora-script-182662313906557-0/nexora-script-182662313906557-0.so\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794716726693056802/nexora-game-182662233778445-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794716726693056802/nexora-game-182662233778445-0/package/Game\",\"--verify-native-game-package\",\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794716726693056802/nexora-game-182662233778445-0/package/Game.nxgame\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794716726693056802/nexora-game-182662233778445-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794716726693056802/nexora-game-182662233778445-0/package/Game\",\"--verify-game-module\",\"/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-sprite-sources/game-services-1794716726693056802/nexora-game-182662233778445-0/package/libGame.so\"]}\n"
     },
     {
       "label": "shipping Player",
-      "receipt": "build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794707100787696203/receipt.json",
-      "sha256": "741449a35857dc9978a920f953fd0e067ac2b65407d3d075752f465ffda6dcd0",
+      "receipt": "build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794717114338821854/receipt.json",
+      "sha256": "6ff860c5f587ddd55346356497671665e52d964aca060f376d22867047f198cd",
       "data": {
         "passed": true,
         "shipping": true,
@@ -1791,14 +1798,14 @@
           [
             "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--write-animation-fixture",
-            "/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794707100787696203/project \u4f86\u6e90"
+            "/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794717114338821854/project \u4f86\u6e90"
           ],
           [
             "/workspace/Nexora-delivery-773/build/linux-development/Apps/Editor/NexoraEditor",
-            "--build-game=/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794707100787696203/project \u4f86\u6e90",
-            "--output=/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794707100787696203/built game",
+            "--build-game=/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794717114338821854/project \u4f86\u6e90",
+            "--output=/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794717114338821854/built game",
             "--runtime-profile=/workspace/Nexora-delivery-773/build/linux-shipping/Apps/ProjectPlayer/GameRuntime.profile",
-            "--build-records=/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794707100787696203/records",
+            "--build-records=/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794717114338821854/records",
             "--script-project=Scripts/project.json",
             "--cmake=/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/cmake/data/bin/cmake",
             "--ninja=/workspace/work/engine-goal-20261112/tools/bin/ninja",
@@ -1806,10 +1813,10 @@
           ],
           [
             "/workspace/Nexora-delivery-773/build/linux-development/Apps/Editor/NexoraEditor",
-            "--build-game=/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794707100787696203/legacy project",
-            "--output=/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794707100787696203/legacy game",
+            "--build-game=/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794717114338821854/legacy project",
+            "--output=/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794717114338821854/legacy game",
             "--runtime-profile=/workspace/Nexora-delivery-773/build/linux-shipping/Apps/ProjectPlayer/GameRuntime.profile",
-            "--build-records=/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794707100787696203/legacy records",
+            "--build-records=/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794717114338821854/legacy records",
             "--scene-only"
           ]
         ],
@@ -1921,14 +1928,14 @@
           "status": "VERIFIED_GAME_PACKAGE",
           "schema_version": 1,
           "capability": 4,
-          "start_scene": "aa046000-2bd1-d400-8491-7a55e40dafac",
+          "start_scene": "6d799d6a-aca7-dcba-3a41-213d2966a6de",
           "scene_count": 2,
           "asset_count": 9,
           "native_rendering": false,
           "gameplay_loaded": false
         },
         "authored_hashes": {
-          ".nexora/editor.lock": "a423ca10beadbf2d6083a6f40e69fb4b3cdc5197e4fa08a43b0378dac95d22a4",
+          ".nexora/editor.lock": "95b3f5ef6e515b9b5f7c32aeec05f65bab9337fe50249ac3c9b6fa7b7d41f0d1",
           ".nexora/workspace": "103b92e45253890820db806383c5f4c25ae009d8cbada5f175afac93ddd445d1",
           "Content/Animation.nx2clip": "c48a4c2975611ee0096d03681b01406f6e05cecf01e874213bdefba5136cfff1",
           "Content/Animation.nx2clip.meta": "0f1b6a3ec081215e5d1d2262e9adebe2aa15832798fd0fa90515648d68c9f8e6",
@@ -1950,15 +1957,15 @@
           "Scripts/game.zig": "4d5879a9ebc2217efcd01ff3fe2403fede731f419e9df2c7acfe416137e81842",
           "Scripts/project.json": "b04d3cf43fe96b99b3cc6f669097eb7083fe5103d3b278cefb124d7a26aeee72",
           "Title.scene": "2084bbff51d5f3c986d7e991ab3129f3f1c28255640a2c3fb7c3a837e6235263",
-          "project.build.json": "0dc75d244ac5c3e41e90696353c7fd440b0e13c0dfa6f8de0e92e5ed597ace44",
-          "project.nexora": "abe370829825136d9af3489a7fda5875ac0a0aa555060874fc4ab36f3776e021"
+          "project.build.json": "20f95549642fbce0f3f0f4c7dc3dceb51eedf816afe57a416ff698b89fff9878",
+          "project.nexora": "ab5ff9382add590361ef1c32d82003e434bbbcceef0c39bdac5c16c2ebcfcb02"
         },
         "source_deleted": true,
         "legacy": {
           "status": "RENDERED_GAME_PACKAGE",
           "native_rendering": true,
-          "start_scene": "aa046000-2bd1-d400-8491-7a55e40dafac",
-          "active_scene": "aa046000-2bd1-d400-8491-7a55e40dafac",
+          "start_scene": "6d799d6a-aca7-dcba-3a41-213d2966a6de",
+          "active_scene": "6d799d6a-aca7-dcba-3a41-213d2966a6de",
           "camera": "0",
           "gameplay_loaded": false,
           "gameplay_updates": 0,
@@ -1967,13 +1974,13 @@
           "scene_records": 1,
           "instances": 1,
           "stored_entities": 3,
-          "presented_frames": 371,
-          "scene_draw_calls": 371,
+          "presented_frames": 292,
+          "scene_draw_calls": 292,
           "sprite_draw_calls": 0,
           "visible_sprites": 0,
           "geometry_residency_available": true,
           "geometry_uploads": 1,
-          "geometry_hits": 370,
+          "geometry_hits": 291,
           "geometry_native_bytes": 4096,
           "geometry_cpu_bytes": 150,
           "scene_texture_uploads": 3,
@@ -1983,23 +1990,23 @@
         "native": {
           "status": "RENDERED_GAME_PACKAGE",
           "native_rendering": true,
-          "start_scene": "aa046000-2bd1-d400-8491-7a55e40dafac",
-          "active_scene": "aa046000-2bd1-d400-8491-7a55e40dafac",
+          "start_scene": "6d799d6a-aca7-dcba-3a41-213d2966a6de",
+          "active_scene": "6d799d6a-aca7-dcba-3a41-213d2966a6de",
           "camera": "0",
           "gameplay_loaded": true,
-          "gameplay_updates": 7897,
+          "gameplay_updates": 7908,
           "scene_commits": 4,
           "rejected_requests": 0,
           "scene_records": 1,
           "instances": 1,
           "stored_entities": 3,
-          "presented_frames": 7898,
-          "scene_draw_calls": 7898,
-          "sprite_draw_calls": 7898,
+          "presented_frames": 7909,
+          "scene_draw_calls": 7909,
+          "sprite_draw_calls": 7909,
           "visible_sprites": 3,
           "geometry_residency_available": true,
           "geometry_uploads": 1,
-          "geometry_hits": 9380,
+          "geometry_hits": 9600,
           "geometry_native_bytes": 4096,
           "geometry_cpu_bytes": 150,
           "scene_texture_uploads": 3,
@@ -2009,7 +2016,7 @@
         "package_unchanged": true,
         "pool_handle": "1:0:1"
       },
-      "sdk_commands": "{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794707100787696203/nexora-game-173036359600623-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-shipping/Apps/ProjectPlayer/NexoraProjectPlayer\",\"--verify-native-game-package\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794707100787696203/nexora-game-173036359600623-0/package/Game.nxgame\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794707100787696203/nexora-game-173036359600623-0/nexora-script-173036384853322-0\",\"argv\":[\"/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/cmake/data/bin/cmake\",\"-S\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794707100787696203/nexora-game-173036359600623-0/nexora-script-173036384853322-0\",\"-B\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794707100787696203/nexora-game-173036359600623-0/nexora-script-173036384853322-0/compile\",\"-G\",\"Ninja\",\"-DCMAKE_MAKE_PROGRAM=/workspace/work/engine-goal-20261112/tools/bin/ninja\",\"-DNEXORA_GAME_MANIFEST=/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794707100787696203/nexora-game-173036359600623-0/nexora-script-173036384853322-0/source/Scripts/project.json\",\"-DNEXORA_GAME_ZIG=/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/ziglang/zig\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794707100787696203/nexora-game-173036359600623-0/nexora-script-173036384853322-0\",\"argv\":[\"/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/cmake/data/bin/cmake\",\"--build\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794707100787696203/nexora-game-173036359600623-0/nexora-script-173036384853322-0/compile\",\"--target\",\"GameModule\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794707100787696203/nexora-game-173036359600623-0/nexora-script-173036384853322-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-shipping/Apps/ProjectPlayer/NexoraProjectPlayer\",\"--verify-game-module\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794707100787696203/nexora-game-173036359600623-0/nexora-script-173036384853322-0/nexora-script-173036384853322-0.so\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794707100787696203/nexora-game-173036359600623-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794707100787696203/nexora-game-173036359600623-0/package/Game\",\"--verify-native-game-package\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794707100787696203/nexora-game-173036359600623-0/package/Game.nxgame\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794707100787696203/nexora-game-173036359600623-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794707100787696203/nexora-game-173036359600623-0/package/Game\",\"--verify-game-module\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794707100787696203/nexora-game-173036359600623-0/package/libGame.so\"]}\n"
+      "sdk_commands": "{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794717114338821854/nexora-game-183049857083423-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-shipping/Apps/ProjectPlayer/NexoraProjectPlayer\",\"--verify-native-game-package\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794717114338821854/nexora-game-183049857083423-0/package/Game.nxgame\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794717114338821854/nexora-game-183049857083423-0/nexora-script-183049883759646-0\",\"argv\":[\"/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/cmake/data/bin/cmake\",\"-S\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794717114338821854/nexora-game-183049857083423-0/nexora-script-183049883759646-0\",\"-B\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794717114338821854/nexora-game-183049857083423-0/nexora-script-183049883759646-0/compile\",\"-G\",\"Ninja\",\"-DCMAKE_MAKE_PROGRAM=/workspace/work/engine-goal-20261112/tools/bin/ninja\",\"-DNEXORA_GAME_MANIFEST=/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794717114338821854/nexora-game-183049857083423-0/nexora-script-183049883759646-0/source/Scripts/project.json\",\"-DNEXORA_GAME_ZIG=/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/ziglang/zig\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794717114338821854/nexora-game-183049857083423-0/nexora-script-183049883759646-0\",\"argv\":[\"/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/cmake/data/bin/cmake\",\"--build\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794717114338821854/nexora-game-183049857083423-0/nexora-script-183049883759646-0/compile\",\"--target\",\"GameModule\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794717114338821854/nexora-game-183049857083423-0/nexora-script-183049883759646-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-shipping/Apps/ProjectPlayer/NexoraProjectPlayer\",\"--verify-game-module\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794717114338821854/nexora-game-183049857083423-0/nexora-script-183049883759646-0/nexora-script-183049883759646-0.so\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794717114338821854/nexora-game-183049857083423-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794717114338821854/nexora-game-183049857083423-0/package/Game\",\"--verify-native-game-package\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794717114338821854/nexora-game-183049857083423-0/package/Game.nxgame\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794717114338821854/nexora-game-183049857083423-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794717114338821854/nexora-game-183049857083423-0/package/Game\",\"--verify-game-module\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794717114338821854/nexora-game-183049857083423-0/package/libGame.so\"]}\n"
     }
   ],
   "optional_test_prerequisites": {
@@ -2082,5 +2089,32 @@
     "graphical_editor": "0/8",
     "twod": "9/11"
   },
-  "ci_policy": "All applicable own exact-head checks must succeed with unchanged source/base/tree before squash merge."
+  "ci_policy": "All applicable checks must pass for the new unchanged PR head/base/tree; acknowledge the fixed review only after regression and thread verification.",
+  "baseline_delivery": {
+    "head": "16afa13554ae46ab2f9caafb7e0f6688ff4cb157",
+    "tree": "ad35858581ae242017293225cdba54e11eb7963a",
+    "full_passed": 550,
+    "full_seconds": 2273.63,
+    "ci_checks": 41,
+    "ci_proof_sha256": "71756778a02aafe24a03336ff2241362c398f49a6322d7638fbf73dd47c7b085",
+    "merged": false,
+    "reason": "Final premerge guard found a valid unresolved query-cleanup review; draft conversion prevented merge."
+  },
+  "review_fix": {
+    "url": "https://github.com/jimlee1972/Nexora/pull/792#discussion_r4576735153",
+    "root_cause": "Host despawn called metadata-only session helper, bypassing bridge animation/query cleanup.",
+    "change": "Route through GameplayBridge::ForgetEntity, matching the custom-scene host path.",
+    "red_test_log_sha256": "7f309e85706d119518b5bf71952d62b1dd80669544c5965557adb46af842b3ad",
+    "green_test_log_sha256": "9f720495f3bd23ae270aafdbe56764534530cd86744c20625bd6e2b7aff9e027",
+    "focused_passed": 3,
+    "focused_seconds": 0.37,
+    "checks": [
+      "prime overlap/sweep hit",
+      "actual host despawn after32 CPU replacements",
+      "immediate Lifecycle with unchanged query output count",
+      "empty rebuilt overlap/sweep hits",
+      "retained pool handle/source/style",
+      "drawable composed frame"
+    ]
+  }
 }

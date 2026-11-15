@@ -50,35 +50,46 @@ did not click the Game canvas before sending gameplay keys. The driver now acqui
 the ordinary input capture, including its discarded acquisition batch. These failures are retained
 in the external execution directory; neither required weakening a product or pixel oracle.
 
+## Review correction before merge
+
+The original `16afa135` candidate passed full550 and all41 hosted checks. The final premerge guard
+then found [a valid P2 review](https://github.com/jimlee1972/Nexora/pull/792#discussion_r4576735153):
+the configured host's despawn hook called the session's metadata-only helper. This removed the
+metadata before Reconcile could discover the deletion, while retaining bridge animations and a
+ready overlap/sweep snapshot. PR792 was converted to draft; that candidate was not merged.
+
+A new regression first reproduced a stale snapshot on the old implementation. The host now calls
+`GameSpriteSession::Bridge().ForgetEntity`, matching the existing custom-scene path. After the32
+successful CPU replacements, the test adds a collider and primes both query types, despawns through
+the actual host callback before EndFrame, and checks Lifecycle with unchanged outputs. Rebuilt
+queries then contain no hits; the same pool handle/source/style remains valid and composition
+still draws. All three focused cases pass in0.37s. Only the host header and regression changed
+among the19 implementation/build/test files; the complete gate was repeated for that correction.
+
 ## Complete delivery validation
 
-- Full Linux configure, all-target build and unfiltered CTest: **550/550**, zero failures/skips,
-  **2273.63 s**. This includes the new actual configured Editor SDK case and existing custom,
-  source-free, Inspector, persisted Build and native source/animation regressions.
-- **20 actual GNU15 compiler commands across 18 translation units**, retaining the original
-  producer/consumer definitions and warning options; all pass.
-- Full Shipping build and canonical SDK/deleted-source Unicode Player proof: five independent
-  masks totaling **65,536** source/pool pixels, unchanged central 3D, stable handles and native drain.
-  The full Development suite passes that same Player proof independently.
-- Monolithic graphical Editor/Player build, **11 CPU tests** and the actual configured Editor SDK
-  five-phase native test pass. Both Editor link modes verify **5,184** source/pool pixels each.
-- Actual TwoD-OFF/testing-OFF graphical Editor/Player build and capability-4 package refusal pass.
-- A separate graphical/Zig/TwoD configuration without native ProjectPlayer retains the precompiled
-  Sprite test and excludes the new saved-SDK compilation test. Its required native Player/Ninja
-  prerequisites are explicit. The earlier full550 pass (**2288.06 s**) is retained separately;
-  configure/build/unfiltered CTest were rerun after this final registration guard with the same550
-  enabled test names and unchanged C++/Python implementation hashes.
-- All **14 sequential local gates** pass on the frozen 19 implementation/build/test files.
-  Formatting, API metadata and changed-document/bilingual validation run separately after the final
-  documentation update. Root README and milestone totals remain unchanged.
+- Final Linux configure, all-target build and unfiltered CTest: **550/550**, zero failures/skips,
+  **2289.26 s**. The previous550/2273.63s and earlier550/2288.06s remain separate evidence.
+- All **14 required local gates** and **20 actual GNU15 commands across18 translation units** pass
+  on the frozen19 files after the reviewed cleanup correction.
+- Full Shipping build and canonical SDK/deleted-source Unicode Player proof pass. Development
+  independently passes the same five masks: **65,536** source/pool pixels per profile, unchanged
+  central3D pixels, stable handles and native drain.
+- Monolithic graphical Editor/Player build, **11 CPU cases** and the actual SDK Editor five-phase
+  native test pass. Both Editor link modes retain **5,184** independent source/pool pixels each,
+  authoring bytes/samples and stable handles through Stop/Destroy/native shutdown.
+- Actual TwoD-OFF/testing-OFF Editor/Player build and capability4 package refusal pass. The prior
+  no-native-Player registration proof is retained under an unchanged CMake checksum.
+- Formatting, API/document utilities, changed Markdown/three bilingual pairs and unchanged root
+  README are checked after this final evidence update, before committing the correction.
 
-The [machine receipt](ED-WF-08-EditorGameServices-Cloud.json) retains exact commands, source/log
-hashes, SDK records and native receipts. All applicable hosted checks must pass for the unchanged
-own PR head/base/tree before squash merge; final hosted evidence belongs to that PR. Execution logs
-are retained under `/workspace/work/engine-goal-20261112/authoring/editor-main-services`.
+The [machine receipt](ED-WF-08-EditorGameServices-Cloud.json) retains commands, source/log hashes,
+SDK records, native receipts and the red/green review regression. The corrected source requires
+fresh exact-head hosted checks; original16afa135's41 successes do not validate a different head.
+Logs remain under `/workspace/work/engine-goal-20261112/authoring/editor-main-services-review-fix`.
 
-The native case proves the initial SDK generation and scene transitions. It does not establish
-32 native Zig replacements or asset watching/reimport/publication. Those remain parent work,
-along with joint ED-WF-07/08 and physical/clean-host acceptance. Workflow **5/9**, graphical Editor
-**0/8** and TwoD **9/11** remain unchanged. The independently owned standalone Player reload
-task and historical investigations are not closed by this supporting slice.
+The native case proves the initial SDK generation and scene transitions, not32 native Zig
+replacements or asset watching/reimport/publication. Follow-ups `nexora-whr.8.3.7` and `.8.3.8`
+remain open. ED-WF-07/08, Workflow **5/9**, graphical Editor **0/8**, TwoD **9/11** and
+physical/clean-host acceptance remain unchanged. Independently owned standalone reload work and
+historical investigations are not closed by this supporting slice.

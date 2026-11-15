@@ -280,6 +280,40 @@ void Run() {
           "retired callbacks corrupted committed source, clock, pool, World or compositor");
   }
   Check(rejected == 160 && retired_callbacks >= 64, "main source reload paths not exercised");
+  // Host despawn must invalidate cached queries before EndFrame/Reconcile can run.
+  const NexoraTwoDCollider collider{0, {0, 0}, {.5F, .5F}, .5F, 1, UINT32_MAX};
+  const float x = static_cast<float>(live->payload.counter);
+  const NexoraTwoDShape query{0, {0, {x, 0}, {.5F, .5F}, .5F, 1, UINT32_MAX}};
+  const NexoraTwoDSweep sweep{{x - 2, 0}, {x + 2, 0}, 0, 1, UINT32_MAX};
+  std::uint64_t hits[2]{};
+  NexoraTwoDHit swept[2]{};
+  std::uint32_t count{};
+  Check(live->api.set_collider(live->api.context, entity, &collider) == 0 &&
+            live->api.rebuild_queries(live->api.context, 0) == 0 &&
+            live->api.overlap(live->api.context, 0, &query, hits, 2, &count) == 0 && count == 1 &&
+            hits[0] == entity &&
+            live->api.sweep(live->api.context, 0, &sweep, swept, 2, &count) == 0 && count == 1 &&
+            swept[0].id == entity,
+        "main source despawn query fixture");
+  Check(live->host.despawn_entity(live->host.context, entity) == 0, "main source host despawn");
+  count = 777;
+  Check(live->api.overlap(live->api.context, 0, &query, hits, 2, &count) ==
+                NEXORA_GAMEPLAY_ERROR_LIFECYCLE &&
+            count == 777 &&
+            live->api.sweep(live->api.context, 0, &sweep, swept, 2, &count) ==
+                NEXORA_GAMEPLAY_ERROR_LIFECYCLE &&
+            count == 777,
+        "main source host despawn retained a stale query snapshot");
+  NexoraTwoDSourceInstanceV1 retained_pool{};
+  Check(live->api.rebuild_queries(live->api.context, 0) == 0 &&
+            live->api.overlap(live->api.context, 0, &query, hits, 2, &count) == 0 && count == 0 &&
+            live->api.sweep(live->api.context, 0, &sweep, swept, 2, &count) == 0 && count == 0 &&
+            context.Sprites()->Pool().Size() == 1 &&
+            live->source.read_instances(live->source.context, &pool, 1, &retained_pool) == 0 &&
+            retained_pool.sprite.source_high == nextId.high &&
+            retained_pool.sprite.sprite.color[0] == float(live->payload.counter) / 64 &&
+            context.RenderComposed({0, 0, 640, 480}, false, draw).drawn,
+        "main source despawn retained query hits or damaged the live pool/compositor");
   owner.Unload();
   Check(!latest && owner.LastTeardownAllocations().live_allocations == 0,
         "main source module teardown retained allocation state");

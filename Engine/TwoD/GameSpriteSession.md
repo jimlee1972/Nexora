@@ -30,6 +30,11 @@ World EndFrame and before transition/rendering to forget destroyed descendants a
 and query state. Other logical scenes outside the Runtime catalog are not a second render scope.
 API entity arguments are live World handles; no authored-ID lookup service is introduced.
 
+Configured Editor host despawn calls `Bridge().ForgetEntity`, which clears Sprite/collider
+metadata, animation state and cached entity-query readiness together. Subsequent overlap/sweep
+calls reject the invalid snapshot without publishing outputs until an explicit rebuild. The
+session's metadata-only helper is not a substitute for this bridge cleanup.
+
 ## Scene preparation
 
 Call `Prepare` only inside the Runtime scene preparation boundary, after gameplay callbacks.

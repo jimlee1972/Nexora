@@ -569,7 +569,7 @@ private:
             if (owner.two_d_)
               owner.two_d_->ForgetEntity(id);
             if (owner.game_sprites_)
-              owner.game_sprites_->ForgetEntity(id);
+              owner.game_sprites_->Bridge().ForgetEntity(id);
           },
           context));
 #else
