@@ -45,8 +45,10 @@ public:
 
 private:
   friend class GameplayGeneration;
+  friend class GameSpriteSession;
   [[nodiscard]] bool CanStage() const noexcept;
   void CopyStagedState(GameplayBridge &) const;
+  void RebindGameWorld(runtime::World &) noexcept;
   struct State;
   std::unique_ptr<State> state_;
 };

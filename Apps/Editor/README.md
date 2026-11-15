@@ -88,10 +88,11 @@ roots. Save applies the draft; Reload/reopen preserve exact UUIDs. Missing roots
 for deliberate repair. Read-only projects can inspect the list. Build/Play/busy/recovery and stale
 Content contexts cannot mutate it. See the [graphical selection evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-BuildClipPicker-Linux-2026-11-14.md).
 Build freezes the selected Clips and complete source/Atlas closure, without starting animation.
-The main native packaged Player can negotiate existing 2D/source/animation/pool APIs on those
+The main native packaged Player and configured Editor Play can negotiate existing
+2D/source/animation/pool APIs on those
 immutable assets; see [its same-World contract](../../Engine/TwoD/GameSpriteSession.md).
-Configured packaged Editor Play adoption, source watching/publication and complete strict reload
-remain separate work; selecting a Clip grants none of those operations implicitly.
+Configured Play uses a generation-guarded live owner. Asset watching/publication and complete
+strict reload acceptance remain separate work; selecting a Clip does not start animation.
 
 These settings feed the accepted [multi-scene game delivery](../../Roadmap/en/Project_Scene_Delivery_Plan.md)
 producer and Play path. Export StaticView remains a separate command for the current Scene.
@@ -2004,15 +2005,36 @@ native failures follow the existing surface recovery/teardown policy. An already
 is never replayed for a second UI submission.
 
 Source quads use the canonical default 2D camera (center0, vertical20), trim/Pivot and live affine
-poses, including negative scale, over the primary 3D camera image. This adds static authored source
-composition; it does not add camera controls, depth-aware Sprite rendering, pool styling, live
-source publication or hot reload. Ordinary GUI stacking preserves floating-window occlusion.
+poses, including negative scale, over the primary 3D camera image. `GameSpriteSession` retains
+gameplay source/style/camera/animation changes and global pool instances on that same Play World.
+Current-frame extraction uses mutable metadata instead of replaying authored references. The
+existing C/Zig parent/source APIs are exposed through generation-owned `PlayTwoDApiProxy` tables;
+canonical Scene services and legacy input snapshots remain available. Rich custom-scene
+UI/audio/input services keep their existing separate path. Depth-aware Sprite rendering and live
+asset publication remain separate work. Ordinary GUI stacking preserves floating-window occlusion.
 Every acquired frame obtains a new Scene reference; resize/Stop never reuses an old image. Module
 Stop/Destroy and the Play borrow finish before releasing the context/texture owner. Native uploads
 retire behind surface fences and the surface drains at shutdown. Authoring World/history/files stay
 unchanged. Source-free packages retain the existing direct 3D path, and TwoD-OFF still rejects
 source-bearing packages explicitly. C/Zig V1 layouts, package/asset codecs and module graph stay
 unchanged; consumers of the added C++ ImGui API rebuild.
+
+Configured gameplay reload forks World, Runtime scene state and main Game Sprite metadata/pool
+together. The optional `PlayWorldReload::sprites` hook supplies only the unpublished owner to the
+candidate. Capture remains read-only; failed candidate callbacks cannot publish their private
+source, pool or World edits. After full admission, old tables point to retired state before module
+Stop/Destroy and library finalizers; commit adopts the candidate owner before releasing its World
+storage. Source-free hooks remain valid without this optional accessor. Single-scene bridge reload
+APIs still reject main Game routers; the owning session provides the explicit multi-scene operation.
+CPU acceptance checks 32 successful replacements and 160 failures, while the actual Editor SDK
+test checks five initial-generation source/pool pixel phases. This does not establish source
+reimport or 32 native Zig replacements; ED-WF-07/08 stay open.
+
+The configured host's despawn hook routes through `GameplayBridge::ForgetEntity`, clearing
+metadata and animation state and invalidating cached overlap/sweep snapshots immediately. The
+CPU test primes both queries after the 32 replacements, deletes through the actual host callback,
+checks Lifecycle with unchanged outputs before rebuilding, and then verifies empty hits, a valid
+retained pool handle/value and a drawable composed frame.
 
 `editor.packaged_sprite_play` checks pre-publication World conservation, complete texture admission,
 foreign same-UUID owners, typed malformed closure, capacity rejection, Additive/Replace remapping

@@ -463,11 +463,15 @@ See [the Runtime boundary](../Runtime/GameProjectPackage.md#sprite-source-capabi
 
 ## Main packaged-game gameplay metadata
 
-The optional [GameSpriteSession](GameSpriteSession.md) augments the main native Player's existing
+The optional [GameSpriteSession](GameSpriteSession.md) augments the main native Player's and
+configured Editor's existing
 Runtime World and scene service with owning mutable Sprite/collider values, a stable source-aware
 GameplayBridge and a bounded pool. Candidate scene metadata/frame admission precedes World commit;
 retained instances preserve gameplay styles, animator clocks and pool handles. Current-frame
 extraction combines remapped scene and pooled values without replaying immutable references.
 The existing optional C/Zig 2D/source/animation/pool APIs are reused, with no Tilemap or mutable
-content registration. Source-free/StaticView hosts retain their prior table. Main configured Editor
-adoption, source watching/publication and complete strict reload remain parent work.
+content registration. Source-free/StaticView hosts retain their prior table. Configured Editor
+Play guards the parent/source tables by gameplay generation and forks/rebinds this owner inside
+the existing World reload transaction. Retired callbacks retain their quarantined World/metadata
+until module teardown. Asset watching/publication, reimport and complete strict reload with 32
+actual Zig replacements remain parent work; see the linked owner contract for the CPU/native scope.

@@ -289,6 +289,12 @@ private:
       admission_failure_ = ReloadFailure::RestartRequired;
       return false;
     }
+#if defined(NEXORA_HAS_2D)
+    if (active_->game_sprites_ && (!world_reload_.Complete() || !world_reload_.sprites)) {
+      admission_failure_ = ReloadFailure::RestartRequired;
+      return false;
+    }
+#endif
     return true;
   }
   void Release(std::unique_ptr<PlayGameplayModule> &context,
@@ -345,6 +351,13 @@ private:
     if (!candidate_->BindPackagedScene(scene, 0))
       return false;
 #if defined(NEXORA_HAS_2D)
+    if (active_->game_sprites_) {
+      auto *sprites =
+          world_reload_.sprites ? world_reload_.sprites(world_reload_.context) : nullptr;
+      if (!sprites || sprites == active_->game_sprites_ ||
+          !candidate_->BindGameSprites(*staged, sprites))
+        return false;
+    }
     if (active_->two_d_) {
       candidate_->two_d_ = active_->two_d_->ForkForReload(*staged, candidate_->gate_);
       if (!candidate_->two_d_)
@@ -394,6 +407,9 @@ private:
                  candidate_->scenes_.RebindForReload(*world_) &&
                  active_->gate_.SetPhase(Phase::Retired);
 #if defined(NEXORA_HAS_2D)
+    if (valid && active_->game_sprites_)
+      valid = candidate_->game_sprites_ && &active_->game_sprites_->WorldOwner() == retired &&
+              &candidate_->game_sprites_->WorldOwner() == world_;
     if (valid && active_->two_d_)
       valid = active_->two_d_->RebindForReload(*retired) &&
               candidate_->two_d_->RebindForReload(*world_) &&

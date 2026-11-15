@@ -37,6 +37,7 @@ public:
 private:
   friend class GameplayBridge;
   friend class GameplayGeneration;
+  friend class GameSpriteSession;
   struct ReloadCopy final {};
   InstancePool(const InstancePool &source, ReloadCopy);
   struct Slot {

@@ -2,6 +2,8 @@
 #include "Nexora/Editor/SpriteSourceCatalog.h"
 #include "PackagedPlayContext.h"
 #include "PackagedSpriteTextures.h"
+#include "ReloadablePlayGameplayModule.h"
+#include <cstring>
 #include <iostream>
 
 namespace {
@@ -162,11 +164,13 @@ void Malformed() {
   }
   Check(rejected, "typed malformed source admitted before Play");
 }
+#include "PackagedGameSourceReloadTests.inl"
 } // namespace
 int main() {
   try {
     Lifecycle();
     Malformed();
+    source_reload::Run();
     std::cout
         << "Packaged Sprite complete admission, deferred World publication, retained rollback, "
            "Additive/Replace and 32 owner retirements passed\n";

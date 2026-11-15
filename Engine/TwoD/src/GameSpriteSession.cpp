@@ -19,17 +19,64 @@ struct GameSpriteSession::State final {
 
 GameSpriteSession::GameSpriteSession(runtime::World &world, GameSpriteAssets assets,
                                      std::size_t capacity)
-    : world_(world), assets_(std::move(assets)), pool_(capacity),
-      state_(std::make_unique<State>()) {
+    : world_(&world), assets_(std::make_shared<const GameSpriteAssets>(std::move(assets))),
+      pool_(capacity), state_(std::make_unique<State>()) {
   if (world.Kind() != runtime::WorldKind::Play)
     throw std::invalid_argument("Main game Sprite metadata requires a Play World.");
   bridge_ = std::make_unique<GameplayBridge>(
-      world_, *this, [this](AssetId id) { return assets_.ResolveClip(id); }, &pool_);
+      world, *this, [assets = assets_](AssetId id) { return assets->ResolveClip(id); }, &pool_);
 }
 GameSpriteSession::~GameSpriteSession() = default;
 bool GameSpriteSession::Owner() const noexcept { return thread_ == std::this_thread::get_id(); }
-bool GameSpriteSession::Available() const noexcept { return Owner() && !preparing_; }
+bool GameSpriteSession::Available() const noexcept {
+  return Owner() && !preparing_ && !pool_.updating_;
+}
 runtime::Id GameSpriteSession::Primary() const noexcept { return state_->primary; }
+
+GameSpriteSession::GameSpriteSession(const GameSpriteSession &source, runtime::World &world,
+                                     ReloadCopy)
+    : world_(&world), assets_(source.assets_), pool_(source.pool_, InstancePool::ReloadCopy{}),
+      state_(std::make_unique<State>()), revision_(source.revision_) {
+  state_->primary = source.state_->primary;
+  for (const auto &[id, entry] : source.state_->scenes) {
+    auto metadata = entry.metadata.ForkForReload(world);
+    if (!metadata)
+      throw std::invalid_argument("Main game Sprite reload scene membership changed.");
+    state_->scenes.emplace(
+        id, State::Entry{std::move(*metadata), entry.asset, entry.source, entry.entities});
+  }
+  bridge_ = std::make_unique<GameplayBridge>(
+      world, *this, [assets = assets_](AssetId id) { return assets->ResolveClip(id); }, &pool_);
+  source.bridge_->CopyStagedState(*bridge_);
+}
+std::unique_ptr<GameSpriteSession> GameSpriteSession::ForkForReload(runtime::World &world) const {
+  if (!Available() || !bridge_->CanStage() || &world == world_ ||
+      world.Kind() != runtime::WorldKind::Play)
+    return {};
+  for (const auto &[id, entry] : state_->scenes) {
+    static_cast<void>(id);
+    if (!entry.metadata.CanRebindForReload(world))
+      return {};
+  }
+  return std::unique_ptr<GameSpriteSession>(new GameSpriteSession(*this, world, ReloadCopy{}));
+}
+bool GameSpriteSession::RebindForReload(runtime::World &world) noexcept {
+  if (!Available() || !bridge_->CanStage() || world.Kind() != runtime::WorldKind::Play)
+    return false;
+  for (const auto &[id, entry] : state_->scenes) {
+    static_cast<void>(id);
+    if (!entry.metadata.CanRebindForReload(world))
+      return false;
+  }
+  // All potentially failing admission precedes these nonallocating owner-thread writes.
+  for (auto &[id, entry] : state_->scenes) {
+    static_cast<void>(id);
+    entry.metadata.world_ = &world;
+  }
+  world_ = &world;
+  bridge_->RebindGameWorld(world);
+  return true;
+}
 
 std::unique_ptr<GameSpriteSession::Prepared>
 GameSpriteSession::Prepare(const runtime::GameSceneView &view, std::string *error) {
@@ -73,7 +120,7 @@ GameSpriteSession::Prepare(const runtime::GameSceneView &view, std::string *erro
           (retained == state_->scenes.end() && !alive.contains(found->second)))
         return reject("Main game Sprite remapped entity is invalid.");
     }
-    State::Entry entry{SpriteScene(world_, instance.scene, SpriteScene::PreparedMetadata{}),
+    State::Entry entry{SpriteScene(*world_, instance.scene, SpriteScene::PreparedMetadata{}),
                        instance.asset, instance.source, instance.entities};
     if (retained != state_->scenes.end()) {
       entry.metadata.sprites_ = retained->second.metadata.sprites_;
@@ -90,7 +137,7 @@ GameSpriteSession::Prepare(const runtime::GameSceneView &view, std::string *erro
         const auto id =
             runtime::ReadGameSpriteSourceReference(record.type, record.type_name, record.data);
         const auto entity = instance.entities.find(record.entity);
-        if (!id || !assets_.Source(*id) || entity == instance.entities.end())
+        if (!id || !assets_->Source(*id) || entity == instance.entities.end())
           return reject("Main game Sprite source binding is unresolved.");
         Sprite sprite;
         sprite.source = *id;
@@ -138,7 +185,7 @@ SpriteScene *GameSpriteSession::FindEntity(runtime::Id id) noexcept {
   if (!Owner())
     return nullptr;
   for (auto &[scene_id, entry] : state_->scenes) {
-    const auto *scene = world_.FindScene(scene_id);
+    const auto *scene = world_->FindScene(scene_id);
     if (scene && scene->state == runtime::SceneState::Active &&
         std::ranges::any_of(scene->entities, [id](const auto &entity) { return entity.id == id; }))
       return &entry.metadata;
@@ -159,7 +206,7 @@ bool GameSpriteSession::Reconcile() {
     return false;
   std::set<runtime::Id> removed;
   for (const auto &[id, entry] : state_->scenes) {
-    const auto *scene = world_.FindScene(id);
+    const auto *scene = world_->FindScene(id);
     if (!scene || scene->state != runtime::SceneState::Active)
       return false;
     std::unordered_set<runtime::Id> alive;
@@ -217,11 +264,11 @@ GameSpriteSession::ExtractState(const State &state, const runtime::World &world,
     }
     instances.push_back({++identity, value.sprite, runtime::ToMatrix(value.transform)});
   });
-  return overflow ? std::nullopt : assets_.Extract(instances, camera);
+  return overflow ? std::nullopt : assets_->Extract(instances, camera);
 }
 std::optional<SpriteFrame> GameSpriteSession::Extract(std::uint32_t width, std::uint32_t height) {
   if (!Available())
     return {};
-  return ExtractState(*state_, world_, bridge_->RenderCamera(width, height));
+  return ExtractState(*state_, *world_, bridge_->RenderCamera(width, height));
 }
 } // namespace nexora::twod

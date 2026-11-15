@@ -1032,6 +1032,16 @@ if(NEXORA_ENABLE_2D AND NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
         --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/editor-packaged-sprites")
     set_tests_properties(editor.linux_packaged_sprites PROPERTIES
       TIMEOUT 180 RUN_SERIAL TRUE LABELS "editor;twod;source;vulkan;virtual-display")
+    if(TARGET NexoraProjectPlayer AND NEXORA_ENABLE_PROJECT_PLAYER_NATIVE
+       AND NEXORA_EDITOR_GAME_NINJA_EXECUTABLE)
+      add_test(NAME editor.linux_packaged_source_services
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxPackagedSourceServices.py"
+          --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraGameSpriteBuildTests>"
+          --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}"
+          --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/editor-packaged-source-services")
+      set_tests_properties(editor.linux_packaged_source_services PROPERTIES
+        TIMEOUT 240 RUN_SERIAL TRUE LABELS "editor;twod;source;vulkan;virtual-display")
+    endif()
   endif()
 endif()
 

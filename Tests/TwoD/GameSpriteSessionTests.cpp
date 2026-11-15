@@ -270,6 +270,122 @@ void Run() {
                 NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT,
         "main pool stale handle accepted");
 }
+void ReloadBranches() {
+  auto project = Project();
+  auto assets = twod::GameSpriteAssets::Load(project->SpriteAssets());
+  Check(bool(assets), "reload assets");
+  game::GameWorld game{runtime::WorldKind::Play};
+  auto &world = game.InternalWorld();
+  runtime::GameSceneSession scenes(game, project);
+  auto live = std::make_unique<twod::GameSpriteSession>(world, std::move(*assets), 4);
+  std::uint64_t request{};
+  Check(scenes.RequestLoad(project->StartupScene(), runtime::GameSceneLoadMode::Replace, false,
+                           request) == runtime::GameSceneError::None &&
+            scenes.Process(
+                [&](const auto &view, std::string &error) { return live->Prepare(view, &error); }),
+        "reload startup");
+  const auto entity = SpriteEntity(scenes.View().instances.front());
+  const auto primary = live->Primary();
+  const auto world_bytes = world.SaveScene(primary);
+  const auto matrix = world.WorldMatrix(entity);
+  NexoraTwoDApiV1 api{};
+  NexoraTwoDSourceApiV1 sources{};
+  const auto tables = [&](twod::GameSpriteSession &owner) {
+    api.struct_size = sizeof(api);
+    sources.struct_size = sizeof(sources);
+    Check(owner.Bridge().GetApi(&api) == 0 && NexoraGetTwoDSourcesV1(&api, &sources) == 0,
+          "reload source tables");
+  };
+  tables(*live);
+  auto styled = Read(sources, entity);
+  styled.sprite.color[0] = .5F;
+  styled.sprite.flags |= 1U | 4U;
+  Check(sources.set_sprite(sources.context, entity, &styled) == 0, "reload style");
+  const NexoraTwoDCamera camera{{2, 3}, 22, .25F};
+  Check(api.set_camera(api.context, &camera) == 0, "reload camera");
+  NexoraTwoDSourceInstanceV1 pooled{};
+  pooled.transform.rotation.w = 1;
+  pooled.transform.scale = {-1, 1, 1};
+  pooled.sprite = styled;
+  NexoraTwoDInstanceHandle handle{};
+  Check(sources.create_instances(sources.context, &pooled, 1, &handle) == 0, "reload pool");
+  runtime::World empty{runtime::WorldKind::Play}, editor;
+  Check(!live->ForkForReload(world) && !live->ForkForReload(empty) &&
+            !live->ForkForReload(editor) && !live->RebindForReload(empty) &&
+            !live->RebindForReload(editor) && &live->WorldOwner() == &world &&
+            &live->FindEntity(entity)->WorldOwner() == &world,
+        "invalid reload changed live owner");
+  for (unsigned generation = 0; generation < 32; ++generation) {
+    // A fresh Play after destroying the preceding owner also checks resolver ownership.
+    Check(api.play_animation(api.context, entity, clip_id.high, clip_id.low, 1) == 0,
+          "reload retained a resolver borrowing its destroyed parent");
+    NexoraTwoDAnimationResult result{};
+    std::array<NexoraTwoDEvent, 4> events{};
+    Check(api.advance_animation(api.context, entity, .125, events.data(), 4, &result) == 0 &&
+              Read(sources, entity).source_high == first_id.high,
+          "reload half-frame clock");
+    auto staged_world = world;
+    bool reentrant_rejected{};
+    live->Pool().ForEach([&](auto &) {
+      reentrant_rejected = !live->ForkForReload(staged_world) && !live->RebindForReload(world);
+    });
+    Check(reentrant_rejected, "reload admitted pool iteration reentry");
+    auto branch = live->ForkForReload(staged_world);
+    Check(branch && branch->Revision() == live->Revision() && branch->Primary() == primary &&
+              &branch->WorldOwner() == &staged_world &&
+              &branch->FindEntity(entity)->WorldOwner() == &staged_world,
+          "reload metadata did not branch onto the clone");
+    NexoraTwoDApiV1 next{};
+    next.struct_size = sizeof(next);
+    NexoraTwoDSourceApiV1 next_sources{};
+    next_sources.struct_size = sizeof(next_sources);
+    Check(branch->Bridge().GetApi(&next) == 0 && next.context != api.context &&
+              NexoraGetTwoDSourcesV1(&next, &next_sources) == 0 &&
+              next.advance_animation(next.context, entity, .125, events.data(), 4, &result) == 0 &&
+              Read(next_sources, entity).source_high == second_id.high &&
+              Read(sources, entity).source_high == first_id.high,
+          "reload lost its clock or mutated the active source");
+    NexoraTwoDSourceInstanceV1 current{}, candidate{};
+    Check(sources.read_instances(sources.context, &handle, 1, &current) == 0 &&
+              next_sources.read_instances(next_sources.context, &handle, 1, &candidate) == 0,
+          "reload changed pool handle identity");
+    candidate.sprite.sprite.color[0] = float(generation + 1) / 64;
+    Check(next_sources.write_instances(next_sources.context, &handle, 1, &candidate) == 0 &&
+              sources.read_instances(sources.context, &handle, 1, &pooled) == 0 &&
+              pooled.sprite.sprite.color[0] == current.sprite.sprite.color[0] &&
+              world.SaveScene(primary) == world_bytes,
+          "unpublished source/pool branch changed the live World");
+    // Reject one fully mutated sibling before committing the prepared branch.
+    auto discarded = live->ForkForReload(staged_world);
+    Check(bool(discarded), "discarded reload branch");
+    discarded.reset();
+    runtime::World retired{runtime::WorldKind::Play};
+    retired = std::move(world);
+    world = std::move(staged_world);
+    Check(live->RebindForReload(retired) && branch->RebindForReload(world),
+          "identical World move rebind");
+    live.reset();
+    live = std::move(branch);
+    Check(live->Bridge().GetApi(&next) == 0 && next.context != api.context,
+          "reload changed the candidate API address during rebind");
+    tables(*live);
+    NexoraTwoDCamera retained{};
+    const auto value = Read(sources, entity);
+    const auto frame = live->Extract(640, 480);
+    Check(api.get_camera(api.context, &retained) == 0 && retained.center.x == camera.center.x &&
+              retained.center.y == camera.center.y &&
+              retained.vertical_size == camera.vertical_size &&
+              retained.rotation_radians == camera.rotation_radians &&
+              value.source_high == second_id.high &&
+              value.sprite.color[0] == styled.sprite.color[0] &&
+              value.sprite.flags == styled.sprite.flags &&
+              sources.read_instances(sources.context, &handle, 1, &pooled) == 0 &&
+              pooled.sprite.sprite.color[0] == candidate.sprite.sprite.color[0] &&
+              world.SaveScene(primary) == world_bytes && world.WorldMatrix(entity) == matrix &&
+              frame && frame->statistics.input == 2,
+          "reload failed to retain camera/style/World/pool extraction");
+  }
+}
 void MissingAssets() {
   auto project = Project();
   game::GameWorld game{runtime::WorldKind::Play};
@@ -294,6 +410,7 @@ void MissingAssets() {
 int main() {
   try {
     Run();
+    ReloadBranches();
     MissingAssets();
     std::cout << "Main game mutable source/animation/pool, scene preparation and rollback passed\n";
     return 0;
