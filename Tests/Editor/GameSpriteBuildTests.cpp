@@ -378,7 +378,7 @@ int main(int argc, char **argv) {
     }
     if (argc == 4 && std::string_view(argv[1]) == "--reimport-source") {
       Check(std::string_view(argv[3]) == "0" || std::string_view(argv[3]) == "1", "source variant");
-      Write(root / "Content/Source.nx2sprite", Source(argv[3][0] == '1' ? 3 : 2));
+      Write(root / "Content/Source.nx2sprite", Source(argv[3][0] == '1' ? 3.0F : 2.0F));
       return 0;
     }
     if (argc == 4 && std::string_view(argv[1]) == "--reimport-atlas") {

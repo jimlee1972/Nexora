@@ -1289,7 +1289,7 @@ stale/missing/corrupt/capacity/native failures retain live owners. Clip bytes an
 inventory stay fixed; changed scope/Clips require restarting Play. Existing source-free/custom paths
 and C/Zig/codecs/module graph stay compatible; C++ consumers rebuild.
 
-Corrected-test full Linux passes **551/551**, zero failures/skips, **2680.03 s**. The unchanged
+Corrected-test full Linux passes **551/551**, zero failures/skips, **2717.30 s**. The unchanged
 runtime retains the **14 local gate** baseline at `8448806d`, including full Shipping, TwoD-OFF,
 Monolithic graphical Editor/Player and two native Editor cases. **11 rebuilt Monolithic CPU cases**
 and **21 GNU 15 variants/19 translation units** pass with the source scopes recorded below. Real Reimport verifies
@@ -1301,8 +1301,9 @@ retains original fixture failures and the repeated final source gates. Exact-hea
 required before delivery. 32 actual main SDK Zig replacements remain open in 8.3.8; joint ED-WF-07/08,
 Workflow **5/9**, graphical Editor **0/8**, TwoD **9/11** and physical/clean-host gates stay unchanged.
 
-Windows MSVC rejected three test-only implicit conversions. Explicit numeric types retain the
-same oracles; the corrected test repeats the full 551 cases, actual GNU 15 compilation and 11
-rebuilt Monolithic cases. The 14-gate Shipping/native/OFF evidence is the unchanged-runtime
-baseline at `8448806d`; the machine receipt separates both source scopes. Fresh corrected-head
-CI remains required before merge.
+Windows MSVC exposed four implicit numeric conversions in two test files. The first
+correction passed full Linux 551 in 2680.03 s before the CLI warning was found. Both
+corrected files retain the same oracles; final full 551, actual GNU 15 compilation and
+rebuilt Monolithic 11 pass. All runtime/native sources and 15 of 17 implementation/
+build/test files remain unchanged from the 14-gate baseline at `8448806d`. The machine
+receipt separates these source scopes. Fresh final-head CI remains required before merge.

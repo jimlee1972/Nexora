@@ -31,22 +31,23 @@ are unchanged; C++ consumers rebuild. The root README and milestone totals remai
 
 ## Complete corrected-test validation
 
-The test-only MSVC portability correction repeats `cmake --preset linux-development`,
+After both MSVC test portability corrections, `cmake --preset linux-development`,
 `cmake --build --preset linux-development` and unfiltered
-`ctest --preset linux-development --output-on-failure`: **551/551**, zero failures/skips,
-**2680.03 s**. The repeated modular native reimport case passes **365.56 s**.
-The corrected CPU test also compiles with its actual GNU 15 flags and passes the rebuilt
-**11 Monolithic CPU cases**. No test oracle or warning policy was weakened.
+`ctest --preset linux-development --output-on-failure` pass **551/551**, zero failures/skips,
+**2717.30 s**. The repeated modular native reimport case passes **372.27 s**.
+Both corrected test translation units compile with their actual GNU 15 flags, and the rebuilt
+**11 Monolithic CPU cases** pass. No expected value or warning policy was weakened.
 
-The original **14 sequential local gates** at `8448806d` validate the unchanged runtime/native
+The original **14 sequential local gates** at `8448806d` validate unchanged runtime/native
 sources: full Shipping configure/build and canonical SDK native Player, monolithic graphical
 Editor/Player plus 11 CPU and both native Editor cases, actual TwoD-OFF configure/build/refusal.
-Those baseline 551 tests passed in 2639.43 s. All other 16 implementation/build/test files remain
-byte-identical. Development/Shipping Player each checks **65,536** independent source/pool pixels
-after deleted-source Unicode relocation, stable handles, unchanged 3D and native drain.
-GNU 15 coverage consists of **21 original-flag variants across 19 translation units**: 20 unchanged
-baseline variants plus the explicitly recompiled corrected test. The machine receipt separates
-the baseline 14 gates from the new full-suite/test-portability evidence.
+The baseline 551 tests passed in 2639.43 s. **15 of 17** implementation/build/test files remain
+byte-identical; changes in the other two files only make four numeric conversions explicit.
+Development/Shipping Player each checks **65,536** independent source/pool pixels after
+deleted-source Unicode relocation, stable handles, unchanged 3D and native drain.
+GNU 15 coverage is **21 original-flag variants across 19 translation units**: 19 unchanged
+baseline variants and the two recompiled corrected test variants. The machine receipt separates
+the baseline 14 gates, the first corrected full suite and the final corrected full suite.
 
 ## Retained investigation history
 
@@ -61,12 +62,16 @@ final source. See the machine receipt for retained log hashes and scoped evidenc
 
 ## Windows test portability correction
 
-Hosted MSVC /W4 /WX rejected the original test's int-to-float Pivot ternary (C4244) and two
-size_t-to-uint32 event capacities (C4267). Four Windows job logs are retained. The correction uses
-explicit float literals and an explicit uint32 cast for the four-element event array. Runtime,
-native, source/asset/Clip behavior and expected values are unchanged. PR #793 was made draft before
-any merge. Baseline Linux/Shipping/Mono/OFF success does not substitute for corrected-head
-Windows acceptance; all fresh applicable hosted checks are required before delivery.
+Hosted MSVC /W4 /WX first rejected GameSpriteSessionTests' int-to-float Pivot assignment (C4244)
+and two size_t-to-uint32 event capacities (C4267). Four original Windows logs remain preserved.
+The first correction at `6f9c4bf3` passed full Linux **551/551, 2680.03 s**, actual GNU 15,
+rebuilt Monolithic 11 and code review, but subsequent Windows compilation exposed the same
+int-to-float pattern in the CLI fixture's `Source(condition ? 3 : 2)` argument. That occurrence
+was missed in the first inspection. The final correction uses `3.0F / 2.0F`, retaining the same
+Pivot values. The second Windows failure logs and both corrected-source full suites are retained.
+Runtime/native behavior and test oracles are unchanged. PR #793 was returned to draft for each
+failure. Prior Linux success does not substitute for final corrected-head Windows acceptance;
+all fresh applicable hosted checks are required before delivery.
 
 ## Remaining acceptance
 

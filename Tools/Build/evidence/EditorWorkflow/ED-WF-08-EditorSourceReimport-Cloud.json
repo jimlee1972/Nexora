@@ -2,7 +2,7 @@
   "schema": 1,
   "task": "nexora-whr.8.3.7",
   "base": "5e284c6e1c0295e8559b20496575f3f00d002cd6",
-  "status": "runtime_baseline14_passed_test_portability_corrected_full551_passed_fresh_head_ci_required",
+  "status": "runtime_baseline14_passed_both_test_portability_fixes_full551_passed_fresh_head_ci_required",
   "implementation_sha256": {
     "Apps/Editor/PackagedPlayContext.h": "03ac37d9fdf04eaef847aa788251df6dd2eb4f884bddd54f2469c5c08f2139bc",
     "Apps/Editor/PackagedSpriteReimport.h": "2d17c276cb641f1d698014eddcef2f451d7d5130d16cd9a45ff920a8e9b89078",
@@ -15,7 +15,7 @@
     "Engine/TwoD/src/GameSpriteAssets.cpp": "b884a53d19c2a10532ef13354c49e460569de93b36c7a821f99b7c87f918e34a",
     "Engine/TwoD/src/GameSpriteSession.cpp": "b5dc083afbfd61ecd8d5bddadf05b017a84afd383fef37c7bf658bf4bcd8496b",
     "Tests/Editor/GameSourceServices.zig": "fd84332be8a0b3143c4e8a7732e5009ece4be1fbefd09ff3a2c3ed633a2abfc8",
-    "Tests/Editor/GameSpriteBuildTests.cpp": "c708d3d3083f224d0f13b73f0defaf15e0ae5f11e7806ed7f44bd4a87fd7fa93",
+    "Tests/Editor/GameSpriteBuildTests.cpp": "b8b717399d2b1957e19e66243e5f96cbaf2a1a8c8cbc64870cde08faf964ba66",
     "Tests/EditorImGui/CMakeLists.txt": "4c695e025b0bbd5532e46ff954ef4b24e4b477e123d5c5b29e2dc4e2a29228b9",
     "Tests/EditorImGui/LinuxPackagedSourceServices.py": "744c7deed6f984e53fe8e214fd1fd9f69d67dca10fd3e0ecf3ef4fd8f1a16aae",
     "Tests/EditorImGui/PackagedSpritePlayTests.cpp": "0fe6bb420be7d84e6f8f9e2494ee08a4654a78e13550d9d364f978c9bf77e0b2",
@@ -26,8 +26,8 @@
     "passed": 551,
     "failed": 0,
     "skipped": 0,
-    "seconds": 2680.03,
-    "log_sha256": "dd96d6fa574507f1226082d98d20d963cfb359fea9b08709ace29cb1dde823aa"
+    "seconds": 2717.3,
+    "log_sha256": "58adc5370ffb1de647df9140ea3ce85ed4ff4448f70f41ef1f7d40ddf6fccbe1"
   },
   "gates": [
     {
@@ -288,11 +288,11 @@
           "-Wpedantic",
           "-Werror",
           "-o",
-          "/workspace/work/engine-goal-20261112/authoring/editor-source-reimport/gcc15/development/Tests_Editor_GameSpriteBuildTests-0.o",
+          "/workspace/work/engine-goal-20261112/authoring/editor-source-reimport/windows-cli-type-fix/GameSpriteBuildTests-gcc15.o",
           "-c",
           "/workspace/Nexora-delivery-773/Tests/Editor/GameSpriteBuildTests.cpp"
         ],
-        "source_sha256": "c708d3d3083f224d0f13b73f0defaf15e0ae5f11e7806ed7f44bd4a87fd7fa93",
+        "source_sha256": "b8b717399d2b1957e19e66243e5f96cbaf2a1a8c8cbc64870cde08faf964ba66",
         "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       },
       {
@@ -1211,7 +1211,7 @@
         "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       }
     ],
-    "scope": "Composite 21 original-flag variants: 20 unchanged variants from baseline 8448806d and one explicitly recompiled corrected test variant. 19 unique translation units."
+    "scope": "Composite 21 original-flag variants across 19 translation units: 19 unchanged variants from baseline 8448806d, corrected GameSpriteSessionTests from the first portability fix, and explicitly recompiled corrected GameSpriteBuildTests from the second portability fix."
   },
   "editor_native": [
     {
@@ -3411,7 +3411,7 @@
       "sdk_commands": "{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-shipping/Apps/ProjectPlayer/NexoraProjectPlayer\",\"--verify-native-game-package\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0/package/Game.nxgame\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0/nexora-script-192842911881425-0\",\"argv\":[\"/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/cmake/data/bin/cmake\",\"-S\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0/nexora-script-192842911881425-0\",\"-B\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0/nexora-script-192842911881425-0/compile\",\"-G\",\"Ninja\",\"-DCMAKE_MAKE_PROGRAM=/workspace/work/engine-goal-20261112/tools/bin/ninja\",\"-DNEXORA_GAME_MANIFEST=/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0/nexora-script-192842911881425-0/source/Scripts/project.json\",\"-DNEXORA_GAME_ZIG=/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/ziglang/zig\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0/nexora-script-192842911881425-0\",\"argv\":[\"/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/cmake/data/bin/cmake\",\"--build\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0/nexora-script-192842911881425-0/compile\",\"--target\",\"GameModule\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0/nexora-script-192842911881425-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-shipping/Apps/ProjectPlayer/NexoraProjectPlayer\",\"--verify-game-module\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0/nexora-script-192842911881425-0/nexora-script-192842911881425-0.so\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0/package/Game\",\"--verify-native-game-package\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0/package/Game.nxgame\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0/package/Game\",\"--verify-game-module\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0/package/libGame.so\"]}\n"
     }
   ],
-  "modular_reimport_seconds": 365.56,
+  "modular_reimport_seconds": 372.27,
   "focused_before_surface_review": {
     "passed": true,
     "scope": "configured Editor SDK source/animation/pool adoption",
@@ -3536,7 +3536,7 @@
     "gate_count": 14,
     "runtime_sources_unchanged": true
   },
-  "gate_scope": "The 14 sequential gates validate baseline 8448806d. All runtime/native files are unchanged. The only corrected code file is the CPU test; complete Linux551, actual GNU 15 recompile and rebuilt Monolithic 11 cases verify that correction separately.",
+  "gate_scope": "The 14 sequential gates validate baseline 8448806d. All runtime/native sources and 15 of 17 implementation/build/test files are unchanged. Four explicit numeric conversions in two CPU/CLI test files are verified by a new complete Linux 551 suite, actual GNU 15 compilation of each corrected translation unit and rebuilt Monolithic 11 cases. The first portability correction at 6f9c4bf3 separately passed full 551 in 2680.03 seconds before the CLI warning.",
   "windows_type_fix": {
     "baseline_head": "8448806d16edb7f8411d557466da17ae15728273",
     "failed_windows_jobs": [
@@ -3638,8 +3638,8 @@
     "mono_test_log_sha256": "32f843b3551c5e0e79f5a673be82471f0fdb12b06c09fb07f904b4ad6fb90ea3"
   },
   "corrected_native_modular": {
-    "receipt": "build/linux-development/artifacts/editor-packaged-source-reimport/source-services-1794728760434995067/receipt.json",
-    "sha256": "578a952a8bb6e649c5b76b25c7e503a379d8726d203a0d7c880ecbce2f9cb673",
+    "receipt": "build/linux-development/artifacts/editor-packaged-source-reimport/source-services-1794732209598286941/receipt.json",
+    "sha256": "415bfb35dffb756a9aee0d92e43d9a680d7fde405a70ab6ff76f03d3ea93b351",
     "data": {
       "passed": true,
       "scope": "configured Editor SDK source/animation/pool adoption",
@@ -3748,38 +3748,38 @@
         },
         {
           "file": "phase-0.png",
-          "sha256": "66d2bc6a66850e0cdcb560f6303a748f80012fe3154edeb6208d1e2c2010ad38"
+          "sha256": "d2e3d03106bd32bcf8b86e0abd30812f4d36c68d3fd6da56079c598dcf56fd8b"
         },
         {
           "file": "phase-1.png",
-          "sha256": "3adca62a70e01944c12553f6bde25d5aa95e7133e3540c94ee85c7fa2cc96711"
+          "sha256": "edb202dde941168ab0d086d6b9a1700aeb703d64cf39bd2d41fa885c10aaf1d6"
         },
         {
           "file": "phase-2.png",
-          "sha256": "4acd11a6b3cb92272f6fa8e24810219729cd1bca33b44ebc4c2321fb8102e869"
+          "sha256": "6c1f9a4e24c53532b3c011d6186e6b868222c9b88ef8e697a0e7584e0be13da2"
         },
         {
           "file": "phase-3.png",
-          "sha256": "f7d2539c679ce5b4e6f28a3e6d8747e5f33e338a4971e00d5680e1edf10c4e7b"
+          "sha256": "dc65cd43008f6ca5ba20ad7baa5133c8f215eb0a66974b4d8e342c0bdc57a173"
         },
         {
           "file": "phase-4.png",
-          "sha256": "5414b67e1672962f33a57f0acce08e4aa5ecfce8e5a9df90ec4dc019909f5c33"
+          "sha256": "2b214e43ed42bf5d3bc79d316256e650b2af85a7213d8ae625f986947e56d82d"
         },
         {
           "file": "reimport-1.png",
-          "sha256": "0915b9774c2d66feb0d6d86c8ada07589ef5a28a67f13c7690f8c26e5e0a53ce"
+          "sha256": "b4a2d393bfc8409d84ee3c8ae185a662f92012ec75d2b38a04c1fa2daef12b0d"
         },
         {
           "file": "reimport-32.png",
-          "sha256": "1b70b3d81e234bf753d4169a1551f1ac3559ba2cc19938a732f53a72a34d184f"
+          "sha256": "4eb099ea16b29f9910233f250a8d2b1ccac08b64e366486b68e9059fc3f3b82a"
         }
       ],
       "commands": [
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--write-animation-fixture",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90"
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Apps/Editor/NexoraEditor",
@@ -3787,8 +3787,8 @@
           "--native-scene-preview",
           "--frames=100000",
           "--play",
-          "--project=/tmp/nexora-editor-source-services-103n0djb/legacy",
-          "--recent-projects=/tmp/nexora-editor-source-services-103n0djb/legacy-recent",
+          "--project=/tmp/nexora-editor-source-services-8mlj7jof/legacy",
+          "--recent-projects=/tmp/nexora-editor-source-services-8mlj7jof/legacy-recent",
           "--read-only"
         ],
         [
@@ -3797,404 +3797,404 @@
           "--native-scene-preview",
           "--frames=100000",
           "--play",
-          "--project=/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "--recent-projects=/tmp/nexora-editor-source-services-103n0djb/sdk-recent"
+          "--project=/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "--recent-projects=/tmp/nexora-editor-source-services-8mlj7jof/sdk-recent"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "1"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "1"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "0"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "0"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "1"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "1"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "0"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "0"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "1"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "1"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "0"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "0"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "1"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "1"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "0"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "0"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "1"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "1"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "0"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "0"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "1"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "1"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "0"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "0"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "1"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "1"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "0"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "0"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "1"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "1"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "0"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "0"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "1"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "1"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "0"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "0"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "1"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "1"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "0"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "0"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "1"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "1"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "0"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "0"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "1"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "1"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "0"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "0"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "1"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "1"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "0"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "0"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "1"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "1"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "0"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "0"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "1"
-        ],
-        [
-          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "1"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "0"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "0"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "1"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "1"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "0"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-source",
-          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
           "0"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Apps/Editor/NexoraEditor",
-          "--build-game=/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "--output=/tmp/nexora-editor-source-services-103n0djb/reimported Build \u4f86\u6e90",
+          "--build-game=/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "--output=/tmp/nexora-editor-source-services-8mlj7jof/reimported Build \u4f86\u6e90",
           "--script-project=Scripts/project.json",
-          "--build-records=/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-packaged-source-reimport/source-services-1794728760434995067/reimport-build-records"
+          "--build-records=/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-packaged-source-reimport/source-services-1794732209598286941/reimport-build-records"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--verify-reimported-package",
-          "/tmp/nexora-editor-source-services-103n0djb/reimported Build \u4f86\u6e90/Game.nxgame"
+          "/tmp/nexora-editor-source-services-8mlj7jof/reimported Build \u4f86\u6e90/Game.nxgame"
         ],
         [
           "/workspace/Nexora-delivery-773/build/linux-development/Apps/Editor/NexoraEditor",
@@ -4202,8 +4202,8 @@
           "--native-scene-preview",
           "--frames=100000",
           "--play",
-          "--project=/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
-          "--recent-projects=/tmp/nexora-editor-source-services-103n0djb/reopened-recent",
+          "--project=/tmp/nexora-editor-source-services-8mlj7jof/project \u4f86\u6e90",
+          "--recent-projects=/tmp/nexora-editor-source-services-8mlj7jof/reopened-recent",
           "--read-only"
         ]
       ],
@@ -4493,11 +4493,145 @@
         "Scripts/project.json": "a8e85ca2ed3344be6ca8fe41c8916dc58d7ebdbd8f98d325627dd6c5094f66a2",
         "Title.scene": "2084bbff51d5f3c986d7e991ab3129f3f1c28255640a2c3fb7c3a837e6235263",
         "project.build.json": "dad6c7422ede2766b0619ce0f2e212b74c74c0ea1eec54df2ffdde97219041d8",
-        "project.nexora": "55420737feda25b845f4bf80cf5667c7a457dc9d833e8cb538b67247d6b5ac51"
+        "project.nexora": "657a7d646bfd57a4b77738f5a708302706860545ec1e567a982c7ff7a221ed52"
       },
       "pool_handle": "1:0:1",
       "sdk_compiled_from_saved_settings": true,
       "authoring_unchanged": true
     }
+  },
+  "baseline_before_windows_cli_type_fix": {
+    "head": "6f9c4bf31be5098da4e51da4f61829182de5165a",
+    "full": {
+      "passed": 551,
+      "failed": 0,
+      "skipped": 0,
+      "seconds": 2680.03,
+      "log_sha256": "dd96d6fa574507f1226082d98d20d963cfb359fea9b08709ace29cb1dde823aa"
+    },
+    "implementation_sha256": {
+      "Apps/Editor/PackagedPlayContext.h": "03ac37d9fdf04eaef847aa788251df6dd2eb4f884bddd54f2469c5c08f2139bc",
+      "Apps/Editor/PackagedSpriteReimport.h": "2d17c276cb641f1d698014eddcef2f451d7d5130d16cd9a45ff920a8e9b89078",
+      "Apps/Editor/PackagedSpriteTextures.h": "cdbab2fea5a0a5c36efbb2901055524c818c398b50f02623415968b2d341d4af",
+      "Apps/Editor/ProjectAssetWorkflowEvidence.h": "dc12feef359f4f3d7265bfec3139fa22f03450c0509638b080258032eb3f2124",
+      "Apps/Editor/main.cpp": "79c16cf1202ae1bf190698fd9a080d56a7bc9634387ad05202b53e1e2281dacf",
+      "Engine/EditorImGui/src/EditorImGui.cpp": "ae4181b25d6cfd55362f8b51569680d880b74f47a8755d3af53bac4de06b1cfc",
+      "Engine/TwoD/include/Nexora/TwoD/GameSpriteAssets.h": "44920146b6b98b3b18c17220eee988b112e4d8c1f71e07be419b7134bab017d0",
+      "Engine/TwoD/include/Nexora/TwoD/GameSpriteSession.h": "fc3898c3d30bca1ae191129546cc2beb9f5ef023dfccd97f21e19208494021fe",
+      "Engine/TwoD/src/GameSpriteAssets.cpp": "b884a53d19c2a10532ef13354c49e460569de93b36c7a821f99b7c87f918e34a",
+      "Engine/TwoD/src/GameSpriteSession.cpp": "b5dc083afbfd61ecd8d5bddadf05b017a84afd383fef37c7bf658bf4bcd8496b",
+      "Tests/Editor/GameSourceServices.zig": "fd84332be8a0b3143c4e8a7732e5009ece4be1fbefd09ff3a2c3ed633a2abfc8",
+      "Tests/Editor/GameSpriteBuildTests.cpp": "c708d3d3083f224d0f13b73f0defaf15e0ae5f11e7806ed7f44bd4a87fd7fa93",
+      "Tests/EditorImGui/CMakeLists.txt": "4c695e025b0bbd5532e46ff954ef4b24e4b477e123d5c5b29e2dc4e2a29228b9",
+      "Tests/EditorImGui/LinuxPackagedSourceServices.py": "744c7deed6f984e53fe8e214fd1fd9f69d67dca10fd3e0ecf3ef4fd8f1a16aae",
+      "Tests/EditorImGui/PackagedSpritePlayTests.cpp": "0fe6bb420be7d84e6f8f9e2494ee08a4654a78e13550d9d364f978c9bf77e0b2",
+      "Tests/EditorImGui/PackagedSpriteReimportTests.inl": "f30d39547d9593ea1a841675c774a681a864a5a9e88c1cd26dfc21923f2e8cb9",
+      "Tests/TwoD/GameSpriteSessionTests.cpp": "07c3101310d5bbd2271595d1049dfe444f22e9248555dba66fac010f4b38ead3"
+    },
+    "metadata_sha256": "ad6498d52fa14f96599a5fede81071c5737711dcd7bd43a7606dc7a6b252eec7",
+    "modular_reimport_seconds": 365.56,
+    "code_review": "completed without findings; hosted Windows CLI compilation subsequently failed"
+  },
+  "windows_cli_type_fix": {
+    "baseline_head": "6f9c4bf31be5098da4e51da4f61829182de5165a",
+    "failed_windows_jobs": [
+      {
+        "job": 132753750067,
+        "sha256": "4dc98a5f605007944d589dca6be6f468b1ca2777ec211bc4d65ae7a8fedf3e26"
+      },
+      {
+        "job": 132753750174,
+        "sha256": "99952eabe96a5991ac1743dcf576e82e5772eb103289bb9ebd1bdd57a5b35e48"
+      },
+      {
+        "job": 132753755092,
+        "sha256": "38634ded689389db9e749992be4d6798e01297ae37eadaf5ef0d5a876683e3ef"
+      },
+      {
+        "job": 132753755228,
+        "sha256": "024aa396164e18c7ebeccc61d87e5291aa55cca3fa197b7e4542b7209734af38"
+      }
+    ],
+    "changed_code": [
+      "Tests/Editor/GameSpriteBuildTests.cpp"
+    ],
+    "correction": "Source(condition ? 3.0F : 2.0F); same Pivot values",
+    "warning_suppression": false,
+    "oracles_unchanged": true,
+    "original_unchanged_files": 15,
+    "configure_command": [
+      "cmake",
+      "--preset",
+      "linux-development"
+    ],
+    "build_command": [
+      "cmake",
+      "--build",
+      "--preset",
+      "linux-development"
+    ],
+    "test_command": [
+      "ctest",
+      "--preset",
+      "linux-development",
+      "--output-on-failure"
+    ],
+    "configure_log_sha256": "2c38080f04f7b6260f0118f05e3db10d1ead674f16e9ae2351a3a273414b7e35",
+    "build_log_sha256": "8aabba016ae70b0fca4523f322e4f32a9a0aeb32d0b7bcf1c50eedbdd6e80a5d",
+    "full": {
+      "passed": 551,
+      "failed": 0,
+      "skipped": 0,
+      "seconds": 2717.3,
+      "log_sha256": "58adc5370ffb1de647df9140ea3ce85ed4ff4448f70f41ef1f7d40ddf6fccbe1"
+    },
+    "gcc15": {
+      "file": "Tests/Editor/GameSpriteBuildTests.cpp",
+      "exit": 0,
+      "command": [
+        "/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/bin/x86_64-linux-gnu-g++-15",
+        "-B/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/lib/gcc/x86_64-linux-gnu/15/",
+        "-DNEXORA_ASSET_PIPELINE_ENABLED=1",
+        "-DNEXORA_BUILD_DEVELOPMENT=1",
+        "-DNEXORA_CAPTURE_ENCODER_ENABLED=0",
+        "-DNEXORA_EDITOR_SDK_ENABLED=1",
+        "-DNEXORA_GAMEPLAY_SIMULATION_ENABLED=1",
+        "-DNEXORA_HAS_2D=1",
+        "-DNEXORA_LARGE_WORLD_ENABLED=1",
+        "-DNEXORA_MEDIA_DRM_ENABLED=0",
+        "-DNEXORA_PLATFORM_ENABLED=1",
+        "-DNEXORA_PRESENTATION_ENABLED=1",
+        "-DNEXORA_SCENE_RENDERING_ENABLED=1",
+        "-DNEXORA_SHIPPING_ENABLED=1",
+        "-I/workspace/Nexora-delivery-773/Engine/Editor/include",
+        "-I/workspace/Nexora-delivery-773/Engine/Core/include",
+        "-I/workspace/Nexora-delivery-773/Engine/Foundation/include",
+        "-I/workspace/Nexora-delivery-773/Engine/API/include",
+        "-I/workspace/Nexora-delivery-773/build/linux-development/Engine/Foundation/include",
+        "-I/workspace/Nexora-delivery-773/Engine/Runtime/include",
+        "-I/workspace/Nexora-delivery-773/Engine/Renderer/include",
+        "-I/workspace/Nexora-delivery-773/Engine/RHI/include",
+        "-I/workspace/Nexora-delivery-773/Engine/Cryptography/include",
+        "-I/workspace/Nexora-delivery-773/Engine/TwoD/include",
+        "-I/workspace/Nexora-delivery-773/Engine/Presentation/include",
+        "-I/workspace/Nexora-delivery-773/Engine/Window/include",
+        "-std=c++20",
+        "-fvisibility=hidden",
+        "-fvisibility-inlines-hidden",
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-Werror",
+        "-o",
+        "/workspace/work/engine-goal-20261112/authoring/editor-source-reimport/windows-cli-type-fix/GameSpriteBuildTests-gcc15.o",
+        "-c",
+        "/workspace/Nexora-delivery-773/Tests/Editor/GameSpriteBuildTests.cpp"
+      ],
+      "source_sha256": "b8b717399d2b1957e19e66243e5f96cbaf2a1a8c8cbc64870cde08faf964ba66",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "monolithic_cpu": 11,
+    "mono_build_log_sha256": "eebe12be024582a1c039e0b67c4df420b46d82241a3806bedab7a01ddf72d732",
+    "mono_test_log_sha256": "4eea05d683b0e30a4ea8131ddd703234094b59cbc2f715816b5c39b1cd8fca04"
   }
 }
