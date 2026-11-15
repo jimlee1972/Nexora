@@ -2010,8 +2010,8 @@ gameplay source/style/camera/animation changes and global pool instances on that
 Current-frame extraction uses mutable metadata instead of replaying authored references. The
 existing C/Zig parent/source APIs are exposed through generation-owned `PlayTwoDApiProxy` tables;
 canonical Scene services and legacy input snapshots remain available. Rich custom-scene
-UI/audio/input services keep their existing separate path. Depth-aware Sprite rendering and live
-asset publication remain separate work. Ordinary GUI stacking preserves floating-window occlusion.
+UI/audio/input services keep their existing separate path. Depth-aware Sprite rendering and Clip
+migration remain separate work. Ordinary GUI stacking preserves floating-window occlusion.
 Every acquired frame obtains a new Scene reference; resize/Stop never reuses an old image. Module
 Stop/Destroy and the Play borrow finish before releasing the context/texture owner. Native uploads
 retire behind surface fences and the surface drains at shutdown. Authoring World/history/files stay
@@ -2027,8 +2027,8 @@ Stop/Destroy and library finalizers; commit adopts the candidate owner before re
 storage. Source-free hooks remain valid without this optional accessor. Single-scene bridge reload
 APIs still reject main Game routers; the owning session provides the explicit multi-scene operation.
 CPU acceptance checks 32 successful replacements and 160 failures, while the actual Editor SDK
-test checks five initial-generation source/pool pixel phases. This does not establish source
-reimport or 32 native Zig replacements; ED-WF-07/08 stay open.
+test checks five initial-generation source/pool pixel phases. This does not establish 32 native
+Zig replacements; ED-WF-07/08 stay open. Source reimport uses the separate transaction below.
 
 The configured host's despawn hook routes through `GameplayBridge::ForgetEntity`, clearing
 metadata and animation state and invalidating cached overlap/sweep snapshots immediately. The
@@ -2044,6 +2044,35 @@ underlying 3D pixels against an independent source-free Editor, then exercises a
 Additive/Replace/return sequence, floating Inspector occlusion, resize and external stale-source
 rejection before callbacks. Full native captures, original fixture failures and exact verification
 commands are in the [execution record](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-ConfiguredSpritePlay-Linux-2026-11-14.md).
+
+### Live configured Sprite and Atlas reimport
+
+The existing Content Reimport command can update the current configured main Play session,
+including while paused. `PackagedSpriteReimport` observes published Content revisions after
+gameplay dispatch; it does not read every source each frame or import raw external edits itself.
+Only changed owning payloads in the initial package scope trigger capture. The existing
+`ProjectTwoDPlayAssets` producer captures exact source/sidecar/artifact/dependency provenance,
+bounded to 4096 assets/64 MiB, on the owner thread. Saved descriptor, Build Settings, scene,
+mesh/material baselines remain frozen. No Content, document or workspace borrow survives a call.
+
+The complete captured source/Atlas/Clip inventory must retain its original identities/types and
+Clip bytes; changed roots, dependency scope or Clip data require restarting Play. No implicit
+Clip migration or mutable game-side asset registration is introduced. `GameSpriteSession`
+prepares source geometry over unchanged live World/metadata/pool storage and rejects unresolved
+hidden bindings too. The host shares exact unchanged Atlas registrations, stages only changed
+native textures and rechecks current project/Content/source/sidecar bytes immediately before
+native recording. The exact new Scene/Sprite/GUI submission succeeds before catalog/registration
+exchange; no module callback or allocating operation separates those final exchanges.
+
+Source/Atlas edits preserve scene/entity identities, source UUIDs, styling, affine anchors,
+camera, collider state, pool values/handles and animation progress. Metadata-only reimport can
+succeed with all 64 GUI registrations occupied. Changed Atlas pixels require spare space within
+the existing 64-registration/16 MiB combined GUI budget. Capture, missing/corrupt/stale closure,
+capacity or CPU/native admission failure retains the previous catalog/texture owners. Before a
+GUI submission the host can draw the retained frame; after an attempted native GUI submission,
+backend failures retain the existing surface recovery/Stop policy and are never replayed. Stop
+drains preparations/modules before releasing catalog/registrations; native resources retire behind
+surface fences. Source-free/custom embeddings retain their existing frozen asset behavior.
 
 ## Creating Sprite source assets
 

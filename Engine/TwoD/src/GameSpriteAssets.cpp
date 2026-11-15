@@ -99,6 +99,43 @@ std::shared_ptr<const Clip> GameSpriteAssets::ResolveClip(AssetId id) const {
   return found == clips_.end() ? nullptr : found->second;
 }
 
+std::optional<GameSpriteAssets>
+GameSpriteAssets::ReimportSources(std::span<const runtime::RuntimeBlob> blobs,
+                                  std::string *error) const {
+  auto next = Load(blobs, error);
+  if (!next)
+    return {};
+  const auto same_ids = [](const auto &before, const auto &after) {
+    return before.size() == after.size() && std::ranges::all_of(before, [&](const auto &entry) {
+             return after.contains(entry.first);
+           });
+  };
+  if (!same_ids(sources_, next->sources_) || !same_ids(atlases_, next->atlases_) ||
+      !same_ids(clips_, next->clips_) || std::ranges::any_of(clips_, [&](const auto &entry) {
+        return EncodeClip(*entry.second) != EncodeClip(*next->clips_.at(entry.first));
+      })) {
+    if (error)
+      *error = "Sprite reimport changed asset identities/types or Clip data; restart Play.";
+    return {};
+  }
+  for (const auto &[id, atlas] : atlases_)
+    if (EncodeAtlas(*atlas) == EncodeAtlas(*next->atlases_.at(id))) {
+      next->atlases_.at(id) = atlas;
+      next->textures_.at(id) = textures_.at(id);
+    }
+  for (const auto &[id, source] : sources_)
+    if (EncodeSpriteAsset(*source) == EncodeSpriteAsset(*next->sources_.at(id)))
+      next->sources_.at(id) = source;
+  next->clips_ = clips_;
+  return next;
+}
+std::function<std::shared_ptr<const Clip>(AssetId)> GameSpriteAssets::ClipLookup() const {
+  return [clips = clips_](AssetId id) -> std::shared_ptr<const Clip> {
+    const auto found = clips.find(id);
+    return found == clips.end() ? nullptr : found->second;
+  };
+}
+
 std::optional<SpriteFrame> GameSpriteAssets::Extract(const runtime::GameSceneView &view,
                                                      std::uint32_t width,
                                                      std::uint32_t height) const {

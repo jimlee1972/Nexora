@@ -15,6 +15,7 @@
 #include "LiveGameScript.h"
 #include "PackagedPlayContext.h"
 #if defined(NEXORA_HAS_2D)
+#include "PackagedSpriteReimport.h"
 #include "PackagedSpriteTextures.h"
 #endif
 #endif
@@ -1125,6 +1126,7 @@ int RunGraphical(std::optional<ProjectState> project,
   };
 #if defined(NEXORA_HAS_2D)
   std::unique_ptr<nexora::editor::preview::PackagedSpriteTextures> packaged_sprite_textures;
+  std::unique_ptr<nexora::editor::preview::PackagedSpriteReimport> packaged_sprite_reimport;
 #if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
   std::size_t packaged_sprite_visible{};
 #endif
@@ -1143,6 +1145,7 @@ int RunGraphical(std::optional<ProjectState> project,
       static_cast<void>(play.Stop());
 #if NEXORA_ASSET_PIPELINE_ENABLED
 #if defined(NEXORA_HAS_2D)
+    packaged_sprite_reimport.reset();
     packaged_sprite_textures.reset();
 #if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
     packaged_sprite_visible = 0;
@@ -2999,6 +3002,7 @@ int RunGraphical(std::optional<ProjectState> project,
           std::unique_ptr<nexora::editor::preview::PackagedPlayContext> context;
 #if defined(NEXORA_HAS_2D)
           std::unique_ptr<nexora::editor::preview::PackagedSpriteTextures> textures;
+          std::unique_ptr<nexora::editor::preview::PackagedSpriteReimport> reimport;
 #endif
           try {
             const auto package =
@@ -3010,17 +3014,16 @@ int RunGraphical(std::optional<ProjectState> project,
               if (!textures->Prepare(*package, context->SpriteAssets()))
                 throw std::runtime_error(
                     "Configured Play Sprite textures exceed preview capacity.");
+              if (!nexora::editor::GameBuildSourcesCurrent(project->workspace.Root(),
+                                                           capture->sources, &error))
+                throw std::runtime_error(error);
+              reimport = std::make_unique<nexora::editor::preview::PackagedSpriteReimport>(
+                  *package, content, std::move(capture->sources));
             }
 #endif
           } catch (const std::exception &failure) {
             ui.SetGameplayStatus(failure.what());
             log(nexora::runtime::RuntimeLogSeverity::Error, "PIE", failure.what());
-            break;
-          }
-          if (context->HasSprites() && !nexora::editor::GameBuildSourcesCurrent(
-                                           project->workspace.Root(), capture->sources, &error)) {
-            ui.SetGameplayStatus(error);
-            log(nexora::runtime::RuntimeLogSeverity::Error, "PIE", error);
             break;
           }
           if (play.StartExternal(context->World().InternalWorld(), 1.0 / 60.0,
@@ -3030,6 +3033,7 @@ int RunGraphical(std::optional<ProjectState> project,
             packaged_play = std::move(context);
 #if defined(NEXORA_HAS_2D)
             packaged_sprite_textures = std::move(textures);
+            packaged_sprite_reimport = std::move(reimport);
 #if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
             packaged_sprite_visible = 0;
 #endif
@@ -4115,49 +4119,83 @@ int RunGraphical(std::optional<ProjectState> project,
     if (packaged_play && packaged_sprite_textures && play.PlayWorld()) {
       const auto visible = ui.NativeGameViewport();
       const auto viewport = visible.value_or(Nexora::Presentation::SceneViewport{0, 0, 1, 1});
-      const auto composed = packaged_play->RenderComposed(
-          viewport, created.surface->SupportsSceneGeometryResidency(),
-          [&](const Nexora::Presentation::SceneDrawData &scene,
-              const nexora::twod::SpriteFrame &sprites) {
-            using Nexora::Presentation::SurfaceStatus;
-            // A rejected native UI submission cannot be appended/replayed in this ImGui frame.
-            if (packaged_ui_status)
-              return *packaged_ui_status;
-            auto mapped = packaged_sprite_textures->Remap(sprites);
-            if (!mapped)
+      const auto draw = [&](const Nexora::Presentation::SceneDrawData &scene,
+                            const nexora::twod::SpriteFrame &sprites,
+                            const nexora::editor::preview::PackagedSpriteTextures &textures) {
+        using Nexora::Presentation::SurfaceStatus;
+        // A rejected native UI submission cannot be appended/replayed in this ImGui frame.
+        if (packaged_ui_status)
+          return *packaged_ui_status;
+        auto mapped = textures.Remap(sprites);
+        if (!mapped)
+          return SurfaceStatus::Unsupported;
+        if (visible) {
+          Nexora::Presentation::SceneTextureReference image;
+          if (!scene.instances.empty()) {
+            auto offscreen = scene;
+            offscreen.viewport = {};
+            offscreen.offscreen = offscreen.sampledByUi = true;
+            const auto prepared = created.surface->DrawScene(offscreen);
+            if (prepared != SurfaceStatus::Ready)
+              return prepared;
+            const auto reference = created.surface->SceneTexture();
+            if (!reference)
               return SurfaceStatus::Unsupported;
-            if (visible) {
-              Nexora::Presentation::SceneTextureReference image;
-              if (!scene.instances.empty()) {
-                auto offscreen = scene;
-                offscreen.viewport = {};
-                offscreen.offscreen = offscreen.sampledByUi = true;
-                const auto prepared = created.surface->DrawScene(offscreen);
-                if (prepared != SurfaceStatus::Ready)
-                  return prepared;
-                const auto reference = created.surface->SceneTexture();
-                if (!reference)
-                  return SurfaceStatus::Unsupported;
-                image = *reference;
-              }
-              const Nexora::Presentation::UiDrawData packet{
-                  mapped->vertices,
-                  std::as_bytes(std::span(mapped->indices)),
-                  mapped->batches,
-                  {},
-                  true};
-              if (!ui.DrawGameScene(image, packet))
-                return SurfaceStatus::InvalidDescriptor;
-            }
-            // Registers every package Atlas, including culled/hidden sources, before publication.
-            // Native RenderUi owns the texture copies and the single Scene/Sprite/GUI pass.
-            // Mark the attempt before either fallible operation: an allocation exception must
-            // never cause a second EndFrame or replay of a rejected candidate's GUI packet.
-            packaged_ui_status = SurfaceStatus::Unsupported;
-            static_cast<void>(ui.EndFrame());
-            packaged_ui_status = ui.Render(*created.surface, frame.width, frame.height);
-            return *packaged_ui_status;
-          });
+            image = *reference;
+          }
+          const Nexora::Presentation::UiDrawData packet{mapped->vertices,
+                                                        std::as_bytes(std::span(mapped->indices)),
+                                                        mapped->batches,
+                                                        {},
+                                                        true};
+          if (!ui.DrawGameScene(image, packet))
+            return SurfaceStatus::InvalidDescriptor;
+        }
+        // Registers every package Atlas, including culled/hidden sources, before publication.
+        // Native RenderUi owns the texture copies and the single Scene/Sprite/GUI pass.
+        // Mark the attempt before either fallible operation: an allocation exception must
+        // never cause a second EndFrame or replay of a rejected candidate's GUI packet.
+        packaged_ui_status = SurfaceStatus::Unsupported;
+        static_cast<void>(ui.EndFrame());
+        packaged_ui_status = ui.Render(*created.surface, frame.width, frame.height);
+        return *packaged_ui_status;
+      };
+      nexora::editor::preview::PackagedPlayContext::Frame composed;
+      std::unique_ptr<nexora::editor::preview::PackagedSpriteReimport::Candidate> candidate;
+      std::string reimport_error;
+      try {
+        if (project && packaged_sprite_reimport) {
+          candidate =
+              packaged_sprite_reimport->Stage(project->workspace, content, *packaged_play,
+                                              *packaged_sprite_textures, ui, reimport_error);
+          if (candidate) {
+            composed = packaged_sprite_reimport->Present(
+                *candidate, project->workspace, content, *packaged_play, packaged_sprite_textures,
+                viewport, created.surface->SupportsSceneGeometryResidency(), draw);
+            if (!composed.drawn)
+              reimport_error = composed.error;
+          }
+        }
+      } catch (const std::exception &failure) {
+        reimport_error = failure.what();
+        composed.status = Nexora::Presentation::SurfaceStatus::Unsupported;
+        composed.rejected = true;
+        composed.error = reimport_error;
+      }
+      // Drain the preparation before ordinary scene processing or Stop can release its owner.
+      candidate.reset();
+      if (!composed.drawn && !packaged_ui_status &&
+          (composed.status == Nexora::Presentation::SurfaceStatus::Ready ||
+           nexora::sceneview::CanRedrawRetainedScene(composed.status)))
+        composed = packaged_play->RenderComposed(
+            viewport, created.surface->SupportsSceneGeometryResidency(),
+            [&](const auto &scene, const auto &sprites) {
+              return draw(scene, sprites, *packaged_sprite_textures);
+            });
+      if (!reimport_error.empty()) {
+        ui.SetGameplayStatus(reimport_error);
+        log(nexora::runtime::RuntimeLogSeverity::Warning, "Sprite reimport", reimport_error);
+      }
 #if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
       packaged_sprite_visible = composed.drawn ? composed.visible_sprites : 0;
 #endif
@@ -4482,7 +4520,8 @@ int RunGraphical(std::optional<ProjectState> project,
             << " steps=" << play.Stats().manual_steps
             << " textures=" << (packaged_sprite_textures ? packaged_sprite_textures->Size() : 0)
             << " visible=" << packaged_sprite_visible
-            << " commits=" << (packaged_play ? packaged_play->Commits() : 0)
+            << " commits=" << (packaged_play ? packaged_play->Commits() : 0) << " reimports="
+            << (packaged_sprite_reimport ? packaged_sprite_reimport->Accepted() : 0)
             << " module=" << gameplay.IsLoaded() << " focused=" << input.focused
             << " admitted=" << input.play_allowed << " captured=" << ui.GameInputFocused();
       if (const auto viewport = ui.NativeGameViewport())
@@ -4729,6 +4768,12 @@ int RunGraphical(std::optional<ProjectState> project,
           point("atlaspoint", Access::ContentAssetPosition(ui, item.id));
           break;
         }
+      for (const auto &item : content.Browser().Items())
+        if (item.twod && item.twod->SpriteSource())
+          if (const auto position = Access::ContentAssetPosition(ui, item.id)) {
+            point("sourcepoint", position);
+            break;
+          }
 
       static std::string previous;
       if (observation.str() != previous) {

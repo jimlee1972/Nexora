@@ -7003,7 +7003,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         ImGui::InvisibleButton("##game-2d-preview", size);
       } else if (game_running && state_->native_game_available &&
                  (!NativeScenePreviewViewport() || state_->concurrent_native_views)) {
-        ImGui::TextDisabled("Play camera | Assets frozen at Play start");
+        ImGui::TextDisabled("Play camera");
         if (!state_->native_game_status.empty())
           ImGui::TextWrapped("%s", state_->native_game_status.c_str());
         const auto available = ImGui::GetContentRegionAvail();

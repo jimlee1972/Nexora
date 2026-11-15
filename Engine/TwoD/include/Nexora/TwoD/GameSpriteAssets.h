@@ -12,6 +12,12 @@ public:
   [[nodiscard]] std::shared_ptr<const SpriteAsset> Source(AssetId) const;
   [[nodiscard]] std::shared_ptr<const Atlas> ResolveAtlas(AssetId) const;
   [[nodiscard]] std::shared_ptr<const Clip> ResolveClip(AssetId) const;
+  // Admit the same identity/type inventory with unchanged Clip bytes. Reuse unchanged immutable
+  // owners and texture identities; source/Atlas changes never migrate or restart playback.
+  [[nodiscard]] std::optional<GameSpriteAssets>
+  ReimportSources(std::span<const runtime::RuntimeBlob>, std::string *error = nullptr) const;
+  // Own only immutable Clips, so a bridge does not retain superseded source/Atlas generations.
+  [[nodiscard]] std::function<std::shared_ptr<const Clip>(AssetId)> ClipLookup() const;
   // Resolves authored IDs through each live instance and uses its actual World transforms.
   // Texture identities are stable within this owner; the surface must drain before replacement.
   [[nodiscard]] std::optional<SpriteFrame> Extract(const runtime::GameSceneView &,

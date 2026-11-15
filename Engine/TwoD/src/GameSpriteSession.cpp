@@ -23,8 +23,7 @@ GameSpriteSession::GameSpriteSession(runtime::World &world, GameSpriteAssets ass
       pool_(capacity), state_(std::make_unique<State>()) {
   if (world.Kind() != runtime::WorldKind::Play)
     throw std::invalid_argument("Main game Sprite metadata requires a Play World.");
-  bridge_ = std::make_unique<GameplayBridge>(
-      world, *this, [assets = assets_](AssetId id) { return assets->ResolveClip(id); }, &pool_);
+  bridge_ = std::make_unique<GameplayBridge>(world, *this, assets_->ClipLookup(), &pool_);
 }
 GameSpriteSession::~GameSpriteSession() = default;
 bool GameSpriteSession::Owner() const noexcept { return thread_ == std::this_thread::get_id(); }
@@ -45,8 +44,7 @@ GameSpriteSession::GameSpriteSession(const GameSpriteSession &source, runtime::W
     state_->scenes.emplace(
         id, State::Entry{std::move(*metadata), entry.asset, entry.source, entry.entities});
   }
-  bridge_ = std::make_unique<GameplayBridge>(
-      world, *this, [assets = assets_](AssetId id) { return assets->ResolveClip(id); }, &pool_);
+  bridge_ = std::make_unique<GameplayBridge>(world, *this, assets_->ClipLookup(), &pool_);
   source.bridge_->CopyStagedState(*bridge_);
 }
 std::unique_ptr<GameSpriteSession> GameSpriteSession::ForkForReload(runtime::World &world) const {
@@ -170,12 +168,75 @@ std::optional<SpriteFrame> GameSpriteSession::Prepared::Extract(const runtime::W
   auto camera = owner_.bridge_->RenderCamera(width, height);
   if (state_->primary != owner_.Primary())
     camera = {{}, 20, 0, width, height};
-  return owner_.ExtractState(*state_, world, camera);
+  return owner_.ExtractState(*state_, world, camera, *owner_.assets_);
 }
 void GameSpriteSession::Prepared::Commit() noexcept {
   if (committed_ || !owner_.Owner())
     return;
   owner_.state_.swap(state_);
+  ++owner_.revision_;
+  owner_.preparing_ = false;
+  committed_ = true;
+}
+
+std::unique_ptr<GameSpriteSession::PreparedSources>
+GameSpriteSession::PrepareSources(std::span<const runtime::RuntimeBlob> blobs, std::string *error) {
+  if (error)
+    error->clear();
+  const auto reject = [&](const char *message) -> std::unique_ptr<PreparedSources> {
+    if (error)
+      *error = message;
+    return {};
+  };
+  if (!Available() || !bridge_->CanStage() ||
+      revision_ == std::numeric_limits<std::uint64_t>::max())
+    return reject("Sprite source reimport requires the idle owner thread.");
+  auto next = assets_->ReimportSources(blobs, error);
+  if (!next)
+    return {};
+  const auto resolved = [&](const Sprite &sprite) {
+    if (!ValidateSprite(sprite))
+      return false;
+    if (sprite.source)
+      return bool(next->Source(*sprite.source));
+    const auto atlas = next->ResolveAtlas(sprite.atlas);
+    return atlas && atlas->Find(sprite.region);
+  };
+  for (const auto &[id, entry] : state_->scenes) {
+    static_cast<void>(id);
+    for (const auto &[entity, sprite] : entry.metadata.sprites_) {
+      static_cast<void>(entity);
+      if (!resolved(sprite))
+        return reject("Reimport would leave an unresolved live Sprite binding.");
+    }
+  }
+  bool valid = true;
+  pool_.ForEach([&](const Instance &value) { valid = valid && resolved(value.sprite); });
+  if (!valid)
+    return reject("Reimport would leave an unresolved pooled Sprite binding.");
+  auto result = std::unique_ptr<PreparedSources>(
+      new PreparedSources(*this, std::make_shared<const GameSpriteAssets>(std::move(*next))));
+  preparing_ = true;
+  return result;
+}
+GameSpriteSession::PreparedSources::PreparedSources(GameSpriteSession &owner,
+                                                    std::shared_ptr<const GameSpriteAssets> assets)
+    : owner_(owner), assets_(std::move(assets)) {}
+GameSpriteSession::PreparedSources::~PreparedSources() {
+  if (!committed_ && owner_.Owner())
+    owner_.preparing_ = false;
+}
+std::optional<SpriteFrame> GameSpriteSession::PreparedSources::Extract(std::uint32_t width,
+                                                                       std::uint32_t height) {
+  if (committed_ || !owner_.Owner() || !width || !height)
+    return {};
+  return owner_.ExtractState(*owner_.state_, *owner_.world_,
+                             owner_.bridge_->RenderCamera(width, height), *assets_);
+}
+void GameSpriteSession::PreparedSources::Commit() noexcept {
+  if (committed_ || !owner_.Owner())
+    return;
+  owner_.assets_.swap(assets_);
   ++owner_.revision_;
   owner_.preparing_ = false;
   committed_ = true;
@@ -236,8 +297,10 @@ std::optional<std::vector<Shape>> GameSpriteSession::CollisionShapes() const {
   }
   return result;
 }
-std::optional<SpriteFrame>
-GameSpriteSession::ExtractState(const State &state, const runtime::World &world, Camera camera) {
+std::optional<SpriteFrame> GameSpriteSession::ExtractState(const State &state,
+                                                           const runtime::World &world,
+                                                           Camera camera,
+                                                           const GameSpriteAssets &assets) {
   std::vector<SpriteInstance> instances;
   for (const auto &[id, entry] : state.scenes) {
     const auto poses = world.SceneWorldPoses(id);
@@ -264,11 +327,11 @@ GameSpriteSession::ExtractState(const State &state, const runtime::World &world,
     }
     instances.push_back({++identity, value.sprite, runtime::ToMatrix(value.transform)});
   });
-  return overflow ? std::nullopt : assets_->Extract(instances, camera);
+  return overflow ? std::nullopt : assets.Extract(instances, camera);
 }
 std::optional<SpriteFrame> GameSpriteSession::Extract(std::uint32_t width, std::uint32_t height) {
   if (!Available())
     return {};
-  return ExtractState(*state_, *world_, bridge_->RenderCamera(width, height));
+  return ExtractState(*state_, *world_, bridge_->RenderCamera(width, height), *assets_);
 }
 } // namespace nexora::twod

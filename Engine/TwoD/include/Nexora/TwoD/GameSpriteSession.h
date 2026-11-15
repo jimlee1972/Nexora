@@ -29,6 +29,25 @@ public:
     bool committed_{};
   };
 
+  class NEXORA_2D_API PreparedSources final {
+  public:
+    ~PreparedSources();
+    PreparedSources(const PreparedSources &) = delete;
+    PreparedSources &operator=(const PreparedSources &) = delete;
+    [[nodiscard]] const GameSpriteSession &Session() const noexcept { return owner_; }
+    [[nodiscard]] const GameSpriteAssets &Assets() const noexcept { return *assets_; }
+    [[nodiscard]] std::optional<SpriteFrame> Extract(std::uint32_t width, std::uint32_t height);
+    // Only after the embedding admits this exact catalog's native frame. No allocation/callback.
+    void Commit() noexcept;
+
+  private:
+    friend class GameSpriteSession;
+    PreparedSources(GameSpriteSession &, std::shared_ptr<const GameSpriteAssets>);
+    GameSpriteSession &owner_;
+    std::shared_ptr<const GameSpriteAssets> assets_;
+    bool committed_{};
+  };
+
   GameSpriteSession(runtime::World &, GameSpriteAssets, std::size_t pool_capacity = 4096);
   ~GameSpriteSession();
   GameSpriteSession(const GameSpriteSession &) = delete;
@@ -45,6 +64,11 @@ public:
   [[nodiscard]] runtime::World &WorldOwner() const noexcept { return *world_; }
   [[nodiscard]] bool Available() const noexcept;
   [[nodiscard]] std::uint64_t Revision() const noexcept { return revision_; }
+  [[nodiscard]] const GameSpriteAssets &Assets() const noexcept { return *assets_; }
+  // Freeze API writes while preparing a source/Atlas-only generation over unchanged live state.
+  // Missing live bindings, inventory/Clip changes or any outstanding preparation reject.
+  [[nodiscard]] std::unique_ptr<PreparedSources>
+  PrepareSources(std::span<const runtime::RuntimeBlob>, std::string *error = nullptr);
   [[nodiscard]] runtime::Id Primary() const noexcept;
   // Serialized host/bridge borrows; expire at preparation publication or entity destruction.
   [[nodiscard]] SpriteScene *FindEntity(runtime::Id) noexcept;
@@ -62,7 +86,7 @@ private:
   GameSpriteSession(const GameSpriteSession &, runtime::World &, ReloadCopy);
   [[nodiscard]] bool Owner() const noexcept;
   [[nodiscard]] std::optional<SpriteFrame> ExtractState(const State &, const runtime::World &,
-                                                        Camera);
+                                                        Camera, const GameSpriteAssets &);
   runtime::World *world_;
   std::shared_ptr<const GameSpriteAssets> assets_;
   InstancePool pool_;

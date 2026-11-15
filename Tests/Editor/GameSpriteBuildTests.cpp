@@ -355,11 +355,46 @@ void Run(const std::filesystem::path &root) {
 } // namespace
 int main(int argc, char **argv) {
   const auto root =
-      argc == 3 ? std::filesystem::absolute(argv[2])
+      argc >= 3 ? std::filesystem::absolute(argv[2])
                 : std::filesystem::canonical(std::filesystem::temp_directory_path()) /
                       ("nexora-sprite-build-" +
                        std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
   try {
+    if (argc == 3 && std::string_view(argv[1]) == "--verify-reimported-package") {
+      const auto package = runtime::ReadGameProjectPackage(root);
+      Check(bool(package), "reimported saved Build package");
+      const auto assets = twod::GameSpriteAssets::Load(package->SpriteAssets());
+      Check(assets && assets->Source(sourceId) && assets->Source(sourceId)->pivotX == 3 &&
+                package->Capability() == 4 && package->Scenes().size() == 2,
+            "Build did not retain the reimported source Pivot and explicit Clip catalog");
+      const auto atlas = assets->ResolveAtlas(atlasId);
+      const auto *region = atlas ? atlas->Find(1) : nullptr;
+      Check(bool(region), "reimported Build Atlas region");
+      const auto offset = 4 * (region->y * atlas->width + region->x);
+      Check(atlas->rgba[offset] == std::byte{0} && atlas->rgba[offset + 1] == std::byte{255} &&
+                atlas->rgba[offset + 2] == std::byte{0},
+            "Build retained obsolete Atlas pixels");
+      return 0;
+    }
+    if (argc == 4 && std::string_view(argv[1]) == "--reimport-source") {
+      Check(std::string_view(argv[3]) == "0" || std::string_view(argv[3]) == "1", "source variant");
+      Write(root / "Content/Source.nx2sprite", Source(argv[3][0] == '1' ? 3 : 2));
+      return 0;
+    }
+    if (argc == 4 && std::string_view(argv[1]) == "--reimport-atlas") {
+      Check(std::string_view(argv[3]) == "0" || std::string_view(argv[3]) == "1", "Atlas variant");
+      const bool alternate = argv[3][0] == '1';
+      const std::array<std::array<unsigned char, 4>, 4> colors{
+          {{255, 0, 0, 255}, {0, 255, 0, 255}, {0, 0, 255, 255}, {255, 255, 0, 255}}};
+      twod::Image image{1, 2, 2, {}};
+      for (unsigned index = 0; index < colors.size(); ++index)
+        for (const auto value : colors[alternate ? index ^ 1U : index])
+          image.rgba.push_back(static_cast<std::byte>(value));
+      const auto atlas = twod::PackAtlas(atlasId, std::span(&image, 1), 8, 8, true);
+      Check(bool(atlas), "replacement Atlas");
+      Write(root / "Content/Color.nx2atlas", twod::EncodeAtlas(*atlas));
+      return 0;
+    }
     if (argc == 3 && std::string_view(argv[1]) == "--write-fixture") {
       Fixture fixture(root);
       return 0;
@@ -374,7 +409,8 @@ int main(int argc, char **argv) {
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';
     std::error_code ignored;
-    std::filesystem::remove_all(root, ignored);
+    if (argc < 3)
+      std::filesystem::remove_all(root, ignored);
     return 1;
   }
 }

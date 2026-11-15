@@ -6,7 +6,9 @@ source UUIDs and source-aware extraction. Source scenes use additive NX2S schema
 backward reader; source-free scenes still emit schema 2. Atlas, legacy Clip and C/Zig wires and straight-alpha
 behavior remain unchanged. The optional gameplay source table and canonical Player extraction are
 available, alongside the source animation Clips and Editor/source-catalog consumers described
-below. Live source reimport across module reloads remains a separate ED-WF-08 acceptance gate.
+below. Main Editor source/Atlas reimport preserves live pool and playback state through the
+[owning catalog transaction](GameSpriteSession.md#source-and-atlas-reimport). Complete native
+module-reload acceptance remains a separate ED-WF-08 gate.
 
 The optional Editor's `TwoDPlayAssets` freezes validated cooked Atlas/Clip/Sprite-source closures from one
 explicit Runtime asset generation without retaining the store. It resolves Clip/source Atlas
