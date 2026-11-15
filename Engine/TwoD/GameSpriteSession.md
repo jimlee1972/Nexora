@@ -116,9 +116,17 @@ UI/audio/input services remain a separate embedding.
 attempts, preserving live entity/pool identities and a half-frame animation clock while checking
 retired callback writes. `editor.linux_packaged_source_services` compiles the saved SDK ScriptProject
 in the actual Editor and checks source/pool pixels through animation, Additive, unload and Replace.
-The latter is a native initial-generation proof, not 32 native Zig replacements. Complete strict
-Editor/Player reload acceptance remains parent work. Source-only publication is described below.
-Milestone totals remain unchanged.
+The latter remains an initial-generation native proof. `ValidateBindings` is an idle-owner,
+allocation-free check of every scene Sprite and live pool slot, including hidden and legacy Atlas
+bindings. It never publishes or mutates World/native resources. Reload and source-reimport admission
+share the same resolver checks; unresolved candidates reject before old code retires. A retained
+invalid retired owner can still rebind to its identical quarantined World for safe teardown.
+Configured reload additionally prepares the complete candidate Scene/Sprite frame and admits its
+owning native GUI submission before retirement; see [the embedding contract](../../Apps/Editor/README.md).
+The separate `editor.linux_packaged_source_reload` test uses real saved SDK generations, scalar
+migration and image-finalizer callbacks, rather than treating CPU loader replacements as native
+library reloads. Complete joint Editor/Player acceptance remains parent work. Source-only
+publication is described below. Milestone totals remain unchanged.
 
 ## Source and Atlas reimport
 

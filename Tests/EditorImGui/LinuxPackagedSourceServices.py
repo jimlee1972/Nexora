@@ -51,13 +51,16 @@ def main():
     parser = argparse.ArgumentParser()
     for name in ('editor', 'fixture', 'xvfb', 'xdotool', 'evidence-dir'):
         parser.add_argument('--' + name, required=True)
-    parser.add_argument('--reimport', action='store_true')
+    scenario = parser.add_mutually_exclusive_group()
+    scenario.add_argument('--reimport', action='store_true')
+    scenario.add_argument('--reload', action='store_true')
     args = parser.parse_args()
     evidence = Path(args.evidence_dir).resolve() / ('source-services-' + str(time.time_ns()))
     evidence.mkdir(parents=True)
     root = Path(tempfile.mkdtemp(prefix='nexora-editor-source-services-'))
     proof = dict(passed=False, scope='configured Editor SDK source/animation/pool adoption',
-                 readonly=not args.reimport, phases=[], captures=[], commands=[], reimports=[])
+                 readonly=not args.reimport, phases=[], captures=[], commands=[], reimports=[], reloads=[],
+                 rejected_reloads=[])
     server = editor = window = None
     try:
         project = root / 'project 來源'
@@ -111,7 +114,7 @@ def main():
                                 '.nexora/scenes/Main.scene') or
                     path.startswith(('Content/', 'Scripts/'))}
 
-        original = authored_hashes() if args.reimport else hashes(project)
+        original = authored_hashes() if args.reimport or args.reload else hashes(project)
         server, display = start_xvfb(args.xvfb, '1280x720x24')
         require(display is not None, 'Xvfb unavailable')
         env = dict(os.environ, DISPLAY=display, NEXORA_PACKAGED_SPRITE_UI_TEST_EVIDENCE='1',
@@ -214,7 +217,7 @@ def main():
             if authored is None:
                 authored = current
             require(current == authored and
-                    (authored_hashes() if args.reimport else hashes(project)) == original,
+                    (authored_hashes() if args.reimport or args.reload else hashes(project)) == original,
                     'gameplay changed readonly authoring pixels/files')
             screenshot(display, window, evidence / f'phase-{phase}.png')
             proof['phases'].append(dict(phase=phase, commits=commits,
@@ -232,6 +235,111 @@ def main():
                 state = wait(lambda s: s.get('captured') == '1', 'Game input acquisition')
                 # The acquisition batch is deliberately discarded by the product input policy.
                 time.sleep(.1)
+                if args.reload:
+                    script = project / 'Scripts/game.zig'
+                    template = script.read_text()
+                    original_inputs = dict(original)
+                    last_ticks = 0
+                    identity = None
+                    admission = re.compile(r'script reload admission: .*applied=(\d) generation=(\d+) ')
+
+                    def save(code, fault=0, invalid=False):
+                        nonlocal original
+                        text = template.replace('fixture_generation: u32 = 0;',
+                                                f'fixture_generation: u32 = {code};').replace(
+                                                'fixture_fault: u32 = 0;', f'fixture_fault: u32 = {fault};')
+                        if invalid:
+                            text += '\nthis is an intentionally invalid Zig source\n'
+                        temporary = root / 'saved-script.pending'
+                        temporary.write_text(text)
+                        os.replace(temporary, script)
+                        original = authored_hashes()
+                        require({k: v for k, v in original.items() if k != 'Scripts/game.zig'} ==
+                                {k: v for k, v in original_inputs.items() if k != 'Scripts/game.zig'},
+                                'a saved script edit changed another authored input')
+
+                    def rendered():
+                        require(source_mask(native_pixels(display, window, viewport)) == wanted,
+                                'reload changed independently predicted source/pool pixels')
+                        current = native_pixels(display, window, viewport)
+                        require(all(current[i:i + 3] == baseline[i:i + 3] for i in center),
+                                'reload changed independent3D pixels')
+                        require(scene_region_pixels(display, window, tuple(map(int, rect))) == authored
+                                and authored_hashes() == original,
+                                'reload changed authoring pixels or saved inputs')
+
+                    def live(code, accepted):
+                        nonlocal last_ticks, identity
+                        pattern = re.compile(
+                            rf'MAIN SOURCE LIVE code={code} reloads=(\d+) ticks=(\d+) '
+                            r'scene=(\d+) ids=(\d+,\d+) pool=(\d+:\d+:\d+) phase=(\d+)')
+                        wait(lambda _: pattern.search(core_text()) is not None and
+                             admission.findall(log.read_text())[-1:] == [('1', str(accepted + 1))],
+                             f'actual SDK generation{code} not published/dispatched', timeout=90)
+                        match = pattern.search(core_text())
+                        count, ticks, scene, ids, pool, current_phase = match.groups()
+                        require(int(count) == accepted and int(ticks) > last_ticks and current_phase == '0',
+                                'counter/phase state was reset or candidate was mistaken for live')
+                        current_identity = (scene, ids, pool)
+                        if identity is None:
+                            identity = current_identity
+                        require(current_identity == identity, 'scene/entity/pool identity changed')
+                        last_ticks = int(ticks)
+                        rendered()
+                        proof['reloads'].append(dict(code=code, accepted=accepted, ticks=int(ticks),
+                                                     scene=scene, ids=ids, pool=pool,
+                                                     runtime_generation=accepted + 1))
+
+                    # A candidate-hook log is provisional. Only published Runtime admission plus
+                    # the first dispatched Update and independent native pixels count as acceptance.
+                    live(0, 0)
+                    for code, fault, invalid in [(101, 0, True), (102, 1, False), (103, 2, False),
+                                                  (104, 3, False), (106, 6, False), (107, 7, False)]:
+                        count = len(admission.findall(log.read_text()))
+                        save(code, fault, invalid)
+                        wait(lambda _: len(admission.findall(log.read_text())) > count,
+                             f'failure mode{fault} did not finish', timeout=90)
+                        require(admission.findall(log.read_text())[-1] == ('0', '1') and
+                                f'MAIN SOURCE LIVE code={code} ' not in core_text(),
+                                'failed candidate published or dispatched')
+                        rendered()
+                        proof['rejected_reloads'].append(dict(code=code, fault=fault, compile=invalid))
+                    # Save a new authored generation during ordinary background compilation.
+                    # The obsolete worker result must never be dispatched.
+                    progress_count = log.read_text().count('script reload progress:')
+                    save(200)
+                    wait(lambda _: log.read_text().count('script reload progress:') > progress_count,
+                         'obsolete generation never entered the background compiler', timeout=90)
+                    save(1)
+                    live(1, 1)
+                    require('MAIN SOURCE LIVE code=200 ' not in core_text(), 'obsolete result dispatched')
+                    proof['obsolete_result_discarded'] = True
+                    for code in range(2, 33):
+                        save(code)
+                        live(code, code)
+                        if code % 8 == 0:
+                            screenshot(display, window, evidence / f'reload-{code}.png')
+                    # The old module itself attempts cached writes during Capture. This invalidates
+                    # the read-only capture guard and must reject without changing its live state.
+                    save(33, 4)
+                    live(33, 33)
+                    count = len(admission.findall(log.read_text()))
+                    save(34)
+                    wait(lambda _: len(admission.findall(log.read_text())) > count,
+                         'Capture write did not finish', timeout=90)
+                    require(admission.findall(log.read_text())[-1] == ('0', '34') and
+                            'MAIN SOURCE LIVE code=34 ' not in core_text() and
+                            'stage=capture' in core_text(), 'Capture write escaped quarantine')
+                    rendered()
+                    proof['rejected_reloads'].append(dict(code=34, fault='old Capture write'))
+                    finalizers = re.findall(r'MAIN SOURCE CALLBACK code=(\d+) stage=finalizer '
+                                           r'entity=(-?\d+) pool=(-?\d+) world=(-?\d+)', core_text())
+                    require(all(any(int(row[0]) == code for row in finalizers) for code in range(33)),
+                            'real retired DLL finalizers were not executed for every generation')
+                    proof['retired_library_finalizers'] = finalizers
+                    proof['actual_native_replacements'] = 33
+                    proof['state_codec_payload_bytes'] = 80
+                    state = wait(lambda s: s.get('captured') == '1', 'reload input capture lost')
                 if args.reimport:
                     def observe(prefix):
                         lines = re.findall(rb'^' + prefix.encode() + rb' (.*)$', log.read_bytes(), re.M)
@@ -359,9 +467,19 @@ def main():
                     state = wait(lambda s: s.get('captured') == '1', 'reacquire Game input')
                     proof.update(reimport_publications=70, corrupt_and_missing_retained=True,
                                  half_frame_clock_preserved=True)
+        if args.reload:
+            progress_count = log.read_text().count('script reload progress:')
+            admissions_before_stop = len(admission.findall(log.read_text()))
+            save(300)
+            wait(lambda _: log.read_text().count('script reload progress:') > progress_count,
+                 'Stop cancellation did not enter background compilation', timeout=90)
         key('F5')
         wait(lambda s: s.get('state') == '0' and s.get('module') == '0' and
              s.get('textures') == '0' and s.get('visible') == '0', 'Stop retained owner')
+        if args.reload:
+            require(len(admission.findall(log.read_text())) == admissions_before_stop and
+                    'MAIN SOURCE LIVE code=300 ' not in core_text(), 'stopped compiler result dispatched')
+            proof['stop_cancelled_compilation'] = True
         close(log)
         text = core_text()
         require(re.search(r'script reload admission: .*applied=1 generation=1 ', log.read_text()),
@@ -370,7 +488,7 @@ def main():
                 re.search(r'MAIN SOURCE DESTROY ticks=[1-9]\d* phase=4', text), 'SDK lifecycle cleanup')
         identities = re.findall(r'MAIN SOURCE PHASE \d.*pool=(\d+:\d+:\d+)', text)
         require(len(identities) == 5 and len(set(identities)) == 1, 'pool handle changed')
-        require((authored_hashes() if args.reimport else hashes(project)) == original,
+        require((authored_hashes() if args.reimport or args.reload else hashes(project)) == original,
                 'Play changed saved authored inputs')
         if args.reimport:
             reopened_log, reopened_core, reopened_wait = launch(project, 'reopened')

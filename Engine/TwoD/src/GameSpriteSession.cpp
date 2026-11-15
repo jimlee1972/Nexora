@@ -30,6 +30,31 @@ bool GameSpriteSession::Owner() const noexcept { return thread_ == std::this_thr
 bool GameSpriteSession::Available() const noexcept {
   return Owner() && !preparing_ && !pool_.updating_;
 }
+const char *GameSpriteSession::BindingError(const GameSpriteAssets &assets) const noexcept {
+  const auto resolved = [&](const Sprite &sprite) {
+    if (!ValidateSprite(sprite))
+      return false;
+    if (sprite.source)
+      return bool(assets.Source(*sprite.source));
+    const auto atlas = assets.ResolveAtlas(sprite.atlas);
+    return atlas && atlas->Find(sprite.region);
+  };
+  for (const auto &[id, entry] : state_->scenes) {
+    static_cast<void>(id);
+    for (const auto &[entity, sprite] : entry.metadata.sprites_) {
+      static_cast<void>(entity);
+      if (!resolved(sprite))
+        return "Reimport would leave an unresolved live Sprite binding.";
+    }
+  }
+  for (const auto &slot : pool_.slots_)
+    if (slot.live && !resolved(slot.value.sprite))
+      return "Reimport would leave an unresolved pooled Sprite binding.";
+  return nullptr;
+}
+bool GameSpriteSession::ValidateBindings() const noexcept {
+  return Available() && bridge_->CanStage() && !BindingError(*assets_);
+}
 runtime::Id GameSpriteSession::Primary() const noexcept { return state_->primary; }
 
 GameSpriteSession::GameSpriteSession(const GameSpriteSession &source, runtime::World &world,
@@ -194,26 +219,8 @@ GameSpriteSession::PrepareSources(std::span<const runtime::RuntimeBlob> blobs, s
   auto next = assets_->ReimportSources(blobs, error);
   if (!next)
     return {};
-  const auto resolved = [&](const Sprite &sprite) {
-    if (!ValidateSprite(sprite))
-      return false;
-    if (sprite.source)
-      return bool(next->Source(*sprite.source));
-    const auto atlas = next->ResolveAtlas(sprite.atlas);
-    return atlas && atlas->Find(sprite.region);
-  };
-  for (const auto &[id, entry] : state_->scenes) {
-    static_cast<void>(id);
-    for (const auto &[entity, sprite] : entry.metadata.sprites_) {
-      static_cast<void>(entity);
-      if (!resolved(sprite))
-        return reject("Reimport would leave an unresolved live Sprite binding.");
-    }
-  }
-  bool valid = true;
-  pool_.ForEach([&](const Instance &value) { valid = valid && resolved(value.sprite); });
-  if (!valid)
-    return reject("Reimport would leave an unresolved pooled Sprite binding.");
+  if (const auto *message = BindingError(*next))
+    return reject(message);
   auto result = std::unique_ptr<PreparedSources>(
       new PreparedSources(*this, std::make_shared<const GameSpriteAssets>(std::move(*next))));
   preparing_ = true;

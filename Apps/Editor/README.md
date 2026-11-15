@@ -2026,9 +2026,27 @@ source, pool or World edits. After full admission, old tables point to retired s
 Stop/Destroy and library finalizers; commit adopts the candidate owner before releasing its World
 storage. Source-free hooks remain valid without this optional accessor. Single-scene bridge reload
 APIs still reject main Game routers; the owning session provides the explicit multi-scene operation.
-CPU acceptance checks 32 successful replacements and 160 failures, while the actual Editor SDK
-test checks five initial-generation source/pool pixel phases. This does not establish 32 native
-Zig replacements; ED-WF-07/08 stay open. Source reimport uses the separate transaction below.
+Final validation resolves every entity and live pool binding, including hidden and legacy Sprites,
+then prepares the candidate Scene palette and Sprite frame before any old Stop/Destroy/finalizer.
+`PlayWorldReload::validate` may allocate and perform fallible presentation; retire/commit/rollback
+remain nonthrowing and do not allocate. Source-bearing SDK replacements wait for the owning native
+Scene/Sprite/GUI frame, including while paused. After candidate callbacks and CPU extraction, the
+host rechecks project/Play/source scope and the owning compiler artifact immediately before native
+recording. The synchronous presenter never re-enters Runtime while its reload mutex is held.
+One complete successful GUI submission admits the candidate; native failure retains old code and
+state, following the existing surface recovery policy without replaying an ended GUI frame.
+Source reimport waits until the next frame when script admission owns this frame. Cold/source-free
+admission retains its ordinary dispatch boundary. No draw or compiler-result borrow survives the
+synchronous transaction. CPU-only hook users validate CPU data without claiming native admission.
+
+CPU acceptance checks 32 successful replacements and 160 callback failures, unresolved entity/hidden
+pool candidates and failed/throwing native presenters. `editor.linux_packaged_source_reload` drives
+saved Zig edits through the real watcher/background canonical SDK compiler, explicit bounded scalar
+state migration and first published Update, then checks independent Scene/Sprite pixels and real
+Linux image-finalizer probes. The fixture never counts a provisional `reloaded` hook log as a live
+generation. Its 80-byte payload contains counters, scene/entity/request IDs and pool handles; service
+tables are reacquired by `prepareReload`, never serialized. Source reimport uses the separate
+transaction below. Complete ED-WF-07/08 and physical/clean-host acceptance remain open.
 
 The configured host's despawn hook routes through `GameplayBridge::ForgetEntity`, clearing
 metadata and animation state and invalidating cached overlap/sweep snapshots immediately. The

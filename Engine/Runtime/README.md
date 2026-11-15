@@ -548,7 +548,7 @@ must handle partial begin and is called after candidate destroy. Successful cand
 followed by `retire`, which quarantines old Stop/Destroy and library-finalizer effects so they cannot
 delete transferred Play-owned objects. `commit` then publishes the candidate and releases retired
 state. Commit/retire are infallible publication operations; every allocation/admission they need
-must finish before candidate start is accepted. Hook/context/service owners outlive all module callbacks. A host that exposes
+must finish before final candidate validation is accepted. Hook/context/service owners outlive all module callbacks. A host that exposes
 native audio/window/storage or other external effects must stage or reject those effects; a World
 snapshot alone does not roll them back. All readers are drained before staging and no candidate
 state may escape before commit. Runtime does not infer or copy opaque embedding service storage.
@@ -566,9 +566,15 @@ write rejection/staging, violation tracking and restoration of its host's access
 alone cannot roll back arbitrary module-memory mutations or sandbox native code. Existing
 transactions with no capture group retain their prior contract. An optional `validate` hook
 rejects staged service errors after candidate start and before retirement; candidate destroy,
-library finalizers and rollback still execute against unpublished state. Every hook is
-nonthrowing and must not re-enter lifecycle methods. This additive C++ hook layout requires
-consumer rebuilds and does not change C/Zig ABI tables.
+library finalizers and rollback still execute against unpublished state. Final validation may
+perform fallible CPU/native frame preparation and catch failures before returning false. This
+admits the unpublished candidate; it does not publish its World/services to gameplay readers.
+Descriptor spans are borrowed only inside the hook; the embedding's native owner must copy or
+retain the admitted frame resources through submission/fences. Retire/commit use the already
+prepared owners without allocation. Every hook is nonthrowing and must not re-enter the serialized
+host, including generation/stat queries. See [the Editor embedding](../../Apps/Editor/README.md)
+for its single owning GUI submission. This additive C++ hook layout requires consumer rebuilds
+and does not change C/Zig ABI tables.
 
 Strict dynamic reload also requires a distinct loader identity: publish each candidate under a
 unique generation filename. Reopening the active DLL/shared-object handle rejects before calling

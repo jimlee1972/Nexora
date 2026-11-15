@@ -7,7 +7,9 @@ class GameSpriteSession;
 }
 namespace nexora::editor::preview {
 // Optional owner-thread transaction for an embedding with more state than a bare World.
-// begin owns unpublished/retired storage before returning; all remaining hooks do not allocate.
+// begin owns unpublished/retired storage before returning. validate may prepare CPU/native
+// presentation and reject before old code retires; it catches all preparation failures.
+// retire, commit and rollback do not allocate or throw.
 // retire moves identical staged storage into the original Play World address and returns the
 // quarantined old World. Keep both scene providers alive through module callbacks/finalizers.
 // commit runs only after old code retires; rollback runs after rejected candidate code retires.

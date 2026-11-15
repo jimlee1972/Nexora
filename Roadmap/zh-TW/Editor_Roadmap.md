@@ -2513,3 +2513,28 @@ Windows MSVC 揭露兩個測試檔中的四處隱式數值轉換。第一次修�
 551 項、實際 GNU 15 編譯及重新建置的 Monolithic 11 項通過。全部引擎／原生實作
 與 17 個實作／建置／測試檔中的 15 個，維持 `8448806d` 的 14 項關卡基準。
 機器紀錄分開標示來源範圍；合併前仍須取得最終提交的新 CI。
+
+
+## ✅ 設定式 Editor 原生 SDK 原始碼重載（2026-11-15）
+
+支援工作 `nexora-whr.8.3.8` 在舊程式碼退役前，加入完整候選綁定與畫面准入。
+實體與隱藏 pool 參照都必須能解析；含來源的已儲存 SDK 替換，必須先成功提交所屬
+Scene／Sprite／GUI frame，才能發布 World／模組。最後一刻的 scope／artifact 檢查、
+原生準備失敗與例外都保留舊世代。冷啟動／無來源路徑維持原有 dispatch 邊界；
+排隊場景操作與來源重新匯入維持既有 owner，沿用同一 Runtime World、場景／來源 API 與 codec。
+
+新的真實 SDK fixture 明確編碼 80 bytes 純量狀態，重新取得暫態服務表，確認發布後第一個
+Update，並透過正常 watcher／compiler 處理已儲存編輯。驗證獨立來源／pool 與 3D 像素、
+場景／實體／pool 識別、半格動畫時鐘、編譯／準備／還原／reloaded／綁定／Capture 回滾、
+真正退役 Linux image finalizer、過期結果與 Stop 取消。CPU regression 先重現無法解析的
+實體／隱藏 pool 被准入並執行舊清理，再檢查拒絕與原生失敗時的狀態保留。
+整合後完整 Linux **554/554**、零失敗／略過、**4678.26 秒**，全部 **14 項本機 gate**、
+**21 組實際 GNU15 編譯／19 個 translation unit**、完整 Shipping SDK Player 及真正 TwoD-OFF
+拒絕驗證通過。Monolithic graphical Editor／Player、**11 項 CPU** 及三項真正原生 Editor 案例
+全部通過，包含 **33 次真正 SDK 替換**、七種失敗拒絕、五個場景／動畫階段、真正 image
+finalizer、過期結果與 Stop 取消。來源重新匯入維持獨立 **32 輪／70 次發布** 證據。
+Stop driver 順序失敗與早期基底結果分開保留；修正並整合 PR794 後已重跑完整 gate。
+詳見 [執行紀錄](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-EditorNativeReload-Linux-2026-11-15.md)。
+交付前仍須通過同一不可變 own-head CI 與來源／review guard。
+聯合 ED-WF-07/08、Workflow **5/9**、graphical Editor **0/8**、TwoD **9/11** 及實機／
+clean-host 驗收維持未完成／不變；獨立持有的 standalone reload 工作不受影響。

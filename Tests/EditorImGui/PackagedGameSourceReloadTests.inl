@@ -1,9 +1,18 @@
 namespace source_reload {
 using Owner = editor::preview::ReloadablePlayGameplayModule;
 constexpr runtime::AssetUuid nextId{103, 1}, clipId{105, 1};
-enum class Fault { None, Create, Restore, Start, CaptureWrite, CachedOldSource };
+enum class Fault {
+  None,
+  Create,
+  Restore,
+  Start,
+  CaptureWrite,
+  CachedOldSource,
+  UnresolvedEntity,
+  UnresolvedHiddenPool
+};
 Fault fault{};
-unsigned mutations{}, retired_callbacks{};
+unsigned mutations{}, retired_callbacks{}, invalid_binding_writes{}, watched_stops{};
 struct Payload final {
   std::uint64_t version{1}, counter{}, scene{}, entity{};
   NexoraTwoDInstanceHandle pool{};
@@ -16,6 +25,7 @@ struct State final {
   Payload payload;
 };
 State *latest{};
+State *watched_live{};
 NexoraTwoDSourceApiV1 cached_source{};
 runtime::GameProjectPackage AnimatedPackage() {
   auto package = Package();
@@ -111,6 +121,29 @@ int32_t Create(void **output, const NexoraGameplayHostV3 *host) {
 int32_t Start(void *context) {
   auto &state = *static_cast<State *>(context);
   if (state.host.capabilities & NEXORA_GAMEPLAY_CAPABILITY_RELOAD_CANDIDATE) {
+    if (fault == Fault::UnresolvedEntity) {
+      NexoraTwoDSourceSpriteV1 value{};
+      if (state.source.get_sprite(state.source.context, state.payload.entity, &value))
+        return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
+      value.source_high = 999;
+      const auto result =
+          state.source.set_sprite(state.source.context, state.payload.entity, &value);
+      if (!result)
+        ++invalid_binding_writes;
+      return result;
+    }
+    if (fault == Fault::UnresolvedHiddenPool) {
+      NexoraTwoDSourceInstanceV1 value{};
+      if (state.source.read_instances(state.source.context, &state.payload.pool, 1, &value))
+        return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
+      value.sprite.source_high = 999;
+      value.sprite.sprite.flags = 0;
+      const auto result =
+          state.source.write_instances(state.source.context, &state.payload.pool, 1, &value);
+      if (!result)
+        ++invalid_binding_writes;
+      return result;
+    }
     if (fault == Fault::CachedOldSource) {
       NexoraTwoDSourceSpriteV1 value{};
       if (cached_source.get_sprite(cached_source.context, state.payload.entity, &value))
@@ -181,6 +214,8 @@ int32_t Restore(void *context, const void *data, std::uint32_t size) {
 }
 void Stop(void *context) {
   auto &state = *static_cast<State *>(context);
+  if (&state == watched_live)
+    ++watched_stops;
   // These are real cached API writes in candidate/retired callbacks, never direct World edits.
   static_cast<void>(Write(state, 99999));
   static_cast<void>(Change(state, .9375F));
@@ -204,6 +239,124 @@ int32_t Loader(std::uint32_t version, NexoraGameModuleV3 *module) {
   module->on_stop = Stop;
   module->destroy = Destroy;
   return 0;
+}
+void InvalidBindings() {
+  bool rejected_all = true;
+  for (const auto failure : {Fault::UnresolvedEntity, Fault::UnresolvedHiddenPool}) {
+    fault = Fault::None;
+    editor::preview::PackagedPlayContext context(Load(AnimatedPackage()));
+    Check(context
+              .RenderComposed({0, 0, 640, 480}, false,
+                              [](const auto &, const auto &) { return SurfaceStatus::Ready; })
+              .committed,
+          "invalid binding fixture startup");
+    auto &world = context.World().InternalWorld();
+    editor::preview::PlayTwoDBinding binding;
+    binding.game = context.Sprites();
+    Owner owner;
+    Check(owner.Load(world, Loader, {}, binding, context.Scenes().Api(), context.ReloadHooks()) &&
+              latest && owner.Update(0),
+          "invalid binding fixture module");
+    auto *live = latest;
+    watched_live = live;
+    const auto sprites = context.Sprites();
+    const auto before = world.SaveScene(live->payload.scene);
+    const auto generation = owner.Generation();
+    const auto writes = invalid_binding_writes;
+    const auto stops = watched_stops;
+    fault = failure;
+    const bool admitted = owner.Reload(Loader);
+    Check(invalid_binding_writes == writes + 1,
+          "invalid binding fixture did not complete the successful candidate callback");
+    if (admitted) {
+      rejected_all = false;
+      std::cerr << "Invalid candidate admitted: "
+                << (failure == Fault::UnresolvedEntity ? "entity" : "hidden pool")
+                << "; old teardown callbacks=" << watched_stops - stops << '\n';
+    } else {
+      NexoraTwoDSourceInstanceV1 pooled{};
+      Check(owner.Generation() == generation && context.Sprites() == sprites &&
+                watched_stops == stops && world.SaveScene(live->payload.scene) == before &&
+                live->source.read_instances(live->source.context, &live->payload.pool, 1,
+                                            &pooled) == 0 &&
+                pooled.sprite.source_high == sourceId.high,
+            "invalid candidate changed the live World/pool or ran old teardown");
+    }
+    watched_live = nullptr;
+    fault = Fault::None;
+    owner.Unload();
+  }
+  Check(rejected_all, "unresolved entity/hidden-pool candidates passed final reload admission");
+}
+void NativeAdmission() {
+  fault = Fault::None;
+  editor::preview::PackagedPlayContext context(Load(AnimatedPackage()));
+  Check(context
+            .RenderComposed({0, 0, 640, 480}, false,
+                            [](const auto &, const auto &) { return SurfaceStatus::Ready; })
+            .committed,
+        "native admission fixture startup");
+  auto &world = context.World().InternalWorld();
+  editor::preview::PlayTwoDBinding binding;
+  binding.game = context.Sprites();
+  Owner owner;
+  Check(owner.Load(world, Loader, {}, binding, context.Scenes().Api(), context.ReloadHooks()) &&
+            latest && owner.Update(0),
+        "native admission fixture module");
+  auto *live = latest;
+  watched_live = live;
+  const auto before = world.SaveScene(live->payload.scene);
+  const auto sprites = context.Sprites();
+  const auto generation = owner.Generation();
+  const auto stops = watched_stops;
+  const auto pool_owner = live->payload.pool.owner;
+  unsigned draws{};
+  for (const auto status :
+       {SurfaceStatus::Unsupported, SurfaceStatus::InvalidDescriptor, SurfaceStatus::DeviceLost}) {
+    const auto frame = context.RenderReload(
+        {0, 0, 640, 480}, false,
+        [&](const auto &, const twod::SpriteFrame &candidate) {
+          ++draws;
+          Check(watched_stops == stops && context.Sprites() == sprites &&
+                    world.SaveScene(live->payload.scene) == before &&
+                    !candidate.statistics.unavailable && candidate.statistics.visible == 2,
+                "old teardown/publication preceded native candidate admission");
+          return status;
+        },
+        [&] { return owner.Reload(Loader); });
+    Check(frame.rejected && !frame.committed && !frame.drawn && frame.status == status &&
+              owner.Generation() == generation && watched_stops == stops &&
+              context.Sprites() == sprites && world.SaveScene(live->payload.scene) == before,
+          "native rejection changed live code, World or resources");
+  }
+  const auto failed = context.RenderReload(
+      {0, 0, 640, 480}, false,
+      [&](const auto &, const auto &) -> SurfaceStatus {
+        ++draws;
+        throw std::runtime_error("native admission failure");
+      },
+      [&] { return owner.Reload(Loader); });
+  Check(failed.rejected && !failed.drawn && owner.Generation() == generation &&
+            watched_stops == stops && context.Sprites() == sprites &&
+            world.SaveScene(live->payload.scene) == before,
+        "native preparation exception escaped or changed the live generation");
+  const auto accepted = context.RenderReload(
+      {0, 0, 640, 480}, true,
+      [&](const auto &scene, const auto &candidate) {
+        ++draws;
+        Check(watched_stops == stops && context.Sprites() == sprites && scene.retainMeshGeometry &&
+                  !candidate.statistics.unavailable,
+              "accepted native draw followed old retirement");
+        return SurfaceStatus::Ready;
+      },
+      [&] { return owner.Reload(Loader); });
+  Check(draws == 5 && accepted.committed && accepted.drawn && !accepted.rejected &&
+            accepted.visible_sprites == 2 && owner.Generation() == generation + 1 &&
+            watched_stops == stops + 2 && context.Sprites() != sprites &&
+            latest->payload.pool.owner == pool_owner,
+        "native success did not publish exactly once after admission");
+  watched_live = nullptr;
+  owner.Unload();
 }
 void Run() {
   editor::preview::PackagedPlayContext context(Load(AnimatedPackage()));

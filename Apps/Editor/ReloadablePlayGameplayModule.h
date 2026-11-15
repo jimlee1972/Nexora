@@ -117,8 +117,14 @@ public:
       return false;
     }
     // Both result owners remain alive until Runtime finishes candidate/old DLL finalizers.
+    admitting_prepared_ = &prepared;
+    struct Reset final {
+      const PreparedGameScript *&candidate;
+      ~Reset() { candidate = nullptr; }
+    } reset{admitting_prepared_};
     if (!module_->Reload(prepared.Library())) {
-      error = "Gameplay replacement rejected; the previous module and state remain active.";
+      if (error.empty())
+        error = "Gameplay replacement rejected; the previous module and state remain active.";
       return false;
     }
     prepared_.emplace(std::move(prepared));
@@ -127,6 +133,11 @@ public:
   } catch (...) {
     error = "Gameplay replacement preparation failed; the previous module remains active.";
     return false;
+  }
+  // Only the synchronous owner-frame presenter may inspect this borrow. This does not enter
+  // Runtime (whose reload mutex is already held) and checks the owning compiler artifact again.
+  [[nodiscard]] bool ReloadCandidateCurrent(std::string *error) const {
+    return admitting_prepared_ && admitting_prepared_->Current(error);
   }
   [[nodiscard]] ReloadFailure GetReloadFailure() const noexcept {
     return admission_failure_ != ReloadFailure::None ? admission_failure_
@@ -370,9 +381,10 @@ private:
   } catch (...) {
     return false;
   }
-  bool Validate() noexcept {
+  bool Validate() noexcept try {
     if (!candidate_ || !candidate_->gate_.Valid() || !active_->gate_.Valid() ||
-        !candidate_->scenes_.RebindForReload(*candidate_->world_))
+        !candidate_->scenes_.RebindForReload(*candidate_->world_) ||
+        (admitting_prepared_ && !admitting_prepared_->Current(nullptr)))
       return false;
 #if defined(NEXORA_HAS_2D)
     if (candidate_->two_d_ && (!candidate_->two_d_->PrepareReloadCommit() ||
@@ -380,6 +392,8 @@ private:
       return false;
 #endif
     return !world_reload_.Complete() || world_reload_.validate(world_reload_.context);
+  } catch (...) {
+    return false;
   }
   void Rollback() noexcept {
     Release(candidate_); // Runtime already destroyed candidate code and library finalizers.
@@ -460,6 +474,7 @@ private:
   std::unique_ptr<runtime::World> candidate_world_, retired_world_;
   std::unique_ptr<runtime::GameplayModuleHost> module_;
   std::optional<PreparedGameScript> prepared_;
+  const PreparedGameScript *admitting_prepared_{};
   AllocationSnapshot last_{};
   AllocationSnapshot history_{};
   std::uint64_t teardowns_{};
