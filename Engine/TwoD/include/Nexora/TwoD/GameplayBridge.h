@@ -34,7 +34,7 @@ public:
   // Owner-thread unpublished branch over identical cloned World/scene/pool/tile state.
   // Copies camera, animation clocks and query snapshots, plus the host-owned clip resolver.
   // All borrowed owners/resolver captures outlive this branch; allocation may throw.
-  // These single-scene operations reject catalog-backed bridges without changing either owner.
+  // These single-scene operations reject scene-session/main-game bridges without changing owners.
   [[nodiscard]] std::unique_ptr<GameplayBridge> ForkForReload(runtime::World &, SpriteScene &,
                                                               Tilemap * = nullptr,
                                                               InstancePool * = nullptr) const;

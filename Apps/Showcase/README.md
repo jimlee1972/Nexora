@@ -482,6 +482,9 @@ final-step, paused Runtime state. Fresh scene-reload, pre-replay, replayed-tour 
 JSON/Markdown snapshots are retained. F5 must preserve the edited transform and clear Undo;
 R must reset elapsed time and tour step. Each export clears previous files, and the final Lab
 checks require the sampled M5 empty-asset and M6 ABI-rejection inputs and outputs.
+The owning snapshot reader retains JSON, Markdown and the decoded state together; the export
+consumer returns that state and saves those same strings. Its regression exercises the actual
+reader and consumer, including the fresh X request, stale-file removal and exact scene evidence.
 `interaction_checks` records the scripted controls and captures; these do not replace pixel tests,
 image review or CTest. Windows PowerShell 5 now resolves the default package root in the script
 body, so invoking the packaged script without `-PackageRoot` works.

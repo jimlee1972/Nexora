@@ -68,3 +68,14 @@ The machine receipt records every gate command/log hash, actual compiler argv, b
 receipts/captures, SDK Build commands/inventories, full LastTest hash and exact source hashes.
 No native Windows/macOS/Android/iOS execution is claimed from this Linux computer; hosted
 platform checks are separate and all must pass before the agent's PR can merge.
+
+## Integration boundary after original acceptance
+
+The original `08498a00` / `bdb6ba74` generation subsequently passed all 41 exact-head hosted
+checks on their first attempts. PR #790 was then externally updated/merged as `30fcf6fd` with
+head `0d439a77`, including other main-line changes; the original agent's final guard detected
+that different tree before performing any merge. Its new GNU15/MSVC builds fail at the World
+pointer conversion, and further comparison finds missing bridge-copy/fork implementations and
+an incompatible private pool-copy consumer. Original success is not combined-tree acceptance.
+[Integration repair evidence](ED-WF-08-MainGameIntegration-Linux-2026-11-14.md) tracks
+`nexora-whr.8.3.5`; feature task `nexora-whr.8.3.4` remains open pending that repair's validation.

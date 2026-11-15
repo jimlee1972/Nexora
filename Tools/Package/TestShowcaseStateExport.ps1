@@ -1,15 +1,16 @@
 $ErrorActionPreference = 'Stop'
-# Load the actual self-contained packaged script's reader without launching its Windows app.
+# Load the actual packaged reader and its consumer without launching the Windows app.
 $tokens = $null; $parseErrors = $null
 $ast = [Management.Automation.Language.Parser]::ParseFile(
     (Join-Path $PSScriptRoot 'AcceptShowcaseWindows.ps1'), [ref]$tokens, [ref]$parseErrors)
 if ($parseErrors.Count) { throw ($parseErrors | Out-String) }
-$reader = @($ast.FindAll({ param($node)
-    $node -is [Management.Automation.Language.FunctionDefinitionAst] -and
-        $node.Name -eq 'Read-ShowcaseStateSnapshot'
-}, $true))
-if ($reader.Count -ne 1) { throw 'Expected exactly one production snapshot reader.' }
-. ([ScriptBlock]::Create($reader[0].Extent.Text))
+foreach ($name in @('Read-ShowcaseStateSnapshot', 'Clear-StateOutput', 'Export-State', 'Require')) {
+    $definition = @($ast.FindAll({ param($node)
+        $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name
+    }, $true))
+    if ($definition.Count -ne 1) { throw "Expected exactly one production function: $name" }
+    . ([ScriptBlock]::Create($definition[0].Extent.Text))
+}
 Add-Type -TypeDefinition @'
 using System;
 using System.IO;
@@ -83,7 +84,41 @@ try {
         catch { $rejected = $_.Exception.Message.StartsWith('Fresh Runtime state export is missing or incomplete:') }
         if (-not $rejected) { throw 'Missing/empty Markdown was accepted.' }
     }
-    Write-Host 'PASS actual snapshot reader: sharing race, complete publication, owning evidence and eight invalid/incomplete states.'
+    # Exercise the production Export-State consumer, including its physical-input request boundary.
+    # The fake key sink publishes fixture files; the production reader and consumer stay intact.
+    $staged = Join-Path $temporary 'staged'
+    $evidence = Join-Path $temporary 'evidence'
+    [IO.Directory]::CreateDirectory($staged) | Out-Null
+    [IO.Directory]::CreateDirectory($evidence) | Out-Null
+    $exportJson = Join-Path $staged 'showcase-lab.json'
+    $exportMarkdown = Join-Path $staged 'showcase-lab.md'
+    $exportContent = '{"schema":"nexora.showcase.rooms.v1","selected":"scene","ticks":321,"reloads":1,"lines":["Last action: Scene snapshot reload","Inspector Transform.x = 0.50 / Undo depth 0"]}'
+    $keys = [Collections.Generic.List[int]]::new()
+    function Press-Key([int]$key) {
+        $keys.Add($key)
+        if ($key -eq 88) {
+            if ((Test-Path -LiteralPath $exportJson) -or (Test-Path -LiteralPath $exportMarkdown)) {
+                throw 'Export-State did not discard both prior exports before requesting a fresh one.'
+            }
+            [IO.File]::WriteAllText($exportJson, $exportContent)
+            [IO.File]::WriteAllText($exportMarkdown, "# Exported scene`n")
+        }
+    }
+    [IO.File]::WriteAllText($exportJson, '{"ticks":999}')
+    [IO.File]::WriteAllText($exportMarkdown, 'stale')
+    $exported = Export-State 'scene-reload-state'
+    if ($null -eq $exported -or $exported.selected -ne 'scene' -or $exported.ticks -ne 321 -or
+        $exported.reloads -ne 1 -or
+        $exported.lines -notcontains 'Last action: Scene snapshot reload' -or
+        $exported.lines -notcontains 'Inspector Transform.x = 0.50 / Undo depth 0') {
+        throw 'Export-State did not return the fresh scene state from the owning reader wrapper.'
+    }
+    if (($keys -join ',') -ne '114,88,114' -or
+        [IO.File]::ReadAllText((Join-Path $evidence 'scene-reload-state.json')) -cne $exportContent -or
+        [IO.File]::ReadAllText((Join-Path $evidence 'scene-reload-state.md')) -cne "# Exported scene`n") {
+        throw 'Export-State changed the input sequence or failed to retain exact owning evidence.'
+    }
+    Write-Host 'PASS actual snapshot reader and Export-State consumer: sharing race, fresh request, exact owning evidence and eight invalid/incomplete states.'
 } finally {
     [NexoraSnapshotPublisher]::Complete.Set()
     if ($null -ne $writer) { $writer.GetAwaiter().GetResult() }

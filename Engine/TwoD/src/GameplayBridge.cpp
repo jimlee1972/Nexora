@@ -124,8 +124,9 @@ struct GameplayBridge::State {
         clips(std::move(resolve)), tiles(nullptr), pool(p),
         indices{SpatialIndex{4}, SpatialIndex{4}} {}
   State(runtime::World &w, GameSpriteSession &s, ClipResolver resolve, InstancePool *p)
-      : world(w), game(&s), revision(s.Revision()), primary(s.Primary()), clips(std::move(resolve)),
-        tiles(nullptr), pool(p), indices{SpatialIndex{4}, SpatialIndex{4}} {}
+      : world(&w), game(&s), revision(s.Revision()), primary(s.Primary()),
+        clips(std::move(resolve)), tiles(nullptr), pool(p),
+        indices{SpatialIndex{4}, SpatialIndex{4}} {}
   SpriteScene *Scene(runtime::Id entity) const {
     return game ? game->FindEntity(entity) : session ? session->FindEntity(entity) : scene;
   }
@@ -670,9 +671,43 @@ GameplayBridge::GameplayBridge(runtime::World &world, GameSpriteSession &session
 bool GameplayBridge::CanStage() const noexcept {
   return state_->thread == std::this_thread::get_id() && !state_->entered;
 }
+void GameplayBridge::CopyStagedState(GameplayBridge &destination) const {
+  auto &target = *destination.state_;
+  target.clips = state_->clips;
+  target.revision = state_->revision;
+  target.primary = state_->primary;
+  target.camera = state_->camera;
+  target.animations = state_->animations;
+  target.indices = state_->indices;
+  target.ready = state_->ready;
+}
+std::unique_ptr<GameplayBridge> GameplayBridge::ForkForReload(runtime::World &world,
+                                                              SpriteScene &scene, Tilemap *tiles,
+                                                              InstancePool *pool) const {
+  if (state_->thread != std::this_thread::get_id() || state_->entered || state_->session ||
+      state_->game)
+    return {};
+  const auto *record = world.FindScene(scene.SceneId());
+  if (&world == state_->world || &scene == state_->scene ||
+      state_->world->Kind() != runtime::WorldKind::Play ||
+      world.Kind() != runtime::WorldKind::Play || &scene.WorldOwner() != &world ||
+      scene.SceneId() != state_->scene->SceneId() || bool(tiles) != bool(state_->tiles) ||
+      bool(pool) != bool(state_->pool) || (tiles && tiles == state_->tiles) ||
+      (pool && (pool == state_->pool || pool->owner_ != state_->pool->owner_)) || !record ||
+      record->state == runtime::SceneState::Unloaded ||
+      record->state == runtime::SceneState::Unloading)
+    return {};
+  auto branch = std::make_unique<GameplayBridge>(world, scene, state_->clips, tiles, pool);
+  branch->state_->camera = state_->camera;
+  branch->state_->animations = state_->animations;
+  branch->state_->indices = state_->indices;
+  branch->state_->ready = state_->ready;
+  return branch;
+}
 bool GameplayBridge::RebindForReload(runtime::World &world, SpriteScene &scene, Tilemap *tiles,
                                      InstancePool *pool) noexcept {
-  if (state_->thread != std::this_thread::get_id() || state_->entered || state_->session)
+  if (state_->thread != std::this_thread::get_id() || state_->entered || state_->session ||
+      state_->game)
     return false;
   const auto *record = world.FindScene(scene.SceneId());
   if (state_->world->Kind() != runtime::WorldKind::Play ||

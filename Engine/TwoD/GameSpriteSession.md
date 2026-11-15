@@ -76,6 +76,10 @@ game through the actual Editor producer, deletes original sources, relocates the
 path and exercises real D/W/S/A input across five exact native source/pool masks. A separately
 built source-free game's central 80x80 3D region stays exact, and SDK Stop/Destroy drains the pool.
 
+The bridge rejects the single-scene `ForkForReload` and `RebindForReload` operations before
+accessing single-scene metadata. Rejection preserves this Runtime World, stable API context,
+source/animation values and pool handles; it does not provide a main Game reload transaction.
+
 This adopts the main native Player only. Configured packaged Editor Play adoption, source watching/
 publication and complete strict Editor/Player reload with 32 real replacements remain separate
 parent work. No reload command/transaction is added by this adapter, and existing module-state-only

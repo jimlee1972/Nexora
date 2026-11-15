@@ -63,7 +63,8 @@ private:
 // Stable owner-thread proxy for a known C wire table. Only explicitly bound callbacks are
 // advertised. Provider/context redirection never changes a cached proxy table's context.
 // Gate, proxy and provider owners outlive every module callback/library finalizer using them.
-template <class Api> class PlayApiProxy final {
+// A specialized owner may extend Get while retaining this base subobject as its C context.
+template <class Api> class PlayApiProxy {
 public:
   PlayApiProxy(PlayServiceGate &gate, Api provider) noexcept : gate_(gate), provider_(provider) {
     static_assert(std::is_standard_layout_v<Api>);

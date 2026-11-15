@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cstring>
 #include <functional>
 #include <stdexcept>
 #include <unordered_set>
@@ -178,7 +179,7 @@ class PlayTwoDServices final {
 public:
   static std::unique_ptr<PlayTwoDServices> Bind(runtime::World &world,
                                                 const PlayTwoDBinding &binding, bool native = false,
-                                                PlayServiceGate *gate = nullptr) {
+                                                PlayServiceGate *gate = nullptr) try {
     // Fresh binding is initial-Play work, never a substitute for a reload resource fork.
     if (gate && !gate->Check(true, true))
       return {};
@@ -186,7 +187,30 @@ public:
     if (world.Kind() != runtime::WorldKind::Play || !scene ||
         scene->state != runtime::SceneState::Active || !binding.assets || !binding.assets->Assets())
       return {};
-    return std::unique_ptr<PlayTwoDServices>(new PlayTwoDServices(world, binding, native, gate));
+    std::vector<PlayTwoDBinding::SourceSprite> references;
+    if (binding.authoring) {
+      if (binding.authoring->scene != binding.scene ||
+          scene->entities.size() > SceneDocument::kMaximumRuntimeCaptureEntities)
+        return {};
+      const auto current =
+          world.SaveScene(binding.scene, SceneDocument::kMaximumRuntimeCaptureBytes);
+      if (!current || *current != binding.authoring->runtime_snapshot)
+        return {};
+      std::string error;
+      auto captured = CapturePlaySourceReferences(*binding.authoring, error);
+      if (!captured)
+        return {};
+      references = std::move(*captured);
+    }
+    std::unordered_set<runtime::Id> entities;
+    for (const auto &reference : references)
+      if (!reference.entity || !entities.insert(reference.entity).second ||
+          !binding.assets->Assets()->SpriteSource(reference.source))
+        return {};
+    return std::unique_ptr<PlayTwoDServices>(
+        new PlayTwoDServices(world, binding, references, native, gate));
+  } catch (...) {
+    return {};
   }
   // Called after dispatch/work drains, with an identical unpublished World clone. No fresh
   // Bind, device open, focus handshake, default bindings or native texture allocation occurs.
@@ -243,9 +267,16 @@ public:
     return false;
   }
   int32_t GetApi(NexoraTwoDApiV1 *output) noexcept {
-    const auto result = bridge_->GetApi(output);
-    if (result == NEXORA_GAMEPLAY_OK)
-      *output = twod_proxy_->Get();
+    if (!output)
+      return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+    NexoraTwoDApiV1 admitted{};
+    admitted.struct_size = output->struct_size;
+    const auto result = bridge_->GetApi(&admitted);
+    if (result == NEXORA_GAMEPLAY_OK) {
+      auto api = twod_proxy_->Get();
+      api.struct_size = admitted.struct_size;
+      std::memcpy(output, &api, admitted.struct_size);
+    }
     return result;
   }
   int32_t GetServices(NexoraGameplayServicesApiV1 *output) noexcept {
@@ -500,6 +531,39 @@ public:
   }
 
 private:
+  // The parent wire keeps its proxy context. Its source getter reaches this same owner and
+  // returns a second phase-guarded table; no callback leaks a raw bridge context.
+  struct TwoDProxy final : PlayApiProxy<NexoraTwoDApiV1> {
+    using Base = PlayApiProxy<NexoraTwoDApiV1>;
+    TwoDProxy(PlayServiceGate &gate, NexoraTwoDApiV1 provider, PlayTwoDServices &owner)
+        : Base(gate, provider), owner_(owner) {}
+    [[nodiscard]] NexoraTwoDApiV1 Get() const noexcept {
+      auto api = Base::Get();
+      api.get_source_api = [](void *context, NexoraTwoDSourceApiV1 *output) noexcept -> int32_t {
+        if (!context)
+          return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+        auto *base = static_cast<Base *>(context);
+        return static_cast<TwoDProxy *>(base)->owner_.GetSourceApi(output);
+      };
+      return api;
+    }
+    PlayTwoDServices &owner_;
+  };
+  int32_t GetSourceApi(NexoraTwoDSourceApiV1 *output) noexcept {
+    if (!gate_.Check(false, false))
+      return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
+    if (!output)
+      return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+    NexoraTwoDSourceApiV1 admitted{};
+    admitted.struct_size = output->struct_size;
+    const auto result = bridge_->GetSourceApi(&admitted);
+    if (result == NEXORA_GAMEPLAY_OK) {
+      auto api = source_proxy_->Get();
+      api.struct_size = admitted.struct_size;
+      std::memcpy(output, &api, admitted.struct_size);
+    }
+    return result;
+  }
   struct ReloadBranch final {};
   PlayTwoDServices(ReloadBranch, const PlayTwoDServices &source, runtime::World &world,
                    PlayServiceGate &gate)
@@ -535,7 +599,12 @@ private:
     twod.struct_size = sizeof(twod);
     if (bridge_->GetApi(&twod) != NEXORA_GAMEPLAY_OK)
       throw std::runtime_error("Play 2D proxy unavailable");
-    twod_proxy_.emplace(gate_, twod);
+    NexoraTwoDSourceApiV1 sources{};
+    sources.struct_size = sizeof(sources);
+    if (bridge_->GetSourceApi(&sources) != NEXORA_GAMEPLAY_OK)
+      throw std::runtime_error("Play source proxy unavailable");
+    twod_proxy_.emplace(gate_, twod, *this);
+    source_proxy_.emplace(gate_, sources);
     input_proxy_.emplace(gate_, services_.input);
     ui_proxy_.emplace(gate_, services_.ui);
     audio_proxy_.emplace(gate_, services_.audio);
@@ -564,6 +633,14 @@ private:
     NX_TWOD_PROXY(read_instances, false);
     NX_TWOD_PROXY(write_instances, true);
 #undef NX_TWOD_PROXY
+#define NX_SOURCE_PROXY(field, writes)                                                             \
+  NX_PLAY_PROXY(source_proxy_, NexoraTwoDSourceApiV1, field, writes, false)
+    NX_SOURCE_PROXY(set_sprite, true);
+    NX_SOURCE_PROXY(get_sprite, false);
+    NX_SOURCE_PROXY(create_instances, true);
+    NX_SOURCE_PROXY(read_instances, false);
+    NX_SOURCE_PROXY(write_instances, true);
+#undef NX_SOURCE_PROXY
 #define NX_INPUT_PROXY(field, writes)                                                              \
   NX_PLAY_PROXY(input_proxy_, NexoraGameplayInputApiV1, field, writes, false)
     NX_INPUT_PROXY(read_action, false);
@@ -606,7 +683,8 @@ private:
     services_.audio = audio_proxy_->Get();
     services_.storage = storage_proxy_->Get();
   }
-  PlayTwoDServices(runtime::World &world, const PlayTwoDBinding &binding, bool native,
+  PlayTwoDServices(runtime::World &world, const PlayTwoDBinding &binding,
+                   std::span<const PlayTwoDBinding::SourceSprite> references, bool native,
                    PlayServiceGate *gate)
       : gate_(gate ? *gate : local_gate_), assets_(binding.assets->Assets()),
         scene_(std::make_unique<twod::SpriteScene>(world, binding.scene)),
@@ -615,6 +693,14 @@ private:
             world, *scene_, [assets = assets_](auto id) { return assets->Clip(id); }, nullptr,
             pool_.get())),
         native_(native) {
+    // Publish only into this private owner, before input/audio/storage or module callbacks.
+    // Immutable capture validated the Atlas closure once; Set validates the live scene member.
+    for (const auto &reference : references) {
+      twod::Sprite sprite;
+      sprite.source = reference.source;
+      if (!scene_->Set(reference.entity, sprite))
+        throw std::runtime_error("Authored Play Sprite entity is unavailable");
+    }
     services_.input = input_->Api();
     services_.audio = audio_->Api();
     services_.ui.struct_size = sizeof(services_.ui);
@@ -664,7 +750,8 @@ private:
   twod::GameplayUiFrame ui_frame_;
   std::shared_ptr<runtime::GameplayStorage> storage_;
   runtime::GameplayServices services_;
-  std::optional<PlayApiProxy<NexoraTwoDApiV1>> twod_proxy_;
+  std::optional<TwoDProxy> twod_proxy_;
+  std::optional<PlayApiProxy<NexoraTwoDSourceApiV1>> source_proxy_;
   std::optional<PlayApiProxy<NexoraGameplayInputApiV1>> input_proxy_;
   std::optional<PlayApiProxy<NexoraGameplayUiApiV1>> ui_proxy_;
   std::optional<PlayApiProxy<NexoraGameplayAudioApiV1>> audio_proxy_;

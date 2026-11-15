@@ -177,6 +177,27 @@ void Run() {
   NexoraTwoDInstanceHandle handle{};
   Check(sources.create_instances(sources.context, &pooled, 1, &handle) == 0 && handle.owner,
         "main source pool creation");
+  // The main Game router is not a single-scene reload owner, even with valid cloned inputs.
+  auto cloned_world = world;
+  twod::SpriteScene cloned_scene(cloned_world, level_scene);
+  auto cloned_pool = sprites.Pool().ForkForReload();
+  const auto revision = sprites.Revision();
+  NexoraTwoDApiV1 rebound_api{};
+  rebound_api.struct_size = sizeof(rebound_api);
+  NexoraTwoDSourceInstanceV1 retained_pool{};
+  Check(
+      cloned_pool &&
+          !sprites.Bridge().ForkForReload(cloned_world, cloned_scene, nullptr, cloned_pool.get()) &&
+          !sprites.Bridge().RebindForReload(cloned_world, cloned_scene, nullptr,
+                                            cloned_pool.get()) &&
+          sprites.Available() && sprites.Revision() == revision &&
+          sprites.Bridge().GetApi(&rebound_api) == 0 && rebound_api.context == api.context &&
+          &sprites.FindEntity(entity)->WorldOwner() == &world &&
+          world.WorldMatrix(entity) == matrix &&
+          Read(sources, entity).source_high == second_id.high &&
+          sources.read_instances(sources.context, &handle, 1, &retained_pool) == 0 &&
+          retained_pool.sprite.source_high == second_id.high,
+      "single-scene reload changed the main Game World/animation/pool owner");
   auto frame = sprites.Extract(960, 640);
   Check(frame && frame->statistics.input == 2 && frame->statistics.visible == 2,
         "live pool missing from main extraction");
