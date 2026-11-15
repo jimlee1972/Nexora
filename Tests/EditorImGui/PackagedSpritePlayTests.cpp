@@ -1,9 +1,12 @@
 #include "../Runtime/GameSceneFixture.h"
 #include "Nexora/Editor/SpriteSourceCatalog.h"
 #include "PackagedPlayContext.h"
+#include "PackagedSpriteReimport.h"
 #include "PackagedSpriteTextures.h"
 #include "ReloadablePlayGameplayModule.h"
+#include <chrono>
 #include <cstring>
+#include <fstream>
 #include <iostream>
 
 namespace {
@@ -165,12 +168,14 @@ void Malformed() {
   Check(rejected, "typed malformed source admitted before Play");
 }
 #include "PackagedGameSourceReloadTests.inl"
+#include "PackagedSpriteReimportTests.inl"
 } // namespace
 int main() {
   try {
     Lifecycle();
     Malformed();
     source_reload::Run();
+    source_reimport::Run();
     std::cout
         << "Packaged Sprite complete admission, deferred World publication, retained rollback, "
            "Additive/Replace and 32 owner retirements passed\n";

@@ -406,12 +406,140 @@ void MissingAssets() {
             sprites.Revision() == 0 && scenes.View().instances.empty(),
         "missing frozen source admitted a startup World/metadata generation");
 }
+void SourceReimport() {
+  const auto project = Project();
+  game::GameWorld game{runtime::WorldKind::Play};
+  runtime::GameSceneSession scenes(game, project);
+  twod::GameSpriteSession sprites(game.InternalWorld(),
+                                  *twod::GameSpriteAssets::Load(project->SpriteAssets()), 4);
+  std::uint64_t request{};
+  Check(scenes.RequestLoad(project->StartupScene(), runtime::GameSceneLoadMode::Replace, false,
+                           request) == runtime::GameSceneError::None &&
+            scenes.Process([&](const auto &view, std::string &error) {
+              return sprites.Prepare(view, &error);
+            }),
+        "source reimport startup");
+  const auto entity = SpriteEntity(scenes.View().instances.front());
+  NexoraTwoDApiV1 api{};
+  api.struct_size = sizeof(api);
+  Check(sprites.Bridge().GetApi(&api) == 0, "reimport parent API");
+  NexoraTwoDSourceApiV1 source_api{};
+  source_api.struct_size = sizeof(source_api);
+  Check(api.get_source_api(api.context, &source_api) == 0, "reimport source API");
+  auto styled = Read(source_api, entity);
+  styled.sprite.flags |= 1;
+  styled.sprite.color[0] = .5F;
+  Check(source_api.set_sprite(source_api.context, entity, &styled) == 0, "reimport styling");
+  NexoraTwoDSourceInstanceV1 instance{};
+  instance.transform.rotation.w = 1;
+  instance.transform.scale = {-1, 1, 1};
+  instance.sprite = styled;
+  NexoraTwoDInstanceHandle handle{};
+  Check(source_api.create_instances(source_api.context, &instance, 1, &handle) == 0,
+        "reimport pooled object");
+  auto *const pooled = sprites.Pool().Find({handle.owner, handle.index, handle.generation});
+  const auto world = game.InternalWorld().SaveScene(scenes.View().primary);
+  auto blobs = std::vector(project->SpriteAssets().begin(), project->SpriteAssets().end());
+  std::string error;
+  for (unsigned cycle = 0; cycle < 32; ++cycle) {
+    const auto source = std::ranges::find(blobs, first_id, &runtime::RuntimeBlob::id);
+    auto changed = *twod::DecodeSpriteAsset(source->payload);
+    changed.pivotX = cycle % 2 ? 2.0F : 3.0F;
+    *source =
+        testscene::Cook(first_id, "sprite_source", twod::EncodeSpriteAsset(changed), {atlas_id});
+    auto atlas = std::ranges::find(blobs, atlas_id, &runtime::RuntimeBlob::id);
+    auto pixels = *twod::DecodeAtlas(atlas->payload);
+    pixels.rgba[0] = static_cast<std::byte>(cycle);
+    *atlas = testscene::Cook(atlas_id, "sprite_atlas", twod::EncodeAtlas(pixels));
+    Check(api.play_animation(api.context, entity, clip_id.high, clip_id.low, 1) == 0,
+          "reimport animation start");
+    std::array<NexoraTwoDEvent, 4> events{};
+    NexoraTwoDAnimationResult result{};
+    Check(api.advance_animation(api.context, entity, .125, events.data(),
+                                static_cast<std::uint32_t>(events.size()), &result) == 0,
+          "reimport half-frame clock");
+    const auto revision = sprites.Revision();
+    auto previous = sprites.Assets().ResolveAtlas(atlas_id);
+    std::weak_ptr<const twod::Atlas> retired = previous;
+    auto candidate = sprites.PrepareSources(blobs, &error);
+    Check(candidate && !sprites.Available() && sprites.Revision() == revision &&
+              sprites.Assets().ResolveAtlas(atlas_id) == previous &&
+              !sprites.PrepareSources(blobs) && !sprites.RebindForReload(game.InternalWorld()),
+          "source preparation published early or allowed nested owner mutation");
+    NexoraTwoDSourceSpriteV1 untouched{};
+    untouched.source_high = 999;
+    Check(source_api.get_sprite(source_api.context, entity, &untouched) ==
+                  NEXORA_GAMEPLAY_ERROR_LIFECYCLE &&
+              untouched.source_high == 999 &&
+              source_api.set_sprite(source_api.context, entity, &styled) ==
+                  NEXORA_GAMEPLAY_ERROR_LIFECYCLE,
+          "source preparation did not freeze bridge calls/outputs");
+    const auto frame = candidate->Extract(960, 640);
+    Check(frame && frame->statistics.input == 2 && !frame->statistics.unavailable &&
+              candidate->Assets().ResolveAtlas(atlas_id)->rgba[0] == static_cast<std::byte>(cycle),
+          "candidate did not use the new source/Atlas catalog");
+    candidate.reset(); // Rejected native admission must not consume half a frame or replace assets.
+    Check(sprites.Available() && sprites.Revision() == revision &&
+              sprites.Assets().ResolveAtlas(atlas_id) == previous,
+          "discarded source preparation changed the live catalog");
+    candidate = sprites.PrepareSources(blobs, &error);
+    Check(bool(candidate), error.c_str());
+    candidate->Commit();
+    candidate.reset();
+    previous.reset();
+    Check(retired.expired(), "bridge retained a superseded decoded Atlas generation");
+    NexoraTwoDSourceInstanceV1 read{};
+    Check(sprites.Revision() == revision + 1 && sprites.Available() &&
+              sprites.Pool().Find({handle.owner, handle.index, handle.generation}) == pooled &&
+              source_api.read_instances(source_api.context, &handle, 1, &read) == 0 &&
+              read.sprite.source_high == first_id.high && read.sprite.sprite.color[0] == .5F &&
+              game.InternalWorld().SaveScene(scenes.View().primary) == world &&
+              api.advance_animation(api.context, entity, .125, events.data(),
+                                    static_cast<std::uint32_t>(events.size()), &result) == 0 &&
+              Read(source_api, entity).source_high == second_id.high &&
+              Read(source_api, entity).sprite.color[0] == .5F,
+          "source publication reset clock/style/World/pool storage or handles");
+  }
+  const auto atlas = sprites.Assets().ResolveAtlas(atlas_id);
+  auto bad = blobs;
+  bad.erase(std::ranges::find(bad, atlas_id, &runtime::RuntimeBlob::id));
+  Check(!sprites.PrepareSources(bad, &error) && !error.empty(),
+        "missing reimport closure admitted");
+  bad = blobs;
+  const auto clip = std::ranges::find(bad, clip_id, &runtime::RuntimeBlob::id);
+  auto changed_clip = *twod::DecodeClip(clip->payload);
+  changed_clip.frames[0].seconds = .5;
+  *clip = testscene::Cook(clip_id, "sprite_clip", twod::EncodeClip(changed_clip),
+                          twod::ClipDependencies(changed_clip));
+  Check(!sprites.PrepareSources(bad, &error) && error.find("restart Play") != std::string::npos,
+        "Clip migration was silently admitted as a source reimport");
+  const auto saved = *pooled;
+  pooled->sprite.source.reset();
+  pooled->sprite.atlas = atlas_id;
+  pooled->sprite.region = 999;
+  pooled->sprite.visible = false;
+  Check(!sprites.PrepareSources(blobs, &error) && error.find("pooled") != std::string::npos,
+        "hidden unresolved pooled binding admitted");
+  *pooled = saved;
+  bool rejected{};
+  std::thread foreign([&] { rejected = !sprites.PrepareSources(blobs); });
+  foreign.join();
+  Check(rejected && sprites.Assets().ResolveAtlas(atlas_id) == atlas,
+        "foreign source preparation accessed/published assets");
+  sprites.Pool().ForEach([&](auto &) {
+    Check(!sprites.PrepareSources(blobs), "source reimport entered a pool update");
+  });
+  auto candidate = sprites.PrepareSources(blobs, &error);
+  Check(candidate && candidate->Assets().ResolveAtlas(atlas_id) == atlas,
+        "unchanged Atlas did not reuse its immutable owner");
+}
 } // namespace
 int main() {
   try {
     Run();
     ReloadBranches();
     MissingAssets();
+    SourceReimport();
     std::cout << "Main game mutable source/animation/pool, scene preparation and rollback passed\n";
     return 0;
   } catch (const std::exception &error) {

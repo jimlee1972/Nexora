@@ -42,6 +42,8 @@ inline std::string ProjectAssetWorkflowEvidence(const imgui::EditorImGuiHost &ui
       for (const unsigned char byte : value)
         out << digits[byte >> 4] << digits[byte & 15];
     };
+    out << " error_hex=";
+    hex(content->LastError());
     for (const auto &item : browser.Items()) {
       if (item.path.extension() != ".scene")
         continue;

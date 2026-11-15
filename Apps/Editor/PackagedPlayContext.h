@@ -33,8 +33,10 @@ public:
     sprite_assets_ = twod::GameSpriteAssets::Load(project_->SpriteAssets(), &error);
     if (!sprite_assets_)
       throw std::runtime_error(error);
-    if (!project_->SpriteAssets().empty())
+    if (!project_->SpriteAssets().empty()) {
       sprites_ = std::make_unique<twod::GameSpriteSession>(world_.InternalWorld(), *sprite_assets_);
+      sprite_assets_.reset();
+    }
 #else
     if (!project_->SpriteAssets().empty())
       throw std::runtime_error("Configured Sprite Play requires TwoD support.");
@@ -99,11 +101,62 @@ public:
   [[nodiscard]] bool HasSprites() const noexcept { return !project_->SpriteAssets().empty(); }
 #if defined(NEXORA_HAS_2D)
   [[nodiscard]] const twod::GameSpriteAssets &SpriteAssets() const noexcept {
-    return *sprite_assets_;
+    return sprites_ ? sprites_->Assets() : *sprite_assets_;
   }
   [[nodiscard]] twod::GameSpriteSession *Sprites() const noexcept { return sprites_.get(); }
   using CompositeDraw = std::function<Nexora::Presentation::SurfaceStatus(
       const Nexora::Presentation::SceneDrawData &, const twod::SpriteFrame &)>;
+  [[nodiscard]] std::unique_ptr<twod::GameSpriteSession::PreparedSources>
+  PrepareSourceUpdate(std::span<const runtime::RuntimeBlob> blobs, std::string *error) {
+    if (!Ready() || !scenes_->Owner() || staged_world_ || !sprites_) {
+      if (error)
+        *error = "Sprite reimport requires an idle configured Play scene.";
+      return {};
+    }
+    world_.EndFrame();
+    if (!sprites_->Reconcile()) {
+      if (error)
+        *error = "Sprite reimport could not reconcile the current Play scene.";
+      return {};
+    }
+    return sprites_->PrepareSources(blobs, error);
+  }
+  // Current Runtime World/scene ownership stays intact. The embedding admits new textures in
+  // this exact full GUI submission, then exchanges its texture/catalog owners without callbacks.
+  Frame RenderSourceUpdate(twod::GameSpriteSession::PreparedSources &update,
+                           Nexora::Presentation::SceneViewport viewport, bool retain_geometry,
+                           const CompositeDraw &draw) {
+    using Nexora::Presentation::SurfaceStatus;
+    Frame result;
+    result.rejected = true;
+    result.status = SurfaceStatus::Unsupported;
+    result.error = "Configured Sprite reimport frame preparation failed.";
+    if (!Ready() || &update.Session() != sprites_.get() || !viewport.width || !viewport.height ||
+        !draw)
+      return result;
+    const auto view = scenes_->View();
+    const auto items = runtime::CaptureGameSceneRenderItems(view, &result.error);
+    const auto palette =
+        items ? sceneview::PrepareSceneView(*items, view.world, view.primary, &result.error, true)
+              : std::nullopt;
+    const auto sprites = update.Extract(viewport.width, viewport.height);
+    if (!palette || !sprites || sprites->statistics.unavailable)
+      return result;
+    auto data = palette->DrawData(view.world, float(viewport.width) / float(viewport.height));
+    if (!data)
+      return result;
+    data->viewport = viewport;
+    data->retainMeshGeometry = retain_geometry;
+    result.status = draw(*data, *sprites);
+    if (result.status == SurfaceStatus::Ready) {
+      update.Commit();
+      result.error.clear();
+      result.rejected = false;
+      result.drawn = true;
+      result.visible_sprites = sprites->statistics.visible;
+    }
+    return result;
+  }
   // The callback admits the complete Scene/Sprite/GUI submission before candidate publication.
   Frame RenderComposed(Nexora::Presentation::SceneViewport viewport, bool retain_geometry,
                        const CompositeDraw &draw) {

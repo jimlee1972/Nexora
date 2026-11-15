@@ -12,7 +12,36 @@ The shared validator covers stable same-Atlas regions, original dimensions, top-
 - Project/Content versions and caller authority are owning-call guards, not capabilities carried by GUI requests. No GUI file IO, Atlas/image read, full project scan, native resource registration, C/Zig/table/schema change or running-Play mutation is introduced.
 - This is a cooperative local-filesystem operation, not adversarial compare-and-swap, multi-file snapshot or power-loss durability. Native replacement errors remain Uncertain; successfully replaced files are never relabeled Rejected by postcommit allocation.
 
-## Validation
+## Latest-main integration validation
+
+Before merge, all **41/41** hosted checks succeeded on original head `4c282fd4415d888c6d5fe8c6a0ee2526e1c0eaa3`.
+Final verification then found main advanced to `0c0a8953ed916ef995920308b90c6cb9e54a1635` (PR #793), overlapping the
+Editor/Play paths. The PR returned to draft; the clean combined tree was revalidated instead of
+merging against an untested base. Original successful receipts below remain historical.
+
+Fresh complete Linux: **528/528**, zero failures/skips, **2212.45 s**. This includes
+the real source-editing case and PR #793's actual configured source/Atlas reimport case. Shipping
+Full, actual TwoD-OFF/testing-OFF Editor/native Player, graphical Monolithic source and Play CPU
+tests, real Monolithic source editing, and documentation utilities also pass. The integrated model
+fixture already contains the distinct uppercase-extension basename; there is no post-gate source
+edit. All frozen integrated source hashes remain exact. Fresh exact-head hosted CI is required
+before delivery; old green checks are not substituted. No remote workflow was canceled/retried.
+
+- `cmake --preset linux-development`: exit 0, 2.22 s; log SHA256 `9bc57e153e4ab022b6e6b28c1974692b79db3e720fb51c06d3a7a148b097a126`.
+- `cmake --build --preset linux-development`: exit 0, 120.25 s; log SHA256 `a4cb1c0733860b8832fe9635ade07f5dd15d938b4aa56c86649d35fdfb59fad3`.
+- `ctest --preset linux-development --show-only=json-v1`: exit 0, 0.12 s; log SHA256 `42246d28dd6e373b3c0342bbcfef6f17952d88f85d02a0f88daf90520bfd101a`.
+- `CTEST_PARALLEL_LEVEL=2 ctest --preset linux-development`: exit 0, 2212.56 s; log SHA256 `96317a3ba105bbc7e8f87bf58210fdba645b6e720caac5be65eb064a24690c40`.
+- `cmake --preset linux-shipping -DNEXORA_SHIPPING_PROFILE=Full -DNEXORA_ENABLE_EDITOR_SDK=ON`: exit 0, 0.62 s; log SHA256 `48171b65944bf5caee46dfd3d66081c4c121b180cd226883ac7bc2ed01988672`.
+- `cmake --build --preset linux-shipping`: exit 0, 14.91 s; log SHA256 `e64fe60070942fcfeb327fd0a79dba490548e334ab532118496c5a991f62ccfa`.
+- `cmake --preset linux-development -B build/editor-no-tests -DBUILD_TESTING=OFF -DNEXORA_ENABLE_2D=OFF -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON -DNEXORA_BUILD_PROJECT_PLAYER=ON -DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON`: exit 0, 0.45 s; log SHA256 `ea90c834b0415c0601695cc8a12d67111b5333fb5e323c546cfa9ca7ebe556e5`.
+- `cmake --build build/editor-no-tests --target NexoraEditor NexoraProjectPlayer`: exit 0, 16.12 s; log SHA256 `6921bc64343312463cc5f0d1ea907e97007e157b38795f801ee233d211aad53c`.
+- `cmake --preset linux-development -B /workspace/work/editor-completion/packaged-preview-monolithic -DNEXORA_LINK_MODE=Monolithic -DNEXORA_ENABLE_EDITOR=ON -DNEXORA_ENABLE_2D=ON -DNEXORA_ENABLE_WINDOW_PRESENTATION=ON -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON -DNEXORA_ENABLE_ZIG_GAMEPLAY=OFF -DNEXORA_ENABLE_SLANG=ON`: exit 0, 1.77 s; log SHA256 `813b3df538d06a8c2026cc9b638201f81dfffe244c0cba03489b94966e2b8cb4`.
+- `cmake --build /workspace/work/editor-completion/packaged-preview-monolithic --target NexoraEditor NexoraSpriteSourceCreationTests NexoraSpriteSourceEditingTests NexoraSpriteSourceCreationUiTests NexoraGameSpriteSessionTests NexoraPackagedSpritePlayTests NexoraGameSpriteBuildTests`: exit 0, 25.04 s; log SHA256 `9d19bcd1a8172cb06ffb61526e3438da3f591e1c94857541340b1fec56100e60`.
+- `ctest --test-dir /workspace/work/editor-completion/packaged-preview-monolithic -R '^(editor.sprite_source_(creation|editing|creation_ui)|twod.game_sprite_session|editor.packaged_sprite_play|editor.game_sprite_build)$' --output-on-failure`: exit 0, 2.57 s; log SHA256 `0efad6d394356ad1f11398b48e17fdb642c90317b43073c94340757e34655ab6`.
+- `python /workspace/Nexora/Tests/EditorImGui/LinuxSpriteSourceEditing.py --editor /workspace/work/editor-completion/packaged-preview-monolithic/Apps/Editor/NexoraEditor --fixture /workspace/work/editor-completion/packaged-preview-monolithic/Tests/EditorImGui/NexoraSpriteSourceCreationUiTests --xvfb /workspace/work/editor-completion/sysroot/usr/bin/Xvfb --xdotool /workspace/work/editor-completion/sysroot/usr/bin/xdotool`: exit 0, 90.22 s; log SHA256 `fa4d39f0e0c1e61a8b3dd39f2930a325e3af103d136e126232cd6c0624ad282c`.
+- `python Tools/Build/TestDocumentationCI.py`: exit 0, 0.65 s; log SHA256 `76d453ef3fbc7a2e09000d2ebcaf17ec121f82346b769c0802b6409ef0a2ef0c`.
+
+## Original-base validation
 
 Complete Linux: **527/527**, zero failures/skips, **1895.68 s**. Shipping Full, actual TwoD-OFF/testing-OFF graphical Editor/native Player, and graphical Monolithic model/controls plus real native Scene-pixel editing all pass. Documentation utilities pass independently. Windows/macOS hosted CI is required before delivery; no local Windows/macOS execution is claimed.
 
@@ -40,7 +69,7 @@ The first model fixture incorrectly combined Trim with nonzero borders. Native p
 
 Two incomplete local gates were intentionally interrupted for real pre-delivery review corrections: exact identity-key compatibility with the normal importer, and provisional bytes using the indexer's ignored suffix. Their logs/manifests are retained separately and are not counted as successful full gates. No remote workflow was canceled or retried by this slice.
 
-Workflow **5/9**, graphical Editor **0/8**, TwoD **9/11**, complete ED-WF-07/08, Atlas slicing/Clip authoring, sliced rendering and physical/clean-host acceptance remain open. Independently owned strict reload and live source/pool publication work remains separate.
+Workflow **5/9**, graphical Editor **0/8**, TwoD **9/11**, complete ED-WF-07/08, Atlas slicing/Clip authoring, sliced rendering and physical/clean-host acceptance remain open. PR #793 source/Atlas publication is preserved; strict native reload acceptance remains separate.
 
 ![Existing source draft](SpriteSourceEditing-draft.png)
 
