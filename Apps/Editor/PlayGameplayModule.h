@@ -10,6 +10,9 @@
 #include "PlayInputState.h"
 #include "PlaySceneServices.h"
 #include "PlayTwoDServices.h"
+#if defined(NEXORA_HAS_2D)
+#include "Nexora/TwoD/GameSpriteSession.h"
+#endif
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -263,6 +266,8 @@ public:
       }
     }
     two_d_.reset();
+    game_two_d_.reset();
+    game_sprites_ = nullptr;
 #endif
     const bool had_session = world_ != nullptr;
     scenes_.Clear();
@@ -338,6 +343,11 @@ private:
   }
   bool BindTwoD(runtime::World &world, const PlayTwoDBinding &binding, bool native = false) {
 #if defined(NEXORA_HAS_2D)
+    if (binding.game) {
+      if (binding.scene || binding.assets || binding.authoring || !gate_.Check(true, true))
+        return false;
+      return BindGameSprites(world, binding.game);
+    }
     if (!binding.scene && !binding.assets)
       return true;
     two_d_ = PlayTwoDServices::Bind(world, binding, native, &gate_);
@@ -348,6 +358,16 @@ private:
     return !binding.scene;
 #endif
   }
+#if defined(NEXORA_HAS_2D)
+  // Internal candidate preparation also calls this over its already forked owner.
+  bool BindGameSprites(runtime::World &world, twod::GameSpriteSession *sprites) {
+    if (!sprites || &sprites->WorldOwner() != &world || !sprites->Available())
+      return false;
+    game_two_d_.emplace(gate_, sprites->Bridge());
+    game_sprites_ = sprites;
+    return true;
+  }
+#endif
   static PlayGameplayModule &Self(void *context) {
     return *static_cast<PlayGameplayModule *>(context);
   }
@@ -359,6 +379,8 @@ private:
                         NEXORA_GAMEPLAY_CAPABILITY_SCENE_API |
                         NEXORA_GAMEPLAY_CAPABILITY_POINTER_INPUT;
 #if defined(NEXORA_HAS_2D)
+    if (game_two_d_)
+      host.capabilities |= NEXORA_GAMEPLAY_CAPABILITY_2D_API;
     if (two_d_) {
       host.capabilities |=
           NEXORA_GAMEPLAY_CAPABILITY_2D_API | NEXORA_GAMEPLAY_CAPABILITY_SERVICES_API;
@@ -367,12 +389,14 @@ private:
         return self.RecordResult(self.two_d_ ? self.two_d_->GetServices(output)
                                              : NEXORA_GAMEPLAY_ERROR_LIFECYCLE);
       };
+    }
+    if (two_d_ || game_two_d_)
       host.get_twod_api = [](void *context, NexoraTwoDApiV1 *output) -> int32_t {
         auto &self = Self(context);
-        return self.RecordResult(self.two_d_ ? self.two_d_->GetApi(output)
-                                             : NEXORA_GAMEPLAY_ERROR_LIFECYCLE);
+        return self.RecordResult(self.game_two_d_ ? self.game_two_d_->GetApi(output)
+                                 : self.two_d_    ? self.two_d_->GetApi(output)
+                                                  : NEXORA_GAMEPLAY_ERROR_LIFECYCLE);
       };
-    }
 #endif
     if (packaged_services_.scene.struct_size) {
       host.capabilities |= NEXORA_GAMEPLAY_CAPABILITY_SERVICES_API;
@@ -544,6 +568,8 @@ private:
             auto &owner = Self(opaque);
             if (owner.two_d_)
               owner.two_d_->ForgetEntity(id);
+            if (owner.game_sprites_)
+              owner.game_sprites_->ForgetEntity(id);
           },
           context));
 #else
@@ -603,7 +629,7 @@ private:
   PlayServiceGate gate_;
   runtime::World *world_{};
   // Borrowed through module Stop/Destroy. The packaged owner supplies the canonical session API;
-  // the existing custom 2D service registry stays separate until an explicit adapter is supported.
+  // custom single-scene services and a main Game Sprite router are mutually exclusive.
   runtime::GameplayServices packaged_services_;
   std::shared_ptr<const MeshAssetCatalog> mesh_assets_;
   LogSink log_;
@@ -619,6 +645,8 @@ private:
   std::uint64_t diagnostics_frame_{}, diagnostics_errors_{};
 #if defined(NEXORA_HAS_2D)
   std::unique_ptr<PlayTwoDServices> two_d_;
+  twod::GameSpriteSession *game_sprites_{};
+  std::optional<PlayTwoDApiProxy> game_two_d_;
   std::vector<std::uint64_t> retired_two_d_textures_;
 #endif
   std::optional<PlayApiProxy<NexoraGameplayHostV3>> host_proxy_;

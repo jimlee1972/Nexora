@@ -42,7 +42,7 @@ public:
   [[nodiscard]] std::optional<SpriteFrame> Extract(std::uint32_t width, std::uint32_t height);
   [[nodiscard]] GameplayBridge &Bridge() noexcept { return *bridge_; }
   [[nodiscard]] InstancePool &Pool() noexcept { return pool_; }
-  [[nodiscard]] runtime::World &WorldOwner() const noexcept { return world_; }
+  [[nodiscard]] runtime::World &WorldOwner() const noexcept { return *world_; }
   [[nodiscard]] bool Available() const noexcept;
   [[nodiscard]] std::uint64_t Revision() const noexcept { return revision_; }
   [[nodiscard]] runtime::Id Primary() const noexcept;
@@ -50,13 +50,21 @@ public:
   [[nodiscard]] SpriteScene *FindEntity(runtime::Id) noexcept;
   void ForgetEntity(runtime::Id);
   [[nodiscard]] std::optional<std::vector<Shape>> CollisionShapes() const;
+  // Unpublished branch over an identical Play World clone. Immutable assets are shared;
+  // Sprite/collider/animator/query values and pool slots are copied, preserving handles.
+  [[nodiscard]] std::unique_ptr<GameSpriteSession> ForkForReload(runtime::World &) const;
+  // Retarget identical moved storage at commit/retirement without changing API addresses.
+  // Invalid membership, preparation, reentry or foreign-thread calls make no writes.
+  [[nodiscard]] bool RebindForReload(runtime::World &) noexcept;
 
 private:
+  struct ReloadCopy final {};
+  GameSpriteSession(const GameSpriteSession &, runtime::World &, ReloadCopy);
   [[nodiscard]] bool Owner() const noexcept;
   [[nodiscard]] std::optional<SpriteFrame> ExtractState(const State &, const runtime::World &,
                                                         Camera);
-  runtime::World &world_;
-  GameSpriteAssets assets_;
+  runtime::World *world_;
+  std::shared_ptr<const GameSpriteAssets> assets_;
   InstancePool pool_;
   std::unique_ptr<State> state_;
   std::unique_ptr<GameplayBridge> bridge_;

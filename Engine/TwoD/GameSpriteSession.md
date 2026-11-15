@@ -1,6 +1,7 @@
 # Main packaged-game Sprite state
 
-`GameSpriteSession` is an optional TwoD owner on the main Player's existing Play `World`.
+`GameSpriteSession` is an optional TwoD owner on the main Player's or configured Editor's existing
+Play `World`.
 It augments `Runtime::GameSceneSession`; it neither loads a second World nor replaces the
 authoritative Runtime scene service. The stable C/Zig host, 2D/source/pool tables and all
 package/asset codecs remain unchanged. C++ consumers rebuild.
@@ -8,7 +9,7 @@ package/asset codecs remain unchanged. C++ consumers rebuild.
 ## Ownership and calls
 
 The embedding's World outlives this owner, every metadata preparation and every module callback.
-The owner retains a fully admitted `GameSpriteAssets` value, immutable scene-template owners,
+The owner retains shared immutable, fully admitted `GameSpriteAssets`, immutable scene-template owners,
 per-instance Sprite/collider values, one stable `GameplayBridge` and one `InstancePool`.
 The default pool capacity is 4096; explicit capacities use the existing 1..100000 pool bounds.
 Source-free main games and StaticView hosts leave the optional adapter unset and retain their
@@ -78,9 +79,38 @@ built source-free game's central 80x80 3D region stays exact, and SDK Stop/Destr
 
 The bridge rejects the single-scene `ForkForReload` and `RebindForReload` operations before
 accessing single-scene metadata. Rejection preserves this Runtime World, stable API context,
-source/animation values and pool handles; it does not provide a main Game reload transaction.
+source/animation values and pool handles. These single-scene bridge operations do not implement
+the embedding's main Game reload transaction.
 
-This adopts the main native Player only. Configured packaged Editor Play adoption, source watching/
-publication and complete strict Editor/Player reload with 32 real replacements remain separate
-parent work. No reload command/transaction is added by this adapter, and existing module-state-only
-validation is not proof of World/service rollback. Milestone totals remain unchanged.
+## Embedding reload
+
+The owner has separate `ForkForReload` and `RebindForReload` operations for an embedding's existing
+World transaction. Fork requires a distinct, already cloned Play World with every metadata entity
+in the same scene. It copies scene metadata, animation clocks/events, camera, query state, revision
+and pool slots/free list/handle identities, while retaining immutable asset/template owners. The
+Clip resolver owns its shared asset catalog; destroying the original session cannot invalidate the
+branch. Fork does not publish state or open native devices. Allocation failures propagate to the
+embedding's rollback boundary.
+
+Rebind validates every scene/entity membership before changing any pointer. It performs no
+allocation, callback or native operation. It retargets the session, scene metadata and stable
+bridge to the admitted World; cached API contexts keep their identity. Both operations reject
+foreign-thread, outstanding-preparation, bridge-entry or pool-iteration calls. The embedding owns
+both Worlds and sessions until all candidate or retired module callbacks and library finalizers
+have completed; these primitives do not themselves provide that lifecycle policy.
+
+Configured Editor Play uses these operations inside `PackagedPlayContext` and
+`ReloadablePlayGameplayModule`. A generation-owned proxy guards the existing parent/source C
+tables. Candidates mutate private World/metadata/pool state; failed Create/Restore/Start or forbidden
+Capture writes discard it. At acceptance, old cached callbacks are retargeted to the quarantined
+retired World/session before Stop/Destroy. The new owner is adopted only after retired teardown.
+This reuses the canonical Runtime scene service and legacy input snapshots; rich custom-scene
+UI/audio/input services remain a separate embedding.
+
+`editor.packaged_sprite_play` exercises 32 successful CPU module replacements and 160 rejected
+attempts, preserving live entity/pool identities and a half-frame animation clock while checking
+retired callback writes. `editor.linux_packaged_source_services` compiles the saved SDK ScriptProject
+in the actual Editor and checks source/pool pixels through animation, Additive, unload and Replace.
+The latter is a native initial-generation proof, not 32 native Zig replacements. Source watching/
+publication, source reimport and complete strict Editor/Player acceptance remain parent work.
+Milestone totals remain unchanged.

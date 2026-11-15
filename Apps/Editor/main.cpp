@@ -1115,6 +1115,14 @@ int RunGraphical(std::optional<ProjectState> project,
 #if NEXORA_ASSET_PIPELINE_ENABLED
   std::unique_ptr<nexora::editor::preview::PackagedPlayContext> packaged_play;
   bool packaged_module_pending{};
+  const auto packaged_two_d = [&] {
+    nexora::editor::preview::PlayTwoDBinding binding;
+#if defined(NEXORA_HAS_2D)
+    if (packaged_play)
+      binding.game = packaged_play->Sprites();
+#endif
+    return binding;
+  };
 #if defined(NEXORA_HAS_2D)
   std::unique_ptr<nexora::editor::preview::PackagedSpriteTextures> packaged_sprite_textures;
 #if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
@@ -3176,12 +3184,12 @@ int RunGraphical(std::optional<ProjectState> project,
               const bool replacing = gameplay.IsLoaded();
               if (compiled->key == live_script.Current() && compiled->prepared &&
                   live_script.ScopeCurrent(&error)) {
-                applied =
-                    gameplay.IsLoaded()
-                        ? gameplay.ReloadPrepared(std::move(*compiled->prepared), error)
-                        : gameplay.LoadPrepared(*play.PlayWorld(), std::move(*compiled->prepared),
-                                                error, {}, {}, packaged_play->Scenes().Api(),
-                                                packaged_play->ReloadHooks());
+                applied = gameplay.IsLoaded()
+                              ? gameplay.ReloadPrepared(std::move(*compiled->prepared), error)
+                              : gameplay.LoadPrepared(
+                                    *play.PlayWorld(), std::move(*compiled->prepared), error, {},
+                                    packaged_two_d(), packaged_play->Scenes().Api(),
+                                    packaged_play->ReloadHooks());
               }
               if (error.empty() && !applied)
                 error = "Script compilation failed or its result became obsolete.";
@@ -3972,7 +3980,7 @@ int RunGraphical(std::optional<ProjectState> project,
           std::string error;
           packaged_module_pending = false;
           if (!gameplay.LoadRelative(*play.PlayWorld(), project->workspace.Root(),
-                                     ui.GameplayLibrary(), error, {}, {},
+                                     ui.GameplayLibrary(), error, {}, packaged_two_d(),
                                      packaged_play->Scenes().Api(), packaged_play->ReloadHooks())) {
             stop_play();
             ui.SetGameplayStatus(error);
@@ -4476,7 +4484,7 @@ int RunGraphical(std::optional<ProjectState> project,
             << " visible=" << packaged_sprite_visible
             << " commits=" << (packaged_play ? packaged_play->Commits() : 0)
             << " module=" << gameplay.IsLoaded() << " focused=" << input.focused
-            << " admitted=" << input.play_allowed;
+            << " admitted=" << input.play_allowed << " captured=" << ui.GameInputFocused();
       if (const auto viewport = ui.NativeGameViewport())
         value << " viewport=" << viewport->x << ',' << viewport->y << ',' << viewport->width << ','
               << viewport->height;

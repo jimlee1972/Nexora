@@ -214,7 +214,7 @@ std::optional<SpriteScene> SpriteScene::ForkForReload(runtime::World &world) con
     return {};
   return branch;
 }
-bool SpriteScene::RebindForReload(runtime::World &world) noexcept {
+bool SpriteScene::CanRebindForReload(const runtime::World &world) const noexcept {
   if (world_->Kind() != runtime::WorldKind::Play || world.Kind() != runtime::WorldKind::Play)
     return false;
   const auto *record = world.FindScene(scene_);
@@ -227,6 +227,11 @@ bool SpriteScene::RebindForReload(runtime::World &world) noexcept {
     colliders += colliders_.contains(entity.id);
   }
   if (sprites != sprites_.size() || colliders != colliders_.size())
+    return false;
+  return true;
+}
+bool SpriteScene::RebindForReload(runtime::World &world) noexcept {
+  if (!CanRebindForReload(world))
     return false;
   world_ = &world;
   return true;

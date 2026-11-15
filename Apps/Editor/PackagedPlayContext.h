@@ -6,9 +6,12 @@
 #include <stdexcept>
 #include <type_traits>
 #if defined(NEXORA_HAS_2D)
-#include "Nexora/TwoD/GameSpriteAssets.h"
+#include "Nexora/TwoD/GameSpriteSession.h"
 #endif
 
+namespace nexora::twod {
+struct SpriteFrame;
+}
 namespace nexora::editor::preview {
 // Owner-thread isolated packaged game. This owner outlives the PlaySession borrow and module;
 // Stop/Destroy finish before its World/session are released. Authoring documents are never held.
@@ -30,6 +33,8 @@ public:
     sprite_assets_ = twod::GameSpriteAssets::Load(project_->SpriteAssets(), &error);
     if (!sprite_assets_)
       throw std::runtime_error(error);
+    if (!project_->SpriteAssets().empty())
+      sprites_ = std::make_unique<twod::GameSpriteSession>(world_.InternalWorld(), *sprite_assets_);
 #else
     if (!project_->SpriteAssets().empty())
       throw std::runtime_error("Configured Sprite Play requires TwoD support.");
@@ -46,30 +51,49 @@ public:
   [[nodiscard]] bool Ready() const noexcept { return bool(published_); }
   [[nodiscard]] std::uint64_t Commits() const noexcept { return commits_; }
   [[nodiscard]] PlayWorldReload ReloadHooks() noexcept {
-    return {this,
-            [](void *p, runtime::World *&world, NexoraGameplaySceneApiV1 &api) noexcept {
-              return static_cast<PackagedPlayContext *>(p)->BeginReload(world, api);
-            },
-            [](void *p) noexcept {
-              auto &self = *static_cast<PackagedPlayContext *>(p);
-              return self.staged_scenes_ &&
-                     self.staged_scenes_->RebindForReload(*self.staged_world_);
-            },
-            [](void *p, runtime::World *&retired) noexcept {
-              static_cast<PackagedPlayContext *>(p)->RetireReload(retired);
-            },
-            [](void *p) noexcept {
-              auto &self = *static_cast<PackagedPlayContext *>(p);
-              self.scenes_ = std::move(self.staged_scenes_);
-              self.staged_world_.reset();
-              self.retired_world_.reset();
-            },
-            [](void *p) noexcept {
-              auto &self = *static_cast<PackagedPlayContext *>(p);
-              self.staged_scenes_.reset();
-              self.staged_world_.reset();
-              self.retired_world_.reset();
-            }};
+    PlayWorldReload hooks{
+        this,
+        [](void *p, runtime::World *&world, NexoraGameplaySceneApiV1 &api) noexcept {
+          return static_cast<PackagedPlayContext *>(p)->BeginReload(world, api);
+        },
+        [](void *p) noexcept {
+          auto &self = *static_cast<PackagedPlayContext *>(p);
+          const bool scenes =
+              self.staged_scenes_ && self.staged_scenes_->RebindForReload(*self.staged_world_);
+#if defined(NEXORA_HAS_2D)
+          return scenes && (!self.staged_sprites_ || self.staged_sprites_->RebindForReload(
+                                                         self.staged_world_->InternalWorld()));
+#else
+          return scenes;
+#endif
+        },
+        [](void *p, runtime::World *&retired) noexcept {
+          static_cast<PackagedPlayContext *>(p)->RetireReload(retired);
+        },
+        [](void *p) noexcept {
+          auto &self = *static_cast<PackagedPlayContext *>(p);
+#if defined(NEXORA_HAS_2D)
+          self.sprites_ = std::move(self.staged_sprites_);
+#endif
+          self.scenes_ = std::move(self.staged_scenes_);
+          self.staged_world_.reset();
+          self.retired_world_.reset();
+        },
+        [](void *p) noexcept {
+          auto &self = *static_cast<PackagedPlayContext *>(p);
+#if defined(NEXORA_HAS_2D)
+          self.staged_sprites_.reset();
+#endif
+          self.staged_scenes_.reset();
+          self.staged_world_.reset();
+          self.retired_world_.reset();
+        }};
+#if defined(NEXORA_HAS_2D)
+    hooks.sprites = [](void *p) noexcept {
+      return static_cast<PackagedPlayContext *>(p)->staged_sprites_.get();
+    };
+#endif
+    return hooks;
   }
 
   [[nodiscard]] bool HasSprites() const noexcept { return !project_->SpriteAssets().empty(); }
@@ -77,6 +101,7 @@ public:
   [[nodiscard]] const twod::GameSpriteAssets &SpriteAssets() const noexcept {
     return *sprite_assets_;
   }
+  [[nodiscard]] twod::GameSpriteSession *Sprites() const noexcept { return sprites_.get(); }
   using CompositeDraw = std::function<Nexora::Presentation::SurfaceStatus(
       const Nexora::Presentation::SceneDrawData &, const twod::SpriteFrame &)>;
   // The callback admits the complete Scene/Sprite/GUI submission before candidate publication.
@@ -85,15 +110,15 @@ public:
     std::size_t visible{};
     auto result =
         RenderPrepared(viewport, retain_geometry,
-                       draw ? DrawView([&](const auto &data, const auto &view, std::string &error) {
-                         auto sprites =
-                             sprite_assets_->Extract(view, viewport.width, viewport.height);
-                         if (!sprites || sprites->statistics.unavailable) {
+                       draw ? DrawView([&](const auto &data, const auto &,
+                                           const twod::SpriteFrame *sprites, std::string &error) {
+                         if (sprites && sprites->statistics.unavailable) {
                            error = "Configured Play Sprite extraction failed.";
                            return Nexora::Presentation::SurfaceStatus::Unsupported;
                          }
-                         visible = sprites->statistics.visible;
-                         return draw(data, *sprites);
+                         const twod::SpriteFrame empty;
+                         visible = sprites ? sprites->statistics.visible : 0;
+                         return draw(data, sprites ? *sprites : empty);
                        })
                             : DrawView{});
     result.visible_sprites = visible;
@@ -114,7 +139,8 @@ public:
       return result;
     }
     return RenderPrepared(viewport, retain_geometry,
-                          draw ? DrawView([&](const auto &data, const auto &, std::string &) {
+                          draw ? DrawView([&](const auto &data, const auto &,
+                                              const twod::SpriteFrame *, std::string &) {
                             return data.instances.empty()
                                        ? Nexora::Presentation::SurfaceStatus::Ready
                                        : draw(data);
@@ -124,7 +150,8 @@ public:
 
 private:
   using DrawView = std::function<Nexora::Presentation::SurfaceStatus(
-      const Nexora::Presentation::SceneDrawData &, const runtime::GameSceneView &, std::string &)>;
+      const Nexora::Presentation::SceneDrawData &, const runtime::GameSceneView &,
+      const twod::SpriteFrame *, std::string &)>;
   Frame RenderPrepared(Nexora::Presentation::SceneViewport viewport, bool retain_geometry,
                        const DrawView &draw) {
     using Nexora::Presentation::SurfaceStatus;
@@ -136,8 +163,15 @@ private:
     }
     const auto aspect = static_cast<float>(viewport.width) / static_cast<float>(viewport.height);
     world_.EndFrame();
+#if defined(NEXORA_HAS_2D)
+    if (sprites_ && !sprites_->Reconcile()) {
+      result.status = SurfaceStatus::Unsupported;
+      result.error = "Configured Play Sprite reconciliation failed.";
+      return result;
+    }
+#endif
     const auto submit = [&](const sceneview::StaticView &palette,
-                            const runtime::GameSceneView &view) {
+                            const runtime::GameSceneView &view, const twod::SpriteFrame *sprites) {
       auto data = palette.DrawData(view.world, aspect);
       if (!data) {
         result.error = "Packaged Play camera projection is invalid.";
@@ -145,7 +179,7 @@ private:
       }
       data->viewport = viewport;
       data->retainMeshGeometry = retain_geometry;
-      const auto status = draw(*data, view, result.error);
+      const auto status = draw(*data, view, sprites, result.error);
       if (status != SurfaceStatus::Ready && result.error.empty()) {
         result.error = "Packaged Play presentation failed: ";
         result.error.append(Nexora::Presentation::ToString(status));
@@ -165,7 +199,23 @@ private:
           auto staged = std::make_shared<sceneview::StaticView>(std::move(*palette));
           // Allocate every CPU owner before recording native work or publishing the World.
           auto presentation = std::make_unique<Presentation>(*this, staged);
-          const auto status = submit(*staged, view);
+#if defined(NEXORA_HAS_2D)
+          std::optional<twod::SpriteFrame> sprite_frame;
+          if (sprites_) {
+            presentation->sprites = sprites_->Prepare(view, &error);
+            if (!presentation->sprites)
+              return {};
+            sprite_frame =
+                presentation->sprites->Extract(view.world, viewport.width, viewport.height);
+            if (!sprite_frame || sprite_frame->statistics.unavailable) {
+              error = "Configured Play candidate Sprite extraction failed.";
+              return {};
+            }
+          }
+          const auto status = submit(*staged, view, sprite_frame ? &*sprite_frame : nullptr);
+#else
+          const auto status = submit(*staged, view, nullptr);
+#endif
           if (status != SurfaceStatus::Ready) {
             result.status = status;
             native_failed = true;
@@ -197,7 +247,20 @@ private:
         result.status = SurfaceStatus::Unsupported;
         return result;
       }
-      result.status = submit(*live, view);
+#if defined(NEXORA_HAS_2D)
+      std::optional<twod::SpriteFrame> sprite_frame;
+      if (sprites_) {
+        sprite_frame = sprites_->Extract(viewport.width, viewport.height);
+        if (!sprite_frame || sprite_frame->statistics.unavailable) {
+          result.status = SurfaceStatus::Unsupported;
+          result.error = "Configured Play live Sprite extraction failed.";
+          return result;
+        }
+      }
+      result.status = submit(*live, view, sprite_frame ? &*sprite_frame : nullptr);
+#else
+      result.status = submit(*live, view, nullptr);
+#endif
       result.drawn = result.status == SurfaceStatus::Ready;
     }
     return result;
@@ -214,6 +277,13 @@ private:
     staged_scenes_ = scenes_->ForkForReload(*staged_world_);
     if (!staged_scenes_)
       return false;
+#if defined(NEXORA_HAS_2D)
+    if (sprites_) {
+      staged_sprites_ = sprites_->ForkForReload(staged_world_->InternalWorld());
+      if (!staged_sprites_)
+        return false;
+    }
+#endif
     world = &staged_world_->InternalWorld();
     api = staged_scenes_->Api();
     return true;
@@ -226,14 +296,26 @@ private:
     world_ = std::move(*staged_world_);
     if (!scenes_->RebindForReload(*retired_world_) || !staged_scenes_->RebindForReload(world_))
       std::terminate();
+#if defined(NEXORA_HAS_2D)
+    if (sprites_ && (!sprites_->RebindForReload(retired_world_->InternalWorld()) ||
+                     !staged_sprites_ || !staged_sprites_->RebindForReload(world_.InternalWorld())))
+      std::terminate();
+#endif
     retired = &retired_world_->InternalWorld();
   }
   struct Presentation final : runtime::GameScenePresentation {
     PackagedPlayContext &owner;
     std::shared_ptr<sceneview::StaticView> palette;
+#if defined(NEXORA_HAS_2D)
+    std::unique_ptr<twod::GameSpriteSession::Prepared> sprites;
+#endif
     Presentation(PackagedPlayContext &context, std::shared_ptr<sceneview::StaticView> prepared)
         : owner(context), palette(std::move(prepared)) {}
     void Commit() noexcept override {
+#if defined(NEXORA_HAS_2D)
+      if (sprites)
+        sprites->Commit();
+#endif
       owner.published_.swap(palette);
       ++owner.commits_;
     }
@@ -248,6 +330,7 @@ private:
   std::uint64_t commits_{};
 #if defined(NEXORA_HAS_2D)
   std::optional<twod::GameSpriteAssets> sprite_assets_;
+  std::unique_ptr<twod::GameSpriteSession> sprites_, staged_sprites_;
 #endif
 };
 } // namespace nexora::editor::preview

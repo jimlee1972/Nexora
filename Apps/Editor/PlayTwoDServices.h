@@ -14,10 +14,10 @@
 #include "Nexora/Window/Window.h"
 #include "PlayApiProxy.h"
 #include "PlayInputState.h"
+#include "PlayTwoDApiProxy.h"
 #include <algorithm>
 #include <atomic>
 #include <chrono>
-#include <cstring>
 #include <functional>
 #include <stdexcept>
 #include <unordered_set>
@@ -35,6 +35,8 @@ struct PlayTwoDBinding final {
   };
   std::shared_ptr<const ProjectTwoDPlayAssets> assets;
   std::shared_ptr<const SceneDocument::RuntimeSceneCapture> authoring{};
+  // Borrowed main Game owner; mutually exclusive with the custom single-scene capture above.
+  twod::GameSpriteSession *game{};
 #endif
 };
 
@@ -266,19 +268,7 @@ public:
   } catch (...) {
     return false;
   }
-  int32_t GetApi(NexoraTwoDApiV1 *output) noexcept {
-    if (!output)
-      return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
-    NexoraTwoDApiV1 admitted{};
-    admitted.struct_size = output->struct_size;
-    const auto result = bridge_->GetApi(&admitted);
-    if (result == NEXORA_GAMEPLAY_OK) {
-      auto api = twod_proxy_->Get();
-      api.struct_size = admitted.struct_size;
-      std::memcpy(output, &api, admitted.struct_size);
-    }
-    return result;
-  }
+  int32_t GetApi(NexoraTwoDApiV1 *output) noexcept { return twod_proxy_->GetApi(output); }
   int32_t GetServices(NexoraGameplayServicesApiV1 *output) noexcept {
     return services_.GetApi(output);
   }
@@ -531,39 +521,6 @@ public:
   }
 
 private:
-  // The parent wire keeps its proxy context. Its source getter reaches this same owner and
-  // returns a second phase-guarded table; no callback leaks a raw bridge context.
-  struct TwoDProxy final : PlayApiProxy<NexoraTwoDApiV1> {
-    using Base = PlayApiProxy<NexoraTwoDApiV1>;
-    TwoDProxy(PlayServiceGate &gate, NexoraTwoDApiV1 provider, PlayTwoDServices &owner)
-        : Base(gate, provider), owner_(owner) {}
-    [[nodiscard]] NexoraTwoDApiV1 Get() const noexcept {
-      auto api = Base::Get();
-      api.get_source_api = [](void *context, NexoraTwoDSourceApiV1 *output) noexcept -> int32_t {
-        if (!context)
-          return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
-        auto *base = static_cast<Base *>(context);
-        return static_cast<TwoDProxy *>(base)->owner_.GetSourceApi(output);
-      };
-      return api;
-    }
-    PlayTwoDServices &owner_;
-  };
-  int32_t GetSourceApi(NexoraTwoDSourceApiV1 *output) noexcept {
-    if (!gate_.Check(false, false))
-      return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
-    if (!output)
-      return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
-    NexoraTwoDSourceApiV1 admitted{};
-    admitted.struct_size = output->struct_size;
-    const auto result = bridge_->GetSourceApi(&admitted);
-    if (result == NEXORA_GAMEPLAY_OK) {
-      auto api = source_proxy_->Get();
-      api.struct_size = admitted.struct_size;
-      std::memcpy(output, &api, admitted.struct_size);
-    }
-    return result;
-  }
   struct ReloadBranch final {};
   PlayTwoDServices(ReloadBranch, const PlayTwoDServices &source, runtime::World &world,
                    PlayServiceGate &gate)
@@ -595,52 +552,13 @@ private:
     BindProxies();
   }
   void BindProxies() {
-    NexoraTwoDApiV1 twod{};
-    twod.struct_size = sizeof(twod);
-    if (bridge_->GetApi(&twod) != NEXORA_GAMEPLAY_OK)
-      throw std::runtime_error("Play 2D proxy unavailable");
-    NexoraTwoDSourceApiV1 sources{};
-    sources.struct_size = sizeof(sources);
-    if (bridge_->GetSourceApi(&sources) != NEXORA_GAMEPLAY_OK)
-      throw std::runtime_error("Play source proxy unavailable");
-    twod_proxy_.emplace(gate_, twod, *this);
-    source_proxy_.emplace(gate_, sources);
+    twod_proxy_.emplace(gate_, *bridge_);
     input_proxy_.emplace(gate_, services_.input);
     ui_proxy_.emplace(gate_, services_.ui);
     audio_proxy_.emplace(gate_, services_.audio);
     storage_proxy_.emplace(gate_, services_.storage);
 #define NX_PLAY_PROXY(proxy, type, field, writes, external)                                        \
   proxy->Bind<&type::field, offsetof(type, field) + sizeof(type::field), writes, external>()
-#define NX_TWOD_PROXY(field, writes)                                                               \
-  NX_PLAY_PROXY(twod_proxy_, NexoraTwoDApiV1, field, writes, false)
-    NX_TWOD_PROXY(set_sprite, true);
-    NX_TWOD_PROXY(get_sprite, false);
-    NX_TWOD_PROXY(set_collider, true);
-    NX_TWOD_PROXY(get_collider, false);
-    NX_TWOD_PROXY(set_camera, true);
-    NX_TWOD_PROXY(get_camera, false);
-    NX_TWOD_PROXY(play_animation, true);
-    NX_TWOD_PROXY(pause_animation, true);
-    NX_TWOD_PROXY(advance_animation, true);
-    NX_TWOD_PROXY(rebuild_queries, true);
-    NX_TWOD_PROXY(overlap, false);
-    NX_TWOD_PROXY(sweep, false);
-    NX_TWOD_PROXY(paint_tiles, true);
-    NX_TWOD_PROXY(set_chunk_loaded, true);
-    NX_TWOD_PROXY(get_tile, false);
-    NX_TWOD_PROXY(create_instances, true);
-    NX_TWOD_PROXY(destroy_instances, true);
-    NX_TWOD_PROXY(read_instances, false);
-    NX_TWOD_PROXY(write_instances, true);
-#undef NX_TWOD_PROXY
-#define NX_SOURCE_PROXY(field, writes)                                                             \
-  NX_PLAY_PROXY(source_proxy_, NexoraTwoDSourceApiV1, field, writes, false)
-    NX_SOURCE_PROXY(set_sprite, true);
-    NX_SOURCE_PROXY(get_sprite, false);
-    NX_SOURCE_PROXY(create_instances, true);
-    NX_SOURCE_PROXY(read_instances, false);
-    NX_SOURCE_PROXY(write_instances, true);
-#undef NX_SOURCE_PROXY
 #define NX_INPUT_PROXY(field, writes)                                                              \
   NX_PLAY_PROXY(input_proxy_, NexoraGameplayInputApiV1, field, writes, false)
     NX_INPUT_PROXY(read_action, false);
@@ -750,8 +668,7 @@ private:
   twod::GameplayUiFrame ui_frame_;
   std::shared_ptr<runtime::GameplayStorage> storage_;
   runtime::GameplayServices services_;
-  std::optional<TwoDProxy> twod_proxy_;
-  std::optional<PlayApiProxy<NexoraTwoDSourceApiV1>> source_proxy_;
+  std::optional<PlayTwoDApiProxy> twod_proxy_;
   std::optional<PlayApiProxy<NexoraGameplayInputApiV1>> input_proxy_;
   std::optional<PlayApiProxy<NexoraGameplayUiApiV1>> ui_proxy_;
   std::optional<PlayApiProxy<NexoraGameplayAudioApiV1>> audio_proxy_;

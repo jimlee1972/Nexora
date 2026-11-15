@@ -681,6 +681,10 @@ void GameplayBridge::CopyStagedState(GameplayBridge &destination) const {
   target.indices = state_->indices;
   target.ready = state_->ready;
 }
+void GameplayBridge::RebindGameWorld(runtime::World &world) noexcept {
+  // Only the owning GameSpriteSession can call this after complete metadata admission.
+  state_->world = &world;
+}
 std::unique_ptr<GameplayBridge> GameplayBridge::ForkForReload(runtime::World &world,
                                                               SpriteScene &scene, Tilemap *tiles,
                                                               InstancePool *pool) const {

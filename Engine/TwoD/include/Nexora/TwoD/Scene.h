@@ -133,6 +133,7 @@ private:
   friend class SceneSession;
   friend class GameplayGeneration;
   friend class GameSpriteSession;
+  [[nodiscard]] bool CanRebindForReload(const runtime::World &) const noexcept;
   // Unpublished metadata is bound to the final World object, without inspecting/mutating its
   // current contents. GameSpriteSession validates against a separate read-only candidate view.
   struct PreparedMetadata {};

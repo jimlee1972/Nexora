@@ -2,6 +2,9 @@
 #include "Nexora/Runtime/Runtime.h"
 #include "nexora/gameplay_scene.h"
 
+namespace nexora::twod {
+class GameSpriteSession;
+}
 namespace nexora::editor::preview {
 // Optional owner-thread transaction for an embedding with more state than a bare World.
 // begin owns unpublished/retired storage before returning; all remaining hooks do not allocate.
@@ -15,8 +18,11 @@ struct PlayWorldReload final {
   void (*retire)(void *, runtime::World *&) noexcept {};
   void (*commit)(void *) noexcept {};
   void (*rollback)(void *) noexcept {};
+  // Optional main Game metadata paired with the unpublished World returned by begin.
+  // Kept alive through candidate callbacks/finalizers, then adopted at commit or discarded.
+  twod::GameSpriteSession *(*sprites)(void *) noexcept {};
   [[nodiscard]] bool Present() const noexcept {
-    return begin || validate || retire || commit || rollback;
+    return begin || validate || retire || commit || rollback || sprites;
   }
   [[nodiscard]] bool Complete() const noexcept {
     return begin && validate && retire && commit && rollback;

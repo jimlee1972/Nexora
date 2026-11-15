@@ -383,3 +383,9 @@ Editor **0/8**、TwoD **9/11** 與實體機／乾淨主機驗收維持不變。
 支援子任務 `nexora-whr.8.3.5` 恢復合併後的 World 指標綁定、遺失 bridge 狀態複製／分支、共用私有物件池複製、封裝 Sprite 型別驗證、無模組製作預覽及 Scene／Sprite 合成所有權，同時保留新重載掛鉤與啟動觀察。主 Game／場景服務安全拒絕單場景重載操作，維持既有 World／來源／物件池狀態；既有 bridge／世代分支及主 Editor 重載路徑仍受測試涵蓋。私有衝突選項觀察排除隱藏 sizing frame；保留的原生紀錄證實暫時座標錯誤，輸入界限與結果檢查均不變。新的製作綁定先驗證擷取的 Runtime／來源參照，再於 Create 前填入私有 Sprite 資料；Source 回呼共用世代階段限制，父 API 協商保留呼叫端支援的前綴與尾端。Windows Showcase 匯出也恢復讀取既有快照包裝；實際 PowerShell 讀取器／呼叫端回歸保留新輸入、期限與精確場景證據。
 
 整合後完整 Linux **549/549**、零失敗／跳過、**2280.01 秒**、**15 組本地關卡**、**16 個實際 GNU15 編譯命令**及 **10 項 Monolithic CPU** 均通過。Development／Shipping 標準 SDK、刪除來源並搬移至 Unicode 路徑，各驗證 **65,536** 個獨立 Sprite／物件池像素、不變的 3D、穩定控制代碼及真正關閉；既有靜態 Shipping 動畫與實際 TwoD-OFF 拒絕也通過。[執行與整合歷史](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-MainGameIntegration-Linux-2026-11-14.md) 區分原始41項檢查成功、外部合入不同來源後的失敗，以及這次整合修復。交付前仍須通過確切修復提交 CI。完整主 Game 來源監看／重載及 ED-WF-07/08 仍未完成；流程 **5/9**、Editor **0/8**、TwoD **9/11** 及實體／乾淨主機驗收保持不變。
+
+## ✅ 設定式 Editor 主 Game 來源服務（2026-11-15）
+
+支援子任務 `nexora-whr.8.3.6` 將同一 World 的 `GameSpriteSession` 接入設定式 Editor Play。遊戲修改的來源／動畫／物件池值交由既有 Scene／Sprite 合成器繪製；已存檔的 SDK ScriptProject 與手動函式庫路徑取得受世代限制的父／來源 API。明確的擁有者分支／重新綁定參與封裝 World／Runtime 場景重載；候選修改保持私有，退役回呼在清理完畢前持有隔離的 World／資料。C／Zig 配置、編碼及模組圖保持不變。
+
+重點驗證通過32次成功 CPU 替換、160次注入失敗，以及實際唯讀 Editor 的 SDK 編譯／載入；五個完整來源／物件池遮罩共 **5,184 像素**、穩定物件池控制代碼、獨立比對不變的 3D 與製作檔案及原生關閉均通過。完整 Linux **550/550**、零失敗／跳過、**2273.63 秒**、全部 **14 組本地關卡**、**20 個實際 GNU15 命令**、完整 Shipping 及 TwoD-OFF 均通過。Monolithic 圖形 Editor／Player、**11 項 CPU** 及相同標準 SDK 原生 Editor 驗證也通過。交付前須通過中繼資料／文件關卡與不變的自身確切提交 CI；見[執行紀錄](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-EditorGameServices-Linux-2026-11-15.md)。這是原生初始世代驗收，並非32次原生 Zig 替換或素材監看／重新匯入／發布完成。ED-WF-07/08 仍未完成；流程 **5/9**、圖形 Editor **0/8**、TwoD **9/11** 及實體／乾淨主機驗收維持不變。
