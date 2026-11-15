@@ -93,9 +93,9 @@ The owner has separate `ForkForReload` and `RebindForReload` operations for an e
 World transaction. Fork requires a distinct, already cloned Play World with every metadata entity
 in the same scene. It copies scene metadata, animation clocks/events, camera, query state, revision
 and pool slots/free list/handle identities, while retaining immutable asset/template owners. The
-Clip resolver owns its shared asset catalog; destroying the original session cannot invalidate the
-branch. Fork does not publish state or open native devices. Allocation failures propagate to the
-embedding's rollback boundary.
+Clip resolver owns immutable Clip entries independently of source/Atlas generations; destroying
+the original session cannot invalidate the branch or retain superseded Atlas data. Fork does not
+publish state or open native devices. Allocation failures propagate to the embedding's rollback boundary.
 
 Rebind validates every scene/entity membership before changing any pointer. It performs no
 allocation, callback or native operation. It retargets the session, scene metadata and stable
@@ -116,6 +116,33 @@ UI/audio/input services remain a separate embedding.
 attempts, preserving live entity/pool identities and a half-frame animation clock while checking
 retired callback writes. `editor.linux_packaged_source_services` compiles the saved SDK ScriptProject
 in the actual Editor and checks source/pool pixels through animation, Additive, unload and Replace.
-The latter is a native initial-generation proof, not 32 native Zig replacements. Source watching/
-publication, source reimport and complete strict Editor/Player acceptance remain parent work.
+The latter is a native initial-generation proof, not 32 native Zig replacements. Complete strict
+Editor/Player reload acceptance remains parent work. Source-only publication is described below.
 Milestone totals remain unchanged.
+
+## Source and Atlas reimport
+
+`PrepareSources` admits a replacement catalog with exactly the same source/Atlas/Clip identities
+and types. All Clip bytes must remain equal; existing Clip owners, playback state and callbacks
+are retained. This operation does not implement Clip migration, add new package assets or change
+the Runtime scene catalog. Such edits require restarting Play. Unchanged decoded Atlas/source
+owners and texture identities are reused. The bridge retains only immutable Clips, allowing
+superseded decoded source/Atlas generations to retire after their final frame/candidate borrow.
+
+The typed 4096-asset/64 MiB closure is validated before checking every current entity and pool
+Sprite, including hidden values and legacy region bindings. Unresolved bindings reject. One
+owning `PreparedSources` freezes bridge calls, reload and scene preparations on the owner thread.
+It extracts new geometry against the same World, metadata and pool storage without changing any
+of them. Destruction discards preparation; `Commit` exchanges only the immutable catalog and
+revision without allocation or callbacks. Pool addresses/handles/values, affine anchors, tint,
+flips, camera, colliders and animation clocks remain intact. Query snapshots invalidate lazily
+through the existing revision boundary. C++ borrows of asset data expire at successful publication.
+
+The embedding keeps the session alive until preparation is destroyed and admits the exact native
+frame before Commit. Configured Editor Play couples this catalog publication with its owning
+texture registration exchange after the existing single complete GUI submission. Unchanged
+Atlas owners share registrations; changed Atlases need spare capacity within the same global
+64-registration/16 MiB GUI budget. Capacity/CPU/stale-source rejection retains live owners and
+permits ordinary old-frame rendering. A submitted native backend failure follows existing surface
+recovery/Stop behavior; that GUI frame cannot be replayed. CPU catalog limits describe each owning
+generation, not total process RSS or a combined Content/capture/GPU memory budget.

@@ -9,31 +9,36 @@ namespace nexora::editor::preview {
 class PackagedSpriteTextures final {
 public:
   explicit PackagedSpriteTextures(imgui::EditorImGuiHost &host) : host_(host) {}
-  ~PackagedSpriteTextures() {
-    for (const auto &[asset, binding] : textures_) {
-      static_cast<void>(asset);
-      if (binding.native)
-        static_cast<void>(host_.UnregisterTexture(binding.native));
-    }
-  }
   PackagedSpriteTextures(const PackagedSpriteTextures &) = delete;
   PackagedSpriteTextures &operator=(const PackagedSpriteTextures &) = delete;
   bool Prepare(const runtime::LoadedGameProject &project, const twod::GameSpriteAssets &assets) {
+    return Prepare(project.SpriteAssets(), assets);
+  }
+  bool Prepare(std::span<const runtime::RuntimeBlob> blobs, const twod::GameSpriteAssets &assets,
+               const PackagedSpriteTextures *previous = nullptr) {
     if (!textures_.empty())
       return false;
-    for (const auto &blob : project.SpriteAssets()) {
+    for (const auto &blob : blobs) {
       if (blob.type != "sprite_atlas")
         continue;
       const auto atlas = assets.ResolveAtlas(blob.id);
       if (!atlas || textures_.size() == 64)
         return false;
+      if (previous && &previous->host_ == &host_) {
+        const auto found = previous->textures_.find(blob.id);
+        if (found != previous->textures_.end() && found->second->atlas == atlas) {
+          if (!textures_.emplace(blob.id, found->second).second)
+            return false;
+          continue;
+        }
+      }
       const auto [entry, inserted] = textures_.try_emplace(blob.id);
       if (!inserted)
         return false;
-      entry->second.atlas = atlas;
-      entry->second.native =
+      entry->second = std::make_shared<Binding>(host_, atlas);
+      entry->second->native =
           host_.RegisterNativeTexture(atlas->width, atlas->height, atlas->rgba, atlas->nearest);
-      if (!entry->second.native)
+      if (!entry->second->native)
         return false;
     }
     return true;
@@ -47,9 +52,9 @@ public:
       if (!binding.atlas)
         return {};
       const auto found = textures_.find(binding.atlas->id);
-      if (found == textures_.end() || !found->second.native ||
-          found->second.atlas.get() != binding.atlas.get() ||
-          !bindings.emplace(binding.texture, found->second.native).second)
+      if (found == textures_.end() || !found->second || !found->second->native ||
+          found->second->atlas.get() != binding.atlas.get() ||
+          !bindings.emplace(binding.texture, found->second->native).second)
         return {};
     }
     auto result = source;
@@ -65,10 +70,18 @@ public:
 
 private:
   struct Binding final {
+    Binding(imgui::EditorImGuiHost &owner, std::shared_ptr<const twod::Atlas> value)
+        : host(owner), atlas(std::move(value)) {}
+    ~Binding() {
+      if (native)
+        static_cast<void>(host.UnregisterTexture(native));
+    }
+    imgui::EditorImGuiHost &host;
     std::shared_ptr<const twod::Atlas> atlas;
     std::uint64_t native{};
   };
   imgui::EditorImGuiHost &host_;
-  std::unordered_map<runtime::AssetUuid, Binding, runtime::AssetUuidHash> textures_;
+  std::unordered_map<runtime::AssetUuid, std::shared_ptr<Binding>, runtime::AssetUuidHash>
+      textures_;
 };
 } // namespace nexora::editor::preview

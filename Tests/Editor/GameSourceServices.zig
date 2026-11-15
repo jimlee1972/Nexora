@@ -60,6 +60,9 @@ pub const Game = struct {
         self.original = .{ ids[0], ids[1] };
         for (self.original) |id| {
             try check(self.twod.play_animation.?(self.twod.context, id, 105, 1, 1));
+            var events: [4]nx.TwoDEvent = undefined;
+            var result = nx.TwoDAnimationResult{};
+            try check(self.twod.advance_animation.?(self.twod.context, id, 0.125, &events, 4, &result));
             try check(self.twod.pause_animation.?(self.twod.context, id, 1));
         }
         const values = [_]nx.TwoDSourceInstanceV1{.{
@@ -104,7 +107,7 @@ pub const Game = struct {
                     var events: [4]nx.TwoDEvent = undefined;
                     var result = nx.TwoDAnimationResult{};
                     try check(self.twod.pause_animation.?(self.twod.context, id, 0));
-                    try check(self.twod.advance_animation.?(self.twod.context, id, 0.25, &events, 4, &result));
+                    try check(self.twod.advance_animation.?(self.twod.context, id, 0.125, &events, 4, &result));
                     if (result.event_count != 1) return error.SourceClock;
                     try check(self.twod.pause_animation.?(self.twod.context, id, 1));
                 }

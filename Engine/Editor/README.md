@@ -2937,3 +2937,10 @@ Source-free package bytes remain capability 2; supported source references requi
 and a TwoD-capable native consumer. See [the Build contract](GameBuild.md#main-scene-sprite-source-export)
 and [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-Linux-2026-11-13.md).
 This appends a C++ owning field; consumers rebuild. No stable C/Zig descriptor or asset wire changes.
+
+Configured main Editor Play also consumes `ProjectTwoDPlayAssets` capture for Content source/Atlas
+reimport. The application observes published payload revisions, captures the initial package's
+bounded exact closure and rechecks provenance before native admission. It freezes saved non-Sprite
+Build inputs and retains the existing Play World, animation clocks and pool handles. This does not
+make authoring captures mutable or add a second source importer; Clip/root changes require restart.
+See [application ownership and failure behavior](../../Apps/Editor/README.md#live-configured-sprite-and-atlas-reimport).

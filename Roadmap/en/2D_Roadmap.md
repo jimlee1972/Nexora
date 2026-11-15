@@ -1279,3 +1279,31 @@ Supporting `nexora-whr.8.3.6` adds a same-World `GameSpriteSession` to configure
 Focused acceptance passes 32 successful CPU replacements plus 160 injected failures and an actual read-only Editor SDK compile/load with five complete source/pool masks (**5,184 pixels**), stable pool identity, independently unchanged 3D and authoring bytes, and native shutdown. Full Linux **550/550**, zero failures/skips, **2289.26 s**, all **14 local gates**, **20 actual GNU15 commands**, full Shipping and TwoD-OFF pass. Monolithic graphical Editor/Player, **11 CPU cases** and the same actual SDK native Editor proof pass. Metadata/document gates and unchanged own exact-head CI are required before delivery; see [the execution record](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-EditorGameServices-Linux-2026-11-15.md). This is initial-generation native acceptance, not 32 native Zig replacements or asset watching/reimport/publication. ED-WF-07/08 remain open; Workflow **5/9**, graphical Editor **0/8**, TwoD **9/11** and physical/clean-host acceptance stay unchanged.
 
 The final premerge review found metadata-only host despawn retaining animation/query state. A red regression reproduced stale overlap/sweep snapshots; bridge cleanup now invalidates them immediately, preserves outputs on Lifecycle and rebuilds to empty hits while retaining pool identity/value and composition. The complete550/14-gate/GNU15 acceptance was repeated after this correction. Original16afa135 passed41 checks but was held in draft; fresh corrected-head CI and reviewed-thread verification are required before merge.
+
+## ✅ Configured Editor Sprite/Atlas reimport (2026-11-15)
+
+Supporting `nexora-whr.8.3.7` publishes captured Content source/Atlas changes with matching native
+registrations after one complete GUI frame, retaining the same Play World, scene/entity IDs,
+animation clocks, styling and pool handles/values. Unchanged Atlas registrations are shared;
+stale/missing/corrupt/capacity/native failures retain live owners. Clip bytes and asset identity/type
+inventory stay fixed; changed scope/Clips require restarting Play. Existing source-free/custom paths
+and C/Zig/codecs/module graph stay compatible; C++ consumers rebuild.
+
+Corrected-test full Linux passes **551/551**, zero failures/skips, **2717.30 s**. The unchanged
+runtime retains the **14 local gate** baseline at `8448806d`, including full Shipping, TwoD-OFF,
+Monolithic graphical Editor/Player and two native Editor cases. **11 rebuilt Monolithic CPU cases**
+and **21 GNU 15 variants/19 translation units** pass with the source scopes recorded below. Real Reimport verifies
+**32 rounds/ 70 publications**, **31,104** independent source/pool pixels plus five scene/animation
+phases (**5,184** pixels), unchanged 3D/authoring, stable handles/half-clock, changed canonical SDK
+Build and saved reopen. Development/Shipping SDK Player each checks **65,536** pixels after
+deleted-source Unicode relocation. [Execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-EditorSourceReimport-Linux-2026-11-15.md)
+retains original fixture failures and the repeated final source gates. Exact-head hosted CI is
+required before delivery. 32 actual main SDK Zig replacements remain open in 8.3.8; joint ED-WF-07/08,
+Workflow **5/9**, graphical Editor **0/8**, TwoD **9/11** and physical/clean-host gates stay unchanged.
+
+Windows MSVC exposed four implicit numeric conversions in two test files. The first
+correction passed full Linux 551 in 2680.03 s before the CLI warning was found. Both
+corrected files retain the same oracles; final full 551, actual GNU 15 compilation and
+rebuilt Monolithic 11 pass. All runtime/native sources and 15 of 17 implementation/
+build/test files remain unchanged from the 14-gate baseline at `8448806d`. The machine
+receipt separates these source scopes. Fresh final-head CI remains required before merge.
