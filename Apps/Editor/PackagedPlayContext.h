@@ -58,17 +58,7 @@ public:
         [](void *p, runtime::World *&world, NexoraGameplaySceneApiV1 &api) noexcept {
           return static_cast<PackagedPlayContext *>(p)->BeginReload(world, api);
         },
-        [](void *p) noexcept {
-          auto &self = *static_cast<PackagedPlayContext *>(p);
-          const bool scenes =
-              self.staged_scenes_ && self.staged_scenes_->RebindForReload(*self.staged_world_);
-#if defined(NEXORA_HAS_2D)
-          return scenes && (!self.staged_sprites_ || self.staged_sprites_->RebindForReload(
-                                                         self.staged_world_->InternalWorld()));
-#else
-          return scenes;
-#endif
-        },
+        [](void *p) noexcept { return static_cast<PackagedPlayContext *>(p)->ValidateReload(); },
         [](void *p, runtime::World *&retired) noexcept {
           static_cast<PackagedPlayContext *>(p)->RetireReload(retired);
         },
@@ -78,6 +68,8 @@ public:
           self.sprites_ = std::move(self.staged_sprites_);
 #endif
           self.scenes_ = std::move(self.staged_scenes_);
+          self.published_.swap(self.staged_palette_);
+          self.staged_palette_.reset();
           self.staged_world_.reset();
           self.retired_world_.reset();
         },
@@ -87,6 +79,7 @@ public:
           self.staged_sprites_.reset();
 #endif
           self.staged_scenes_.reset();
+          self.staged_palette_.reset();
           self.staged_world_.reset();
           self.retired_world_.reset();
         }};
@@ -106,6 +99,31 @@ public:
   [[nodiscard]] twod::GameSpriteSession *Sprites() const noexcept { return sprites_.get(); }
   using CompositeDraw = std::function<Nexora::Presentation::SurfaceStatus(
       const Nexora::Presentation::SceneDrawData &, const twod::SpriteFrame &)>;
+  // Synchronous owner-frame scope: Runtime invokes the presenter at final validation, before
+  // old Stop/Destroy/library finalizers. No presenter or frame borrow survives this call.
+  Frame RenderReload(Nexora::Presentation::SceneViewport viewport, bool retain_geometry,
+                     const CompositeDraw &draw, const std::function<bool()> &reload) {
+    Frame result;
+    result.rejected = true;
+    result.status = Nexora::Presentation::SurfaceStatus::Unsupported;
+    if (!Ready() || reload_frame_ || !viewport.width || !viewport.height || !draw || !reload)
+      return result;
+    reload_frame_ = &result;
+    reload_draw_ = &draw;
+    reload_viewport_ = viewport;
+    reload_retain_geometry_ = retain_geometry;
+    struct Reset final {
+      PackagedPlayContext &owner;
+      ~Reset() {
+        owner.reload_frame_ = nullptr;
+        owner.reload_draw_ = nullptr;
+      }
+    } reset{*this};
+    const bool applied = reload();
+    result.committed = applied;
+    result.rejected = !applied;
+    return result;
+  }
   [[nodiscard]] std::unique_ptr<twod::GameSpriteSession::PreparedSources>
   PrepareSourceUpdate(std::span<const runtime::RuntimeBlob> blobs, std::string *error) {
     if (!Ready() || !scenes_->Owner() || staged_world_ || !sprites_) {
@@ -320,6 +338,51 @@ private:
   }
 
 private:
+  bool ValidateReload() noexcept try {
+    using Nexora::Presentation::SurfaceStatus;
+    if (!staged_world_ || !staged_scenes_)
+      return false;
+    staged_world_->EndFrame();
+    if (!staged_scenes_->RebindForReload(*staged_world_))
+      return false;
+#if defined(NEXORA_HAS_2D)
+    if (staged_sprites_ && (!staged_sprites_->RebindForReload(staged_world_->InternalWorld()) ||
+                            !staged_sprites_->Reconcile() || !staged_sprites_->ValidateBindings()))
+      return false;
+#endif
+    std::string error;
+    const auto view = staged_scenes_->View();
+    const auto items = runtime::CaptureGameSceneRenderItems(view, &error);
+    auto palette = items
+                       ? sceneview::PrepareSceneView(*items, view.world, view.primary, &error, true)
+                       : std::nullopt;
+    if (!palette)
+      return false;
+    staged_palette_ = std::make_shared<sceneview::StaticView>(std::move(*palette));
+#if defined(NEXORA_HAS_2D)
+    const auto viewport =
+        reload_frame_ ? reload_viewport_ : Nexora::Presentation::SceneViewport{0, 0, 1, 1};
+    const auto sprites = staged_sprites_ ? staged_sprites_->Extract(viewport.width, viewport.height)
+                                         : std::optional<twod::SpriteFrame>{twod::SpriteFrame{}};
+    if (!sprites || sprites->statistics.unavailable)
+      return false;
+    auto data =
+        staged_palette_->DrawData(view.world, float(viewport.width) / float(viewport.height));
+    if (!data)
+      return false;
+    if (reload_frame_) {
+      data->viewport = viewport;
+      data->retainMeshGeometry = reload_retain_geometry_;
+      reload_frame_->status = (*reload_draw_)(*data, *sprites);
+      reload_frame_->drawn = reload_frame_->status == SurfaceStatus::Ready;
+      reload_frame_->visible_sprites = sprites->statistics.visible;
+      return reload_frame_->drawn;
+    }
+#endif
+    return true;
+  } catch (...) {
+    return false;
+  }
   bool BeginReload(runtime::World *&world, NexoraGameplaySceneApiV1 &api) noexcept try {
     if (!scenes_->Owner() || !Ready() || staged_world_ || staged_scenes_ || retired_world_)
       return false;
@@ -380,10 +443,15 @@ private:
   std::unique_ptr<game::GameWorld> staged_world_, retired_world_;
   std::unique_ptr<runtime::GameSceneSession> staged_scenes_;
   std::shared_ptr<sceneview::StaticView> published_;
+  std::shared_ptr<sceneview::StaticView> staged_palette_;
   std::uint64_t commits_{};
 #if defined(NEXORA_HAS_2D)
   std::optional<twod::GameSpriteAssets> sprite_assets_;
   std::unique_ptr<twod::GameSpriteSession> sprites_, staged_sprites_;
+  Frame *reload_frame_{};
+  const CompositeDraw *reload_draw_{};
+  Nexora::Presentation::SceneViewport reload_viewport_{};
+  bool reload_retain_geometry_{};
 #endif
 };
 } // namespace nexora::editor::preview

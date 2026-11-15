@@ -1650,6 +1650,9 @@ int RunGraphical(std::optional<ProjectState> project,
   };
   while (!exit_requested && !created.surface->CloseRequested() &&
          (frame_limit == 0 || frames < frame_limit)) {
+#if NEXORA_ASSET_PIPELINE_ENABLED && defined(NEXORA_HAS_2D)
+    std::optional<nexora::editor::preview::GameScriptCompiler::Result> native_script_reload;
+#endif
     console_ingress.Poll();
 #if defined(NEXORA_HAS_2D)
     const auto retired_two_d = gameplay.TakeRetiredTwoDTextures();
@@ -3193,37 +3196,44 @@ int RunGraphical(std::optional<ProjectState> project,
             if (!progress->output.empty())
               log(nexora::runtime::RuntimeLogSeverity::Info, "Script Build", progress->output);
           }
-          // Owner-frame admission precedes gameplay dispatch, including while paused. A cold
-          // configured module waits for the ordinary scene queue/render boundary to become ready.
+          // Cold/source-free admission precedes gameplay dispatch, including while paused.
+          // A source-bearing replacement waits for final native Scene/Sprite/GUI admission.
           if (packaged_play && packaged_play->Ready() && play.PlayWorld()) {
             if (auto compiled = live_script.TakeResult()) {
-              std::string error = std::move(compiled->error);
-              bool applied = false;
-              const bool replacing = gameplay.IsLoaded();
-              if (compiled->key == live_script.Current() && compiled->prepared &&
-                  live_script.ScopeCurrent(&error)) {
-                applied = gameplay.IsLoaded()
-                              ? gameplay.ReloadPrepared(std::move(*compiled->prepared), error)
-                              : gameplay.LoadPrepared(
-                                    *play.PlayWorld(), std::move(*compiled->prepared), error, {},
-                                    packaged_two_d(), packaged_play->Scenes().Api(),
-                                    packaged_play->ReloadHooks());
+#if defined(NEXORA_HAS_2D)
+              if (gameplay.IsLoaded() && packaged_play->HasSprites() && packaged_sprite_textures) {
+                native_script_reload = std::move(compiled);
+              } else
+#endif
+              {
+                std::string error = std::move(compiled->error);
+                bool applied = false;
+                const bool replacing = gameplay.IsLoaded();
+                if (compiled->key == live_script.Current() && compiled->prepared &&
+                    live_script.ScopeCurrent(&error)) {
+                  applied = gameplay.IsLoaded()
+                                ? gameplay.ReloadPrepared(std::move(*compiled->prepared), error)
+                                : gameplay.LoadPrepared(
+                                      *play.PlayWorld(), std::move(*compiled->prepared), error, {},
+                                      packaged_two_d(), packaged_play->Scenes().Api(),
+                                      packaged_play->ReloadHooks());
+                }
+                if (error.empty() && !applied)
+                  error = "Script compilation failed or its result became obsolete.";
+                const auto message =
+                    applied ? std::string(replacing ? "Gameplay scripts reloaded; state preserved."
+                                                    : "Gameplay scripts running.")
+                            : error;
+                ui.SetGameplayStatus(message);
+                if (std::getenv("NEXORA_SCRIPT_RELOAD_EVIDENCE"))
+                  std::cerr << "script reload admission: project=" << compiled->key.project
+                            << " play=" << compiled->key.play << " source=" << compiled->key.source
+                            << " applied=" << applied << " generation=" << gameplay.Generation()
+                            << " message=" << message << '\n';
+                log(applied ? nexora::runtime::RuntimeLogSeverity::Info
+                            : nexora::runtime::RuntimeLogSeverity::Warning,
+                    "Script", message);
               }
-              if (error.empty() && !applied)
-                error = "Script compilation failed or its result became obsolete.";
-              const auto message =
-                  applied ? std::string(replacing ? "Gameplay scripts reloaded; state preserved."
-                                                  : "Gameplay scripts running.")
-                          : error;
-              ui.SetGameplayStatus(message);
-              if (std::getenv("NEXORA_SCRIPT_RELOAD_EVIDENCE"))
-                std::cerr << "script reload admission: project=" << compiled->key.project
-                          << " play=" << compiled->key.play << " source=" << compiled->key.source
-                          << " applied=" << applied << " generation=" << gameplay.Generation()
-                          << " message=" << message << '\n';
-              log(applied ? nexora::runtime::RuntimeLogSeverity::Info
-                          : nexora::runtime::RuntimeLogSeverity::Warning,
-                  "Script", message);
             }
           }
         }
@@ -4004,7 +4014,8 @@ int RunGraphical(std::optional<ProjectState> project,
             ui.SetGameplayStatus(error);
           } else
             ui.SetGameplayStatus("Configured scene and gameplay module running.");
-        } else if (packaged_frame.committed && ui.GameplayLibrary().empty()) {
+        } else if (packaged_frame.committed && ui.GameplayLibrary().empty() &&
+                   !gameplay.IsLoaded()) {
           ui.SetGameplayStatus("Configured scene running without a gameplay module.");
         }
       }
@@ -4178,7 +4189,46 @@ int RunGraphical(std::optional<ProjectState> project,
       std::unique_ptr<nexora::editor::preview::PackagedSpriteReimport::Candidate> candidate;
       std::string reimport_error;
       try {
-        if (project && packaged_sprite_reimport) {
+        if (native_script_reload) {
+          auto &compiled = *native_script_reload;
+          std::string error = std::move(compiled.error);
+          bool applied = false;
+          const auto current = [&] {
+            return project && live_script.Active() &&
+                   play.State() != nexora::runtime::PlayState::Stopped &&
+                   compiled.key == live_script.Current() &&
+                   compiled.key.project == content.Browser().ProjectGeneration() &&
+                   compiled.key.play == play.Generation() && live_script.ScopeCurrent(&error);
+          };
+          if (current() && compiled.prepared && gameplay.IsLoaded()) {
+            composed = packaged_play->RenderReload(
+                viewport, created.surface->SupportsSceneGeometryResidency(),
+                [&](const auto &scene, const auto &sprites) {
+                  // Candidate callbacks and CPU extraction have completed. Check source/scope
+                  // and artifact bytes immediately before recording this owning native frame.
+                  if (!current() || !gameplay.ReloadCandidateCurrent(&error))
+                    return Nexora::Presentation::SurfaceStatus::Unsupported;
+                  return draw(scene, sprites, *packaged_sprite_textures);
+                },
+                [&] {
+                  applied = gameplay.ReloadPrepared(std::move(*compiled.prepared), error);
+                  return applied;
+                });
+          }
+          if (error.empty() && !applied)
+            error = "Script compilation failed or its result became obsolete.";
+          const auto message =
+              applied ? std::string("Gameplay scripts reloaded; state preserved.") : error;
+          ui.SetGameplayStatus(message);
+          if (std::getenv("NEXORA_SCRIPT_RELOAD_EVIDENCE"))
+            std::cerr << "script reload admission: project=" << compiled.key.project
+                      << " play=" << compiled.key.play << " source=" << compiled.key.source
+                      << " applied=" << applied << " generation=" << gameplay.Generation()
+                      << " message=" << message << '\n';
+          log(applied ? nexora::runtime::RuntimeLogSeverity::Info
+                      : nexora::runtime::RuntimeLogSeverity::Warning,
+              "Script", message);
+        } else if (project && packaged_sprite_reimport) {
           candidate =
               packaged_sprite_reimport->Stage(project->workspace, content, *packaged_play,
                                               *packaged_sprite_textures, ui, reimport_error);

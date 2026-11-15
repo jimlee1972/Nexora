@@ -63,6 +63,9 @@ public:
   [[nodiscard]] InstancePool &Pool() noexcept { return pool_; }
   [[nodiscard]] runtime::World &WorldOwner() const noexcept { return *world_; }
   [[nodiscard]] bool Available() const noexcept;
+  // Idle owner only. Resolve every entity/pool binding, including hidden and legacy Sprites,
+  // without allocation, callbacks, publication or World/native-resource mutation.
+  [[nodiscard]] bool ValidateBindings() const noexcept;
   [[nodiscard]] std::uint64_t Revision() const noexcept { return revision_; }
   [[nodiscard]] const GameSpriteAssets &Assets() const noexcept { return *assets_; }
   // Freeze API writes while preparing a source/Atlas-only generation over unchanged live state.
@@ -85,6 +88,7 @@ private:
   struct ReloadCopy final {};
   GameSpriteSession(const GameSpriteSession &, runtime::World &, ReloadCopy);
   [[nodiscard]] bool Owner() const noexcept;
+  [[nodiscard]] const char *BindingError(const GameSpriteAssets &) const noexcept;
   [[nodiscard]] std::optional<SpriteFrame> ExtractState(const State &, const runtime::World &,
                                                         Camera, const GameSpriteAssets &);
   runtime::World *world_;

@@ -174,6 +174,8 @@ int main() {
   try {
     Lifecycle();
     Malformed();
+    source_reload::InvalidBindings();
+    source_reload::NativeAdmission();
     source_reload::Run();
     source_reimport::Run();
     std::cout

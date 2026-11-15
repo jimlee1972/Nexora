@@ -1335,3 +1335,31 @@ corrected files retain the same oracles; final full 551, actual GNU 15 compilati
 rebuilt Monolithic 11 pass. All runtime/native sources and 15 of 17 implementation/
 build/test files remain unchanged from the 14-gate baseline at `8448806d`. The machine
 receipt separates these source scopes. Fresh final-head CI remains required before merge.
+
+
+## ✅ Configured Editor native SDK source reload (2026-11-15)
+
+Supporting `nexora-whr.8.3.8` adds complete candidate binding/frame admission before old code
+retires. Hidden pool and entity references must resolve, and source-bearing saved SDK replacements
+submit the owning Scene/Sprite/GUI frame before World/module publication. Late scope/artifact
+checks, failed native preparation and exceptions retain the old generation. Cold/source-free
+admission remains at its ordinary dispatch boundary; queued scene operations and source reimport
+retain their existing owners. The same Runtime World, scene/source APIs and codecs are reused.
+
+The new real SDK fixture encodes 80 bytes of explicit scalar state, reacquires transient tables,
+checks the first published Update, and drives saved edits through the ordinary watcher/compiler.
+It checks independent source/pool and 3D pixels, scene/entity/pool identities, a half-frame animation
+clock, compile/prepare/restore/reloaded/binding/Capture rollback, actual retired Linux image
+finalizers, obsolete results and Stop cancellation. The CPU regression first reproduced unresolved
+entity/hidden-pool admission and old teardown, then checks rejection and native failure conservation.
+Combined final-base Linux **554/554**, zero failures/skips, **4678.26 s**, all **14 local gates**,
+**21 actual GNU15 variants/19 translation units**, full Shipping SDK Player and actual TwoD-OFF
+refusal pass. Monolithic graphical Editor/Player, **11 CPU cases** and all three actual native Editor
+cases pass, including **33 real SDK replacements**, seven rejected failures, five scene/animation
+phases, real image finalizers, obsolete results and Stop cancellation. Source reimport remains a
+separate **32-round/70-publication** proof. The failed Stop-driver ordering and earlier base scopes
+are retained separately; the complete gate was repeated after correction and PR794 integration.
+See [the execution record](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-EditorNativeReload-Linux-2026-11-15.md).
+Unchanged own-head hosted CI and source/review guards remain required before delivery.
+Joint ED-WF-07/08, Workflow **5/9**, graphical Editor **0/8**, TwoD **9/11** and physical/clean-host
+acceptance stay open/unchanged. The independently owned standalone reload task is unchanged.
