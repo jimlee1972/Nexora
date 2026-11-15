@@ -1,0 +1,76 @@
+{
+  "task": "nexora-gu7.38.12",
+  "base": "0d961ed92d96a3c79bbe29dcd90d5dd5bc891e6a",
+  "goal_complete": false,
+  "scope": "Fixture lifetime and portable acceptance; exact-head Windows sharing CI required before delivery",
+  "implementation_sha256": {
+    "Tests/Showcase/WindowsStateExportTests.ps1": "8a9eb64d7af365edfcef243425f904b0be8530f645f66aa8e68bbaa2a09bfc20"
+  },
+  "production_unchanged_sha256": {
+    "Tools/Package/AcceptShowcaseWindows.ps1": "e1b2d433b17f0b3e9fe98acedec11d83045f2fca2b8f19acf4a3c91735874896",
+    "Apps/Showcase/ShowcaseRooms.cpp": "7bfbaffd574efb76d3e90d9cd198d945a8a0eb3e826adea2315338affc539b7e"
+  },
+  "full": {
+    "passed": 554,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 4599.24
+  },
+  "gates": {
+    "configure": 0,
+    "build": 0,
+    "test": 0
+  },
+  "portable_powershell": {
+    "runtime": "7.4.6",
+    "baseline_passed": true,
+    "corrected_passed": true,
+    "missing_directory_error_marshaled": true,
+    "windows_handle_assertion_executed": false
+  },
+  "original_windows": {
+    "head": "4139551c010fa469bb78c5acbbc3382ba3cf9dc6",
+    "original_fixture_sha256": "c1e1ac36dbd5d75b6734301844c537cd8237417848dcd21f0c06344948df1b70",
+    "failure_job": 132881577353,
+    "failure_seconds": 6.59,
+    "decoded_log_sha256": "2d827151d73b4578d453de3b24ed87322a55e645e0275f7b27076300b87c7fc6",
+    "peer_success": {
+      "job": 132881820314,
+      "head": "4139551c010fa469bb78c5acbbc3382ba3cf9dc6",
+      "bytes": 1124455,
+      "sha256": "575a66b29f2f367ba24d194011582c0d16c7fd3ebec9d11914c6a11c5e07077d",
+      "gzip_bytes": 160091,
+      "gzip_sha256": "6951d76ada2a3692fcc4038e5f5d0ed269b4d492381ac2b12a0e1386b823eb7f"
+    },
+    "unchanged_retry": {
+      "head": "4139551c010fa469bb78c5acbbc3382ba3cf9dc6",
+      "run": 43736903959,
+      "job": 132905574774,
+      "attempt": 2,
+      "bytes": 1123237,
+      "sha256": "7aa1db3a55441e24ee2dce9c1eba7f19fd867331b8a6ba99c720055309e970f8",
+      "gzip_sha256": "20e44ec031c3c60710f9eb37917d12077db6e32b3ee544c2d9f76b5ba99b1f12",
+      "registered": 478,
+      "skipped": 1,
+      "failed": 0,
+      "seconds": 2603.88,
+      "state_export_seconds": 10.13,
+      "retry_count": 1,
+      "cause_fixed": false,
+      "followup": "nexora-gu7.38.12"
+    },
+    "historical_retries_are_not_a_fix": true
+  },
+  "unchanged_bounds": {
+    "export_seconds": 5,
+    "incomplete_test_seconds": 7,
+    "ctest_seconds": 20
+  },
+  "shipping_linkage_validation_required": false,
+  "milestones": {
+    "workflow": "5/9",
+    "graphical_editor": "0/8",
+    "twod": "9/11",
+    "physical_accepted": false
+  }
+}

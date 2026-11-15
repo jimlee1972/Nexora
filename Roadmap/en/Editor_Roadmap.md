@@ -2658,3 +2658,14 @@ See [the execution record](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-Ed
 Unchanged own-head hosted CI and source/review guards remain required before delivery.
 Joint ED-WF-07/08, Workflow **5/9**, graphical Editor **0/8**, TwoD **9/11** and physical/clean-host
 acceptance stay open/unchanged. The independently owned standalone reload task is unchanged.
+
+## ✅ Windows Showcase export fixture ownership correction (2026-11-15)
+
+Supporting `nexora-gu7.38.12` retains the fake producer's two write handles through empty,
+partial and complete output, matching the application's stream lifetime. Worker I/O errors reach
+the PowerShell owner; a Windows-only close gate rejects even flushed valid bytes before writer
+close. Existing five-second rejection, freshness/evidence checks and 20-second test limit remain.
+Portable PowerShell and full Linux **554/554**, zero failures/skips, **4599.24 s**, pass.
+The deterministic sharing assertion is Windows-only; exact-head Windows CI remains required before delivery.
+See [the execution record](../../Tools/Build/evidence/EditorWorkflow/CI-ShowcaseExportWriter-Linux-2026-11-15.md).
+This test correction leaves production behavior, milestone totals and physical acceptance unchanged.

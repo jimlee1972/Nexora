@@ -2538,3 +2538,12 @@ Stop driver 順序失敗與早期基底結果分開保留；修正並整合 PR79
 交付前仍須通過同一不可變 own-head CI 與來源／review guard。
 聯合 ED-WF-07/08、Workflow **5/9**、graphical Editor **0/8**、TwoD **9/11** 及實機／
 clean-host 驗收維持未完成／不變；獨立持有的 standalone reload 工作不受影響。
+
+## ✅ Windows Showcase 匯出測試寫入器擁有權修正（2026-11-15）
+
+支援任務 `nexora-gu7.38.12` 讓模擬寫入器在空白、部分與完整輸出階段持有兩個寫入控制代碼，
+與應用程式的串流生命週期一致。背景 I/O 錯誤回報至 PowerShell 擁有者；Windows 專屬的關閉
+閘門會在寫入器關閉前拒絕已完整 flush 的有效資料。既有五秒拒絕界限、新鮮度／證據檢查與
+20 秒測試限制維持不變。可攜 PowerShell 與完整 Linux **554/554**、零失敗／跳過、
+**4599.24 秒**通過。固定分享鎖案例僅在 Windows 執行；交付前仍須通過最終提交的 Windows CI。詳見[執行紀錄](../../Tools/Build/evidence/EditorWorkflow/CI-ShowcaseExportWriter-Linux-2026-11-15.md)。
+此測試修正維持正式產品行為、里程碑總數與實體主機驗收狀態不變。

@@ -415,6 +415,12 @@ and issues. These are runtime integration results and retain `contract_gate=NOT_
 The Linux interaction gate operates these controls, checks real ABI rejection and captures
 `validation-lab.png`, `lab-export.json` and `lab-export.md`.
 
+Windows acceptance retains complete snapshot strings within the original five-second export
+deadline. Its delayed producer fixture keeps both write handles through empty, partial and final
+writes, matching the room exporter; background I/O errors are reported to the PowerShell owner.
+A Windows-only regression holds flushed valid bytes open and requires rejection until the writer
+closes. Portable PowerShell execution does not establish Windows file-sharing behavior.
+
 Current lab/geometry and ground-contact acceptance: [Linux-V1-Lab-Geometry-2026-10-03](evidence/Linux-V1-Lab-Geometry-2026-10-03/acceptance.md).
 
 Rendering now submits one shared indexed cube with four native instances (floor and three cubes),
