@@ -2584,9 +2584,10 @@ stale/missing/corrupt/capacity/native failures retain live owners. Clip bytes an
 inventory stay fixed; changed scope/Clips require restarting Play. Existing source-free/custom paths
 and C/Zig/codecs/module graph stay compatible; C++ consumers rebuild.
 
-Full Linux **551/551**, zero failures/skips, **2639.43 s**, all **14 local gates**, **21 actual
-GNU15 variants/19 translation units**, full Shipping and TwoD-OFF pass. Monolithic graphical
-Editor/Player plus **11 CPU cases and two actual native Editor cases** pass. Real Reimport verifies
+Corrected-test full Linux passes **551/551**, zero failures/skips, **2680.03 s**. The unchanged
+runtime retains the **14 local gate** baseline at `8448806d`, including full Shipping, TwoD-OFF,
+Monolithic graphical Editor/Player and two native Editor cases. **11 rebuilt Monolithic CPU cases**
+and **21 GNU 15 variants/19 translation units** pass with the source scopes recorded below. Real Reimport verifies
 **32 rounds/ 70 publications**, **31,104** independent source/pool pixels plus five scene/animation
 phases (**5,184** pixels), unchanged 3D/authoring, stable handles/half-clock, changed canonical SDK
 Build and saved reopen. Development/Shipping SDK Player each checks **65,536** pixels after
@@ -2594,3 +2595,9 @@ deleted-source Unicode relocation. [Execution evidence](../../Tools/Build/eviden
 retains original fixture failures and the repeated final source gates. Exact-head hosted CI is
 required before delivery. 32 actual main SDK Zig replacements remain open in 8.3.8; joint ED-WF-07/08,
 Workflow **5/9**, graphical Editor **0/8**, TwoD **9/11** and physical/clean-host gates stay unchanged.
+
+Windows MSVC rejected three test-only implicit conversions. Explicit numeric types retain the
+same oracles; the corrected test repeats the full 551 cases, actual GNU 15 compilation and 11
+rebuilt Monolithic cases. The 14-gate Shipping/native/OFF evidence is the unchanged-runtime
+baseline at `8448806d`; the machine receipt separates both source scopes. Fresh corrected-head
+CI remains required before merge.

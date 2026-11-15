@@ -444,7 +444,7 @@ void SourceReimport() {
   for (unsigned cycle = 0; cycle < 32; ++cycle) {
     const auto source = std::ranges::find(blobs, first_id, &runtime::RuntimeBlob::id);
     auto changed = *twod::DecodeSpriteAsset(source->payload);
-    changed.pivotX = cycle % 2 ? 2 : 3;
+    changed.pivotX = cycle % 2 ? 2.0F : 3.0F;
     *source =
         testscene::Cook(first_id, "sprite_source", twod::EncodeSpriteAsset(changed), {atlas_id});
     auto atlas = std::ranges::find(blobs, atlas_id, &runtime::RuntimeBlob::id);
@@ -455,8 +455,8 @@ void SourceReimport() {
           "reimport animation start");
     std::array<NexoraTwoDEvent, 4> events{};
     NexoraTwoDAnimationResult result{};
-    Check(api.advance_animation(api.context, entity, .125, events.data(), events.size(), &result) ==
-              0,
+    Check(api.advance_animation(api.context, entity, .125, events.data(),
+                                static_cast<std::uint32_t>(events.size()), &result) == 0,
           "reimport half-frame clock");
     const auto revision = sprites.Revision();
     auto previous = sprites.Assets().ResolveAtlas(atlas_id);
@@ -494,8 +494,8 @@ void SourceReimport() {
               source_api.read_instances(source_api.context, &handle, 1, &read) == 0 &&
               read.sprite.source_high == first_id.high && read.sprite.sprite.color[0] == .5F &&
               game.InternalWorld().SaveScene(scenes.View().primary) == world &&
-              api.advance_animation(api.context, entity, .125, events.data(), events.size(),
-                                    &result) == 0 &&
+              api.advance_animation(api.context, entity, .125, events.data(),
+                                    static_cast<std::uint32_t>(events.size()), &result) == 0 &&
               Read(source_api, entity).source_high == second_id.high &&
               Read(source_api, entity).sprite.color[0] == .5F,
           "source publication reset clock/style/World/pool storage or handles");

@@ -2,7 +2,7 @@
   "schema": 1,
   "task": "nexora-whr.8.3.7",
   "base": "5e284c6e1c0295e8559b20496575f3f00d002cd6",
-  "status": "full551_and14local_gates_passed_exact_head_hosted_ci_required",
+  "status": "runtime_baseline14_passed_test_portability_corrected_full551_passed_fresh_head_ci_required",
   "implementation_sha256": {
     "Apps/Editor/PackagedPlayContext.h": "03ac37d9fdf04eaef847aa788251df6dd2eb4f884bddd54f2469c5c08f2139bc",
     "Apps/Editor/PackagedSpriteReimport.h": "2d17c276cb641f1d698014eddcef2f451d7d5130d16cd9a45ff920a8e9b89078",
@@ -20,14 +20,14 @@
     "Tests/EditorImGui/LinuxPackagedSourceServices.py": "744c7deed6f984e53fe8e214fd1fd9f69d67dca10fd3e0ecf3ef4fd8f1a16aae",
     "Tests/EditorImGui/PackagedSpritePlayTests.cpp": "0fe6bb420be7d84e6f8f9e2494ee08a4654a78e13550d9d364f978c9bf77e0b2",
     "Tests/EditorImGui/PackagedSpriteReimportTests.inl": "f30d39547d9593ea1a841675c774a681a864a5a9e88c1cd26dfc21923f2e8cb9",
-    "Tests/TwoD/GameSpriteSessionTests.cpp": "176b9313d5e67c7dbf052baa9a46b10563e08ffb0685ccc0b859a2c548d25660"
+    "Tests/TwoD/GameSpriteSessionTests.cpp": "07c3101310d5bbd2271595d1049dfe444f22e9248555dba66fac010f4b38ead3"
   },
   "full": {
     "passed": 551,
     "failed": 0,
     "skipped": 0,
-    "seconds": 2639.43,
-    "log_sha256": "ee3198253ed614b2b9a22c5455231779bb041998b7eef340ab33dcce537e7097"
+    "seconds": 2680.03,
+    "log_sha256": "dd96d6fa574507f1226082d98d20d963cfb359fea9b08709ace29cb1dde823aa"
   },
   "gates": [
     {
@@ -656,11 +656,11 @@
           "-Wpedantic",
           "-Werror",
           "-o",
-          "/workspace/work/engine-goal-20261112/authoring/editor-source-reimport/gcc15/development/Tests_TwoD_GameSpriteSessionTests-0.o",
+          "/workspace/work/engine-goal-20261112/authoring/editor-source-reimport/windows-type-fix/GameSpriteSessionTests-gcc15.o",
           "-c",
           "/workspace/Nexora-delivery-773/Tests/TwoD/GameSpriteSessionTests.cpp"
         ],
-        "source_sha256": "176b9313d5e67c7dbf052baa9a46b10563e08ffb0685ccc0b859a2c548d25660",
+        "source_sha256": "07c3101310d5bbd2271595d1049dfe444f22e9248555dba66fac010f4b38ead3",
         "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       },
       {
@@ -1210,7 +1210,8 @@
         "source_sha256": "ed03c589ada8d4083fd184856673fe313837b5107d22275e642a8dd2416e842b",
         "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       }
-    ]
+    ],
+    "scope": "Composite 21 original-flag variants: 20 unchanged variants from baseline 8448806d and one explicitly recompiled corrected test variant. 19 unique translation units."
   },
   "editor_native": [
     {
@@ -3410,7 +3411,7 @@
       "sdk_commands": "{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-shipping/Apps/ProjectPlayer/NexoraProjectPlayer\",\"--verify-native-game-package\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0/package/Game.nxgame\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0/nexora-script-192842911881425-0\",\"argv\":[\"/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/cmake/data/bin/cmake\",\"-S\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0/nexora-script-192842911881425-0\",\"-B\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0/nexora-script-192842911881425-0/compile\",\"-G\",\"Ninja\",\"-DCMAKE_MAKE_PROGRAM=/workspace/work/engine-goal-20261112/tools/bin/ninja\",\"-DNEXORA_GAME_MANIFEST=/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0/nexora-script-192842911881425-0/source/Scripts/project.json\",\"-DNEXORA_GAME_ZIG=/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/ziglang/zig\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0/nexora-script-192842911881425-0\",\"argv\":[\"/workspace/work/engine-goal-20261112/tools/lib/python3.12/site-packages/cmake/data/bin/cmake\",\"--build\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0/nexora-script-192842911881425-0/compile\",\"--target\",\"GameModule\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0/nexora-script-192842911881425-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-shipping/Apps/ProjectPlayer/NexoraProjectPlayer\",\"--verify-game-module\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0/nexora-script-192842911881425-0/nexora-script-192842911881425-0.so\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0/package/Game\",\"--verify-native-game-package\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0/package/Game.nxgame\"]}\n{\"cwd\":\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0\",\"argv\":[\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0/package/Game\",\"--verify-game-module\",\"/workspace/Nexora-delivery-773/build/linux-shipping/artifacts/editor-sprite-sources/game-services-1794726907357360481/nexora-game-192842886064484-0/package/libGame.so\"]}\n"
     }
   ],
-  "modular_reimport_seconds": 361.36,
+  "modular_reimport_seconds": 365.56,
   "focused_before_surface_review": {
     "passed": true,
     "scope": "configured Editor SDK source/animation/pool adoption",
@@ -3501,5 +3502,1002 @@
     "graphical_editor": "0/8",
     "twod": "9/11"
   },
-  "ci_policy": "Merge only own PR after all applicable exact-head checks and source/base/tree/review verification"
+  "ci_policy": "Merge only own PR after all applicable exact-head checks and source/base/tree/review verification",
+  "baseline_before_windows_type_fix": {
+    "head": "8448806d16edb7f8411d557466da17ae15728273",
+    "full": {
+      "passed": 551,
+      "failed": 0,
+      "skipped": 0,
+      "seconds": 2639.43,
+      "log_sha256": "ee3198253ed614b2b9a22c5455231779bb041998b7eef340ab33dcce537e7097"
+    },
+    "implementation_sha256": {
+      "Apps/Editor/PackagedPlayContext.h": "03ac37d9fdf04eaef847aa788251df6dd2eb4f884bddd54f2469c5c08f2139bc",
+      "Apps/Editor/PackagedSpriteReimport.h": "2d17c276cb641f1d698014eddcef2f451d7d5130d16cd9a45ff920a8e9b89078",
+      "Apps/Editor/PackagedSpriteTextures.h": "cdbab2fea5a0a5c36efbb2901055524c818c398b50f02623415968b2d341d4af",
+      "Apps/Editor/ProjectAssetWorkflowEvidence.h": "dc12feef359f4f3d7265bfec3139fa22f03450c0509638b080258032eb3f2124",
+      "Apps/Editor/main.cpp": "79c16cf1202ae1bf190698fd9a080d56a7bc9634387ad05202b53e1e2281dacf",
+      "Engine/EditorImGui/src/EditorImGui.cpp": "ae4181b25d6cfd55362f8b51569680d880b74f47a8755d3af53bac4de06b1cfc",
+      "Engine/TwoD/include/Nexora/TwoD/GameSpriteAssets.h": "44920146b6b98b3b18c17220eee988b112e4d8c1f71e07be419b7134bab017d0",
+      "Engine/TwoD/include/Nexora/TwoD/GameSpriteSession.h": "fc3898c3d30bca1ae191129546cc2beb9f5ef023dfccd97f21e19208494021fe",
+      "Engine/TwoD/src/GameSpriteAssets.cpp": "b884a53d19c2a10532ef13354c49e460569de93b36c7a821f99b7c87f918e34a",
+      "Engine/TwoD/src/GameSpriteSession.cpp": "b5dc083afbfd61ecd8d5bddadf05b017a84afd383fef37c7bf658bf4bcd8496b",
+      "Tests/Editor/GameSourceServices.zig": "fd84332be8a0b3143c4e8a7732e5009ece4be1fbefd09ff3a2c3ed633a2abfc8",
+      "Tests/Editor/GameSpriteBuildTests.cpp": "c708d3d3083f224d0f13b73f0defaf15e0ae5f11e7806ed7f44bd4a87fd7fa93",
+      "Tests/EditorImGui/CMakeLists.txt": "4c695e025b0bbd5532e46ff954ef4b24e4b477e123d5c5b29e2dc4e2a29228b9",
+      "Tests/EditorImGui/LinuxPackagedSourceServices.py": "744c7deed6f984e53fe8e214fd1fd9f69d67dca10fd3e0ecf3ef4fd8f1a16aae",
+      "Tests/EditorImGui/PackagedSpritePlayTests.cpp": "0fe6bb420be7d84e6f8f9e2494ee08a4654a78e13550d9d364f978c9bf77e0b2",
+      "Tests/EditorImGui/PackagedSpriteReimportTests.inl": "f30d39547d9593ea1a841675c774a681a864a5a9e88c1cd26dfc21923f2e8cb9",
+      "Tests/TwoD/GameSpriteSessionTests.cpp": "176b9313d5e67c7dbf052baa9a46b10563e08ffb0685ccc0b859a2c548d25660"
+    },
+    "metadata_sha256": "8e08130acdd14a9ddac6d1f7a065fec8699d8d7158775b839d3be73e76f1de28",
+    "gcc15_receipt_sha256": "a00169306a4f24c7ac7a203d4b52567feaf4f0a6cc0f0f3f854321e5d606c762",
+    "gate_count": 14,
+    "runtime_sources_unchanged": true
+  },
+  "gate_scope": "The 14 sequential gates validate baseline 8448806d. All runtime/native files are unchanged. The only corrected code file is the CPU test; complete Linux551, actual GNU 15 recompile and rebuilt Monolithic 11 cases verify that correction separately.",
+  "windows_type_fix": {
+    "baseline_head": "8448806d16edb7f8411d557466da17ae15728273",
+    "failed_windows_jobs": [
+      {
+        "job": 132738791822,
+        "sha256": "5d296e60f02ce5cbd641600eef486b731c729e4f54cc022104d82e162cccb3ff"
+      },
+      {
+        "job": 132738578189,
+        "sha256": "9008a036f9d903a79373291c744cab7cfd97057335a9bb78b67cae58ed9d2bea"
+      },
+      {
+        "job": 132738578180,
+        "sha256": "4b12b21fc67840e3071c4c23f58633a022e8f5c5006a7845d3cb03a5a1eefd47"
+      },
+      {
+        "job": 132738791698,
+        "sha256": "8b323c1c723865d6c21f2ff493d0acd03a95a6edd58513ae4a992a970ff0fa68"
+      }
+    ],
+    "changed_code": [
+      "Tests/TwoD/GameSpriteSessionTests.cpp"
+    ],
+    "corrections": [
+      "float Pivot literals 2.0F/3.0F",
+      "explicit uint32 event capacity for four-event array"
+    ],
+    "warning_suppression": false,
+    "oracles_unchanged": true,
+    "unchanged_files": 16,
+    "configure_command": [
+      "cmake",
+      "--preset",
+      "linux-development"
+    ],
+    "build_command": [
+      "cmake",
+      "--build",
+      "--preset",
+      "linux-development"
+    ],
+    "test_command": [
+      "ctest",
+      "--preset",
+      "linux-development",
+      "--output-on-failure"
+    ],
+    "full": {
+      "passed": 551,
+      "failed": 0,
+      "skipped": 0,
+      "seconds": 2680.03,
+      "log_sha256": "dd96d6fa574507f1226082d98d20d963cfb359fea9b08709ace29cb1dde823aa"
+    },
+    "gcc15": {
+      "file": "Tests/TwoD/GameSpriteSessionTests.cpp",
+      "exit": 0,
+      "command": [
+        "/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/bin/x86_64-linux-gnu-g++-15",
+        "-B/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/lib/gcc/x86_64-linux-gnu/15/",
+        "-DNEXORA_ASSET_PIPELINE_ENABLED=1",
+        "-DNEXORA_BUILD_DEVELOPMENT=1",
+        "-DNEXORA_CAPTURE_ENCODER_ENABLED=0",
+        "-DNEXORA_EDITOR_SDK_ENABLED=1",
+        "-DNEXORA_GAMEPLAY_SIMULATION_ENABLED=1",
+        "-DNEXORA_LARGE_WORLD_ENABLED=1",
+        "-DNEXORA_MEDIA_DRM_ENABLED=0",
+        "-DNEXORA_PLATFORM_ENABLED=1",
+        "-DNEXORA_PRESENTATION_ENABLED=1",
+        "-DNEXORA_SCENE_RENDERING_ENABLED=1",
+        "-DNEXORA_SHIPPING_ENABLED=1",
+        "-I/workspace/Nexora-delivery-773/Engine/TwoD/include",
+        "-I/workspace/Nexora-delivery-773/Engine/Runtime/include",
+        "-I/workspace/Nexora-delivery-773/Engine/Renderer/include",
+        "-I/workspace/Nexora-delivery-773/Engine/RHI/include",
+        "-I/workspace/Nexora-delivery-773/Engine/Core/include",
+        "-I/workspace/Nexora-delivery-773/Engine/Foundation/include",
+        "-I/workspace/Nexora-delivery-773/Engine/API/include",
+        "-I/workspace/Nexora-delivery-773/build/linux-development/Engine/Foundation/include",
+        "-I/workspace/Nexora-delivery-773/Engine/Presentation/include",
+        "-I/workspace/Nexora-delivery-773/Engine/Window/include",
+        "-std=c++20",
+        "-fvisibility=hidden",
+        "-fvisibility-inlines-hidden",
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-Werror",
+        "-o",
+        "/workspace/work/engine-goal-20261112/authoring/editor-source-reimport/windows-type-fix/GameSpriteSessionTests-gcc15.o",
+        "-c",
+        "/workspace/Nexora-delivery-773/Tests/TwoD/GameSpriteSessionTests.cpp"
+      ],
+      "source_sha256": "07c3101310d5bbd2271595d1049dfe444f22e9248555dba66fac010f4b38ead3",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "monolithic_cpu": 11,
+    "mono_build_log_sha256": "8bcfce99ecea48a3ecb91fd7a40b5c686b05d9a45f94f9be324f683928818f22",
+    "mono_test_log_sha256": "32f843b3551c5e0e79f5a673be82471f0fdb12b06c09fb07f904b4ad6fb90ea3"
+  },
+  "corrected_native_modular": {
+    "receipt": "build/linux-development/artifacts/editor-packaged-source-reimport/source-services-1794728760434995067/receipt.json",
+    "sha256": "578a952a8bb6e649c5b76b25c7e503a379d8726d203a0d7c880ecbce2f9cb673",
+    "data": {
+      "passed": true,
+      "scope": "configured Editor SDK source/animation/pool adoption",
+      "readonly": false,
+      "phases": [
+        {
+          "phase": 0,
+          "commits": 1,
+          "visible": 3,
+          "viewport": [
+            648,
+            280,
+            590,
+            180
+          ],
+          "colors": [
+            243,
+            243,
+            243,
+            243
+          ],
+          "mask_sha256": "e982a89b7416e7ec76530bfb4d91880f7e8252dc25a6bf7bd87f99f9a8fb4477",
+          "independent_3d_pixels": 36
+        },
+        {
+          "phase": 1,
+          "commits": 1,
+          "visible": 3,
+          "viewport": [
+            648,
+            280,
+            590,
+            180
+          ],
+          "colors": [
+            243,
+            243,
+            243,
+            243
+          ],
+          "mask_sha256": "0758ddb35e98b50a2defeec96d87f9460a631e81118c58f3336dc0dbfdfdce1b",
+          "independent_3d_pixels": 36
+        },
+        {
+          "phase": 2,
+          "commits": 2,
+          "visible": 5,
+          "viewport": [
+            648,
+            280,
+            590,
+            180
+          ],
+          "colors": [
+            405,
+            243,
+            405,
+            243
+          ],
+          "mask_sha256": "911fdefcc0f0f33e72a83553483d1c1a6fd8585d8c080f134c4a84334da51b76",
+          "independent_3d_pixels": 36
+        },
+        {
+          "phase": 3,
+          "commits": 3,
+          "visible": 3,
+          "viewport": [
+            648,
+            280,
+            590,
+            180
+          ],
+          "colors": [
+            243,
+            243,
+            243,
+            243
+          ],
+          "mask_sha256": "0758ddb35e98b50a2defeec96d87f9460a631e81118c58f3336dc0dbfdfdce1b",
+          "independent_3d_pixels": 36
+        },
+        {
+          "phase": 4,
+          "commits": 4,
+          "visible": 3,
+          "viewport": [
+            648,
+            280,
+            590,
+            180
+          ],
+          "colors": [
+            243,
+            243,
+            243,
+            243
+          ],
+          "mask_sha256": "8ac886c2afff3e7fb019693a00ce929774d9f9367d4aa5845efd48bb5441d717",
+          "independent_3d_pixels": 36
+        }
+      ],
+      "captures": [
+        {
+          "file": "legacy.png",
+          "sha256": "33f0c6129834e8021fd2bb5009c3836903727d14871802c194b52ccd155983f4"
+        },
+        {
+          "file": "phase-0.png",
+          "sha256": "66d2bc6a66850e0cdcb560f6303a748f80012fe3154edeb6208d1e2c2010ad38"
+        },
+        {
+          "file": "phase-1.png",
+          "sha256": "3adca62a70e01944c12553f6bde25d5aa95e7133e3540c94ee85c7fa2cc96711"
+        },
+        {
+          "file": "phase-2.png",
+          "sha256": "4acd11a6b3cb92272f6fa8e24810219729cd1bca33b44ebc4c2321fb8102e869"
+        },
+        {
+          "file": "phase-3.png",
+          "sha256": "f7d2539c679ce5b4e6f28a3e6d8747e5f33e338a4971e00d5680e1edf10c4e7b"
+        },
+        {
+          "file": "phase-4.png",
+          "sha256": "5414b67e1672962f33a57f0acce08e4aa5ecfce8e5a9df90ec4dc019909f5c33"
+        },
+        {
+          "file": "reimport-1.png",
+          "sha256": "0915b9774c2d66feb0d6d86c8ada07589ef5a28a67f13c7690f8c26e5e0a53ce"
+        },
+        {
+          "file": "reimport-32.png",
+          "sha256": "1b70b3d81e234bf753d4169a1551f1ac3559ba2cc19938a732f53a72a34d184f"
+        }
+      ],
+      "commands": [
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--write-animation-fixture",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Apps/Editor/NexoraEditor",
+          "--graphical",
+          "--native-scene-preview",
+          "--frames=100000",
+          "--play",
+          "--project=/tmp/nexora-editor-source-services-103n0djb/legacy",
+          "--recent-projects=/tmp/nexora-editor-source-services-103n0djb/legacy-recent",
+          "--read-only"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Apps/Editor/NexoraEditor",
+          "--graphical",
+          "--native-scene-preview",
+          "--frames=100000",
+          "--play",
+          "--project=/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "--recent-projects=/tmp/nexora-editor-source-services-103n0djb/sdk-recent"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Apps/Editor/NexoraEditor",
+          "--build-game=/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "--output=/tmp/nexora-editor-source-services-103n0djb/reimported Build \u4f86\u6e90",
+          "--script-project=Scripts/project.json",
+          "--build-records=/workspace/Nexora-delivery-773/build/linux-development/artifacts/editor-packaged-source-reimport/source-services-1794728760434995067/reimport-build-records"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--verify-reimported-package",
+          "/tmp/nexora-editor-source-services-103n0djb/reimported Build \u4f86\u6e90/Game.nxgame"
+        ],
+        [
+          "/workspace/Nexora-delivery-773/build/linux-development/Apps/Editor/NexoraEditor",
+          "--graphical",
+          "--native-scene-preview",
+          "--frames=100000",
+          "--play",
+          "--project=/tmp/nexora-editor-source-services-103n0djb/project \u4f86\u6e90",
+          "--recent-projects=/tmp/nexora-editor-source-services-103n0djb/reopened-recent",
+          "--read-only"
+        ]
+      ],
+      "reimports": [
+        {
+          "cycle": 1,
+          "publications": 2,
+          "pivot": 3,
+          "alternate": true,
+          "mask_sha256": "8825b73e0f9aa3574393645376519eb41c1887162b34fa131594ebefac702e64",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 2,
+          "publications": 4,
+          "pivot": 2,
+          "alternate": false,
+          "mask_sha256": "e982a89b7416e7ec76530bfb4d91880f7e8252dc25a6bf7bd87f99f9a8fb4477",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 3,
+          "publications": 6,
+          "pivot": 3,
+          "alternate": true,
+          "mask_sha256": "8825b73e0f9aa3574393645376519eb41c1887162b34fa131594ebefac702e64",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 4,
+          "publications": 8,
+          "pivot": 2,
+          "alternate": false,
+          "mask_sha256": "e982a89b7416e7ec76530bfb4d91880f7e8252dc25a6bf7bd87f99f9a8fb4477",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 5,
+          "publications": 10,
+          "pivot": 3,
+          "alternate": true,
+          "mask_sha256": "8825b73e0f9aa3574393645376519eb41c1887162b34fa131594ebefac702e64",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 6,
+          "publications": 12,
+          "pivot": 2,
+          "alternate": false,
+          "mask_sha256": "e982a89b7416e7ec76530bfb4d91880f7e8252dc25a6bf7bd87f99f9a8fb4477",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 7,
+          "publications": 14,
+          "pivot": 3,
+          "alternate": true,
+          "mask_sha256": "8825b73e0f9aa3574393645376519eb41c1887162b34fa131594ebefac702e64",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 8,
+          "publications": 16,
+          "pivot": 2,
+          "alternate": false,
+          "mask_sha256": "e982a89b7416e7ec76530bfb4d91880f7e8252dc25a6bf7bd87f99f9a8fb4477",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 9,
+          "publications": 18,
+          "pivot": 3,
+          "alternate": true,
+          "mask_sha256": "8825b73e0f9aa3574393645376519eb41c1887162b34fa131594ebefac702e64",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 10,
+          "publications": 20,
+          "pivot": 2,
+          "alternate": false,
+          "mask_sha256": "e982a89b7416e7ec76530bfb4d91880f7e8252dc25a6bf7bd87f99f9a8fb4477",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 11,
+          "publications": 22,
+          "pivot": 3,
+          "alternate": true,
+          "mask_sha256": "8825b73e0f9aa3574393645376519eb41c1887162b34fa131594ebefac702e64",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 12,
+          "publications": 24,
+          "pivot": 2,
+          "alternate": false,
+          "mask_sha256": "e982a89b7416e7ec76530bfb4d91880f7e8252dc25a6bf7bd87f99f9a8fb4477",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 13,
+          "publications": 26,
+          "pivot": 3,
+          "alternate": true,
+          "mask_sha256": "8825b73e0f9aa3574393645376519eb41c1887162b34fa131594ebefac702e64",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 14,
+          "publications": 28,
+          "pivot": 2,
+          "alternate": false,
+          "mask_sha256": "e982a89b7416e7ec76530bfb4d91880f7e8252dc25a6bf7bd87f99f9a8fb4477",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 15,
+          "publications": 30,
+          "pivot": 3,
+          "alternate": true,
+          "mask_sha256": "8825b73e0f9aa3574393645376519eb41c1887162b34fa131594ebefac702e64",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 16,
+          "publications": 32,
+          "pivot": 2,
+          "alternate": false,
+          "mask_sha256": "e982a89b7416e7ec76530bfb4d91880f7e8252dc25a6bf7bd87f99f9a8fb4477",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 17,
+          "publications": 34,
+          "pivot": 3,
+          "alternate": true,
+          "mask_sha256": "8825b73e0f9aa3574393645376519eb41c1887162b34fa131594ebefac702e64",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 18,
+          "publications": 36,
+          "pivot": 2,
+          "alternate": false,
+          "mask_sha256": "e982a89b7416e7ec76530bfb4d91880f7e8252dc25a6bf7bd87f99f9a8fb4477",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 19,
+          "publications": 38,
+          "pivot": 3,
+          "alternate": true,
+          "mask_sha256": "8825b73e0f9aa3574393645376519eb41c1887162b34fa131594ebefac702e64",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 20,
+          "publications": 40,
+          "pivot": 2,
+          "alternate": false,
+          "mask_sha256": "e982a89b7416e7ec76530bfb4d91880f7e8252dc25a6bf7bd87f99f9a8fb4477",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 21,
+          "publications": 42,
+          "pivot": 3,
+          "alternate": true,
+          "mask_sha256": "8825b73e0f9aa3574393645376519eb41c1887162b34fa131594ebefac702e64",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 22,
+          "publications": 44,
+          "pivot": 2,
+          "alternate": false,
+          "mask_sha256": "e982a89b7416e7ec76530bfb4d91880f7e8252dc25a6bf7bd87f99f9a8fb4477",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 23,
+          "publications": 46,
+          "pivot": 3,
+          "alternate": true,
+          "mask_sha256": "8825b73e0f9aa3574393645376519eb41c1887162b34fa131594ebefac702e64",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 24,
+          "publications": 48,
+          "pivot": 2,
+          "alternate": false,
+          "mask_sha256": "e982a89b7416e7ec76530bfb4d91880f7e8252dc25a6bf7bd87f99f9a8fb4477",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 25,
+          "publications": 50,
+          "pivot": 3,
+          "alternate": true,
+          "mask_sha256": "8825b73e0f9aa3574393645376519eb41c1887162b34fa131594ebefac702e64",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 26,
+          "publications": 52,
+          "pivot": 2,
+          "alternate": false,
+          "mask_sha256": "e982a89b7416e7ec76530bfb4d91880f7e8252dc25a6bf7bd87f99f9a8fb4477",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 27,
+          "publications": 54,
+          "pivot": 3,
+          "alternate": true,
+          "mask_sha256": "8825b73e0f9aa3574393645376519eb41c1887162b34fa131594ebefac702e64",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 28,
+          "publications": 56,
+          "pivot": 2,
+          "alternate": false,
+          "mask_sha256": "e982a89b7416e7ec76530bfb4d91880f7e8252dc25a6bf7bd87f99f9a8fb4477",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 29,
+          "publications": 58,
+          "pivot": 3,
+          "alternate": true,
+          "mask_sha256": "8825b73e0f9aa3574393645376519eb41c1887162b34fa131594ebefac702e64",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 30,
+          "publications": 60,
+          "pivot": 2,
+          "alternate": false,
+          "mask_sha256": "e982a89b7416e7ec76530bfb4d91880f7e8252dc25a6bf7bd87f99f9a8fb4477",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 31,
+          "publications": 62,
+          "pivot": 3,
+          "alternate": true,
+          "mask_sha256": "8825b73e0f9aa3574393645376519eb41c1887162b34fa131594ebefac702e64",
+          "independent_3d_pixels": 36
+        },
+        {
+          "cycle": 32,
+          "publications": 64,
+          "pivot": 2,
+          "alternate": false,
+          "mask_sha256": "e982a89b7416e7ec76530bfb4d91880f7e8252dc25a6bf7bd87f99f9a8fb4477",
+          "independent_3d_pixels": 36
+        }
+      ],
+      "reimported_sdk_build_verified": true,
+      "reimport_publications": 70,
+      "corrupt_and_missing_retained": true,
+      "half_frame_clock_preserved": true,
+      "saved_reopen_verified": true,
+      "source_hashes": {
+        ".nexora/scenes/Main.scene": "2084bbff51d5f3c986d7e991ab3129f3f1c28255640a2c3fb7c3a837e6235263",
+        "Content/Animation.nx2clip": "c48a4c2975611ee0096d03681b01406f6e05cecf01e874213bdefba5136cfff1",
+        "Content/Animation.nx2clip.meta": "0f1b6a3ec081215e5d1d2262e9adebe2aa15832798fd0fa90515648d68c9f8e6",
+        "Content/Color.nx2atlas": "6e0cab5487fc3ccba91db7bdefe4ed5b17b33cba3540cfc028c583620a897482",
+        "Content/Color.nx2atlas.meta": "cec5e22d41a1fb87a52c7cd3c108bfecf0da558d4976362109dc58fe8c6831b1",
+        "Content/Legacy.nx2clip": "820f15f34b277bf11365fa21459c338918b0631011fd34768a8a3447c467bb0c",
+        "Content/Legacy.nx2clip.meta": "26b9f3aa5993020bf4d7608d5a92b4fd6ce7818be02474aafe782ca87d66a924",
+        "Content/Other.nx2atlas": "9501bb538ff642e05d501c292395ac48945bd4a6862a8d685d1523bd70b07c45",
+        "Content/Other.nx2atlas.meta": "c9c82bca55db2ff1a86b3be32202faa710f870977423244b6c580755d665eac5",
+        "Content/Other.nx2sprite": "fe1fe3ee8f955a194027d9a0103c7d03c9f6ceafc53b4d6a6a1245446339ef57",
+        "Content/Other.nx2sprite.meta": "45d06a5481b84ef822574926268c6420be972f38beeb3027917deb4cbf27aa74",
+        "Content/Source.nx2sprite": "16b9c57fa36162107fbb568fa7a781f23d2baee3d1e59f9debb41e3dde2650a4",
+        "Content/Source.nx2sprite.meta": "34fcf3225d3fbf86a1bfabd5929db3dc9f5c7b061dc56e2f7c66627ef742a163",
+        "Content/Triangle.obj": "1f4f01899e25a85c903038f27ee0bdc05be15737690fdf33d3b80d0fd1dc9302",
+        "Content/Triangle.obj.meta": "af18e903de89c794cc8c2770701f1922027e1dbd20efa1a127548f9b752b560b",
+        "Content/Unselected.nx2clip": "446ff2ea4a058ddb598d7e90d58d70cf10a8a548c4eb26ae6e3ce0bf246a00bc",
+        "Content/Unselected.nx2clip.meta": "929168372549ed5d2dc87c5121970599cfc0afdd18cdadc9d664d3179b64cf5b",
+        "Level.scene": "2084bbff51d5f3c986d7e991ab3129f3f1c28255640a2c3fb7c3a837e6235263",
+        "Scripts/game.zig": "fd84332be8a0b3143c4e8a7732e5009ece4be1fbefd09ff3a2c3ed633a2abfc8",
+        "Scripts/project.json": "a8e85ca2ed3344be6ca8fe41c8916dc58d7ebdbd8f98d325627dd6c5094f66a2",
+        "Title.scene": "2084bbff51d5f3c986d7e991ab3129f3f1c28255640a2c3fb7c3a837e6235263",
+        "project.build.json": "dad6c7422ede2766b0619ce0f2e212b74c74c0ea1eec54df2ffdde97219041d8",
+        "project.nexora": "55420737feda25b845f4bf80cf5667c7a457dc9d833e8cb538b67247d6b5ac51"
+      },
+      "pool_handle": "1:0:1",
+      "sdk_compiled_from_saved_settings": true,
+      "authoring_unchanged": true
+    }
+  }
 }

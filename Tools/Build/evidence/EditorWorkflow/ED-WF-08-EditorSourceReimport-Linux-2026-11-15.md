@@ -29,17 +29,24 @@ are unchanged; C++ consumers rebuild. The root README and milestone totals remai
   recovery rules and never replays an ended GUI frame. This is CPU propagation coverage, not a
   physical device-loss or clean-host acceptance claim.
 
-## Complete final validation
+## Complete corrected-test validation
 
-`cmake --preset linux-development`, `cmake --build --preset linux-development`, unfiltered
+The test-only MSVC portability correction repeats `cmake --preset linux-development`,
+`cmake --build --preset linux-development` and unfiltered
 `ctest --preset linux-development --output-on-failure`: **551/551**, zero failures/skips,
-**2639.43 s**. The final modular native reimport case passes **361.36 s**.
-All **14 sequential local gates** pass, including full Shipping configure/build and native SDK
-Player, monolithic graphical Editor/Player plus **11 CPU cases and both native Editor cases**,
-and actual TwoD-OFF configure/build/package refusal. Development/Shipping Player each checks
-**65,536** independent source/pool pixels after deleted-source Unicode relocation, stable handles,
-unchanged 3D and native drain. Final GNU15 validation compiles **21 variants across 19 translation
-units** with original compile flags. The machine receipt records every command, exit and log hash.
+**2680.03 s**. The repeated modular native reimport case passes **365.56 s**.
+The corrected CPU test also compiles with its actual GNU 15 flags and passes the rebuilt
+**11 Monolithic CPU cases**. No test oracle or warning policy was weakened.
+
+The original **14 sequential local gates** at `8448806d` validate the unchanged runtime/native
+sources: full Shipping configure/build and canonical SDK native Player, monolithic graphical
+Editor/Player plus 11 CPU and both native Editor cases, actual TwoD-OFF configure/build/refusal.
+Those baseline 551 tests passed in 2639.43 s. All other 16 implementation/build/test files remain
+byte-identical. Development/Shipping Player each checks **65,536** independent source/pool pixels
+after deleted-source Unicode relocation, stable handles, unchanged 3D and native drain.
+GNU 15 coverage consists of **21 original-flag variants across 19 translation units**: 20 unchanged
+baseline variants plus the explicitly recompiled corrected test. The machine receipt separates
+the baseline 14 gates from the new full-suite/test-portability evidence.
 
 ## Retained investigation history
 
@@ -51,6 +58,15 @@ Final source review additionally guarded surface recovery and strengthened nativ
 the first full run was explicitly interrupted, then the complete 14-gate sequence reran on the
 final frozen 17 implementation/build/test files. Interrupted/earlier results do not validate the
 final source. See the machine receipt for retained log hashes and scoped evidence.
+
+## Windows test portability correction
+
+Hosted MSVC /W4 /WX rejected the original test's int-to-float Pivot ternary (C4244) and two
+size_t-to-uint32 event capacities (C4267). Four Windows job logs are retained. The correction uses
+explicit float literals and an explicit uint32 cast for the four-element event array. Runtime,
+native, source/asset/Clip behavior and expected values are unchanged. PR #793 was made draft before
+any merge. Baseline Linux/Shipping/Mono/OFF success does not substitute for corrected-head
+Windows acceptance; all fresh applicable hosted checks are required before delivery.
 
 ## Remaining acceptance
 
