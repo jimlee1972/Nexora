@@ -228,6 +228,165 @@ void Run(float dpi) {
   Check(Files(root) == before && scene.PrepareSave()->Bytes() == original &&
             world.SaveScene(id) == runtime,
         "GUI rendering or request handling mutated files, Scene or Runtime");
+
+  // The same real controls edit an existing imported source; no request injection.
+  constexpr nexora::runtime::AssetUuid edited_id{303, 3};
+  twod::SpriteAsset baseline{edited_id, atlasId, 7, 19, 23, 3, 5, 7, 9, 4.5F, 8.25F, 2, {}};
+  const auto source_path = workspace.Root() / "Content/Existing.nx2sprite";
+  {
+    const auto bytes = twod::EncodeSpriteAsset(baseline);
+    std::ofstream output(source_path, std::ios::binary);
+    output.write(reinterpret_cast<const char *>(bytes.data()), std::streamsize(bytes.size()));
+    Check(bool(output), "existing source fixture");
+  }
+  Check(assets.ImportTree(workspace.Root() / "Content", {}, {},
+                          editor::AssetIdentityMode::PersistentReadWrite) &&
+            content.Open(workspace, assets, 6) && readonly.Open(reader, assets, 6, false),
+        "existing source import");
+  const auto editing_files = Files(root);
+  const auto retained_source = content.Browser().Find(edited_id)->twod;
+  settle();
+  const auto open_edit = [&] {
+    Access::FocusContent(ui);
+    settle();
+    const auto asset = Access::ContentAssetPosition(ui, edited_id);
+    Check(bool(asset), "existing source row");
+    click(*asset, 1);
+    const auto menu = Access::SpriteSourceEditingMenu(ui);
+    Check(bool(menu), "source editing menu");
+    click(*menu);
+  };
+  open_edit();
+  Check(!Access::SpriteSourceCreationRect(ui, 0) && Access::SpriteSourceCreationRect(ui, 11),
+        "edit must preserve filename and expose border metadata");
+  click(point(9));
+  Check(!ui.TakeSpriteSourceEditingRequest(), "unchanged source edit admitted");
+  for (const auto &[index, value] : std::array<std::pair<std::size_t, const char *>, 7>{
+           {{2, "31"}, {3, "37"}, {4, "6"}, {5, "7"}, {6, "9.75"}, {7, "12.5"}, {8, "4"}}})
+    text(index, value);
+  key(Key::F5);
+  Check(ui.TakePlayCommand() == editor::imgui::PlayCommand::None, "editor admitted Play shortcut");
+  click(point(9));
+  Event blur{}, refocus{};
+  blur.type = refocus.type = Type::FocusChanged;
+  refocus.value0 = 1;
+  ui.ProcessEvents(std::array{blur, refocus});
+  Check(!ui.TakeSpriteSourceEditingRequest(), "transient blur retained an unconsumed source save");
+  settle();
+  click(point(9));
+  auto edit_request = ui.TakeSpriteSourceEditingRequest();
+  Check(edit_request && !ui.TakeSpriteSourceEditingRequest() &&
+            !ui.TakeSpriteSourceCreationRequest(),
+        "one-shot existing-source edit request");
+  Check(edit_request->editing.baseline == baseline &&
+            edit_request->editing.source.id == edited_id &&
+            edit_request->editing.source.atlas == atlasId &&
+            edit_request->editing.path == "Content/Existing.nx2sprite" &&
+            edit_request->editing.root == workspace.Root() &&
+            edit_request->editing.source.sourceWidth == 31 &&
+            edit_request->editing.source.sourceHeight == 37 &&
+            edit_request->editing.source.trimX == 6 && edit_request->editing.source.trimY == 7 &&
+            edit_request->editing.source.pivotX == 9.75F &&
+            edit_request->editing.source.pivotY == 12.5F &&
+            edit_request->editing.source.pixelsPerUnit == 4 && Files(root) == editing_files &&
+            scene.PrepareSave()->Bytes() == original && world.SaveScene(id) == runtime,
+        "owning edit draft changed identity or live state");
+  ui.SetSpriteSourceEditingResult(edit_request->identity, false, "Source was changed externally");
+  settle();
+  Check(Access::SpriteSourceCreationStatus(ui) == "Source was changed externally" &&
+            Access::SpriteSourceCreationRect(ui, 2),
+        "edit rejection lost usable draft");
+  text(8, "0");
+  click(point(9));
+  Check(!ui.TakeSpriteSourceEditingRequest(), "invalid edit PPU admitted");
+  text(8, "4");
+  text(11, "1");
+  click(point(9));
+  Check(!ui.TakeSpriteSourceEditingRequest(), "bordered trimmed source admitted");
+  text(11, "0");
+  send(Type::FocusChanged, 0);
+  click(point(9));
+  Check(!ui.TakeSpriteSourceEditingRequest(), "unfocused source edit admitted");
+  send(Type::FocusChanged, 1);
+  settle();
+  Check(content.Rename(atlasId, "Renamed.nx2atlas"), "stale edit fixture");
+  settle();
+  click(point(9));
+  Check(!ui.TakeSpriteSourceEditingRequest(), "stale source edit admitted");
+  click(point(10));
+  Check(content.Undo(), "restore edit Atlas");
+  settle();
+  project = &reader;
+  active = &readonly;
+  settle();
+  open_edit();
+  Check(!Access::SpriteSourceCreationRect(ui, 2), "read-only source editing admitted");
+  key(Key::Escape);
+  project = &workspace;
+  active = &content;
+  settle();
+  ui.SetGameBuildStatus(true, "Building");
+  settle();
+  open_edit();
+  Check(!Access::SpriteSourceCreationRect(ui, 2), "build-busy source editing admitted");
+  key(Key::Escape);
+  ui.SetGameBuildStatus(false, "Idle");
+  settle();
+  Check(play.Start(.1, [](nexora::runtime::World &, double) { return true; }), "edit Play fixture");
+  settle();
+  open_edit();
+  Check(!Access::SpriteSourceCreationRect(ui, 2), "Play source editing admitted");
+  key(Key::Escape);
+  play.Stop();
+  settle();
+  open_edit();
+  text(2, "31");
+  text(3, "37");
+  text(4, "6");
+  text(5, "7");
+  text(6, "9.75");
+  text(7, "12.5");
+  text(8, "4");
+  click(point(9));
+  edit_request = ui.TakeSpriteSourceEditingRequest();
+  Check(bool(edit_request), "fresh source edit did not recover");
+  const auto result = editor::SaveSpriteSourceFile(workspace, content, edit_request->editing, true);
+  Check(result.state == editor::SpriteSourceEditingState::Saved &&
+            *retained_source->SpriteSource() == baseline &&
+            *content.Browser().Find(edited_id)->twod->SpriteSource() ==
+                edit_request->editing.source,
+        "actual edit request did not publish immutable source");
+  ui.SetSpriteSourceEditingResult(edit_request->identity, true,
+                                  std::string(editor::SpriteSourceEditingMessage(result.error)));
+  settle();
+  Check(!Access::SpriteSourceCreationRect(ui, 2) && scene.PrepareSave()->Bytes() == original &&
+            world.SaveScene(id) == runtime,
+        "edit dismissal changed Scene or Runtime");
+  const auto saved_files = Files(root);
+  open_edit();
+  text(6, "999");
+  click(point(10));
+  Check(Files(root) == saved_files, "cancelled edit wrote source");
+  open_edit();
+  text(2, "7");
+  text(3, "9");
+  text(4, "0");
+  text(5, "0");
+  text(11, "1");
+  text(12, "2");
+  text(13, "3");
+  text(14, "4");
+  click(point(9));
+  edit_request = ui.TakeSpriteSourceEditingRequest();
+  Check(edit_request &&
+            edit_request->editing.source.border == std::array<std::uint32_t, 4>{1, 2, 3, 4} &&
+            editor::SaveSpriteSourceFile(workspace, content, edit_request->editing, true).state ==
+                editor::SpriteSourceEditingState::Saved,
+        "actual full-canvas border editing controls");
+  ui.SetSpriteSourceEditingResult(edit_request->identity, true, "Saved full-canvas borders");
+  settle();
+  Check(scene.PrepareSave()->Bytes() == original && world.SaveScene(id) == runtime,
+        "border metadata edit mutated Scene or Runtime");
 }
 } // namespace
 int main(int argc, char **argv) {
@@ -237,7 +396,7 @@ int main(int argc, char **argv) {
     else {
       Run(1);
       Run(2);
-      std::cout << "Actual 1x/2x source creation controls and guards passed\n";
+      std::cout << "Actual 1x/2x source creation/editing controls and guards passed\n";
     }
     return 0;
   } catch (const std::exception &e) {

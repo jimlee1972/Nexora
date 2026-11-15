@@ -26,6 +26,7 @@
 #include "Nexora/Editor/ViewportMath.h"
 #if defined(NEXORA_HAS_2D)
 #include "Nexora/Editor/SpriteSourceCreation.h"
+#include "Nexora/Editor/SpriteSourceEditing.h"
 #endif
 #include "Nexora/EditorImGui/Api.h"
 #include "Nexora/Presentation/RenderSurface.h"
@@ -51,6 +52,10 @@ class EditorImGuiTestAccess;
 struct SpriteSourceCreationUiRequest final {
   std::uint64_t identity{};
   SpriteSourceCreationRequest creation;
+};
+struct SpriteSourceEditingUiRequest final {
+  std::uint64_t identity{};
+  SpriteSourceEditingRequest editing;
 };
 #endif
 
@@ -433,6 +438,8 @@ public:
 #if defined(NEXORA_HAS_2D)
   // Owning one-shot request. The application repeats writer/scope/Play admission outside Draw.
   [[nodiscard]] std::optional<SpriteSourceCreationUiRequest> TakeSpriteSourceCreationRequest();
+  [[nodiscard]] std::optional<SpriteSourceEditingUiRequest> TakeSpriteSourceEditingRequest();
+  void SetSpriteSourceEditingResult(std::uint64_t identity, bool saved, std::string message);
   void SetSpriteSourceCreationResult(std::uint64_t identity, bool file_created,
                                      std::string message);
 #endif

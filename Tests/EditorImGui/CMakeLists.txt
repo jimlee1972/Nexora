@@ -933,6 +933,12 @@ if(NEXORA_ENABLE_2D)
         --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
     set_tests_properties(editor.linux_sprite_source_creation PROPERTIES TIMEOUT 150
       LABELS "editor;vulkan;virtual-display" WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+    add_test(NAME editor.linux_sprite_source_editing
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxSpriteSourceEditing.py"
+        --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraSpriteSourceCreationUiTests>"
+        --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+    set_tests_properties(editor.linux_sprite_source_editing PROPERTIES TIMEOUT 150
+      LABELS "editor;vulkan;virtual-display" WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
   endif()
 endif()
 add_executable(NexoraPrefabIsolationUiTests PrefabIsolationTests.cpp)

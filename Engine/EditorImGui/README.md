@@ -100,8 +100,8 @@ top-left trim origin, bottom-left pixel Pivot and PPU drafts. Trim size follows 
 region ID; borders default to zero. It retains no model/Atlas-pixel borrow and performs no file IO.
 One explicit Create emits an owning request; the application repeats authority and publishes the
 new file/import outside Draw. Failure keeps the draft; a created file dismisses it with Content
-feedback even when later import fails. Cancel has no authoring effect. Source edits/Atlas slicing
-are separate work.
+feedback even when later import fails. Cancel has no authoring effect. Existing sources use the
+separate editing action below; Atlas slicing remains separate work.
 
 Creation requires the current writable, focused, idle project/Content and stopped Play. Scope
 loss discards the draft; revision changes disable it until reopened. Recovery, concurrent file or
@@ -115,6 +115,31 @@ including disabled controls, and status text; it supplies no queue-injection or 
 `editor.sprite_source_creation_ui` drives actual 1x/2x controls; the native X11 flow creates,
 immediately assigns, inspects, saves and reopens the generated UUID in a byte-identical read-only
 project. See the [file/import contract](../Editor/README.md#new-main-project-sprite-source-files).
+
+## Main Sprite source editing
+
+An imported source's Content context menu opens **Edit Sprite source** using the owning source
+dialog. It captures a bounded copy of the exact imported baseline, path, artifact, Content version
+and same-Atlas regions; it retains no model or pixel borrow. Original size, top-left Trim,
+bottom-left pixel Pivot, PPU, stable region and L/R/T/B border metadata are editable. Filename,
+UUID and Atlas identity are preserved. Border values obey the existing full-canvas-only rule;
+this does not add sliced rendering.
+
+Save emits a distinct owning one-shot edit request. The authoring owner repeats current authority
+and calls the staged file/import service outside Draw. Invalid/no-change values disable Save.
+Rejection preserves the draft and diagnostic; successful publication dismisses it and reports
+Content status. Cancel writes nothing. Focus loss, project/Content replacement, read-only,
+recovery/file work, running Play or Build/Run activity revoke or disable requests. The modal
+uses the same Scene/Play shortcut exclusion as creation. A changed revision requires reopening
+the draft; GUI rendering never reads or writes files.
+
+File and Scene Undo remain separate: the edit updates every reference to the shared source but
+does not add a Scene-history step. Existing file-move Undo remains usable and retains the newly
+imported owner. The private test accessor only copies current visible menu/control geometry and
+status; it cannot open a dialog, queue a save or bypass authority. The actual 1x/2x controls cover
+editing and creation; native acceptance independently inspects saved codec bytes, stable identity,
+Inspector metadata and read-only reopening. See the
+[file contract](../Editor/README.md#existing-main-project-sprite-source-edits).
 
 ## Main Sprite source Inspector
 

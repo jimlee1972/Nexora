@@ -1955,6 +1955,20 @@ int RunGraphical(std::optional<ProjectState> project,
       ui.DrawProductShell(shell, &active_scene(), &project->workspace, &content, &recent_projects,
                           &imports, &console, &play, &profile, &meshes, &materials);
 #if defined(NEXORA_HAS_2D)
+      if (const auto edit = ui.TakeSpriteSourceEditingRequest()) {
+        const bool authorized = created.surface->Input().focused && source_inspection_allowed &&
+                                scene_authoring_allowed() && !content.ReimportBusy()
+#if NEXORA_ASSET_PIPELINE_ENABLED
+                                && !game_builder.Busy() && !game_runner.Busy()
+#endif
+            ;
+        const auto source_edit_result = nexora::editor::SaveSpriteSourceFile(
+            project->workspace, content, edit->editing, authorized);
+        ui.SetSpriteSourceEditingResult(
+            edit->identity,
+            source_edit_result.state == nexora::editor::SpriteSourceEditingState::Saved,
+            std::string(nexora::editor::SpriteSourceEditingMessage(source_edit_result.error)));
+      }
       if (const auto request = ui.TakeSpriteSourceCreationRequest()) {
         using namespace nexora::editor;
         const bool authorized = created.surface->Input().focused && source_inspection_allowed &&
@@ -4319,6 +4333,7 @@ int RunGraphical(std::optional<ProjectState> project,
       record("sprite_source_clear", Access::InspectorSpriteSourcePosition(ui, 2));
       record("sprite_source_details", Access::InspectorSpriteSourcePosition(ui, 3));
       record("sprite_create_menu", Access::SpriteSourceCreationMenu(ui));
+      record("sprite_edit_menu", Access::SpriteSourceEditingMenu(ui));
 #if defined(NEXORA_HAS_2D)
       if (project)
         for (const auto &item : content.Browser().Items())
@@ -4337,7 +4352,7 @@ int RunGraphical(std::optional<ProjectState> project,
         const auto name = "sprite_content_rename_" + std::to_string(index);
         record(name.c_str(), Access::ContentRenamePosition(ui, index));
       }
-      for (std::size_t index = 0; index < 11; ++index)
+      for (std::size_t index = 0; index < 15; ++index)
         if (const auto rect = Access::SpriteSourceCreationRect(ui, index)) {
           const auto name = "sprite_create_" + std::to_string(index);
           record(name.c_str(),

@@ -423,6 +423,8 @@ public:
   SpriteSourceCreationRect(const EditorImGuiHost &, std::size_t) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   SpriteSourceCreationMenu(const EditorImGuiHost &) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  SpriteSourceEditingMenu(const EditorImGuiHost &) noexcept;
   [[nodiscard]] static std::string_view
   SpriteSourceCreationStatus(const EditorImGuiHost &) noexcept;
   static void FocusInspector(EditorImGuiHost &host) noexcept;
