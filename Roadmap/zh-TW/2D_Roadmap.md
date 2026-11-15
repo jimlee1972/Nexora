@@ -960,6 +960,30 @@ Linux X11 驗證非對稱數值、實際呈現畫面、精確 Undo／Redo／儲�
 工作流程 **5/9**、Editor **0/8**、TwoD **9/11** 不變；完整 ED-WF-07／08、正式動畫／重載與實體／
 乾淨主機驗收仍開放。獨立 Clip 目錄工作由 PR #786 負責。
 
+### ✅ 主 Editor 既有 Sprite 來源編輯（2026-11-15）
+
+支援工作 `nexora-whr.7.12` 新增持有草稿的 Content **Edit Sprite source** 對話框與序列化
+同 UUID／路徑儲存服務。原始尺寸、左上起算 Trim、左下像素 Pivot、PPU、同 Atlas 穩定區域及
+合法完整畫布邊框中繼資料沿用共用驗證器。匯入／磁碟／sidecar 基準、標準普通目錄、單一硬連結
+檔案、有界大小寫別名、寫入／復原、焦點、停止 Play 與忙碌狀態限制寫入；先準備正常匯入、
+Undo／相依擁有者，再於同父目錄原子替換。GUI 不做檔案 IO；已儲存／拒絕／不確定結果保持區別。
+Scene／Runtime 位元組、C／Zig 表格與編碼格式不變。
+
+實際 1×／2× 控制、瞬間失焦拒絕與原生 X11 建立／指派／編輯／儲存，驗證穩定 UUID／sidecar、
+相機不變下獨立舊區域／共同區域 Scene 像素、即時 Inspector、檔案移動 Undo／舊不可變擁有者、
+取消與逐位元相同的唯讀重開。完整 Linux **527/527**、零失敗／略過、**1895.68 秒**，
+Shipping Full、實際 TwoD-OFF／testing-OFF Editor／原生 Player、圖形 Monolithic 控制／原生 gates
+通過；交付仍須確切提交的 hosted CI。[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceEditing-Linux-2026-11-15.md)
+保留原始失敗、未完成的檢查輪次及測試資料可攜性修正來源。工作流程 **5/9**、Editor **0/8**、
+TwoD **9/11** 與完整 ED-WF-07／08 不變／仍開放；Atlas 切片、Clip 作者流程、切片繪製及
+實體／乾淨主機 gates 仍獨立，保留其他擁有者的重載與即時來源／pool 發布工作。
+
+交付前已獨立重驗與最新 main PR #793 的整合版本：完整 Linux **528/528**、零失敗／略過、
+**2212.45 秒**，包含實際 configured 來源／Atlas 重匯入與來源編輯；Shipping／OFF／Monolithic
+來源與 Play 模型／原生／文件 gates 均在凍結的整合來源通過。原基底 **41/41** hosted 檢查保留為
+歷史；整合檔案樹仍須新的確切提交 hosted 檢查。保留 PR #793 發布能力；原生重載與完整父里程碑／
+實體驗收仍開放。
+
 ### ✅ 主 Editor Sprite 來源建立（2026-11-14）
 
 支援工作 `nexora-whr.7.11` 透過實際 Content 右鍵選單與擁有草稿的對話框，從已匯入 Atlas 區域

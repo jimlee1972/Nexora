@@ -3,15 +3,31 @@ namespace {
 template <class StateT>
 void DrawSpriteSourceCreator(StateT &state, ProjectWorkspace *workspace,
                              ProjectContentSession *content) {
-  constexpr auto popup = "Create Sprite source###editor.content.sprite-create";
+  const bool edit_requested = state.sprite_editor_open.has_value();
+  const auto popup = edit_requested || (state.sprite_creator && state.sprite_creator->editing)
+                         ? "Edit Sprite source###editor.content.sprite-edit"
+                         : "Create Sprite source###editor.content.sprite-create";
   const auto root = workspace ? workspace->Root() : std::filesystem::path{};
   if (state.sprite_creator_scope != root) {
     state.sprite_creator_scope = root;
     state.sprite_creator_status.clear();
   }
-  if (const auto open = std::exchange(state.sprite_creator_open, std::nullopt)) {
-    const auto *item = content ? content->Browser().Find(*open) : nullptr;
+  const auto editing = std::exchange(state.sprite_editor_open, std::nullopt);
+  const auto creating = std::exchange(state.sprite_creator_open, std::nullopt);
+  if (const auto open = editing ? editing : creating) {
+    const auto *source_item = editing && content ? content->Browser().Find(*open) : nullptr;
+    const auto source =
+        source_item && source_item->twod ? source_item->twod->SpriteSource() : nullptr;
+    const auto *item = content ? content->Browser().Find(source ? source->atlas : *open) : nullptr;
     const auto atlas = item && item->twod ? item->twod->Atlas() : nullptr;
+    if (editing &&
+        (!source || source_item->type != ".nx2sprite" ||
+         source_item->thumbnail != ThumbnailState::Ready || source->id != *open || !atlas ||
+         std::ranges::find(atlas->regions, source->region, &twod::Region::id) ==
+             atlas->regions.end())) {
+      state.sprite_creator_status = "The imported source or its Atlas region is unavailable.";
+      return;
+    }
     if (state.sprite_creator_allowed && workspace && atlas && !atlas->regions.empty() &&
         atlas->regions.size() <= 1024 && atlas->id == item->id &&
         item->thumbnail == ThumbnailState::Ready && item->type == item->twod->Type()) {
@@ -26,6 +42,20 @@ void DrawSpriteSourceCreator(StateT &state, ProjectWorkspace *workspace,
       draft.regions = atlas->regions;
       draft.canvas = {int(draft.regions.front().width), int(draft.regions.front().height)};
       draft.pivot = {draft.canvas[0] * .5F, draft.canvas[1] * .5F};
+      if (source) {
+        draft.editing = SpriteSourceEditingRequest{
+            draft.project, draft.root, source_item->path, draft.version, source_item->artifact_hash,
+            *source,       *source};
+        draft.region =
+            std::size_t(std::ranges::find(draft.regions, source->region, &twod::Region::id) -
+                        draft.regions.begin());
+        draft.canvas = {int(source->sourceWidth), int(source->sourceHeight)};
+        draft.trim = {int(source->trimX), int(source->trimY)};
+        draft.pivot = {source->pivotX, source->pivotY};
+        draft.ppu = source->pixelsPerUnit;
+        for (std::size_t index = 0; index < 4; ++index)
+          draft.borders[index] = int(source->border[index]);
+      }
       state.sprite_creator_status.clear();
       ImGui::OpenPopup(popup);
     }
@@ -40,11 +70,13 @@ void DrawSpriteSourceCreator(StateT &state, ProjectWorkspace *workspace,
                                                            content->Browser().Revision()};
   if (!current || !state.sprite_creator_allowed) {
     state.sprite_creator_request.reset();
+    state.sprite_editor_request.reset();
     draft.submitted = 0;
   }
-  ImGui::SetNextWindowSize(ImVec2(440, 550), ImGuiCond_Appearing);
+  ImGui::SetNextWindowSize(ImVec2(440, draft.editing ? 650.0F : 550.0F), ImGuiCond_Appearing);
   if (!ImGui::BeginPopupModal(popup, nullptr, ImGuiWindowFlags_NoSavedSettings)) {
     state.sprite_creator_request.reset();
+    state.sprite_editor_request.reset();
     state.sprite_creator.reset();
     return;
   }
@@ -52,6 +84,7 @@ void DrawSpriteSourceCreator(StateT &state, ProjectWorkspace *workspace,
     ImGui::CloseCurrentPopup();
     state.sprite_creator.reset();
     state.sprite_creator_request.reset();
+    state.sprite_editor_request.reset();
     ImGui::EndPopup();
     return;
   }
@@ -65,10 +98,17 @@ void DrawSpriteSourceCreator(StateT &state, ProjectWorkspace *workspace,
   ImGui::TextWrapped("Atlas: %s", draft.atlas_label.c_str());
   const auto folder = PathLabel(draft.folder);
   ImGui::TextWrapped("Destination: %s", folder.c_str());
-  ImGui::TextUnformatted("Name (without .nx2sprite)");
-  ImGui::SetNextItemWidth(-1);
-  ImGui::InputText("##sprite-create-name", draft.name.data(), draft.name.size());
-  capture(0);
+  if (draft.editing) {
+    const auto path = PathLabel(draft.editing->path);
+    ImGui::TextWrapped("Source: %s", path.c_str());
+    ImGui::TextWrapped("Saving updates every reference to this source. Scene Undo does not revert "
+                       "saved source files.");
+  } else {
+    ImGui::TextUnformatted("Name (without .nx2sprite)");
+    ImGui::SetNextItemWidth(-1);
+    ImGui::InputText("##sprite-create-name", draft.name.data(), draft.name.size());
+    capture(0);
+  }
   const auto &region = draft.regions[draft.region];
   const auto label = "Region " + std::to_string(region.id) + " (" + std::to_string(region.width) +
                      " x " + std::to_string(region.height) + ")";
@@ -122,6 +162,8 @@ void DrawSpriteSourceCreator(StateT &state, ProjectWorkspace *workspace,
   // Validation witness only; the file owner assigns the new identity.
   source.id =
       draft.atlas == runtime::AssetUuid{1, 1} ? runtime::AssetUuid{1, 2} : runtime::AssetUuid{1, 1};
+  if (draft.editing)
+    source.id = draft.editing->baseline.id;
   source.atlas = draft.atlas;
   source.region = selected.id;
   source.sourceWidth = std::uint32_t(std::max(0, draft.canvas[0]));
@@ -133,28 +175,54 @@ void DrawSpriteSourceCreator(StateT &state, ProjectWorkspace *workspace,
   source.pivotX = draft.pivot[0];
   source.pivotY = draft.pivot[1];
   source.pixelsPerUnit = draft.ppu;
-  const bool geometry = draft.canvas[0] > 0 && draft.canvas[1] > 0 && draft.trim[0] >= 0 &&
-                        draft.trim[1] >= 0 && twod::ValidateSpriteAsset(source);
-  const bool name = ValidSpriteSourceName(draft.name.data());
-  ImGui::TextUnformatted("Trim size follows the region. Borders: 0 / 0 / 0 / 0.");
+  bool borders = true;
+  if (draft.editing) {
+    ImGui::TextUnformatted("Borders: left / right / top / bottom (px)");
+    for (std::size_t index = 0; index < 4; ++index) {
+      ImGui::PushID(int(index));
+      ImGui::SetNextItemWidth(80);
+      ImGui::InputInt("##sprite-edit-border", &draft.borders[index], 0, 0);
+      capture(11 + index);
+      ImGui::PopID();
+      if (index != 3)
+        ImGui::SameLine();
+      borders = borders && draft.borders[index] >= 0;
+      source.border[index] = std::uint32_t(std::max(0, draft.borders[index]));
+    }
+  }
+  const bool changed = !draft.editing || source != draft.editing->baseline;
+  const bool geometry = borders && draft.canvas[0] > 0 && draft.canvas[1] > 0 &&
+                        draft.trim[0] >= 0 && draft.trim[1] >= 0 &&
+                        twod::ValidateSpriteAsset(source);
+  const bool name = draft.editing || ValidSpriteSourceName(draft.name.data());
+  ImGui::TextUnformatted(draft.editing ? "Trim size follows the region. Source UUID is preserved."
+                                       : "Trim size follows the region. Borders: 0 / 0 / 0 / 0.");
   const auto message = !current ? SpriteSourceCreationMessage(SpriteSourceCreationError::Stale)
                        : !state.sprite_creator_allowed
                            ? SpriteSourceCreationMessage(SpriteSourceCreationError::Denied)
                        : !name ? SpriteSourceCreationMessage(SpriteSourceCreationError::Name)
                        : !geometry
                            ? SpriteSourceCreationMessage(SpriteSourceCreationError::Geometry)
-                           : std::string_view(draft.status);
+                       : !changed ? SpriteSourceEditingMessage(SpriteSourceEditingError::Unchanged)
+                                  : std::string_view(draft.status);
   ImGui::TextWrapped("%.*s", int(message.size()), message.data());
-  const bool allowed = state.sprite_creator_allowed && current && name && geometry &&
+  const bool allowed = state.sprite_creator_allowed && current && name && geometry && changed &&
                        !draft.submitted && !state.sprite_creator_request &&
+                       !state.sprite_editor_request &&
                        state.sprite_creator_next != std::numeric_limits<std::uint64_t>::max();
   ImGui::BeginDisabled(!allowed);
-  if (ImGui::Button("Create source")) {
-    source.id = {};
+  if (ImGui::Button(draft.editing ? "Save source" : "Create source")) {
     const auto identity = state.sprite_creator_next++;
-    state.sprite_creator_request = SpriteSourceCreationUiRequest{
-        identity,
-        {draft.project, draft.root, draft.folder, draft.version, draft.name.data(), source}};
+    if (draft.editing) {
+      auto request = *draft.editing;
+      request.source = source;
+      state.sprite_editor_request = SpriteSourceEditingUiRequest{identity, std::move(request)};
+    } else {
+      source.id = {};
+      state.sprite_creator_request = SpriteSourceCreationUiRequest{
+          identity,
+          {draft.project, draft.root, draft.folder, draft.version, draft.name.data(), source}};
+    }
     draft.submitted = identity;
   }
   capture(9);
@@ -163,6 +231,7 @@ void DrawSpriteSourceCreator(StateT &state, ProjectWorkspace *workspace,
   if (ImGui::Button("Cancel")) {
     ImGui::CloseCurrentPopup();
     state.sprite_creator_request.reset();
+    state.sprite_editor_request.reset();
     state.sprite_creator.reset();
   }
   capture(10);
@@ -176,6 +245,18 @@ std::optional<SpriteSourceCreationUiRequest> EditorImGuiHost::TakeSpriteSourceCr
       !request || state_->sprite_creator->submitted != request->identity)
     return std::nullopt;
   return request;
+}
+std::optional<SpriteSourceEditingUiRequest> EditorImGuiHost::TakeSpriteSourceEditingRequest() {
+  auto request = std::exchange(state_->sprite_editor_request, std::nullopt);
+  if (!state_->app_focused || !state_->sprite_creator_allowed || !state_->sprite_creator ||
+      !state_->sprite_creator->editing || !request ||
+      state_->sprite_creator->submitted != request->identity)
+    return std::nullopt;
+  return request;
+}
+void EditorImGuiHost::SetSpriteSourceEditingResult(std::uint64_t identity, bool saved,
+                                                   std::string message) {
+  SetSpriteSourceCreationResult(identity, saved, std::move(message));
 }
 void EditorImGuiHost::SetSpriteSourceCreationResult(std::uint64_t identity, bool file_created,
                                                     std::string message) {

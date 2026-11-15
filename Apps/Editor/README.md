@@ -2091,10 +2091,30 @@ filenames, stale Content versions and invalid geometry reject; no overwrite prom
 Creating an asset does not assign it or dirty the Scene. Choose it in the Inspector and Save the
 Scene to retain that reference. A created file whose import fails remains on disk; feedback states
 that outcome and project reopen retries ordinary import. Read-only projects may inspect the saved
-source details but cannot create assets. Existing-source editing and Atlas slicing remain open.
+source details but cannot create assets. Existing-source editing uses the separate action below;
+Atlas slicing remains open.
 The [Editor contract](../../Engine/Editor/README.md#new-main-project-sprite-source-files) describes
 publication/error ownership. Opt-in scene UI test geometry copies actual Atlas/menu/modal bounds;
 these observations neither perform actions nor grant write authority.
+
+## Editing an existing Sprite source
+
+In Content, right-click an imported `.nx2sprite` and choose **Edit Sprite source...**. Edit the
+original dimensions, top-left Trim, bottom-left pixel Pivot, PPU or same-Atlas region, then choose
+**Save source**. Border metadata is available for untrimmed full-canvas sources under the existing
+format rules; this does not add sliced rendering. The asset keeps its filename, UUID and identity
+sidecar. All references use the newly imported metadata, including Inspector details and the native
+Scene preview. Scene references/transforms and their saved bytes do not change.
+
+This saves a shared asset file, independently of Scene Undo. The existing Content file-move Undo
+survives and retains the edited payload. Cancel writes nothing. Only a focused, idle project writer
+with stopped Play can save; read-only/recovery/build/run work or changed Content disables/revokes
+the request. The authoring owner checks the exact imported baseline and sidecar again before
+replacement. External source changes reject without overwriting them and keep the draft visible.
+A native replacement error reports an uncertain outcome; inspect/reimport before retrying.
+The [file/import contract](../../Engine/Editor/README.md#existing-main-project-sprite-source-edits)
+describes staging and publication. GUI rendering performs no file IO and private UI geometry
+observation grants no write authority.
 
 ## Native Scene Sprite sources
 

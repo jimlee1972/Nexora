@@ -2925,7 +2925,46 @@ folder/filter and pending Content Undo, which also retains the newly created ass
 import/admission failure preserves the created source and last good live catalog, reports both
 outcomes, and permits ordinary import on project reopen. This is not a multi-file rollback.
 The new C++ exports require rebuilding Editor consumers; optional 2D, C/Zig ABI and codecs retain
-their existing boundaries. Existing-source editing, slicing and Clip authoring remain separate.
+their existing boundaries. Existing sources use the separate editing service below; slicing and Clip authoring remain separate.
+
+### Existing main-project Sprite source edits
+
+`SpriteSourceEditingRequest` owns the current project/root, exact imported Content path/version,
+artifact hash, baseline source and proposed metadata. It is not write authority. The serialized
+authoring owner calls `SaveSpriteSourceFile` outside GUI rendering, with stopped-Play/focus/busy
+authorization. The service independently requires a writable, idle, same-root workspace/Content,
+no recovery/external-change gate, matching live imported source and artifact, and the same source
+UUID and Atlas. Region, canvas, top-left Trim, bottom-left Pivot, PPU and borders use the existing
+shared geometry validator. Border metadata requires an untrimmed full-canvas source; sliced
+rendering remains a separate gate. No-change drafts reject without a write or revision increment.
+
+Every parent must be an ordinary Content directory. The source and mandatory matching schema-1
+sidecar must be ordinary single-link files; source bytes must exactly match the imported canonical
+96-byte baseline. A bounded 65536-entry sibling check rejects ASCII case aliases and requires
+exact current primary/sidecar names. Identity parsing is bounded to 4096 bytes, preserves valid CRLF/case-compatible
+sidecars, and never rewrites them. Changed/missing bytes, identities, source paths, project scope
+or Content revisions reject. Checks repeat immediately before replacement.
+
+The normal typed importer, artifact hashing, browser `PublishArtifact` (including retained Undo
+budgets) and `ReimportTransaction` prepare private candidate owners before any source replacement.
+An exclusively owned temporary directory in the source's parent keeps staging on that filesystem.
+The provisional file uses the importer's ignored `.meta` suffix, so it cannot become a new
+asset row or consume an asset slot during indexing. This does not promise a multi-file snapshot
+for a concurrent directory enumeration.
+POSIX rename / Windows replacing move replace only the original primary source; already-prepared
+browser and dependency owners then move into the session without throwing. Saved means file and
+live metadata are published. Rejected preserves the primary source and live owners. A native
+replacement error is conservatively Uncertain and requires inspection/reimport before retrying.
+Only owned staging entries are removed; there is no recursive cleanup, Atlas/image read, full
+project scan or GPU work. These are cooperative local-filesystem checks, not an adversarial
+compare-and-swap or power-loss durability promise.
+
+The UUID, sidecar, folder/filter/selection and pending file-move Undo survive. Undo retains the
+new imported metadata rather than resurrecting old payloads; previously retained immutable source
+owners remain unchanged. Saving a shared source is not a Scene Undo operation and does not edit
+Scene references, transforms, runtime objects or existing Play snapshots. Normal reimport/reopen
+reproduces the same artifact and metadata. The optional C++ API requires rebuilding Editor
+consumers; C/Zig tables and all asset/scene wire formats are unchanged.
 
 ## Main Game Build Sprite source closure
 

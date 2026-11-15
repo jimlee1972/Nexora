@@ -247,6 +247,34 @@ exact-head hosted CI is required before delivery. See [execution evidence](../..
 Workflow **5/9**, Editor **0/8**, TwoD **9/11**, full ED-WF-07/08, production animation/reload
 and physical/clean-host acceptance remain unchanged/open. PR #786 owns the independent Clip catalog.
 
+### ✅ Main Editor existing Sprite source editing (2026-11-15)
+
+Supporting `nexora-whr.7.12` adds an owning Content **Edit Sprite source** dialog and a serialized
+same-UUID/path file service. Original size, top-left Trim, bottom-left Pivot, PPU, stable same-Atlas
+region and valid full-canvas border metadata use shared validators. Exact imported/disk/sidecar
+baselines, canonical ordinary directories, sole-link files, bounded case-alias checks, writer/
+recovery, focus, stopped Play and busy guards precede prepared normal import/Undo/dependency
+publication and same-parent atomic replacement. GUI drawing has no file IO. Saved/rejected/
+uncertain outcomes stay distinct; Scene/Runtime bytes, C/Zig tables and codecs are unchanged.
+
+Actual 1x/2x controls, transient-focus rejection and real X11 create/assign/edit/Save verify stable
+UUID/sidecar, an independent old-only/shared Scene-pixel transition under an unchanged camera,
+current Inspector metadata, preserved file-move Undo/immutable owners, cancel and byte-identical
+read-only reopen. Full Linux **527/527**, zero failures/skips, **1895.68 s**, Shipping Full,
+actual TwoD-OFF/testing-OFF Editor/native Player and graphical Monolithic controls/native gates
+pass. Exact-head hosted CI remains required. [Execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceEditing-Linux-2026-11-15.md)
+retains original failures, incomplete review gates and precise fixture-portability provenance.
+Workflow **5/9**, Editor **0/8**, TwoD **9/11** and complete ED-WF-07/08 remain unchanged/open.
+Atlas slicing/Clip authoring, sliced rendering and physical/clean-host gates remain separate;
+independently owned reload and live source/pool publication work is preserved.
+
+The latest-main integration with PR #793 was independently revalidated before delivery:
+complete Linux **528/528**, zero failures/skips, **2212.45 s**, including actual configured
+source/Atlas reimport and source editing; Shipping/OFF/Monolithic source-and-Play/native/docs gates
+pass on frozen combined sources. Original-base **41/41** hosted checks are retained as history;
+fresh exact-head hosted checks are required for the integrated tree. PR #793 publication remains
+preserved; native reload and complete parent/physical acceptance stay open.
+
 ### ✅ Main Editor Sprite source creation (2026-11-14)
 
 Supporting `nexora-whr.7.11` creates a new canonical source from an imported Atlas region through

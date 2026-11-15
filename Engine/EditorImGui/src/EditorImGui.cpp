@@ -574,6 +574,8 @@ struct EditorImGuiHost::State final {
     std::array<char, 129> name{'S', 'p', 'r', 'i', 't', 'e', 0};
     std::array<int, 2> canvas{}, trim{};
     std::array<float, 2> pivot{};
+    std::array<int, 4> borders{};
+    std::optional<SpriteSourceEditingRequest> editing;
     float ppu{100};
     std::uint64_t submitted{};
     bool dismiss{};
@@ -581,12 +583,15 @@ struct EditorImGuiHost::State final {
   std::optional<SpriteSourceCreator> sprite_creator;
   std::optional<runtime::AssetUuid> sprite_creator_open;
   std::optional<SpriteSourceCreationUiRequest> sprite_creator_request;
+  std::optional<runtime::AssetUuid> sprite_editor_open;
+  std::optional<SpriteSourceEditingUiRequest> sprite_editor_request;
   std::uint64_t sprite_creator_next{1};
   bool sprite_creator_allowed{};
   std::string sprite_creator_status;
   std::filesystem::path sprite_creator_scope;
-  std::array<std::optional<std::array<float, 4>>, 11> sprite_creator_controls{};
+  std::array<std::optional<std::array<float, 4>>, 15> sprite_creator_controls{};
   std::optional<std::array<float, 2>> sprite_creator_menu;
+  std::optional<std::array<float, 2>> sprite_editor_menu;
 #endif
   std::uint32_t inspector_selection = 0;
   std::vector<OpaqueComponentInfo> inspector_opaque_info;
@@ -4941,6 +4946,14 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
           if (!ImGui::GetCurrentWindow()->Hidden && ImGui::IsItemVisible())
             state.sprite_creator_menu = std::array{(lo.x + hi.x) * .5F, (lo.y + hi.y) * .5F};
         }
+        if (item->twod && item->twod->SpriteSource()) {
+          if (ImGui::MenuItem("Edit Sprite source...", nullptr, false,
+                              state.sprite_creator_allowed))
+            state.sprite_editor_open = item->id;
+          const auto lo = ImGui::GetItemRectMin(), hi = ImGui::GetItemRectMax();
+          if (!ImGui::GetCurrentWindow()->Hidden && ImGui::IsItemVisible())
+            state.sprite_editor_menu = std::array{(lo.x + hi.x) * .5F, (lo.y + hi.y) * .5F};
+        }
 #endif
         ImGui::EndPopup();
       }
@@ -5475,6 +5488,14 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
       // Dear ImGui releases held inputs on focus loss. Cancel before that synthetic release
       // can be interpreted as a completed authoring gesture.
       if (!state_->app_focused) {
+#if defined(NEXORA_HAS_2D)
+        state_->sprite_creator_request.reset();
+        state_->sprite_editor_request.reset();
+        state_->sprite_creator_open.reset();
+        state_->sprite_editor_open.reset();
+        if (state_->sprite_creator)
+          state_->sprite_creator->submitted = 0;
+#endif
         state_->prefab_override_request.reset();
         state_->prefab_override_consent.reset();
         state_->prefab_override_confirm = state_->prefab_override_popup = false;
@@ -5886,6 +5907,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->inspector_sprite_choices.clear();
   state_->sprite_creator_controls = {};
   state_->sprite_creator_menu.reset();
+  state_->sprite_editor_menu.reset();
 #endif
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
   state_->game_canvas_hovered = state_->game_canvas_clicked = state_->game_capture_allowed = false;
@@ -10188,6 +10210,15 @@ std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::SpriteSourceCreationMenu(const EditorImGuiHost &host) noexcept {
 #if defined(NEXORA_HAS_2D)
   return host.state_->sprite_creator_menu;
+#else
+  static_cast<void>(host);
+  return std::nullopt;
+#endif
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::SpriteSourceEditingMenu(const EditorImGuiHost &host) noexcept {
+#if defined(NEXORA_HAS_2D)
+  return host.state_->sprite_editor_menu;
 #else
   static_cast<void>(host);
   return std::nullopt;
