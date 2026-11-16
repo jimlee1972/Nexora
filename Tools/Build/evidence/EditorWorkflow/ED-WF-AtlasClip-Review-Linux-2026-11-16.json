@@ -1,0 +1,228 @@
+{
+  "schema": 1,
+  "baseline_head": "12470be031fb204c3fe1bd7fc005bd7a6a8c6f85",
+  "baseline_receipt_sha256": "f16adeef3536991038345e830ce206c9d1e58cf1c0d6d64c9a431534cec43da4",
+  "source_sha256": {
+    ".github/workflows/build.yml": "63845792d352cd7b4d6768d6d97cb38045f6d3ea467f21e3c04e225104e01126",
+    "Apps/Editor/main.cpp": "4362e375f3cb6f011a649d2f3bd18188f1c484c954a5de4aa11e0306e89b8861",
+    "Engine/Editor/CMakeLists.txt": "234d4211eac3f2aee6c65555783945efd705705a982477ab3d8f1b2cbcea80ca",
+    "Engine/Editor/include/Nexora/Editor/SpriteSourceCatalog.h": "6f7f06269d136825bdf97ba99b5aa1abd3a3f02084b8d92ee98f645520581a67",
+    "Engine/Editor/include/Nexora/Editor/TwoDAssetEditing.h": "b8e20be930ee47727ea59ddcee340ef87e327cb8d242b3e07e5dd990f35c49f5",
+    "Engine/Editor/src/SpriteSourceCatalog.cpp": "7efbe57f4a8f6096954c4b864ad1c3ad9f90dab81fca804147f4fdd79842abb0",
+    "Engine/Editor/src/TwoDAssetEditing.cpp": "13caa7bb843816efacb5d0935eac7747eb9470a7cb14008babb353d96222af09",
+    "Engine/EditorImGui/include/Nexora/EditorImGui/EditorImGui.h": "f7fc4d5e55ee7b86057ff64473d2235920a7bf14bf3f0bf18f7b969aa8fd9dc7",
+    "Engine/EditorImGui/src/EditorImGui.cpp": "16536c2ff92ff92db7b9c55b563a0a79e7bb04cf3bc535db09b1103296b77fc8",
+    "Engine/EditorImGui/src/EditorImGuiTestAccess.h": "bc91f796452d76109b127f399ebb206c9afc823d26b9b30efe4013d0b4a1d6d2",
+    "Engine/EditorImGui/src/TwoDAssetEditorPanel.inl": "329d132b4c97a13a553504b3efdf8ba69f88a7e60084a3c4b0d11c83e0572613",
+    "Tests/Editor/CMakeLists.txt": "c06bf20c27ee677cd2774c6dec46db54c1df207d9ba725abf7ab48d239d4e11a",
+    "Tests/Editor/SpriteSourceCatalogTests.cpp": "51c5c865ee545bfd3275a86b5b13df175f64e040829e1027da8c783eef7fd459",
+    "Tests/Editor/TwoDAssetEditingTests.cpp": "b1113652e81625d73b90a4671447ea5a2c7ae2f490f539379a568dd49cdd3668",
+    "Tests/EditorImGui/CMakeLists.txt": "a8c856ac47e12a87d0bf1cbdf15421ae89755127f4e5918bb0f97525f18cc0bc",
+    "Tests/EditorImGui/LinuxPackagedSourceServices.py": "d2c3a0956c50678f1f6d14ad37d82b559c2561eda757dcc5dda587e7033a92b1",
+    "Tests/EditorImGui/LinuxTwoDAssetEditing.py": "3c8855c16b6115a5fe92bbfdb89025e9f70882f18108614c9f957ff306714044",
+    "Tests/EditorImGui/TwoDAssetEditingUiTests.cpp": "d348d9e49cc3ad3480efb27c907c329a1a7e4e7c66a46821b2fb683edf34306c"
+  },
+  "review_comments": [
+    4583224656,
+    4583224662,
+    4583224671
+  ],
+  "focused": {
+    "passed": true,
+    "cases": 3,
+    "seconds": 3.09,
+    "log_sha256": "43629f1cec87f8c3b6bb9575aa6ef254097c869bda5d27c83d8141de113bc99a"
+  },
+  "related": {
+    "passed": true,
+    "cases": 8,
+    "seconds": 11.23,
+    "log_sha256": "99eb55898af57978a4c9cb82e0d602fb426709afdd2f24d40b97b2648eafe16a"
+  },
+  "development_native": {
+    "passed": true,
+    "cases": 1,
+    "seconds": 46.29,
+    "log_sha256": "7c5564e8275f2732025e9956f265bb2058a1eab692a7c0e93dce346f167cab3f"
+  },
+  "monolithic": {
+    "passed": true,
+    "cases": 4,
+    "seconds": 45.18,
+    "log_sha256": "3ab0e709a7c23a84c82fe2c935541e5882a21942f721fa619d6b3635b79eb381"
+  },
+  "shipping_native_passed": true,
+  "native_edited_assets": {
+    "development": {
+      "receipt": "build/linux-development/artifacts/editor-atlas-clip/1794819969263247251/result.json",
+      "receipt_sha256": "44e0109c27cccecbd44cfbd378a74210cf915d4a657330a8fb363a249c5bcabc",
+      "atlas_sha256": "8c90833fe2791f7959a7d23ccc9e00c2e767cb07e680a941207bdb5116d8f0c2",
+      "clip_sha256": "638625b8c12e2e043aa251dd5e4fa30bc5e53ec3f1aa03e8e53e8730876c7301",
+      "clip_frames": [
+        [
+          8,
+          0.2,
+          "last"
+        ],
+        [
+          7,
+          0.375,
+          "impact"
+        ]
+      ],
+      "player_report": {
+        "status": "RENDERED_GAME_PACKAGE",
+        "native_rendering": true,
+        "start_scene": "b503a81e-957a-cb23-d27b-c16822918e1f",
+        "active_scene": "b503a81e-957a-cb23-d27b-c16822918e1f",
+        "camera": "0",
+        "gameplay_loaded": false,
+        "gameplay_updates": 0,
+        "scene_commits": 1,
+        "rejected_requests": 0,
+        "scene_records": 1,
+        "instances": 1,
+        "stored_entities": 2,
+        "presented_frames": 1007,
+        "scene_draw_calls": 0,
+        "sprite_draw_calls": 1007,
+        "visible_sprites": 1,
+        "geometry_residency_available": false,
+        "geometry_uploads": 0,
+        "geometry_hits": 0,
+        "geometry_native_bytes": 0,
+        "geometry_cpu_bytes": 0,
+        "scene_texture_uploads": 0,
+        "software_rasterizer": true,
+        "drained": true
+      },
+      "source_deleted": true,
+      "scene_unchanged": true,
+      "sidecars_unchanged": true,
+      "readonly_project_bytes_unchanged": true
+    },
+    "monolithic": {
+      "receipt": "build/atlas-clip-monolithic/artifacts/editor-atlas-clip/1794820083722689404/result.json",
+      "receipt_sha256": "f472cf2aabce1c0ee135c376f88ceb88617c536833b1924690553688f9cd595b",
+      "atlas_sha256": "8c90833fe2791f7959a7d23ccc9e00c2e767cb07e680a941207bdb5116d8f0c2",
+      "clip_sha256": "638625b8c12e2e043aa251dd5e4fa30bc5e53ec3f1aa03e8e53e8730876c7301",
+      "clip_frames": [
+        [
+          8,
+          0.2,
+          "last"
+        ],
+        [
+          7,
+          0.375,
+          "impact"
+        ]
+      ],
+      "player_report": {
+        "status": "RENDERED_GAME_PACKAGE",
+        "native_rendering": true,
+        "start_scene": "21286569-3940-974d-e67a-dbace7c07af9",
+        "active_scene": "21286569-3940-974d-e67a-dbace7c07af9",
+        "camera": "0",
+        "gameplay_loaded": false,
+        "gameplay_updates": 0,
+        "scene_commits": 1,
+        "rejected_requests": 0,
+        "scene_records": 1,
+        "instances": 1,
+        "stored_entities": 2,
+        "presented_frames": 1396,
+        "scene_draw_calls": 0,
+        "sprite_draw_calls": 1396,
+        "visible_sprites": 1,
+        "geometry_residency_available": false,
+        "geometry_uploads": 0,
+        "geometry_hits": 0,
+        "geometry_native_bytes": 0,
+        "geometry_cpu_bytes": 0,
+        "scene_texture_uploads": 0,
+        "software_rasterizer": true,
+        "drained": true
+      },
+      "source_deleted": true,
+      "scene_unchanged": true,
+      "sidecars_unchanged": true,
+      "readonly_project_bytes_unchanged": true
+    },
+    "shipping": {
+      "receipt": "build/linux-shipping/artifacts/editor-atlas-clip/1794820126664702327/result.json",
+      "receipt_sha256": "8fe23081d047e15829782ab15d143d2376fda7e53fbbed7da559687907d79668",
+      "atlas_sha256": "8c90833fe2791f7959a7d23ccc9e00c2e767cb07e680a941207bdb5116d8f0c2",
+      "clip_sha256": "638625b8c12e2e043aa251dd5e4fa30bc5e53ec3f1aa03e8e53e8730876c7301",
+      "clip_frames": [
+        [
+          8,
+          0.2,
+          "last"
+        ],
+        [
+          7,
+          0.375,
+          "impact"
+        ]
+      ],
+      "player_report": {
+        "status": "RENDERED_GAME_PACKAGE",
+        "native_rendering": true,
+        "start_scene": "dc99769c-2ae0-44fc-9035-4cb58f8b6988",
+        "active_scene": "dc99769c-2ae0-44fc-9035-4cb58f8b6988",
+        "camera": "0",
+        "gameplay_loaded": false,
+        "gameplay_updates": 0,
+        "scene_commits": 1,
+        "rejected_requests": 0,
+        "scene_records": 1,
+        "instances": 1,
+        "stored_entities": 2,
+        "presented_frames": 2556,
+        "scene_draw_calls": 0,
+        "sprite_draw_calls": 2556,
+        "visible_sprites": 1,
+        "geometry_residency_available": false,
+        "geometry_uploads": 0,
+        "geometry_hits": 0,
+        "geometry_native_bytes": 0,
+        "geometry_cpu_bytes": 0,
+        "scene_texture_uploads": 0,
+        "software_rasterizer": true,
+        "drained": true
+      },
+      "source_deleted": true,
+      "scene_unchanged": true,
+      "sidecars_unchanged": true,
+      "readonly_project_bytes_unchanged": true
+    }
+  },
+  "boundary_observations": {
+    "regions": 1024,
+    "frames": 4096,
+    "distinct_sources": 8,
+    "before_seconds": 6.497389754,
+    "after_seconds": 0.050833348,
+    "portable_latency_assertion": false
+  },
+  "runtime_reload_and_reimport_code_unchanged": true,
+  "prior_native_reload_matrix_explicitly_tied_to_baseline": true,
+  "delivery_requires": "Full Linux gate and every applicable exact-head hosted CI before merge",
+  "milestone_counts": {
+    "workflow": "5/9",
+    "graphical_editor": "0/8",
+    "twod": "9/11"
+  },
+  "final_guards": {
+    "passed": true,
+    "documentation_unit_tests": 16,
+    "roadmap_docs_and_links": 70,
+    "bilingual_pairs": 3,
+    "cpp_format_files": 12,
+    "shadow_syntax_translation_units": 5,
+    "source_hashes": 18,
+    "root_readme_unchanged": true,
+    "git_diff_check": true
+  }
+}

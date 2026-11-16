@@ -9,6 +9,14 @@ SpriteSourceContentVersion ContentVersion(const ContentBrowserModel &content) {
 } // namespace
 
 bool SpriteSourceCatalog::PublishContent(const ContentBrowserModel &content, std::string *error) {
+  return Publish(content, false, error);
+}
+bool SpriteSourceCatalog::PublishAvailableContent(const ContentBrowserModel &content,
+                                                  std::string *error) {
+  return Publish(content, true, error);
+}
+bool SpriteSourceCatalog::Publish(const ContentBrowserModel &content, bool available_only,
+                                  std::string *error) {
   const auto fail = [&](const char *message) {
     if (error)
       *error = message;
@@ -28,6 +36,8 @@ bool SpriteSourceCatalog::PublishContent(const ContentBrowserModel &content, std
   for (const auto &item : content.Items()) {
     if (!item.twod || (!item.twod->Atlas() && !item.twod->SpriteSource()))
       continue;
+    if (available_only && item.thumbnail != ThumbnailState::Ready)
+      continue;
     const auto &payload = *item.twod;
     if (++count > kMaximumWorkspaceTwoDAssets || item.id == runtime::AssetUuid{} ||
         item.id != payload.Id() || item.type != payload.Type() ||
@@ -46,17 +56,28 @@ bool SpriteSourceCatalog::PublishContent(const ContentBrowserModel &content, std
       candidate.emplace(item.id, SpriteSourceSnapshot{payload.SpriteSource(), {}});
     }
   }
-  for (auto &[id, snapshot] : candidate) {
-    static_cast<void>(id);
+  for (auto it = candidate.begin(); it != candidate.end();) {
+    auto &snapshot = it->second;
     const auto &source = *snapshot.source;
     const auto atlas = atlases.find(source.atlas);
-    if (atlas == atlases.end())
+    if (atlas == atlases.end()) {
+      if (available_only) {
+        it = candidate.erase(it);
+        continue;
+      }
       return fail("A Sprite source dependency is not an imported Atlas.");
+    }
     const auto region = atlas->second.regions.find(source.region);
     if (region == atlas->second.regions.end() || region->second->width != source.trimWidth ||
-        region->second->height != source.trimHeight)
+        region->second->height != source.trimHeight) {
+      if (available_only) {
+        it = candidate.erase(it);
+        continue;
+      }
       return fail("A Sprite source region is missing or its dimensions differ from the trim.");
+    }
     snapshot.atlas = atlas->second.atlas;
+    ++it;
   }
   sources_.swap(candidate);
   version_ = ContentVersion(content);

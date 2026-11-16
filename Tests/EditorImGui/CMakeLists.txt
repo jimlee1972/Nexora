@@ -902,6 +902,11 @@ if(NEXORA_ENABLE_2D)
     endif()
   endif()
   add_executable(NexoraSpriteSourceInspectorTests SpriteSourceInspectorTests.cpp)
+  add_executable(NexoraTwoDAssetEditingUiTests TwoDAssetEditingUiTests.cpp)
+  target_include_directories(NexoraTwoDAssetEditingUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+  target_link_libraries(NexoraTwoDAssetEditingUiTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
+  nexora_apply_defaults(NexoraTwoDAssetEditingUiTests)
+  add_test(NAME editor.twod_asset_editing_ui COMMAND NexoraTwoDAssetEditingUiTests)
   add_executable(NexoraSpriteSourceCreationUiTests SpriteSourceCreationUiTests.cpp)
   target_include_directories(NexoraSpriteSourceCreationUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
   target_link_libraries(NexoraSpriteSourceCreationUiTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
@@ -921,6 +926,15 @@ if(NEXORA_ENABLE_2D)
   set_tests_properties(editor.sprite_source_inspector PROPERTIES TIMEOUT 90)
   if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE
       AND NEXORA_ENABLE_VULKAN_BACKEND AND NEXORA_ENABLE_SLANG)
+    if(TARGET NexoraProjectPlayer AND NEXORA_ENABLE_PROJECT_PLAYER_NATIVE)
+      add_test(NAME editor.linux_twod_asset_editing
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxTwoDAssetEditing.py"
+          --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraTwoDAssetEditingUiTests>"
+          --player "$<TARGET_FILE:NexoraProjectPlayer>"
+          --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+      set_tests_properties(editor.linux_twod_asset_editing PROPERTIES TIMEOUT 240
+        LABELS "editor;twod;vulkan;virtual-display" WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+    endif()
     add_test(NAME editor.linux_sprite_source_inspector
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxSpriteSourceInspector.py"
         --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraSpriteSourceInspectorTests>"

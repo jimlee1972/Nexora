@@ -23,12 +23,16 @@ struct SpriteSourceSnapshot final {
 class NEXORA_EDITOR_API SpriteSourceCatalog final {
 public:
   bool PublishContent(const ContentBrowserModel &, std::string *error = nullptr);
+  // Repair/preview choices: retain only Ready sources with an individually valid Ready Atlas
+  // closure. Missing/incompatible unrelated sources are omitted; identity/budget errors still fail.
+  bool PublishAvailableContent(const ContentBrowserModel &, std::string *error = nullptr);
   void Clear() noexcept;
   [[nodiscard]] SpriteSourceContentVersion Version() const noexcept { return version_; }
   [[nodiscard]] std::optional<SpriteSourceSnapshot> ResolveAsset(runtime::AssetUuid,
                                                                  SpriteSourceContentVersion) const;
 
 private:
+  bool Publish(const ContentBrowserModel &, bool available_only, std::string *error);
   SpriteSourceContentVersion version_;
   std::unordered_map<runtime::AssetUuid, SpriteSourceSnapshot, runtime::AssetUuidHash> sources_;
 };

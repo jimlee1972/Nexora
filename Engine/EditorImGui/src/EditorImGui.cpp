@@ -580,6 +580,30 @@ struct EditorImGuiHost::State final {
     std::uint64_t submitted{};
     bool dismiss{};
   };
+  struct TwoDAssetDraft final {
+    TwoDAssetEditingRequest baseline;
+    twod::Atlas atlas;
+    twod::Clip clip;
+    std::vector<std::pair<runtime::AssetUuid, std::string>> sources;
+    std::unordered_map<runtime::AssetUuid, SpriteSourceSnapshot, runtime::AssetUuidHash> snapshots;
+    std::array<int, 2> cell{16, 16}, offset{1, 1}, gap{2, 2};
+    std::size_t selected{};
+    std::uint64_t submitted{};
+    std::string status;
+    bool dismiss{}, paused{true}, dirty{true}, valid{};
+    twod::Animator preview;
+    std::optional<twod::AnimationUpdate> frame;
+    std::vector<twod::Clip> clipUndo, clipRedo;
+    using AtlasDraftState = std::pair<std::vector<twod::Region>, std::size_t>;
+    std::vector<AtlasDraftState> atlasUndo, atlasRedo;
+  };
+  std::optional<TwoDAssetDraft> asset_editor;
+  std::optional<runtime::AssetUuid> asset_editor_open;
+  std::optional<TwoDAssetEditingUiRequest> asset_editor_request;
+  std::uint64_t asset_editor_next{1};
+  std::string asset_editor_status;
+  std::array<std::optional<std::array<float, 4>>, 16> asset_editor_controls{};
+  std::optional<std::array<float, 2>> atlas_editor_menu, clip_editor_menu;
   std::optional<SpriteSourceCreator> sprite_creator;
   std::optional<runtime::AssetUuid> sprite_creator_open;
   std::optional<SpriteSourceCreationUiRequest> sprite_creator_request;
@@ -4938,6 +4962,16 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
           delete_assets = {item->id};
         capture_context(1);
 #if defined(NEXORA_HAS_2D)
+        if (item->twod && (item->twod->Atlas() || item->twod->Clip())) {
+          const bool atlas = bool(item->twod->Atlas());
+          if (ImGui::MenuItem(atlas ? "Edit Atlas slices..." : "Edit Clip...", nullptr, false,
+                              state.sprite_creator_allowed))
+            state.asset_editor_open = item->id;
+          const auto lo = ImGui::GetItemRectMin(), hi = ImGui::GetItemRectMax();
+          if (!ImGui::GetCurrentWindow()->Hidden && ImGui::IsItemVisible())
+            (atlas ? state.atlas_editor_menu : state.clip_editor_menu) =
+                std::array{(lo.x + hi.x) * .5F, (lo.y + hi.y) * .5F};
+        }
         if (item->twod && item->twod->Atlas()) {
           if (ImGui::MenuItem("Create Sprite source...", nullptr, false,
                               state.sprite_creator_allowed))
@@ -5188,6 +5222,8 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
     ImGui::TextWrapped("Content error: %.*s", static_cast<int>(content.LastError().size()),
                        content.LastError().data());
 #if defined(NEXORA_HAS_2D)
+  if (!state.asset_editor_status.empty())
+    ImGui::TextWrapped("%s", state.asset_editor_status.c_str());
   if (!state.sprite_creator_status.empty())
     ImGui::TextWrapped("%s", state.sprite_creator_status.c_str());
 #endif
@@ -5491,10 +5527,14 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
 #if defined(NEXORA_HAS_2D)
         state_->sprite_creator_request.reset();
         state_->sprite_editor_request.reset();
+        state_->asset_editor_request.reset();
+        state_->asset_editor_open.reset();
         state_->sprite_creator_open.reset();
         state_->sprite_editor_open.reset();
         if (state_->sprite_creator)
           state_->sprite_creator->submitted = 0;
+        if (state_->asset_editor)
+          state_->asset_editor->submitted = 0;
 #endif
         state_->prefab_override_request.reset();
         state_->prefab_override_consent.reset();
@@ -5891,6 +5931,7 @@ std::optional<ProjectUpgradeObservation> EditorImGuiHost::ProjectUpgradePreview(
 
 #include "ExtensionManagerPanel.inl"
 #include "SpriteSourceCreatorPanel.inl"
+#include "TwoDAssetEditorPanel.inl"
 
 void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene,
                                        ProjectWorkspace *workspace, ProjectContentSession *content,
@@ -5908,6 +5949,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->sprite_creator_controls = {};
   state_->sprite_creator_menu.reset();
   state_->sprite_editor_menu.reset();
+  state_->asset_editor_controls = {};
+  state_->atlas_editor_menu.reset();
+  state_->clip_editor_menu.reset();
 #endif
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
   state_->game_canvas_hovered = state_->game_canvas_clicked = state_->game_capture_allowed = false;
@@ -6252,7 +6296,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   }
   const bool sprite_creation_open =
 #if defined(NEXORA_HAS_2D)
-      state_->sprite_creator.has_value();
+      (state_->sprite_creator.has_value() || state_->asset_editor.has_value());
 #else
       false;
 #endif
@@ -7775,6 +7819,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                        state_->app_focused && !interaction_blocked && !state_->game_input_focused);
 #if defined(NEXORA_HAS_2D)
   DrawSpriteSourceCreator(*state_, workspace, content);
+  DrawTwoDAssetEditor(*state_, workspace, content);
 #endif
   DrawProjectPanel(*state_, workspace, recent_projects, scene,
                    file_context_valid && state_->app_focused && !game_running &&
@@ -10157,6 +10202,29 @@ std::string_view EditorImGuiTestAccess::ProjectSelectorRoot(const EditorImGuiHos
 
 bool EditorImGuiTestAccess::ProjectSelectorErrorVisible(const EditorImGuiHost &host) noexcept {
   return host.state_->selector_error_visible;
+}
+
+std::optional<std::array<float, 4>>
+EditorImGuiTestAccess::TwoDAssetEditingRect(const EditorImGuiHost &host,
+                                            std::size_t index) noexcept {
+#if defined(NEXORA_HAS_2D)
+  if (index < host.state_->asset_editor_controls.size())
+    return host.state_->asset_editor_controls[index];
+#else
+  (void)host;
+  (void)index;
+#endif
+  return std::nullopt;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::TwoDAssetEditingMenu(const EditorImGuiHost &host, bool atlas) noexcept {
+#if defined(NEXORA_HAS_2D)
+  return atlas ? host.state_->atlas_editor_menu : host.state_->clip_editor_menu;
+#else
+  (void)host;
+  (void)atlas;
+  return std::nullopt;
+#endif
 }
 
 std::string_view

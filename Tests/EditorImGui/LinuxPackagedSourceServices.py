@@ -366,13 +366,27 @@ def main():
 
                     def click(point, button=1):
                         send('mousemove', '--window', window, *point)
-                        time.sleep(.05)
-                        send('click', button)
-                        time.sleep(.1)
+                        wait(lambda _: observe('scene sprite ui').get('pointer') ==
+                             ','.join(map(str, point)), 'processed Content pointer motion', timeout=8)
+                        field = 'right' if button == 3 else 'down'
+                        send('mousedown', button)
+                        wait(lambda _: observe('scene sprite ui').get(field) == '1',
+                             'processed Content button down', timeout=8)
+                        send('mouseup', button)
+                        wait(lambda _: observe('scene sprite ui').get(field) == '0',
+                             'processed Content button up', timeout=8)
 
                     def search(text):
                         click(control('search'))
-                        key('ctrl+a')
+                        # Observe each Ctrl+A phase before typing. Short synthetic chords can
+                        # leave queued modifier releases while the next text arrives on software
+                        # Vulkan; a successful xdotool exit does not acknowledge GUI processing.
+                        for name, index, down in [('Control_L', 0, True), ('a', 11, True),
+                                                  ('a', 11, False), ('Control_L', 0, False)]:
+                            send('keydown' if down else 'keyup', name)
+                            wait(lambda _, index=index, down=down:
+                                 observe('scene sprite ui').get('keys', '')[index:index + 1] ==
+                                 ('1' if down else '0'), 'processed Content search chord', timeout=8)
                         send('type', '--clearmodifiers', '--delay', '5', text)
                         time.sleep(.15)
 
