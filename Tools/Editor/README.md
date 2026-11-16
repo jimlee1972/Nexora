@@ -155,6 +155,31 @@ no console or child process, waits for real successful native presents, sends WM
 actual frames/gameplay updates, drain and exit 0. Staged and extracted installations repeat this
 check alongside the unchanged 100-frame/three-commit game and 1,200-frame Editor Play admissions.
 
+## Windows Build workflow diagnostics
+
+`editor.windows_build_workflow` retains its private fixture evidence under
+`Tests/Editor/windows-build-workflow/` in the desktop Build artifacts, including failed runs.
+Each owned Editor captures `*.diagnostics.json`, compatible `*.inputs.json` and the raw bounded
+`*.project.build.json` before normal close or failure termination. Startup-window failures also
+capture and drain the process they launched. Capture errors cannot skip failure termination.
+Repeated cleanup after process exit preserves the successful pre-termination capture.
+
+The diagnostic JSON records intended control/text input, posted UTF-16 message units and results,
+owned-window geometry/DPI/focus, numeric foreground ownership, changed draft/display-buffer
+observations, delivered requests and save results. It reads only this fixture's project and logs;
+it collects no foreign window titles or screenshots. Saved bytes are capped at 256 KiB, stderr
+inspection at its last 4 MiB, input/native events at 2048/8192, and parsed observations at 128 per
+kind. Missing/unreadable/truncated data, byte offsets, captured-byte hashes and before/after file
+metadata are explicit. A hash describes captured bytes, not an atomic filesystem transaction.
+
+The native fixture checks exact Unicode/mode/save observations on success and deliberately aborts
+a third idle owned Editor to exercise real pre-termination capture. Portable tests change saved
+bytes during process drain to prove ordering, check startup/capture failures and bounded malformed
+data, and preserve the three-click/UTF-16 input protocol. All original native Build/Run/rollback/
+cancel assertions, input sleeps, operation deadlines and the 360-second CTest limit remain.
+Diagnostic timing can affect symptom frequency; passing these checks does not establish or fix
+the intermittent settings-save cause (`nexora-gu7.38.11`) or accept physical/clean-host workflows.
+
 ## Extracted Editor source-edit reload gate
 
 `PackageWindowsEditor.py --script-reload-cycles=32` adds the actual Windows Editor source-edit

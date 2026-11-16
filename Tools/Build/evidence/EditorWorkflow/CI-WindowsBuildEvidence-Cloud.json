@@ -1,0 +1,341 @@
+{
+  "schema": "nexora.windows.build.diagnostics.cloud.v1",
+  "task": "nexora-gu7.38.11.1",
+  "base": "41fc189018a338a291c3dae5c0c0ba3d8273f0e7",
+  "implementation_hashes": {
+    ".github/workflows/build.yml": "960c67434779e477426229d6e16fb3ff349e6e479e5801b300ef8d43de288706",
+    "Apps/Editor/GameBuildCommand.h": "0670f421d041094771b6422d368d0c73a2ac11543a49c52acbfd0ae4012a263a",
+    "Apps/Editor/main.cpp": "dda6c0bce25db45acf68c6be0ec332dff68ca37b87bbe5d2d8804a2557b133a9",
+    "Engine/EditorImGui/src/EditorImGui.cpp": "64dd1b6df5cd984a1bf03734e4cf8d841ff8febd48c4106e8b389b6a5182ae7b",
+    "Engine/EditorImGui/src/EditorImGuiTestAccess.h": "388e31ffa5dc63978be37d9572ac2853939c795439098d415db13f694cf3cb5c",
+    "Tests/Editor/CMakeLists.txt": "1c90eac47c172420b04eef1f890c32a8c1f744c565b7fab2b2378dc14450920f",
+    "Tests/Editor/WindowsBuildEvidence.py": "f5295fd4b66fce7122007fa60ef7ec26d1dcd9121e87a72ccb230a7cafcd2d04",
+    "Tests/Editor/WindowsBuildEvidenceTests.py": "44de254e35745e0df455f42e4241a72414d7054772a03a87e3a567f1182af9fc",
+    "Tests/Editor/WindowsBuildWorkflow.py": "024e9052797687087619b08b6676a594d5258bb472945afccd7316f719c5dc3a"
+  },
+  "development": {
+    "commands": [
+      "cmake --preset linux-development",
+      "cmake --build --preset linux-development",
+      "ctest --preset linux-development"
+    ],
+    "tests": 555,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 4578.4,
+    "exit": 0,
+    "log_sha256": "801f081890408c277b0b66ffc5f77d99d063e06691fa9565a813ae76f8c19d3b"
+  },
+  "portable": {
+    "cases": 7,
+    "ordinary_passed": true,
+    "optimized_passed": true,
+    "repeated_cleanup": {
+      "changed": [
+        "Tests/Editor/WindowsBuildEvidenceTests.py",
+        "Tests/Editor/WindowsBuildWorkflow.py"
+      ],
+      "scope": "Python diagnostic fixture only, before its full-suite case ran; compiled/native sources unchanged",
+      "regression_failed_before_correction": true,
+      "portable_cases": 7,
+      "ordinary": true,
+      "optimized": true
+    }
+  },
+  "shipping": {
+    "profile": "Full",
+    "link_mode": "Monolithic",
+    "testing": false,
+    "graphical": false,
+    "exit": 0,
+    "initial_invalid_graphical_request_retained": true
+  },
+  "test_free_graphical": {
+    "build_type": "Development",
+    "testing": false,
+    "twod": false,
+    "cli_start_passed": true,
+    "private_access_definitions_absent": true,
+    "exit": 0
+  },
+  "gcc15": {
+    "compiler": "x86_64-linux-gnu-g++-15 (Ubuntu 15.2.0-4ubuntu4) 15.2.0",
+    "results": [
+      {
+        "file": "Apps/Editor/main.cpp",
+        "exit": 0,
+        "command": [
+          "/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/bin/x86_64-linux-gnu-g++-15",
+          "-B/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/lib/gcc/x86_64-linux-gnu/15/",
+          "-DNEXORA_ASSET_PIPELINE_ENABLED=1",
+          "-DNEXORA_BUILD_DEVELOPMENT=1",
+          "-DNEXORA_CAPTURE_ENCODER_ENABLED=0",
+          "-DNEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS=1",
+          "-DNEXORA_EDITOR_GRAPHICAL_SHELL=1",
+          "-DNEXORA_EDITOR_SDK_ENABLED=1",
+          "-DNEXORA_GAMEPLAY_SIMULATION_ENABLED=1",
+          "-DNEXORA_HAS_2D=1",
+          "-DNEXORA_LARGE_WORLD_ENABLED=1",
+          "-DNEXORA_MEDIA_DRM_ENABLED=0",
+          "-DNEXORA_PLATFORM_ENABLED=1",
+          "-DNEXORA_PRESENTATION_ENABLED=1",
+          "-DNEXORA_SCENE_RENDERING_ENABLED=1",
+          "-DNEXORA_SHIPPING_ENABLED=1",
+          "-I/workspace/Nexora-delivery-773/build/linux-development/Apps/Editor/generated/Development",
+          "-I/workspace/Nexora-delivery-773/Engine/EditorImGui/src",
+          "-I/workspace/Nexora-delivery-773/Engine/Editor/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Core/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Foundation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/API/include",
+          "-I/workspace/Nexora-delivery-773/build/linux-development/Engine/Foundation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Runtime/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Renderer/include",
+          "-I/workspace/Nexora-delivery-773/Engine/RHI/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Cryptography/include",
+          "-I/workspace/Nexora-delivery-773/Engine/TwoD/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Presentation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Window/include",
+          "-I/workspace/Nexora-delivery-773/Engine/EditorImGui/include",
+          "-std=c++20",
+          "-fvisibility=hidden",
+          "-fvisibility-inlines-hidden",
+          "-Wall",
+          "-Wextra",
+          "-Wpedantic",
+          "-Werror",
+          "-o",
+          "/workspace/work/engine-goal-20261112/authoring/windows-build-failure-evidence/gcc15/development/Apps_Editor_main-0.o",
+          "-c",
+          "/workspace/Nexora-delivery-773/Apps/Editor/main.cpp"
+        ],
+        "source_sha256": "dda6c0bce25db45acf68c6be0ec332dff68ca37b87bbe5d2d8804a2557b133a9",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "file": "Engine/EditorImGui/src/EditorImGui.cpp",
+        "exit": 0,
+        "command": [
+          "/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/bin/x86_64-linux-gnu-g++-15",
+          "-B/workspace/work/engine-goal-20261112/gcc15/sysroot/usr/lib/gcc/x86_64-linux-gnu/15/",
+          "-DIMGUI_USE_WCHAR32=1",
+          "-DNEXORA_ASSET_PIPELINE_ENABLED=1",
+          "-DNEXORA_BUILD_DEVELOPMENT=1",
+          "-DNEXORA_CAPTURE_ENCODER_ENABLED=0",
+          "-DNEXORA_EDITOR_IMGUI_EXPORTS",
+          "-DNEXORA_EDITOR_IMGUI_TEST_ACCESS=1",
+          "-DNEXORA_EDITOR_SDK_ENABLED=1",
+          "-DNEXORA_GAMEPLAY_SIMULATION_ENABLED=1",
+          "-DNEXORA_HAS_2D=1",
+          "-DNEXORA_LARGE_WORLD_ENABLED=1",
+          "-DNEXORA_MEDIA_DRM_ENABLED=0",
+          "-DNEXORA_PLATFORM_ENABLED=1",
+          "-DNEXORA_PRESENTATION_ENABLED=1",
+          "-DNEXORA_SCENE_RENDERING_ENABLED=1",
+          "-DNEXORA_SHIPPING_ENABLED=1",
+          "-DNexoraEditorImGui_EXPORTS",
+          "-I/workspace/Nexora-delivery-773/Engine/EditorImGui/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Editor/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Core/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Foundation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/API/include",
+          "-I/workspace/Nexora-delivery-773/build/linux-development/Engine/Foundation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Runtime/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Renderer/include",
+          "-I/workspace/Nexora-delivery-773/Engine/RHI/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Cryptography/include",
+          "-I/workspace/Nexora-delivery-773/Engine/TwoD/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Presentation/include",
+          "-I/workspace/Nexora-delivery-773/Engine/Window/include",
+          "-isystem",
+          "/workspace/Nexora-delivery-773/build/linux-development/_deps/nexora_imgui-src",
+          "-std=c++20",
+          "-fPIC",
+          "-fvisibility=hidden",
+          "-fvisibility-inlines-hidden",
+          "-Wall",
+          "-Wextra",
+          "-Wpedantic",
+          "-Werror",
+          "-o",
+          "/workspace/work/engine-goal-20261112/authoring/windows-build-failure-evidence/gcc15/development/Engine_EditorImGui_src_EditorImGui-0.o",
+          "-c",
+          "/workspace/Nexora-delivery-773/Engine/EditorImGui/src/EditorImGui.cpp"
+        ],
+        "source_sha256": "64dd1b6df5cd984a1bf03734e4cf8d841ff8febd48c4106e8b389b6a5182ae7b",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  },
+  "native_windows_executed_locally": false,
+  "hosted_windows_required_before_merge": true,
+  "parent_save_cause_fixed": false,
+  "parent": "nexora-gu7.38.11",
+  "unchanged_bounds": {
+    "ctest_seconds": 360,
+    "startup_seconds": 45,
+    "save_seconds": 10
+  },
+  "milestones": {
+    "workflow": "5/9",
+    "graphical_editor": "0/8",
+    "twod": "9/11",
+    "physical_accepted": false
+  },
+  "first_full_gate": {
+    "files": {
+      "nexora-game-view-ndr7u4tt/project.nexora": "7593687f20abcaff070120f62d399388b40b2e3ca5743189a93aa2ffc90a0e08",
+      "nexora-game-state-pvpx39qn/editor-1.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "nexora-game-state-pvpx39qn/editor-1.stderr.log": "2451ac61ba61fd9b8eaa371e46f341549927dfbfb37e6160dad16eda71ecc341",
+      "nexora-game-state-pvpx39qn/input.jsonl": "fccb53297da47a3238499b65db5b29b74d5168eb8573a582b0758aeea41fbd00",
+      "nexora-game-state-pvpx39qn/recent": "8690a400ed7bbcb93ce81f5a03f9f52e44efc899f07a13e12d490c537252aa13",
+      "nexora-game-view-ndr7u4tt/Content/Triangle.obj": "fb7dfd56dac77ea4246f2be61e44efed3bba2aab1c8ee9f2cc88b0b1801194a8",
+      "nexora-game-view-ndr7u4tt/Content/libNexoraPlayPointerMotionFixture.so": "0c56e69dd6fbe04eb1847c64aed8d6b9a034dc22e2cde3adfe33c73f5875676d",
+      "nexora-game-view-ndr7u4tt/Content/libNexoraPlayPointerMotionFixture.so.meta": "0136966fd55df0bbdfe9a20ba2c7069583479b44cea3b36a128e435a68a1ac15",
+      "nexora-game-view-ndr7u4tt/Content/Triangle.obj.meta": "a9460061fd642b519baf974f4cba94395cee0d0f8a73ea99a4eebd82678cef61",
+      "nexora-game-view-ndr7u4tt/.nexora/project-upgrade.schema1.report": "c04406c6ab3e2a8db66a8b511045738568154f9dd09d3e98c96cbf0f5a9303e2",
+      "nexora-game-view-ndr7u4tt/.nexora/project-upgrade.schema1.backup": "bb8f4fa47696cf710928eded575ae6492e4d6ab0e1667550c63c887831472bcf",
+      "nexora-game-view-ndr7u4tt/.nexora/workspace": "103b92e45253890820db806383c5f4c25ae009d8cbada5f175afac93ddd445d1",
+      "nexora-game-view-ndr7u4tt/.nexora/editor.lock": "5efafc4d24b4683f6abf542a3a41b3e162af5675d79a6f391ef9ce50c5a4a756",
+      "nexora-game-view-ndr7u4tt/.nexora/scenes/Main.scene": "38357218068ac68925380911e254cec1e9e7bb83a7c68c7d4c6908a46b9d9579",
+      "nexora-game-state-pvpx39qn/Nexora/Logs/run-1794786299375304323-1391485-0/crash.log": "66db01a0dc9a63384ad27cdd0d7f1e17ce381dc49a60e70c5a9c7a3f2be532d0",
+      "nexora-game-state-pvpx39qn/Nexora/Logs/run-1794786299375304323-1391485-0/modules.txt": "d4786b934c3659f8459efa3cb583ff11eb1114c37dc586e381de2e8ef6651539",
+      "nexora-game-state-pvpx39qn/Nexora/Logs/run-1794786299375304323-1391485-0/game.log": "2cad6fc024e057c686f2071f6212d82092dba9c480593ce3125ff70050052070"
+    },
+    "full_registered": 555,
+    "passed": 554,
+    "failed": 1,
+    "skipped": 0,
+    "seconds": 4561.17,
+    "new_diagnostics_case_passed": true,
+    "fixture_unchanged": true,
+    "game_build_evidence_env_absent": true
+  },
+  "pointer_motion_investigation": {
+    "issue": "nexora-gu7.38.13",
+    "status": "open",
+    "root_cause_fixed": false,
+    "unchanged_plain_controls": {
+      "command": [
+        "/workspace/work/engine-goal-20261112/tools/bin/python3.12",
+        "/workspace/Nexora-delivery-773/Tests/EditorImGui/LinuxNativeGameView.py",
+        "--input-routing",
+        "--pointer-motion",
+        "--module",
+        "/workspace/Nexora-delivery-773/build/linux-development/Tests/EditorImGui/libNexoraPlayPointerMotionFixture.so",
+        "--editor",
+        "/workspace/Nexora-delivery-773/build/linux-development/Apps/Editor/NexoraEditor",
+        "--xvfb",
+        "/workspace/work/engine-goal-20261112/sysroot/usr/bin/Xvfb",
+        "--xdotool",
+        "/workspace/work/engine-goal-20261112/sysroot/usr/bin/xdotool"
+      ],
+      "rows": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 8.42162735099555,
+          "sha256": "fc139368e21397f10006244ba14ccee56b9bd7b18d636572ea5b050881c9f7d5"
+        },
+        {
+          "attempt": 2,
+          "exit": 0,
+          "seconds": 7.982506704021944,
+          "sha256": "f9d6e77c69fc2c016c46034391121e284c787844205f2190c656019f6c0978f3"
+        },
+        {
+          "attempt": 3,
+          "exit": 0,
+          "seconds": 8.381385537009919,
+          "sha256": "cbbb21355dbd7fa0e3e63f2872ecfd2e20cc4b6bf654b0df0003d06b5e0b2cb9"
+        },
+        {
+          "attempt": 4,
+          "exit": 0,
+          "seconds": 8.240074234985514,
+          "sha256": "3f10ea30d1fa55d3def63219b8185536983414870584d67e85feb568c49f310f"
+        },
+        {
+          "attempt": 5,
+          "exit": 0,
+          "seconds": 8.242971928993938,
+          "sha256": "04f302856edd05cc880d07e27f707ae7dc2aa6af0ae2261568a091348bb41782"
+        },
+        {
+          "attempt": 6,
+          "exit": 0,
+          "seconds": 8.651001874997746,
+          "sha256": "be7f677ba532c6cb67f2a675c56aa14d73f99826b91d43034109c71eab83f2e7"
+        },
+        {
+          "attempt": 7,
+          "exit": 0,
+          "seconds": 8.591907774010906,
+          "sha256": "f9881b5f3add840c804bf2ab23f2b8562ebe2735a99e62ff725a96a9281120bc"
+        },
+        {
+          "attempt": 8,
+          "exit": 0,
+          "seconds": 8.821246316016186,
+          "sha256": "0b0b5e894133468c4c4af03c80ecdb0af59b2a9e056d0b1b50b993d81a96ec47"
+        },
+        {
+          "attempt": 9,
+          "exit": 0,
+          "seconds": 8.073063388990704,
+          "sha256": "8013274466b1d90af7626a59d63f7acdad7cc57077a83e75be339daa03562033"
+        },
+        {
+          "attempt": 10,
+          "exit": 0,
+          "seconds": 8.352165514981607,
+          "sha256": "57479078ee8b525604b01d9df32d4c26bb0370571560a3d9401828559360efad"
+        },
+        {
+          "attempt": 11,
+          "exit": 0,
+          "seconds": 7.83504309199634,
+          "sha256": "5fdecca052102715ce92e56a1eee7a7527589ab5b1e6ada4428e35604ab58d46"
+        },
+        {
+          "attempt": 12,
+          "exit": 0,
+          "seconds": 7.928460308990907,
+          "sha256": "3fc61a302cd605ca4249de6930cd8edd8cae94f515f1a9ef28464c9ea5592fef"
+        }
+      ],
+      "source_unchanged": true,
+      "root_cause_fixed": false
+    }
+  },
+  "linux_native_observations": {
+    "passed": true,
+    "scope": "Actual Linux native Clip picker; second full gate, no Windows claim",
+    "logs": {
+      "build/linux-development/artifacts/editor-sprite-sources/clip-picker-1794792865421448325/editor-1.stderr.log": "b886eaf66402a093cd92f5afa050498a40d93e6447cea08fbe5981a4539f13ad",
+      "build/linux-development/artifacts/editor-sprite-sources/clip-picker-1794792865421448325/editor-2.stderr.log": "7f3fc698f4fb62ee1611333e0a8c1b094de413250c906d24191d228e98b7ef66"
+    },
+    "draft_observations": 8,
+    "save_requests": 2,
+    "applied_saves": 2,
+    "saved_settings": [
+      {
+        "mode": 0,
+        "script_manifest": "Scripts/project.json",
+        "output": "Build/SelectedGame"
+      },
+      {
+        "mode": 1,
+        "script_manifest": "Scripts/project.json",
+        "output": "Build/SelectedGame"
+      }
+    ]
+  },
+  "environment_storage": {
+    "old_generated_files": 1749,
+    "original_bytes": 1592600274,
+    "archive_bytes": 8894678,
+    "archive_sha256": "f4f6b7e9570193cdafb173448f872e8640d4f640aa93720fc66622d2f817bfa5",
+    "every_original_byte_retained": true,
+    "current_test_outputs_unchanged": true
+  }
+}

@@ -6,13 +6,14 @@
 #include "Nexora/Editor/ProjectContent.h"
 #include <iostream>
 #include <map>
+#include <sstream>
+#include <string_view>
 
 namespace nexora::editor::preview {
 inline std::filesystem::path BuildArgumentPath(std::string_view text) {
   return std::filesystem::path(std::u8string(text.begin(), text.end()));
 }
-inline std::string BuildJsonPath(const std::filesystem::path &path) {
-  const auto bytes = path.generic_u8string();
+inline std::string BuildJsonText(std::string_view bytes) {
   constexpr char hex[] = "0123456789abcdef";
   std::string value{"\""};
   for (const auto raw : bytes) {
@@ -28,6 +29,17 @@ inline std::string BuildJsonPath(const std::filesystem::path &path) {
       value += static_cast<char>(byte);
   }
   return value + '"';
+}
+inline std::string BuildJsonPath(const std::filesystem::path &path) {
+  const auto bytes = path.generic_u8string();
+  return BuildJsonText(std::string(bytes.begin(), bytes.end()));
+}
+inline std::string BuildSettingsObservationJson(const GameBuildSettings &settings) {
+  std::ostringstream value;
+  value << "{\"mode\":" << static_cast<unsigned>(settings.mode)
+        << ",\"script_manifest\":" << BuildJsonText(settings.script_manifest)
+        << ",\"output\":" << BuildJsonText(settings.output) << '}';
+  return value.str();
 }
 // The Editor executable is also the CLI build entry. Both hosts call PrepareGameBuild/Publish;
 // this command supplies no alternate cooker, SDK compiler adapter or publication implementation.

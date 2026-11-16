@@ -20,6 +20,9 @@ set_tests_properties(editor.play_api_proxy PROPERTIES TIMEOUT 30)
 add_test(NAME editor.windows_package_admission
   COMMAND "${Python3_EXECUTABLE}" -m unittest discover
     -s "${PROJECT_SOURCE_DIR}/Tools/Editor/tests" -p test_windows_package.py)
+add_test(NAME editor.windows_build_evidence
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/WindowsBuildEvidenceTests.py")
+set_tests_properties(editor.windows_build_evidence PROPERTIES TIMEOUT 30)
 if(WIN32 AND NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL)
   add_executable(NexoraWindowsStartupSplashTests WindowsStartupSplashTests.cpp
     "${PROJECT_SOURCE_DIR}/Apps/Editor/StartupSplash.cpp"
