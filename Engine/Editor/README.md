@@ -2983,3 +2983,41 @@ bounded exact closure and rechecks provenance before native admission. It freeze
 Build inputs and retains the existing Play World, animation clocks and pool handles. This does not
 make authoring captures mutable or add a second source importer; Clip/root changes require restart.
 See [application ownership and failure behavior](../../Apps/Editor/README.md#live-configured-sprite-and-atlas-reimport).
+
+### Main-project Atlas and Clip edits
+
+`TwoDAssetEditingRequest` owns a canonical imported baseline and proposed `.nx2atlas` or
+`.nx2clip` bytes, project/root/path, asset UUID, artifact and Content version. It carries no
+write authority. `SaveTwoDAssetFile` is serialized on the authoring owner outside GUI rendering.
+It requires a focused caller's stopped-Play/idle authorization and independently checks the
+same writable project/Content, no recovery/external-change gate and the current imported owner.
+
+The existing codecs validate at most 1024 sorted, non-overlapping Atlas regions with one-pixel
+gutters, or 4096 exclusively region- or source-bound Clip frames. Atlas pixels, dimensions and
+filtering are retained by the graphical slicing draft; grid and rectangle changes edit region
+metadata. Frame duration/event/loop/order/source edits use the existing Clip wire. This adds no
+C/Zig ABI, schema or sliced rendering. The candidate closure is bounded by the existing 4096-asset /
+64 MiB retained limits. Changed Atlas regions must still resolve every imported direct Sprite
+source's trim and every legacy Clip frame; changed source Clips require complete Sprite/Atlas
+geometry. Dependencies must have Ready import state: failed/loading last-good owners are for
+preview, not new authoring closure. Unrelated failed imports do not block a valid edit. Missing or
+incompatible dependencies reject the entire save before filesystem staging.
+
+The ordinary single-link source and mandatory matching identity sidecar must retain their exact
+names under ordinary canonical Content directories. Source bytes must equal the canonical imported
+baseline. Bounded identity/case-alias checks and source/sidecar reads repeat before same-parent
+atomic replacement. Normal typed import, retained Content Undo publication, artifact hashing and
+dependency-graph transaction are prepared privately first. Only the primary source is replaced;
+its filename/UUID/sidecar, Scene history and Runtime remain unchanged. Prepared browser/dependency
+owners publish without throwing after replacement. Rejected preserves disk/live state; a native
+replacement error reports Uncertain and requires inspection/reimport. Filesystem checks assume a
+cooperative local filesystem, not an adversarial compare-and-swap.
+
+The main Content context menu opens an owning modal draft for imported Atlases or Clips. A bounded
+CPU pixel preview allocates no native textures and reads no files. Draft Undo/Redo retains at most
+32 metadata states per asset, independently of Scene and Content file-move Undo. Clip previews use
+copied Animator state and immutable imported source/Atlas owners. Source types never mix with
+legacy region bindings. Save emits one request; Cancel discards it. Focus loss revokes unconsumed
+requests, and changed Content versions disable the retained draft until it is reopened. Read-only,
+Play, Build/Run, recovery and external-change gates revoke write authority. Private test geometry
+only observes real visible controls and grants no edit authority.

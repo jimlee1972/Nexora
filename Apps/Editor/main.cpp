@@ -1961,6 +1961,20 @@ int RunGraphical(std::optional<ProjectState> project,
       ui.DrawProductShell(shell, &active_scene(), &project->workspace, &content, &recent_projects,
                           &imports, &console, &play, &profile, &meshes, &materials);
 #if defined(NEXORA_HAS_2D)
+      if (const auto asset_edit = ui.TakeTwoDAssetEditingRequest()) {
+        const bool authorized = created.surface->Input().focused && source_inspection_allowed &&
+                                scene_authoring_allowed() && !content.ReimportBusy()
+#if NEXORA_ASSET_PIPELINE_ENABLED
+                                && !game_builder.Busy() && !game_runner.Busy()
+#endif
+            ;
+        const auto asset_edit_result = nexora::editor::SaveTwoDAssetFile(
+            project->workspace, content, asset_edit->editing, authorized);
+        ui.SetTwoDAssetEditingResult(
+            asset_edit->identity,
+            asset_edit_result.state == nexora::editor::TwoDAssetEditingState::Saved,
+            std::string(nexora::editor::TwoDAssetEditingMessage(asset_edit_result.error)));
+      }
       if (const auto edit = ui.TakeSpriteSourceEditingRequest()) {
         const bool authorized = created.surface->Input().focused && source_inspection_allowed &&
                                 scene_authoring_allowed() && !content.ReimportBusy()
@@ -4444,11 +4458,25 @@ int RunGraphical(std::optional<ProjectState> project,
       record("sprite_source_details", Access::InspectorSpriteSourcePosition(ui, 3));
       record("sprite_create_menu", Access::SpriteSourceCreationMenu(ui));
       record("sprite_edit_menu", Access::SpriteSourceEditingMenu(ui));
+      record("atlas_edit_menu", Access::TwoDAssetEditingMenu(ui, true));
+      record("clip_edit_menu", Access::TwoDAssetEditingMenu(ui, false));
+      for (std::size_t index = 0; index < 16; ++index)
+        if (const auto rect = Access::TwoDAssetEditingRect(ui, index)) {
+          const auto name = "asset_edit_" + std::to_string(index);
+          record(name.c_str(),
+                 std::array{((*rect)[0] + (*rect)[2]) * .5F, ((*rect)[1] + (*rect)[3]) * .5F});
+        }
 #if defined(NEXORA_HAS_2D)
       if (project)
         for (const auto &item : content.Browser().Items())
           if (item.twod && item.twod->Atlas()) {
             record("sprite_create_atlas", Access::ContentAssetPosition(ui, item.id));
+            break;
+          }
+      if (project)
+        for (const auto &item : content.Browser().Items())
+          if (item.twod && item.twod->Clip()) {
+            record("asset_edit_clip", Access::ContentAssetPosition(ui, item.id));
             break;
           }
       if (project)

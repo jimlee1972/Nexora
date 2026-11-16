@@ -466,3 +466,18 @@ Stop driver 順序失敗與早期基底結果分開保留；修正並整合 PR79
 交付前仍須通過同一不可變 own-head CI 與來源／review guard。
 聯合 ED-WF-07/08、Workflow **5/9**、graphical Editor **0/8**、TwoD **9/11** 及實機／
 clean-host 驗收維持未完成／不變；獨立持有的 standalone reload 工作不受影響。
+
+## ✅ 主編輯器 Atlas 切片與 Clip 編輯（2026-11-16）
+
+主 Content 已支援 Atlas Grid／個別矩形與 Clip 幀、時間、事件、loop、來源、順序編輯，
+使用 owning 草稿、獨立草稿 Undo／Redo 與 immutable 預覽。保留 identity 的 typed 發布檢查
+目前基線、Ready 相依閉包及 writer／idle／stopped Play，維持 Scene／Runtime 不變。
+實際1x／2x UI 與原生編輯／儲存／唯讀重開／Build／刪除來源後搬移 Player 流程均通過。
+Modular 與 Monolithic 各完成33次 canonical SDK 真實替換、7次失敗拒絕，以及32回合／70次
+reimport 發布；Shipping Full 編輯資產／SDK 流程與實際 TwoD-OFF Editor／Player 拒絕均通過。
+完整 Development 執行與明確的原生重跑分別記錄，不宣稱單輪558項全綠。CI 保留原始原生證據，
+交付前須通過最終不可變提交的全部適用檢查。
+Workflow **5/9**、圖形化 Editor **0/8**、TwoD **9/11**、ED-WF-07／08 及實機／乾淨主機 gate
+維持不變／未完成，保留獨立 standalone 重載任務的既有 claim。
+詳見[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-AtlasClip-Linux-2026-11-16.md)
+與[來源／驗收 receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-AtlasClip-Linux-2026-11-16.json)。

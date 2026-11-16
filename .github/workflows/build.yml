@@ -156,6 +156,10 @@ jobs:
             build/${{ matrix.preset }}/artifacts/hd2d-zig-*/
             build/${{ matrix.preset }}/artifacts/source-player/
             build/${{ matrix.preset }}/artifacts/editor-sprite-sources/
+            build/${{ matrix.preset }}/artifacts/editor-atlas-clip/
+            build/${{ matrix.preset }}/artifacts/editor-packaged-source-services/
+            build/${{ matrix.preset }}/artifacts/editor-packaged-source-reload/
+            build/${{ matrix.preset }}/artifacts/editor-packaged-source-reimport/
             build/${{ matrix.preset }}/artifacts/authored-source*/
             build/${{ matrix.preset }}/Testing/Temporary/LastTest.log
             build/${{ matrix.preset }}/development-tests.log
@@ -320,6 +324,10 @@ jobs:
             build/linux-development/native-player-tests.log
             build/linux-development/artifacts/editor-packaged-play/
             build/linux-development/artifacts/editor-sprite-sources/
+            build/linux-development/artifacts/editor-atlas-clip/
+            build/linux-development/artifacts/editor-packaged-source-services/
+            build/linux-development/artifacts/editor-packaged-source-reload/
+            build/linux-development/artifacts/editor-packaged-source-reimport/
             build/linux-development/Testing/Temporary/LastTest*.log
           if-no-files-found: warn
 

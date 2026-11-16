@@ -436,6 +436,10 @@ public:
   SpriteSourceEditingMenu(const EditorImGuiHost &) noexcept;
   [[nodiscard]] static std::string_view
   SpriteSourceCreationStatus(const EditorImGuiHost &) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 4>>
+  TwoDAssetEditingRect(const EditorImGuiHost &, std::size_t) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  TwoDAssetEditingMenu(const EditorImGuiHost &, bool atlas) noexcept;
   static void FocusInspector(EditorImGuiHost &host) noexcept;
   // Visible, enabled local TRS input bounds; rows Position/Rotation/Scale, axes X/Y/Z.
   [[nodiscard]] static std::optional<std::array<float, 4>>

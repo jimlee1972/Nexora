@@ -2167,3 +2167,26 @@ is revalidated against document generation, imported content revision and exact 
 before submission. Scene and Game prepare up to two fenced sampled images before the single
 owning GUI packet; configured Play still publishes its candidate only after complete submission.
 See [native ownership](../../Engine/Presentation/SceneUiComposition.md).
+
+## Atlas slicing and Clip editing
+
+In Content, right-click an imported `.nx2atlas` and choose **Edit Atlas slices...**. Set a cell
+size, first pixel and gap, then **Slice grid**, or add/remove/edit individual rectangle IDs and
+coordinates. The pixel preview outlines the selected region. Coordinates use top-left pixels;
+regions require one pixel of gutter on every side and a gap of at least two pixels. Existing
+image pixels, extent and filtering stay fixed. This edits an imported Atlas; PNG import/packing
+remains available through the existing asset tools.
+
+Right-click an imported `.nx2clip` and choose **Edit Clip...**. Append frames from its Atlas or
+imported Sprite sources, change duration/event/loop, reorder/remove frames and use the independent
+playback preview. Source-bound and legacy region-bound frames cannot mix. **Undo draft** and
+**Redo draft** change the unsaved draft; **Cancel** discards it.
+
+**Save asset** preserves its UUID, filename and identity sidecar and updates the imported owner.
+Every reference uses that shared asset; Scene Undo does not revert saved asset bytes. Atlas changes
+that invalidate existing Sprite trim sizes or Clip region references reject before writing. Clip
+source dependencies must resolve. Only a focused, idle project writer with stopped Play can save.
+External edits or changed Content invalidate the baseline; reopen the editor to acquire a current
+one. Saved/rejected/uncertain feedback distinguishes publication outcomes. Read-only reopen reads
+the saved assets without granting editing authority. Clip data changes require restarting Play
+under the existing frozen Clip policy.

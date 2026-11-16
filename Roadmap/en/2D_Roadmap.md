@@ -1363,3 +1363,20 @@ See [the execution record](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-Ed
 Unchanged own-head hosted CI and source/review guards remain required before delivery.
 Joint ED-WF-07/08, Workflow **5/9**, graphical Editor **0/8**, TwoD **9/11** and physical/clean-host
 acceptance stay open/unchanged. The independently owned standalone reload task is unchanged.
+
+## ✅ Main Editor Atlas slicing and Clip editing (2026-11-16)
+
+Main Content now edits Atlas Grid/individual rectangles and Clip frames, duration, events, loop,
+source and order through owning drafts, independent draft Undo/Redo and immutable previews.
+Identity-preserving typed publication enforces current baselines, Ready dependency closure,
+writer/idle/stopped-Play admission and unchanged Scene/Runtime. Actual1x/2x UI and native
+edit/save/read-only reopen/Build/source-deleted relocated Player flows pass.
+Modular and Monolithic native acceptance each completes33 canonical SDK replacements,7 rejected
+candidates and32 reimport cycles/70 publications. Shipping Full edited-assets/SDK flows and actual
+TwoD-OFF Editor/Player refusals pass. The complete Development run and explicit native recoveries
+are recorded separately; no single all-green558-case invocation is claimed. CI retains raw native
+proofs and every applicable exact-head check gates delivery.
+Workflow **5/9**, graphical Editor **0/8**, TwoD **9/11**, ED-WF-07/08 and physical/clean-host gates
+remain unchanged/open; independently owned standalone reload claims are preserved.
+See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-AtlasClip-Linux-2026-11-16.md)
+and the [source/acceptance receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-AtlasClip-Linux-2026-11-16.json).
