@@ -3021,3 +3021,13 @@ legacy region bindings. Save emits one request; Cancel discards it. Focus loss r
 requests, and changed Content versions disable the retained draft until it is reopened. Read-only,
 Play, Build/Run, recovery and external-change gates revoke write authority. Private test geometry
 only observes real visible controls and grants no edit authority.
+
+Each save reuses standalone validation of the exact immutable imported Atlas/Sprite payloads and
+memoizes source closure checks by UUID. Repeated Clip frames do not repeat Atlas overlap scans.
+`SpriteSourceCatalog::PublishContent` retains its strict atomic closure contract;
+`PublishAvailableContent` instead provides Ready, individually valid source/Atlas choices for
+repairing asset drafts. Unrelated missing or incompatible sources are omitted, while admitted
+identity and workspace budget checks remain mandatory. The Clip dialog uses that repair catalog.
+Atlas draft history retains the selection alongside region metadata. Sorting an edited Region ID
+tracks its original entry, including temporary duplicate IDs, so later digits/geometry and
+Undo/Redo continue to address the selected slice.

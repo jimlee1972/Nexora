@@ -110,6 +110,36 @@ void Catalog() {
             twod::EncodeAtlas(*retained->atlas) == Atlas(),
         "snapshot borrowed destroyed catalog/content storage");
 }
+void AvailableCatalog() {
+  auto missing = Source({51, 53});
+  missing.atlas = {999, 999};
+  auto incompatible = Source({61, 67});
+  incompatible.trimWidth = 2;
+  std::vector items{Item(".nx2atlas", Atlas()),
+                    Item(".nx2sprite", twod::EncodeSpriteAsset(Source())),
+                    Item(".nx2sprite", twod::EncodeSpriteAsset(missing)),
+                    Item(".nx2sprite", twod::EncodeSpriteAsset(incompatible)),
+                    Item(".nx2sprite", twod::EncodeSpriteAsset(Source(secondId)))};
+  for (auto &item : items)
+    item.thumbnail = editor::ThumbnailState::Ready;
+  items.back().thumbnail = editor::ThumbnailState::Failed;
+  editor::ContentBrowserModel content;
+  Check(content.Reset(items, 11), "available catalog fixture");
+  editor::SpriteSourceCatalog strict, available;
+  Check(!strict.PublishContent(content), "strict catalog accepted incomplete closure");
+  Check(available.PublishAvailableContent(content), "available catalog rejected unrelated sources");
+  const auto version = available.Version();
+  const auto retained = available.ResolveAsset(sourceId, version);
+  Check(retained && !available.ResolveAsset(missing.id, version) &&
+            !available.ResolveAsset(incompatible.id, version) &&
+            !available.ResolveAsset(secondId, version),
+        "available catalog did not isolate Ready valid closures");
+  items.front().thumbnail = editor::ThumbnailState::Loading;
+  Check(content.Reset(std::move(items), 12) && available.PublishAvailableContent(content) &&
+            !available.ResolveAsset(sourceId, available.Version()) &&
+            !available.ResolveAsset(sourceId, version) && retained->atlas->id == atlasId,
+        "unavailable Atlas left stale choices or borrowed retained owners");
+}
 void Transactions(const std::filesystem::path &root) {
   editor::ProjectWorkspace workspace;
   Check(workspace.Create(root, "Sprite reference transactions"), "project fixture");
@@ -244,6 +274,7 @@ int main() {
                      std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
   try {
     Catalog();
+    AvailableCatalog();
     Transactions(root);
     std::filesystem::remove_all(root);
     std::cout << "Sprite source catalog and main Editor reference transactions passed\n";

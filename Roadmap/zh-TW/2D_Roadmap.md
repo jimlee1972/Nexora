@@ -1222,3 +1222,6 @@ Workflow **5/9**、圖形化 Editor **0/8**、TwoD **9/11**、ED-WF-07／08 及�
 維持不變／未完成，保留獨立 standalone 重載任務的既有 claim。
 詳見[執行證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-AtlasClip-Linux-2026-11-16.md)
 與[來源／驗收 receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-AtlasClip-Linux-2026-11-16.json)。
+
+PR review followup 補強最大 Clip 閉包成本、無關損壞來源下的可用選項，以及 ID 排序／歷史後的
+切片選取；詳見[review 紀錄](../../Tools/Build/evidence/EditorWorkflow/ED-WF-AtlasClip-Review-Linux-2026-11-16.md)。

@@ -172,9 +172,12 @@ void Run(float dpi) {
     send(Type::PointerButton, button, 0);
     settle();
   };
+  std::string_view stage = "baseline";
   const auto point = [&](std::size_t index) {
     const auto rect = Access::TwoDAssetEditingRect(ui, index);
-    Check(bool(rect), "visible creation control missing");
+    Check(bool(rect), (std::string(stage) + ": visible asset edit control " +
+                       std::to_string(index) + " missing")
+                          .c_str());
     return std::array{((*rect)[0] + (*rect)[2]) * .5F, ((*rect)[1] + (*rect)[3]) * .5F};
   };
   const auto key = [&](Key k, bool ctrl = false) {
@@ -283,6 +286,74 @@ void Run(float dpi) {
   click(point(13));
   Check(!ui.TakeTwoDAssetEditingRequest(), "Grid Undo did not restore original regions");
   click(point(14));
+  stage = "slice rename";
+  open(atlasId, true);
+  // Each digit arrives on a separate frame. Renaming7 to91 moves it past8 while the
+  // same property input remains active; subsequent geometry must still edit that slice.
+  text(8, "91");
+  text(9, "2");
+  click(point(13));
+  request = ui.TakeTwoDAssetEditingRequest();
+  Check(request.has_value(), "renamed slice request");
+  const auto renamed = twod::DecodeAtlas(request->editing.proposed);
+  Check(renamed && renamed->Find(91) && renamed->Find(91)->x == 2 && renamed->Find(8) &&
+            renamed->Find(8)->x == 12,
+        "Region ID sorting changed the edited slice");
+  ui.SetTwoDAssetEditingResult(request->identity, false, "Review selection");
+  settle();
+  stage = "slice Undo";
+  for (int i = 0; i < 3; ++i)
+    click(point(0));
+  text(9, "2");
+  click(point(13));
+  request = ui.TakeTwoDAssetEditingRequest();
+  Check(request.has_value(), "slice selection after Undo");
+  const auto restored = twod::DecodeAtlas(request->editing.proposed);
+  Check(restored && restored->Find(7) && restored->Find(7)->x == 2 && restored->Find(8) &&
+            restored->Find(8)->x == 12,
+        "Atlas Undo lost the edited slice selection");
+  ui.SetTwoDAssetEditingResult(request->identity, false, "Review selection");
+  settle();
+  click(point(14));
+  stage = "repair source choices";
+  // Individually decodable unrelated sources may have missing or incompatible Atlas closure.
+  // They must not remove usable source choices or prevent repair of a broken source frame.
+  const auto write = [&](const auto &path, const auto &bytes) {
+    std::ofstream output(path, std::ios::binary);
+    output.write(reinterpret_cast<const char *>(bytes.data()), std::streamsize(bytes.size()));
+    Check(bool(output), "broken source fixture write");
+  };
+  auto broken = *content.Browser().Find({202, 2})->twod->SpriteSource();
+  broken.id = {204, 2};
+  broken.atlas = {999, 999};
+  write(root / "Content/BadMissing.nx2sprite", twod::EncodeSpriteAsset(broken));
+  broken.id = {205, 2};
+  broken.atlas = atlasId;
+  broken.trimWidth = 6;
+  write(root / "Content/BadGeometry.nx2sprite", twod::EncodeSpriteAsset(broken));
+  const twod::Clip repair{{304, 3}, {}, true, {{0, .1, "repair", runtime::AssetUuid{204, 2}}}};
+  write(root / "Content/Broken.nx2clip", twod::EncodeClip(repair));
+  Check(
+      assets.ImportTree(root / "Content", {}, {}, editor::AssetIdentityMode::PersistentReadWrite) &&
+          content.Open(workspace, assets, 6),
+      "repair Content index");
+  settle();
+  open({304, 3}, false);
+  click(point(10));
+  click(point(6));
+  stage = "repair save";
+  click(point(13));
+  request = ui.TakeTwoDAssetEditingRequest();
+  Check(request.has_value(), "repair source choices missing because of unrelated broken assets");
+  const auto repaired = twod::DecodeClip(request->editing.proposed);
+  Check(repaired && repaired->frames.front().source == runtime::AssetUuid{203, 2},
+        "broken frame did not bind a valid source");
+  Check(editor::SaveTwoDAssetFile(workspace, content, request->editing, true).state ==
+            editor::TwoDAssetEditingState::Saved,
+        "repair source frame save");
+  ui.SetTwoDAssetEditingResult(request->identity, true, "Saved repaired Clip");
+  settle();
+  stage = "existing Clip controls with unrelated broken sources";
   const auto savedAtlasFiles = Files(root);
   open({303, 3}, false);
   text(8, "0.375");

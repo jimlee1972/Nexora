@@ -594,7 +594,8 @@ struct EditorImGuiHost::State final {
     twod::Animator preview;
     std::optional<twod::AnimationUpdate> frame;
     std::vector<twod::Clip> clipUndo, clipRedo;
-    std::vector<std::vector<twod::Region>> atlasUndo, atlasRedo;
+    using AtlasDraftState = std::pair<std::vector<twod::Region>, std::size_t>;
+    std::vector<AtlasDraftState> atlasUndo, atlasRedo;
   };
   std::optional<TwoDAssetDraft> asset_editor;
   std::optional<runtime::AssetUuid> asset_editor_open;

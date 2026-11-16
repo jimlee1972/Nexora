@@ -1,6 +1,10 @@
 # Main Editor Atlas slicing and Clip editing
 
-Status: local authoring and native matrix validated. Delivery requires every applicable hosted
+Baseline acceptance snapshot: `12470be031fb204c3fe1bd7fc005bd7a6a8c6f85`, before the PR-review fixes.
+See the [review followup](ED-WF-AtlasClip-Review-Linux-2026-11-16.md) for subsequent authoring changes
+and their validation. The machine receipt below records the original15-source snapshot.
+
+Status: baseline local authoring and native matrix validated. Delivery requires every applicable hosted
 CI check at the exact PR head before squash merge. This accepts the scoped `nexora-3hz` slice;
 ED-WF-07/08, physical/clean-host acceptance and the parent milestones remain separate.
 
@@ -87,7 +91,9 @@ published Runtime admission, first dispatched Update and independently predicted
 not provisional candidate-hook logs. The80-byte state payload, increasing ticks and identical
 scene/entity/pool identity survive replacements. Compile/Prepare/Restore/Reloaded/binding/Capture
 failures retain the live generation. Real retired-library finalizers cover generations0..32;
-retired callbacks are denied, obsolete results are discarded and Stop cancels in-flight compilation.
+independent live pixel probes remain unchanged after retired-library callbacks, obsolete results
+are discarded and Stop cancels in-flight compilation. Callback return values are retained in the
+receipt; this does not claim that every quarantined teardown write returns a denial status.
 Five exact animation/pool/Additive/unload/Replace phases preserve independent3D and authoring pixels.
 
 Reimport alternates Atlas pixels and source pivot/geometry through actual Content controls.

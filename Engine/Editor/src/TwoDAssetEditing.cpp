@@ -1,6 +1,5 @@
 #include "Nexora/Editor/TwoDAssetEditing.h"
 #include "Nexora/Editor/ProjectContent.h"
-#include "Nexora/TwoD/Scene.h"
 #include "ReimportSource.h"
 
 #include <fstream>
@@ -225,14 +224,21 @@ TwoDAssetEditingResult SaveTwoDAssetFile(const ProjectWorkspace &workspace,
       const auto found = assets.find(id);
       return found == assets.end() || !ready.contains(id) ? nullptr : found->second->Atlas();
     };
+    std::unordered_map<runtime::AssetUuid, bool, runtime::AssetUuidHash> sourceClosure;
     const auto sourceValid = [&](const twod::SpriteAsset &source) {
+      const auto [checked, inserted] = sourceClosure.try_emplace(source.id, false);
+      if (!inserted)
+        return checked->second;
       if (!ready.contains(source.id))
         return false;
       const auto atlas = atlasFor(source.atlas);
-      twod::SpriteInstance witness;
-      witness.id = 1;
-      witness.matrix = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
-      return atlas && twod::ResolveSpriteAsset(source, *atlas, std::move(witness)).has_value();
+      // ImportTwoDAsset already validated these exact immutable Atlas/Sprite payloads,
+      // including region overlaps and source geometry bounds. Check only their closure,
+      // once per source; repeated Clip frames must not repeat full Atlas validation.
+      const auto *region = atlas ? atlas->Find(source.region) : nullptr;
+      checked->second =
+          region && region->width == source.trimWidth && region->height == source.trimHeight;
+      return checked->second;
     };
     // Only the changed asset and its direct dependents need closure validation. Unrelated
     // broken assets remain inspectable and do not prevent repairing this imported asset.

@@ -2181,6 +2181,8 @@ Right-click an imported `.nx2clip` and choose **Edit Clip...**. Append frames fr
 imported Sprite sources, change duration/event/loop, reorder/remove frames and use the independent
 playback preview. Source-bound and legacy region-bound frames cannot mix. **Undo draft** and
 **Redo draft** change the unsaved draft; **Cancel** discards it.
+Unrelated broken Sprite sources do not hide valid source choices; an unavailable frame can be
+rebound to a Ready source. Editing a Region ID keeps that slice selected as IDs are sorted.
 
 **Save asset** preserves its UUID, filename and identity sidecar and updates the imported owner.
 Every reference uses that shared asset; Scene Undo does not revert saved asset bytes. Atlas changes

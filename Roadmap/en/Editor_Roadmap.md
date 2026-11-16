@@ -2698,3 +2698,6 @@ Workflow **5/9**, graphical Editor **0/8**, TwoD **9/11**, ED-WF-07/08 and physi
 remain unchanged/open; independently owned standalone reload claims are preserved.
 See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-AtlasClip-Linux-2026-11-16.md)
 and the [source/acceptance receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-AtlasClip-Linux-2026-11-16.json).
+
+PR review followup covers maximum Clip closure cost, usable choices despite unrelated broken
+sources and slice selection across ID sorting/history; see the [review record](../../Tools/Build/evidence/EditorWorkflow/ED-WF-AtlasClip-Review-Linux-2026-11-16.md).

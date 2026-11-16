@@ -189,10 +189,62 @@ void Run() {
   const auto denied = editor::SaveTwoDAssetFile(reader, reopened, noChange, true);
   Check(denied.error == Error::Denied && Files(root) == persisted, "read-only save");
 }
+void MaximumClosure() {
+  const auto root = std::filesystem::temp_directory_path() /
+                    ("nexora-asset-edit-maximum-" +
+                     std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+  editor::test::TemporaryDirectoryCleanup cleanup(root);
+  editor::ProjectWorkspace workspace;
+  Check(workspace.Create(root, "Maximum Clip closure"), "maximum workspace");
+  constexpr runtime::AssetUuid atlasId{101, 1}, clipId{303, 3};
+  twod::Atlas atlas{atlasId, 98, 98, 1, false, {}, twod::Bytes(98 * 98 * 4, std::byte{255})};
+  for (std::uint32_t i = 0; i < 1024; ++i)
+    atlas.regions.push_back({i + 1, 1 + 3 * (i % 32), 1 + 3 * (i / 32), 1, 1});
+  Write(root / "Content/Atlas.nx2atlas", twod::EncodeAtlas(atlas));
+  for (std::uint64_t i = 1; i <= 8; ++i) {
+    const twod::SpriteAsset source{{202, i}, atlasId, std::uint32_t(i), 1, 1, 0, 0, 1, 1, .5F, .5F,
+                                   1,        {}};
+    Write(root / "Content" / ("Source" + std::to_string(i) + ".nx2sprite"),
+          twod::EncodeSpriteAsset(source));
+  }
+  twod::Clip clip{clipId, {}, true, {}};
+  for (std::uint64_t i = 0; i < 4096; ++i)
+    clip.frames.push_back({0, .1, {}, runtime::AssetUuid{202, 1 + i % 8}});
+  Write(root / "Content/Clip.nx2clip", twod::EncodeClip(clip));
+  editor::AssetWorkspace assets;
+  Check(assets.ImportTree(root / "Content", {}, {}, editor::AssetIdentityMode::PersistentReadWrite),
+        "maximum index");
+  editor::ProjectContentSession content;
+  Check(content.Open(workspace, assets, 1), "maximum Content");
+  const auto *item = content.Browser().Find(clipId);
+  const auto baseline = twod::EncodeClip(clip);
+  clip.frames.back().event = "maximum";
+  const editor::TwoDAssetEditingRequest request{
+      workspace.Project().id,
+      workspace.Root(),
+      item->path,
+      {content.Browser().ProjectGeneration(), content.Browser().Revision()},
+      clipId,
+      item->type,
+      item->artifact_hash,
+      baseline,
+      twod::EncodeClip(clip)};
+  Check(editor::SaveTwoDAssetFile(workspace, content, request, true).state ==
+            editor::TwoDAssetEditingState::Saved,
+        "maximum shared-Atlas Clip save");
+  Check(content.Browser().Find(clipId)->twod->Clip()->frames.back().event == "maximum" &&
+            content.Dependencies().Forward(clipId).size() == 8,
+        "maximum Clip publication/unique source closure");
+}
 } // namespace
-int main() {
+int main(int argc, char **argv) {
   try {
-    Run();
+    if (argc == 2 && std::string_view(argv[1]) == "--maximum-closure")
+      MaximumClosure();
+    else {
+      Run();
+      MaximumClosure();
+    }
     std::cout << "Atlas/Clip asset editing passed\n";
     return 0;
   } catch (const std::exception &error) {

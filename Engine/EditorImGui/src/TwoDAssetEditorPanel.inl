@@ -63,7 +63,7 @@ void DrawTwoDAssetEditor(StateT &state, ProjectWorkspace *workspace,
         if (dependency && dependency->twod && dependency->twod->Atlas())
           draft.atlas = *dependency->twod->Atlas();
         SpriteSourceCatalog catalog;
-        if (catalog.PublishContent(content->Browser()))
+        if (catalog.PublishAvailableContent(content->Browser()))
           for (const auto &candidate : content->Browser().Items())
             if (auto snapshot = catalog.ResolveAsset(candidate.id, draft.baseline.version)) {
               draft.sources.emplace_back(candidate.id, PathLabel(candidate.path));
@@ -118,6 +118,7 @@ void DrawTwoDAssetEditor(StateT &state, ProjectWorkspace *workspace,
       "Shared asset: Save preserves UUID and updates references. Scene Undo does not "
       "revert saved asset files. Cancel discards this draft.");
   const auto oldRegions = draft.atlas.regions;
+  const auto oldSelected = draft.selected;
   const auto oldClip = draft.clip;
   bool changed{}, history{};
   ImGui::BeginDisabled(!authorized || draft.submitted);
@@ -143,7 +144,10 @@ void DrawTwoDAssetEditor(StateT &state, ProjectWorkspace *workspace,
     ImGui::EndDisabled();
   };
   if (atlas) {
-    undo(draft.atlas.regions, draft.atlasUndo, draft.atlasRedo);
+    auto regions = std::pair{std::move(draft.atlas.regions), draft.selected};
+    undo(regions, draft.atlasUndo, draft.atlasRedo);
+    draft.atlas.regions = std::move(regions.first);
+    draft.selected = regions.second;
     ImGui::Text("%u x %u pixels; one-pixel extruded gutters required", draft.atlas.width,
                 draft.atlas.height);
     ImGui::InputInt2("Cell width / height", draft.cell.data());
@@ -193,10 +197,13 @@ void DrawTwoDAssetEditor(StateT &state, ProjectWorkspace *workspace,
       draft.selected = std::min(draft.selected, draft.atlas.regions.size() - 1);
       const auto label = "Region " + std::to_string(draft.atlas.regions[draft.selected].id);
       if (ImGui::BeginCombo("Selected slice", label.c_str())) {
-        for (std::size_t i = 0; i < draft.atlas.regions.size(); ++i)
+        for (std::size_t i = 0; i < draft.atlas.regions.size(); ++i) {
+          ImGui::PushID(int(i));
           if (ImGui::Selectable(("Region " + std::to_string(draft.atlas.regions[i].id)).c_str(),
                                 i == draft.selected))
             draft.selected = i;
+          ImGui::PopID();
+        }
         ImGui::EndCombo();
       }
       capture(7);
@@ -216,8 +223,21 @@ void DrawTwoDAssetEditor(StateT &state, ProjectWorkspace *workspace,
         changed = true;
       }
       capture(15);
-      if (changed)
-        std::ranges::sort(draft.atlas.regions, {}, &twod::Region::id);
+      if (changed && !draft.atlas.regions.empty()) {
+        const auto selected = std::min(draft.selected, draft.atlas.regions.size() - 1);
+        std::vector<std::pair<twod::Region, std::size_t>> ordered;
+        ordered.reserve(draft.atlas.regions.size());
+        for (std::size_t i = 0; i < draft.atlas.regions.size(); ++i)
+          ordered.emplace_back(draft.atlas.regions[i], i);
+        std::ranges::sort(ordered, [](const auto &a, const auto &b) {
+          return a.first.id == b.first.id ? a.second < b.second : a.first.id < b.first.id;
+        });
+        for (std::size_t i = 0; i < ordered.size(); ++i) {
+          draft.atlas.regions[i] = ordered[i].first;
+          if (ordered[i].second == selected)
+            draft.selected = i;
+        }
+      }
     }
   } else {
     undo(draft.clip, draft.clipUndo, draft.clipRedo);
@@ -327,7 +347,7 @@ void DrawTwoDAssetEditor(StateT &state, ProjectWorkspace *workspace,
   }
   if (changed && !history) {
     if (atlas) {
-      draft.atlasUndo.push_back(oldRegions);
+      draft.atlasUndo.emplace_back(oldRegions, oldSelected);
       draft.atlasRedo.clear();
       if (draft.atlasUndo.size() > 32)
         draft.atlasUndo.erase(draft.atlasUndo.begin());
