@@ -2669,3 +2669,15 @@ Portable PowerShell and full Linux **554/554**, zero failures/skips, **4599.24 s
 The deterministic sharing assertion is Windows-only; exact-head Windows CI remains required before delivery.
 See [the execution record](../../Tools/Build/evidence/EditorWorkflow/CI-ShowcaseExportWriter-Linux-2026-11-15.md).
 This test correction leaves production behavior, milestone totals and physical acceptance unchanged.
+
+## ✅ Windows Build failure evidence retention (2026-11-15)
+
+Supporting `nexora-gu7.38.11.1` retains owning draft/display/save observations, owned-window native
+input/focus/geometry and bounded saved bytes before close or failure termination, including startup
+failure. Desktop CI uploads the existing fixture evidence directory. Seven portable cases, full Linux
+**555/555**, zero failures/skips, **4578.40 s**, Shipping, test-free graphical linkage and two actual
+GNU15 commands pass. Immutable-head Windows normal/abort receipts remain required before delivery.
+See [the execution record](../../Tools/Build/evidence/EditorWorkflow/CI-WindowsBuildEvidence-Linux-2026-11-15.md).
+These diagnostics do not establish or repair parent `nexora-gu7.38.11`'s intermittent save cause.
+Original native assertions/deadlines, workflow **5/9**, graphical Editor **0/8**, TwoD **9/11**,
+the separate Stop investigation and physical/clean-host acceptance stay unchanged/open.

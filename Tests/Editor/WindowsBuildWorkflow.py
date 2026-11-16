@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from WindowsBuildEvidence import capture as capture_build_evidence
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "EditorImGui"))
 from PackagedPlayProject import write_fixture
@@ -32,11 +33,13 @@ def hashes(directory, exclude_editor=False):
 
 class Native:
     def __init__(self):
+        self.events = []
         self.user = C.WinDLL("user32", use_last_error=True)
         self.kernel = C.WinDLL("kernel32", use_last_error=True)
         self.user.SetThreadDpiAwarenessContext.argtypes = [W.HANDLE]
         self.user.SetThreadDpiAwarenessContext(C.c_void_p(-4))
         self.user.GetWindowThreadProcessId.argtypes = [W.HWND, C.POINTER(W.DWORD)]
+        self.user.GetWindowThreadProcessId.restype = W.DWORD
         self.user.GetWindowTextW.argtypes = [W.HWND, W.LPWSTR, C.c_int]
         self.user.GetClassNameW.argtypes = [W.HWND, W.LPWSTR, C.c_int]
         self.user.IsWindowVisible.argtypes = [W.HWND]
@@ -50,6 +53,8 @@ class Native:
         self.user.ClientToScreen.argtypes = [W.HWND, C.POINTER(W.POINT)]
         self.user.SetForegroundWindow.argtypes = [W.HWND]
         self.user.GetForegroundWindow.restype = W.HWND
+        self.user.GetDpiForWindow.argtypes = [W.HWND]
+        self.user.GetDpiForWindow.restype = W.UINT
         self.user.SetFocus.argtypes = [W.HWND]
         self.user.GetThreadDesktop.argtypes = [W.DWORD]
         self.user.GetThreadDesktop.restype = W.HANDLE
@@ -59,6 +64,12 @@ class Native:
                                                        C.POINTER(W.DWORD)]
         self.user.CloseDesktop.argtypes = [W.HANDLE]
         self.kernel.GetCurrentThreadId.restype = W.DWORD
+        class GuiInfo(C.Structure):
+            _fields_ = [("size", W.DWORD), ("flags", W.DWORD), ("active", W.HWND),
+                        ("focus", W.HWND), ("capture", W.HWND), ("menu", W.HWND),
+                        ("move", W.HWND), ("caret", W.HWND), ("caret_rect", W.RECT)]
+        self.GuiInfo = GuiInfo
+        self.user.GetGUIThreadInfo.argtypes = [W.DWORD, C.POINTER(GuiInfo)]
         self.kernel.CreateToolhelp32Snapshot.argtypes = [W.DWORD, W.DWORD]
         self.kernel.CreateToolhelp32Snapshot.restype = W.HANDLE
         self.kernel.CloseHandle.argtypes = [W.HANDLE]
@@ -135,24 +146,58 @@ class Native:
         result = C.c_size_t()
         return bool(self.user.SendMessageTimeoutW(hwnd, 0, 0, 0, 2, 500, C.byref(result)))
 
+    def record(self, kind, **values):
+        self.events.append({"sequence": len(self.events), "time": time.monotonic(),
+                            "kind": kind, **values})
+
+    def observe(self, hwnd):
+        foreground = self.user.GetForegroundWindow()
+        owner = W.DWORD()
+        if foreground:
+            self.user.GetWindowThreadProcessId(foreground, C.byref(owner))
+        result = {"hwnd": int(hwnd or 0), "foreground": int(foreground or 0),
+                  "foreground_pid": owner.value}
+        if hwnd:
+            rect, origin = W.RECT(), W.POINT(0, 0)
+            if self.user.GetClientRect(hwnd, C.byref(rect)):
+                result["client_rect"] = [rect.left, rect.top, rect.right, rect.bottom]
+            if self.user.ClientToScreen(hwnd, C.byref(origin)):
+                result["screen_origin"] = [origin.x, origin.y]
+            result["dpi"] = int(self.user.GetDpiForWindow(hwnd))
+            thread = self.user.GetWindowThreadProcessId(hwnd, C.byref(owner))
+            gui = self.GuiInfo()
+            gui.size = C.sizeof(gui)
+            if thread and self.user.GetGUIThreadInfo(thread, C.byref(gui)):
+                result["gui_thread"] = {key: int(getattr(gui, key) or 0)
+                                        for key in ("flags", "active", "focus", "capture", "menu", "caret")}
+        return result
+
     def post(self, hwnd, message, wparam=0, lparam=0):
-        require(self.user.PostMessageW(hwnd, message, wparam, lparam), "Native input post failed")
+        posted = bool(self.user.PostMessageW(hwnd, message, wparam, lparam))
+        error = C.get_last_error() if not posted else 0
+        self.record("post", hwnd=int(hwnd or 0), message=message, wparam=wparam, lparam=lparam,
+                    posted=posted, error=error)
+        require(posted, "Native input post failed")
 
     def click(self, hwnd, x, y):
         rect = W.RECT()
         self.user.GetClientRect(hwnd, C.byref(rect))
         require(0 <= x < rect.right and 0 <= y < rect.bottom, "Control outside Editor client")
-        self.user.SetForegroundWindow(hwnd)
+        self.record("click_begin", x=x, y=y, window=self.observe(hwnd))
+        foreground = bool(self.user.SetForegroundWindow(hwnd))
+        self.record("set_foreground", hwnd=int(hwnd), accepted=foreground)
         self.post(hwnd, 0x200, 0, (y << 16) | x)
         self.post(hwnd, 0x201, 1, (y << 16) | x)
         time.sleep(.08)
         self.post(hwnd, 0x202, 0, (y << 16) | x)
         self.last_click = (hwnd, x, y)
+        self.record("click_end", x=x, y=y, window=self.observe(hwnd))
 
     def replace_text(self, hwnd, text):
         # Triple-click selects the single InputText line through the real widget. Send all
         # characters to that owned HWND; do not inject global keyboard input into another app.
         require(self.last_click[0] == hwnd, "No native field click to replace")
+        self.record("replace_text_begin", text=text, window=self.observe(hwnd))
         time.sleep(.35)
         for _ in range(3):
             self.click(*self.last_click)
@@ -162,6 +207,7 @@ class Native:
         for index in range(0, len(encoded), 2):
             self.post(hwnd, 0x102, int.from_bytes(encoded[index:index + 2], "little"))
         time.sleep(.2)
+        self.record("replace_text_end", text=text, window=self.observe(hwnd))
 
 
 class Editor:
@@ -175,7 +221,14 @@ class Editor:
             env=environment, stdout=self.stdout, stderr=self.stderr, creationflags=0)
         self.hwnd = None
         self.inputs = []
-        self.wait(lambda: self.main_window(), 45, "Editor main window missing")
+        try:
+            self.wait(lambda: self.main_window(), 45, "Editor main window missing")
+        except BaseException:
+            try:
+                self.abort()
+            except Exception as error:
+                print("Startup diagnostic/drain error:", error, file=sys.stderr)
+            raise
 
     def log(self):
         return self.log_path.read_text(encoding="utf-8", errors="replace")
@@ -210,8 +263,9 @@ class Editor:
         time.sleep(.15)
         require(self.state().get(key) == point, "Build control geometry was not stable")
         x, y = [round(float(v)) for v in point.split(",")]
+        self.inputs.append({"control": control, "point": [x, y], "time": time.monotonic(),
+                            "ui": self.state(), "window": self.native.observe(self.hwnd)})
         self.native.click(self.hwnd, x, y)
-        self.inputs.append({"control": control, "point": [x, y], "time": time.monotonic()})
         time.sleep(.2)
 
     def open_settings(self):
@@ -234,20 +288,38 @@ class Editor:
         return result
 
     def close(self):
+        self.capture("before-close")
         if self.process.poll() is None:
             self.native.post(self.hwnd, 0x10)
             require(self.process.wait(timeout=15) == 0, "Editor close failed")
         self.stdout.close()
         self.stderr.close()
-        (self.evidence / (self.log_path.stem + ".inputs.json")).write_text(
-            json.dumps(self.inputs, indent=2), encoding="utf-8")
+
+    def capture(self, phase):
+        try:
+            window = self.native.observe(self.hwnd)
+        except Exception as error:
+            window = {"observation_error": type(error).__name__, "detail": str(error)}
+        result = capture_build_evidence(self.evidence, self.log_path.stem, self.project,
+                                        self.log_path, self.inputs, self.native.events, window,
+                                        phase, self.process.pid)
+        self._captured = True
+        return result
 
     def abort(self):
-        if self.process.poll() is None:
-            self.process.terminate()
-            self.process.wait(timeout=15)
-        self.stdout.close()
-        self.stderr.close()
+        try:
+            if self.process.poll() is None or not getattr(self, "_captured", False):
+                self.capture("before-abort")
+        except Exception as error:
+            print("Failure diagnostic capture error:", error, file=sys.stderr)
+        finally:
+            try:
+                if self.process.poll() is None:
+                    self.process.terminate()
+                    self.process.wait(timeout=15)
+            finally:
+                self.stdout.close()
+                self.stderr.close()
 
 
 def run(args):
@@ -286,6 +358,19 @@ def run(args):
         editor.wait(saved, 10, "GUI did not persist script mode and Unicode paths")
         saved_settings = (project / "project.build.json").read_bytes()
         editor.close()
+        saved_diagnostics = json.loads((evidence / "save-settings.stderr.diagnostics.json").read_text(encoding="utf-8"))
+        expected_draft = {"mode": 1, "script_manifest": manifest, "output": "Build/預覽 Game"}
+        observed = saved_diagnostics["observations"]
+        require(any(row["value"]["draft"] == expected_draft and row["value"]["fields"] == expected_draft
+                    for row in observed["drafts"]) and
+                any(row.get("save") and row["settings"] == expected_draft for row in observed["requests"]) and
+                any(row.get("save") and row.get("applied") and row["settings"] == expected_draft
+                    for row in observed["results"]), "Owning draft/save observations missing")
+        saved_snapshot = saved_diagnostics["saved_settings"]
+        require(saved_snapshot["status"] == "copied" and not saved_snapshot["truncated"] and
+                (evidence / saved_snapshot["evidence"]).read_bytes() == saved_settings and
+                saved_diagnostics["native_events"] and saved_diagnostics["inputs"],
+                "Saved configuration or native input diagnostics missing")
         editor = None
         baseline = hashes(project, exclude_editor=True)
         editor = Editor(native, editor_path, project, evidence, "build-workflow", environment)
@@ -372,6 +457,23 @@ def run(args):
         require(authored_after == baseline, "Build changed the authored source tree")
         editor.close()
         editor = None
+        # Exercise the actual failure cleanup path on an idle, fixture-owned Editor.
+        # Capture must precede termination and deletion of its private project.
+        editor = Editor(native, editor_path, project, evidence, "abort-evidence", environment)
+        editor.open_settings()
+        editor.abort()
+        aborted_diagnostics = json.loads((evidence / "abort-evidence.stderr.diagnostics.json").read_text(encoding="utf-8"))
+        require(aborted_diagnostics["phase"] == "before-abort" and
+                aborted_diagnostics["observations"]["drafts"] and
+                aborted_diagnostics["inputs"] and aborted_diagnostics["native_events"] and
+                aborted_diagnostics["saved_settings"]["status"] == "copied" and
+                (evidence / aborted_diagnostics["saved_settings"]["evidence"]).read_bytes() == saved_settings,
+                "Native abort did not retain pre-termination fixture diagnostics")
+        require(not native.descendants(editor.process.pid), "Diagnostic abort retained child processes")
+        require({name: digest for name, digest in hashes(project, exclude_editor=True).items()
+                 if Path(name).parts[0] != "Build"} == baseline,
+                "Diagnostic abort changed the authored source tree")
+        editor = None
         receipt = {"status": "PASS", "scope": "Windows native GUI, current host; not clean-host acceptance",
                    "desktop": desktop,
                    "saved_configuration": json.loads(saved_settings), "direct_game": game_window,
@@ -381,6 +483,12 @@ def run(args):
                    "build_receipt": str(records / "Publication.receipt"),
                    "children_at_cancel": cancelling, "rollback_hashes": stable,
                    "authored_sources_unchanged": baseline, "editor_sha256": hashlib.sha256(editor_path.read_bytes()).hexdigest()}
+        receipt["diagnostics"] = {"normal": "save-settings.stderr.diagnostics.json",
+                                  "abort": "abort-evidence.stderr.diagnostics.json",
+                                  "saved_sha256": saved_snapshot["captured_sha256"],
+                                  "abort_before_termination": True,
+                                  "input_records": saved_diagnostics["input_count"],
+                                  "native_event_records": saved_diagnostics["native_event_count"]}
         (evidence / "receipt.json").write_text(json.dumps(receipt, ensure_ascii=False, indent=2), encoding="utf-8")
         print(json.dumps(receipt, ensure_ascii=True))
         passed = True

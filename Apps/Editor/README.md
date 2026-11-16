@@ -133,6 +133,14 @@ Generated private tool headers are configuration-specific for multi-configuratio
 Their generation is deferred until the root configure finishes, so the first configure observes
 the canonical Zig discovery performed after the Editor target; no prior cache entry is required.
 
+With `NEXORA_PROJECT_GAME_BUILD_EVIDENCE`, the application copies delivered Build Settings requests
+and save/reload results as escaped UTF-8 JSON, including frame, raw build settings, admission and
+error. Test-enabled graphical builds also emit changed owning draft/display-buffer observations
+and frame-tagged control geometry after drawing. These observations invoke no input or settings
+publication. The private Windows fixture captures them, its owned-window input/focus/DPI timeline
+and bounded actual saved bytes before close or failure termination. See the
+[diagnostic contract](../../Tools/Editor/README.md#windows-build-workflow-diagnostics).
+
 Projects with `project.build.json` Play the saved enabled scenes from the configured startup
 scene in an isolated game World. A dirty current Scene offers Save, Use Saved Scenes or Cancel.
 The module retains the common Scene V1 service through Stop/Destroy; queued changes prepare

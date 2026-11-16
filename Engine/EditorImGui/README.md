@@ -212,6 +212,10 @@ settings/package formats stay unchanged. This selects packaged assets, not gamep
 Private test access copies visible control centers/UUIDs and draft roots; it grants no filesystem
 or authoring authority. Actual native input selects roots, saves/reloads/reopens the project and
 builds both SceneOnly and canonical SDK ScriptProject games before source deletion/relocation.
+`ProjectBuildSettingsSnapshot` additionally returns owning copies of the raw build draft, displayed
+mode/manifest/output buffers, open/ready state and status on the authoring thread. It neither
+consumes requests nor validates, normalizes or saves those strings. The application emits changed
+snapshots only in its opt-in test-build evidence stream; no public or stable ABI is added.
 See the [scoped execution record](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-BuildClipPicker-Linux-2026-11-14.md).
 Read-only projects expose inspection/Reload but disable writes. Recovery, Play and export block
 mutation. Project changes close the settings window and discard pending requests; while open,

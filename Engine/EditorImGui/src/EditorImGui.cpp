@@ -9076,6 +9076,16 @@ std::optional<SavedGameDecision> EditorImGuiHost::TakeSavedGameDecision() {
   return std::exchange(state_->saved_game_decision, std::nullopt);
 }
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+ProjectBuildSettingsTestState
+EditorImGuiTestAccess::ProjectBuildSettingsSnapshot(const EditorImGuiHost &host) {
+  const auto &state = *host.state_;
+  return {state.build_settings_open,
+          state.build_settings_ready,
+          state.build_settings.build,
+          {state.game_build_script ? GameBuildMode::ScriptProject : GameBuildMode::SceneOnly,
+           state.game_build_manifest, state.game_build_output},
+          state.build_settings_status};
+}
 bool EditorImGuiTestAccess::ProjectGameBuildBusy(const EditorImGuiHost &host) {
   return host.state_->game_build_busy;
 }

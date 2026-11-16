@@ -2547,3 +2547,15 @@ clean-host 驗收維持未完成／不變；獨立持有的 standalone reload �
 20 秒測試限制維持不變。可攜 PowerShell 與完整 Linux **554/554**、零失敗／跳過、
 **4599.24 秒**通過。固定分享鎖案例僅在 Windows 執行；交付前仍須通過最終提交的 Windows CI。詳見[執行紀錄](../../Tools/Build/evidence/EditorWorkflow/CI-ShowcaseExportWriter-Linux-2026-11-15.md)。
 此測試修正維持正式產品行為、里程碑總數與實體主機驗收狀態不變。
+
+## ✅ Windows Build 失敗證據保存（2026-11-15）
+
+支援任務 `nexora-gu7.38.11.1` 在正常關閉或失敗終止前，保存具擁有權的草稿／顯示欄位／
+儲存結果、所屬視窗的原生輸入／焦點／幾何與有界設定檔位元組，也涵蓋啟動失敗。
+桌面 CI 上傳既有 fixture 證據目錄。七項可攜案例、完整 Linux **555/555**、零失敗／跳過、
+**4578.40 秒**、Shipping、關閉測試的圖形版連結與兩個實際 GNU15 編譯指令通過。
+交付前仍須取得最終不可變提交的 Windows 正常／abort 紀錄。
+詳見[執行紀錄](../../Tools/Build/evidence/EditorWorkflow/CI-WindowsBuildEvidence-Linux-2026-11-15.md)。
+此診斷未證實或修復父任務 `nexora-gu7.38.11` 的間歇儲存根因。原生斷言／時限、Workflow
+**5/9**、graphical Editor **0/8**、TwoD **9/11**、獨立 Stop 調查及實機／clean-host 驗收
+維持不變／未完成。

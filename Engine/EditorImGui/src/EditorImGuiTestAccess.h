@@ -11,6 +11,12 @@
 
 namespace nexora::editor::imgui {
 
+struct ProjectBuildSettingsTestState final {
+  bool open{}, ready{};
+  GameBuildSettings draft, fields;
+  std::string status;
+};
+
 struct EditorFontTestState final {
   std::vector<std::uint32_t> profile, missing;
   std::vector<std::string> paths, families;
@@ -131,6 +137,9 @@ public:
   [[nodiscard]] static std::vector<std::pair<runtime::AssetUuid, std::array<float, 2>>>
   BuildAnimationAssetPositions(const EditorImGuiHost &, bool remove);
   [[nodiscard]] static std::vector<runtime::AssetUuid> BuildAnimationRoots(const EditorImGuiHost &);
+  // Owning diagnostic copies; no input, request or filesystem authority.
+  [[nodiscard]] static ProjectBuildSettingsTestState
+  ProjectBuildSettingsSnapshot(const EditorImGuiHost &);
   [[nodiscard]] static bool ProjectGameBuildBusy(const EditorImGuiHost &);
   [[nodiscard]] static bool ProjectGameRunBusy(const EditorImGuiHost &);
   [[nodiscard]] static std::optional<GameBuildStage> ProjectGameBuildStage(const EditorImGuiHost &);

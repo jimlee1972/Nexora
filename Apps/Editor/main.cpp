@@ -2671,6 +2671,16 @@ int RunGraphical(std::optional<ProjectState> project,
       }
 #endif
       if (auto request = std::move(build_request)) {
+        if (std::getenv("NEXORA_PROJECT_GAME_BUILD_EVIDENCE"))
+          std::cerr << "game build request {\"frame\":" << frames
+                    << ",\"action\":" << static_cast<unsigned>(request->action) << ",\"save\":"
+                    << (request->action == nexora::editor::imgui::ProjectBuildSettingsAction::Save
+                            ? "true"
+                            : "false")
+                    << ",\"settings\":"
+                    << nexora::editor::preview::BuildSettingsObservationJson(
+                           request->settings.build)
+                    << "}\n";
         const bool game_action =
             request->action == nexora::editor::imgui::ProjectBuildSettingsAction::BuildSceneOnly ||
             request->action == nexora::editor::imgui::ProjectBuildSettingsAction::BuildScript ||
@@ -2796,6 +2806,18 @@ int RunGraphical(std::optional<ProjectState> project,
             if (applied)
               draft = *build_settings->Settings();
           }
+          if (std::getenv("NEXORA_PROJECT_GAME_BUILD_EVIDENCE"))
+            std::cerr << "game build settings result {\"frame\":" << frames
+                      << ",\"action\":" << static_cast<unsigned>(request->action) << ",\"save\":"
+                      << (request->action == nexora::editor::imgui::ProjectBuildSettingsAction::Save
+                              ? "true"
+                              : "false")
+                      << ",\"current\":" << (current ? "true" : "false")
+                      << ",\"applied\":" << (applied ? "true" : "false")
+                      << ",\"error\":" << nexora::editor::preview::BuildJsonText(error)
+                      << ",\"settings\":"
+                      << nexora::editor::preview::BuildSettingsObservationJson(draft.build)
+                      << "}\n";
           ui.SetProjectBuildSettings(
               project->workspace, std::move(draft), build_settings && build_settings->Ready(),
               applied ? (request->action == nexora::editor::imgui::ProjectBuildSettingsAction::Save
@@ -4560,7 +4582,20 @@ int RunGraphical(std::optional<ProjectState> project,
                       << position[0] * dpi << ',' << position[1] * dpi;
       if (observation.str() != previous_build_observation) {
         previous_build_observation = observation.str();
-        std::cerr << previous_build_observation << '\n';
+        std::cerr << previous_build_observation << " frame=" << frames << '\n';
+      }
+      const auto snapshot = Access::ProjectBuildSettingsSnapshot(ui);
+      const auto draft_observation =
+          std::string("{\"open\":") + (snapshot.open ? "true" : "false") +
+          ",\"ready\":" + (snapshot.ready ? "true" : "false") +
+          ",\"draft\":" + nexora::editor::preview::BuildSettingsObservationJson(snapshot.draft) +
+          ",\"fields\":" + nexora::editor::preview::BuildSettingsObservationJson(snapshot.fields) +
+          ",\"status\":" + nexora::editor::preview::BuildJsonText(snapshot.status) + '}';
+      static std::string previous_draft_observation;
+      if (draft_observation != previous_draft_observation) {
+        previous_draft_observation = draft_observation;
+        std::cerr << "game build draft {\"frame\":" << frames << ",\"value\":" << draft_observation
+                  << "}\n";
       }
     }
     if (std::getenv("NEXORA_PROJECT_ASSET_WORKFLOW_EVIDENCE")) {
