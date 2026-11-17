@@ -656,8 +656,8 @@ privacy, not an extension signature verifier or a telemetry transport implementa
   application projects both onto the selected node's horizontal plane for X/Z movement, or
   along the picked world Y handle. Ctrl/Shift-click on an entity toggles selection. It draws selected proxies and their
   descendants at the prospective position and commits one undoable world move on release.
-  Selected proxies show colored X/Y/Z handles at the first selected node. The Local axes
-  checkbox rotates them with that node's world rotation; otherwise they follow world axes. Their
+  Selected proxies show colored X/Y/Z handles at the first selected node. The Local axes option in Scene view settings
+  rotates them with that node's world rotation; otherwise they follow world axes. Their
   hit bounds enclose the rendered boxes, and a click captures the same axis for the whole drag. The application reserves
   six instance slots for Move's three axes and three plane handles in the native draw. The Rotate tool (E over the canvas;
   W returns to Move) shows X/Y/Z ring handles and commits a selected-root turn on release as one
@@ -674,8 +674,15 @@ privacy, not an extension signature verifier or a telemetry transport implementa
   The host exposes the overview center and zoom as a validated, backend-neutral camera state.
   The application loads and saves it per scene through Editor Core `CameraPersistence`; the UI
   never chooses a project file path.
-  The Scene panel displays `SceneDocument::Dirty` beside its save controls. The indicator clears
-  only when live serializable content matches the last successful save or reload.
+  The Scene panel uses compact wrapping document/view toolbars. The scene filename carries a
+  `*` for `SceneDocument::Dirty`, with a highlighted Save icon retaining the indicator when the
+  filename is truncated. These clear only when live serializable content matches the last
+  successful save or reload. The Save tooltip separates current state from last-action feedback. Routine
+  Save/Undo/Redo feedback is available in the Save tooltip; save failures remain visible and wrapped.
+  A lock icon explains read-only access. Scene view settings groups Local/Global, Pivot/Center and
+  movement snapping, while navigation help keeps shortcut guidance out of the canvas. Settings and
+  view-mode changes are blocked during active gestures or external interaction blocks; read-only
+  projects retain navigation. Tooltips preserve action names and shortcuts.
 - `ProjectContentSession` is also borrowed for each `DrawProductShell` call. The Content panel reads
   virtualized ranges from its UUID-keyed model, emits generation-tagged POD drag payloads, and routes
   rename/move/delete/undo/reimport back through the session. Reimport submits to the borrowed
@@ -2230,3 +2237,12 @@ The headless RHI overload rejects either typed image instead of treating it as a
 The host owns no source or GPU texture lifecycle. Existing Scene/Game overlap suppression remains;
 this supports two disjoint canvases and floating auxiliary-window occlusion, not arbitrary native
 Scene/Game overlap. See [authoring source ownership](../../Apps/Editor/README.md#native-scene-sprite-sources).
+
+## Editor UI presentation contract
+
+The [Editor interface standard](../../Apps/Editor/README.md#editor-interface-standard) and root
+[agent instructions](../../AGENTS.md#editor-interface-conventions) apply to this layer. Prefer
+compact icon toolbars, named shortcut tooltips and contextual settings/help over permanent
+viewport instructions. Retain compact state indicators and visible actionable errors/warnings;
+route diagnostics to dedicated views. Preserve command/permission/input ownership and check
+actual rendered narrow docks plus representative 1x/2x interaction when changing viewport UI.

@@ -1,5 +1,9 @@
 # Nexora Graphical Editor Roadmap
 
+### ✅ Compact Scene viewport controls
+
+Scene document/view actions now use wrapping icon toolbars. Axes/pivot/snap settings and navigation help open on demand; routine status leaves the canvas clear, while dirty/read-only indicators and save failures remain available. Actual 1x/2x settings/view interactions and narrow-panel tool bounds pass with existing navigation/history guards. See the [scoped Linux evidence](../../Tools/Build/evidence/EditorWorkflow/Scene-Toolbar-Linux.md). The shared [Editor interface standard](../../Apps/Editor/README.md#editor-interface-standard) and [AGENTS.md conventions](../../AGENTS.md#editor-interface-conventions) preserve this approach for future Editor work. This supporting UI change does not change the 5/9 workflow or 0/8 Editor milestone counts.
+
 ### ✅ Saved dock selection and test-free graphical builds (2026-11-12)
 
 When restoring a layout, shell panels no longer take focus merely by appearing, preserving Hierarchy/

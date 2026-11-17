@@ -42,6 +42,24 @@ macOS, Android, or iOS validation ran in the Linux cloud environment.
 - Format only touched C++ files with `.clang-format`; do not reformat unrelated files.
 - Do not commit `CMakeUserPresets.json` or generated build output.
 
+## Editor interface conventions
+
+- Follow Unity Editor layout and interaction conventions for equivalent supported Editor features.
+- Keep Scene/Game viewports focused on content. Use compact icon toolbars for common actions;
+  tooltips must name each action and show its shortcut when available. Put detailed guidance
+  and secondary settings in contextual menus or popups.
+- Present active tools, unsaved changes and read-only access with compact, discoverable indicators.
+  Keep actionable errors and warnings visible; place routine confirmations in contextual feedback
+  rather than permanent viewport text rows.
+- Keep debug counters, runtime/build internals and implementation notes in dedicated diagnostics
+  views or the Console. Normal editing surfaces should describe user tasks and current state.
+- Preserve command availability, permissions, focus/modal ownership, gesture cancellation and
+  keyboard shortcuts when simplifying a layout.
+- Make controls usable in narrow docks and at different DPI scales. Wrap or provide an overflow
+  entry for toolbars instead of clipping actions. Check representative narrow layouts and 1x/2x
+  interaction when changing viewport controls, and inspect the actual rendered Editor.
+- Update the Editor controls documentation when moving actions, settings or status feedback.
+
 ## Beads Issue Tracker
 
 Use Beads (`bd`) for durable task tracking in this repository. Follow the project skill at

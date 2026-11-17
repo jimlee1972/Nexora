@@ -2192,3 +2192,33 @@ External edits or changed Content invalidate the baseline; reopen the editor to 
 one. Saved/rejected/uncertain feedback distinguishes publication outcomes. Read-only reopen reads
 the saved assets without granting editing authority. Clip data changes require restarting Play
 under the existing frozen Clip policy.
+
+## Editor interface standard
+
+Use Unity Editor conventions as the reference for equivalent supported features. Keep normal
+editing surfaces focused on content and user tasks, using compact icon toolbars with action names
+and shortcuts in tooltips. Detailed instructions and secondary settings open through contextual
+menus or popups. Active tools, unsaved changes and read-only access stay discoverable through
+compact indicators. Actionable errors and warnings remain visible; routine confirmations use
+contextual feedback. Debug counters and runtime/build internals belong in diagnostics or Console.
+
+Simplifying the layout preserves existing command availability, permission checks, focus/modal
+ownership, cancellation and keyboard shortcuts. Toolbars wrap or offer overflow access in narrow
+docks. Layout changes are checked in the actual Editor, including representative narrow panels
+and 1x/2x interaction. Update controls documentation as actions and settings move. This standard
+applies to Editor panels and future UI work; each feature retains its documented supported scope.
+
+## Compact Scene controls
+
+Scene reserves its canvas for editing: document actions and the scene name share a compact row;
+view, framing and transform actions use an icon toolbar that wraps in narrow panels. Hover icons
+for action names and shortcuts. The gear opens Local/Global axes, Pivot/Center and movement snap
+settings; the information icon opens navigation/gesture help. The cube toggles the existing
+native 3D view and top-down X/Z overview. This does not add a new XY 2D camera.
+
+An asterisk beside the scene name and a highlighted Save icon indicate unsaved changes, including
+when a narrow panel truncates the filename. The Save tooltip shows current state first and labels
+previous operation feedback separately. Routine
+save/history feedback is shown in the Save tooltip; errors stay visible above the canvas. The
+lock icon explains read-only access without a permanent text banner. Existing shortcuts, gesture
+cancellation and file/edit permission checks continue to apply.

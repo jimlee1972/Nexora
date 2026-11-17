@@ -361,6 +361,8 @@ public:
   [[nodiscard]] static std::optional<std::array<float, 2>>
   NativeSceneToolPosition(const EditorImGuiHost &host, NativeSceneTool tool) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
+  SceneToolbarPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
   SceneFramePosition(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   SceneFrameAllPosition(const EditorImGuiHost &host) noexcept;

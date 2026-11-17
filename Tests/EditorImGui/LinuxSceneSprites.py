@@ -149,8 +149,14 @@ def main():
             return (tuple(map(int, state['viewport'].split(','))),
                     tuple(map(float, state['camera'].split(','))))
 
+        readback_reference_checked = False
+
         def pixels(viewport):
-            return native_pixels(display, window, viewport)
+            nonlocal readback_reference_checked
+            actual = native_pixels(display, window, viewport,
+                                   verify_bulk=not readback_reference_checked)
+            readback_reference_checked = True
+            return actual
 
         def sample(rgb, viewport, point):
             x, y = point[0] - viewport[0], point[1] - viewport[1]
@@ -242,9 +248,17 @@ def main():
         # Floating auxiliary windows use the same ImGui order as both sampled images.
         covered = root / 'covered'
         shutil.copytree(fixture, covered)
+        # Anchor the occluder to an independently projected opaque texel. Toolbar height
+        # changes the canvas projection, so a fixed old screen position may cover nothing.
+        occlusion_point = project((-1.75, 3.25, 0), camera, viewport)
+        occluder_x = max(viewport[0] + 8,
+                         min(occlusion_point[0] - 30, viewport[0] + viewport[2] - 258))
+        occluder_y = max(viewport[1] + 8,
+                         min(occlusion_point[1] - 75, viewport[1] + viewport[3] - 208))
         (covered / '.nexora/editor-layout.ini').write_text(layout.replace(
             '[Window][Inspector###nexora.inspector]\nPos=0,700\nSize=100,20\nCollapsed=1',
-            '[Window][Inspector###nexora.inspector]\nPos=240,400\nSize=250,200\nCollapsed=0'))
+            '[Window][Inspector###nexora.inspector]\n' +
+            f'Pos={occluder_x},{occluder_y}\nSize=250,200\nCollapsed=0'))
         covered_before = hashes(covered)
         state = launch(covered, 'occlusion')
         time.sleep(.5)
@@ -252,10 +266,13 @@ def main():
         viewport, camera = geometry(state)
         key('ctrl+3')
         probe = project((-1.75, 3.25, 0), camera, viewport)
+        require(occluder_x + 8 < probe[0] < occluder_x + 242 and
+                occluder_y + 45 < probe[1] < occluder_y + 192,
+                'occlusion probe is outside the floating Inspector body')
         wait(lambda _: sample(pixels(viewport), viewport, probe)[0] < 150,
              'floating Inspector did not occlude Scene source')
         screenshot(display, window, evidence / 'occluded.png')
-        click((248, 410))
+        click((occluder_x + 8, occluder_y + 10))
         wait(lambda _: sample(pixels(viewport), viewport, probe)[0] > 150,
              'collapsed Inspector did not reveal source')
         source_samples(observe())
