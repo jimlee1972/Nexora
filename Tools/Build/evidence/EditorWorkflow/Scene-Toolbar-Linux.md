@@ -61,6 +61,23 @@ configure/build passed. The final unfiltered complete invocation finished in **6
 Failures were animation Build picker (compile wait), Hierarchy lifecycle (300 s timeout), Scene
 merge publication (pointer phase), native center (ring visibility), native meshes (45 s timeout),
 packaged source services (key release timeout) and canonical reload (generation-two admission).
-Original logs are retained. A serial one-worker isolated recovery is pending; these failures are
-not labeled resolved, and merge remains gated on local validation plus exact-head CI/review.
-Root README stays unchanged.
+Original logs are retained. A serial one-worker isolated recovery subsequently passed **7/7**
+in **2203.03 s**, with the same six C++/Python source hashes and original assertions/timeouts:
+
+| Case | Isolated result |
+| --- | --- |
+| Animation Build picker | Passed, 96.12 s |
+| Hierarchy lifecycle | Passed, 216.32 s |
+| Scene merge publication | Passed, 29.93 s |
+| Native center | Passed, 33.53 s |
+| Native meshes | Passed, 34.11 s |
+| Packaged source services | Passed, 65.16 s |
+| Canonical native reload | Passed, 1727.79 s |
+
+The final reload receipt confirms 33 actual native replacements, seven rejected candidates,
+obsolete-result discard, cancelled compilation on Stop, preserved pool/entity state and unchanged
+authoring files. This resolves the failed cases through explicit isolated recovery; the original
+unfiltered invocation remains recorded as 551/558. No production cause is established for those
+intermittent failures. Merge remains gated on all applicable current-head CI and review results.
+Documentation unit tests pass 16/16; all 659 tracked Markdown documents pass link/bilingual checks,
+and all three touched C++ files pass formatting. Root README stays unchanged.
