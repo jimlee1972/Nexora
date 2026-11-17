@@ -1,4 +1,4 @@
-name: CI
+name: Windows 2D SDK candidate
 on:
   workflow_dispatch:
 permissions:
