@@ -1,8 +1,8 @@
 name: Windows 2D SDK candidate
 on:
+  workflow_dispatch:
   push:
-    branches: [main, 'feat/prebuilt-windows-sdk', 'codex/authored-2d-scene-loading', 'codex/windows-gamepad-device-notifications']
-  pull_request:
+    branches: [main]
 permissions:
   contents: read
 jobs:

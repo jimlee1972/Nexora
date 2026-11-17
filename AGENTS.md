@@ -144,3 +144,7 @@ Do not require the user to repeat these instructions.
 
 Only create or merge PRs for tasks that actually change
 repository files. Do not merge if validation fails.
+
+## CI trigger policy (2026-11-17)
+
+- Per user instruction, PR creation and updates must not run CI. Routine branch builds run on main only; preserve release tag and release recovery gates and manual execution. This supersedes earlier PR CI timing guidance. Keep local validation relevant to the change, and never bypass branch protection.

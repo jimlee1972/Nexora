@@ -2,7 +2,7 @@ name: Windows Editor package
 on:
   workflow_dispatch:
   push:
-    branches: [main, 'build/editor-*']
+    branches: [main]
     paths:
       - '.github/workflows/editor-windows-package.yml'
       - 'Tools/Editor/**'
