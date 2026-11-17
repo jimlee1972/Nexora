@@ -2,10 +2,8 @@ name: Build
 on:
   workflow_dispatch:
   push:
-    branches: [main, 'release/windows-2d-sdk-v*']
     tags: ['*']
-
-# Retain the existing concurrency grouping for manual and release runs.
+    branches: ['release/windows-2d-sdk-v*']
 concurrency:
   group: build-${{ startsWith(github.head_ref || github.ref_name, 'codex/ed-m0-') && format('{0}-{1}', github.event.pull_request.head.repo.full_name || github.repository, github.head_ref || github.ref_name) || github.run_id }}
   cancel-in-progress: true

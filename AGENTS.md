@@ -148,3 +148,8 @@ repository files. Do not merge if validation fails.
 ## CI trigger policy (2026-11-17)
 
 - Per user instruction, PR creation and updates must not run CI. Routine branch builds run on main only; preserve release tag and release recovery gates and manual execution. This supersedes earlier PR CI timing guidance. Keep local validation relevant to the change, and never bypass branch protection.
+
+
+## Manual CI policy (2026-11-17 update)
+
+- The user requested manual-only routine CI across their repositories. PR creation/updates and ordinary branch pushes, including merges into main, must not trigger CI. Preserve workflow_dispatch and explicit release tag/recovery pipelines. This supersedes the earlier main-push CI policy.

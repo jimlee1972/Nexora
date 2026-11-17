@@ -1,25 +1,6 @@
 name: Windows Editor package
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/editor-windows-package.yml'
-      - 'Tools/Editor/**'
-      - 'Tools/SDK/**'
-      - 'Tools/Zig/**'
-      - 'Bindings/Zig/**'
-      - 'Tools/Brand/**'
-      - 'Assets/Brand/**'
-      - 'Apps/Editor/**'
-      - 'Apps/ProjectPlayer/**'
-      - 'Engine/**'
-      - 'Tests/Editor/**'
-      - 'Tests/EditorImGui/**'
-      - 'Config/Modules/**'
-      - 'CMake/**'
-      - 'CMakeLists.txt'
-      - 'CMakePresets.json'
 permissions:
   contents: read
 jobs:

@@ -34,7 +34,7 @@ jobs:
           [[ "$source" =~ ^[0-9a-f]{40}$ ]]
           echo "SDK_SOURCE=$source" >> "$GITHUB_ENV"
           echo "SDK_TAG=$release_tag" >> "$GITHUB_ENV"
-          candidate=$(gh api "repos/$GH_REPO/actions/workflows/windows-2d-sdk.yml/runs?head_sha=$source&status=success&event=push" --jq '.workflow_runs[0].id')
+          candidate=$(gh api "repos/$GH_REPO/actions/workflows/windows-2d-sdk.yml/runs?head_sha=$source&status=success&event=workflow_dispatch" --jq '.workflow_runs[0].id')
           full=$(gh api "repos/$GH_REPO/actions/workflows/build.yml/runs?head_sha=$source&status=success&event=push" --jq '.workflow_runs[0].id')
           test -n "$candidate" && test "$candidate" != null
           test -n "$full" && test "$full" != null
