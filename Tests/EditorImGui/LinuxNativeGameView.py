@@ -223,6 +223,57 @@ def main():
             colors = Counter(zip(pixels[::3], pixels[1::3], pixels[2::3])).most_common(12)
             raise RuntimeError(f'Play camera did not rasterize expected native geometry pixels: '
                                f'{colors}; {captured!r}')
+        if not args.module and not args.materials:
+            # The legacy native Game image must respect actual popup/window ordering.
+            # Select source-positive samples independently, then require the popup to cover
+            # their full RGB values and restore the identical source after dismissal.
+            before_popup = capture_pixels(display, window, viewport)
+            point = tuple(map(float, driver.observation()['game_diagnostics'].split(',')))
+            driver.click(point)
+            def popup_visible(value):
+                if 'game_diagnostics_min' not in value or 'game_diagnostics_max' not in value:
+                    return False
+                a = tuple(map(float, value['game_diagnostics_min'].split(',')))
+                b = tuple(map(float, value['game_diagnostics_max'].split(',')))
+                # First-use hidden size measurement initially reports a 16x16 window.
+                return b[0] - a[0] > 32 and b[1] - a[1] > 32
+            driver.wait(popup_visible, 'Game diagnostics popup did not become visible')
+            observation = driver.observation()
+            low = tuple(map(float, observation['game_diagnostics_min'].split(',')))
+            high = tuple(map(float, observation['game_diagnostics_max'].split(',')))
+            x, y, width, height = viewport
+            coordinates = [(px, py)
+                           for py in range(max(y, y + height // 2 - 110),
+                                           min(y + height, y + height // 2 + 90), 3)
+                           for px in range(max(x, x + width // 2 - 90),
+                                           min(x + width, x + width // 2 + 90), 3)]
+            covered = [i for i, (px, py) in enumerate(coordinates)
+                       if low[0] + 8 < px < high[0] - 8 and low[1] + 8 < py < high[1] - 8
+                       and before_popup[3*i] > 100 and before_popup[3*i+1] > 90
+                       and before_popup[3*i+2] > 75
+                       and before_popup[3*i] > before_popup[3*i+2] + 10]
+            if len(covered) < 20:
+                raise RuntimeError('Diagnostics popup did not cover enough independent source pixels')
+            deadline = time.monotonic() + 3
+            while time.monotonic() < deadline:
+                actual = capture_pixels(display, window, viewport)
+                if sum(actual[3*i:3*i+3] != before_popup[3*i:3*i+3] for i in covered) >= len(covered) * .8:
+                    break
+                driver.drain(.05)
+            else:
+                raise RuntimeError('Native Game image overwrote the diagnostics popup')
+            send('key', 'Escape')
+            # Leave toolbar hover before comparing restored/paused simulation pixels.
+            send('mousemove', '--window', window, 1250, 10)
+            deadline = time.monotonic() + 3
+            while time.monotonic() < deadline:
+                driver.drain(.05)
+                if capture_pixels(display, window, viewport) == before_popup:
+                    break
+            else:
+                raise RuntimeError('Closing diagnostics did not restore the identical native Game pixels')
+            print(f'Native Game diagnostics occlusion/restoration passed: {len(covered)} source samples',
+                  flush=True)
         if args.module and not args.input_routing:
             first = capture_pixels(display, window, viewport)
             time.sleep(0.6)

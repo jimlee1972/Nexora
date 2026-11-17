@@ -331,6 +331,8 @@ struct EditorImGuiHost::State final {
   GpuProfileObservation profile_gpu;
   std::array<char, 1024> gameplay_library{};
   std::string gameplay_status;
+  std::array<std::optional<std::array<float, 2>>, 7> game_toolbar_positions;
+  std::optional<std::array<float, 4>> game_diagnostics_rect;
   std::optional<PlayHostMemoryObservation> play_memory;
   std::uint64_t play_memory_scope_generation{};
   bool play_memory_open{};
@@ -2368,10 +2370,9 @@ void AcceptSceneMeshDrop(StateT &state, SceneDocument &scene, ProjectContentSess
 }
 
 // Keep every toolbar control reachable when a dock is narrowed or the font grows.
-void ContinueSceneToolbar() {
+void ContinueViewportToolbar(float next_width = detail::IconButtonExtent()) {
   const auto right = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
-  if (ImGui::GetItemRectMax().x + ImGui::GetStyle().ItemSpacing.x + detail::IconButtonExtent() <=
-      right)
+  if (ImGui::GetItemRectMax().x + ImGui::GetStyle().ItemSpacing.x + next_width <= right)
     ImGui::SameLine();
 }
 
@@ -2380,9 +2381,14 @@ template <typename StateT> void CaptureSceneToolbarControl(StateT &state, std::s
   state.scene_toolbar_positions[index] = std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
 }
 
+template <typename StateT> void CaptureGameToolbarControl(StateT &state, std::size_t index) {
+  const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+  state.game_toolbar_positions[index] = std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+}
+
 template <typename StateT>
 void DrawSceneViewOptions(StateT &state, bool native, bool settings_allowed) {
-  ContinueSceneToolbar();
+  ContinueViewportToolbar();
   ImGui::BeginDisabled(!settings_allowed);
   if (detail::IconButton("Scene view settings", detail::EditorIcon::Settings,
                          state.scene_snap_to_grid))
@@ -2415,7 +2421,7 @@ void DrawSceneViewOptions(StateT &state, bool native, bool settings_allowed) {
     ImGui::EndPopup();
   }
   GImGui->LastItemData = settings_item;
-  ContinueSceneToolbar();
+  ContinueViewportToolbar();
   if (detail::IconButton("Scene navigation help", detail::EditorIcon::Info))
     ImGui::OpenPopup("Scene navigation help");
   CaptureSceneToolbarControl(state, 2);
@@ -2455,7 +2461,7 @@ void DrawSceneOverview(StateT &state, SceneDocument &scene, bool editable,
   const bool frame_selected =
       detail::SmallIconButton("Frame selected", detail::EditorIcon::FrameSelected, false, "F");
   ImGui::EndDisabled();
-  ContinueSceneToolbar();
+  ContinueViewportToolbar();
   ImGui::BeginDisabled(state.scene_drag.has_value());
   const bool frame_all =
       detail::SmallIconButton("Frame all", detail::EditorIcon::FrameAll, false, "Home");
@@ -2463,7 +2469,7 @@ void DrawSceneOverview(StateT &state, SceneDocument &scene, bool editable,
   state.scene_frame_all_position =
       std::array{(frame_min.x + frame_max.x) * 0.5F, (frame_min.y + frame_max.y) * 0.5F};
   ImGui::EndDisabled();
-  ContinueSceneToolbar();
+  ContinueViewportToolbar();
   ImGui::BeginDisabled(!navigation_allowed || state.scene_drag.has_value());
   const bool select_all =
       detail::SmallIconButton("Select all", detail::EditorIcon::SelectAll, false, "Ctrl+A");
@@ -6032,6 +6038,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->game_input_binding_positions = {};
   state_->game_input_user_positions = {};
   state_->play_memory_button.reset();
+  state_->game_toolbar_positions = {};
+  state_->game_diagnostics_rect.reset();
   state_->play_memory_text.clear();
   state_->game_input_choice_positions.clear();
   if (!game_running || state_->game_camera_generation != play->Generation())
@@ -6636,7 +6644,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       if (detail::IconButton("New Scene", detail::EditorIcon::Add, false, "Ctrl+N"))
         BeginSceneFile(*state_, *scene, SceneFileAction::New);
       ImGui::EndDisabled();
-      ContinueSceneToolbar();
+      ContinueViewportToolbar();
       if (detail::IconButton("Open Scene...", detail::EditorIcon::Open, false, "Ctrl+O"))
         BeginSceneFile(*state_, *scene, SceneFileAction::Open);
       ImGui::EndDisabled();
@@ -6647,7 +6655,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                       !state_->scene_file_output && !state_->content_rename_target,
                   workspace && workspace->Writable());
     if (state_->scene_tabs.empty() && scene && workspace)
-      ContinueSceneToolbar();
+      ContinueViewportToolbar();
     ImGui::BeginDisabled(scene == nullptr || !scene_editable);
     if (detail::IconButton("Undo", detail::EditorIcon::Undo, false, "Ctrl+Z")) {
       CancelSceneGestures(*state_);
@@ -6657,7 +6665,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       state_->scene_save_success = true;
       state_->hierarchy_selection_anchor.reset();
     }
-    ContinueSceneToolbar();
+    ContinueViewportToolbar();
     if (detail::IconButton("Redo", detail::EditorIcon::Redo, false, "Ctrl+Shift+Z")) {
       CancelSceneGestures(*state_);
       static_cast<void>(shell.RouteCommand("editor.scene.redo"));
@@ -6666,7 +6674,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       state_->scene_save_success = true;
       state_->hierarchy_selection_anchor.reset();
     }
-    ContinueSceneToolbar();
+    ContinueViewportToolbar();
     // Dirty computes the document signature; share one observation after Undo/Redo.
     const bool scene_header_dirty = scene && scene->Dirty();
     if (detail::IconButton("Save Scene", detail::EditorIcon::Save, scene_header_dirty, "Ctrl+S") &&
@@ -6684,12 +6692,12 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                         state_->scene_save_message.c_str());
     GImGui->LastItemData = save_item;
     if (workspace && !workspace->Writable()) {
-      ContinueSceneToolbar();
+      ContinueViewportToolbar();
       static_cast<void>(detail::IconButton("Read-only project: scene editing disabled",
                                            detail::EditorIcon::Lock));
     }
     if (scene && state_->scene_tabs.empty()) {
-      ContinueSceneToolbar();
+      ContinueViewportToolbar();
       ImGui::AlignTextToFramePadding();
       const auto label = (state_->scene_file_path ? PathLabel(state_->scene_file_path->filename())
                                                   : std::string("Untitled Scene")) +
@@ -6717,7 +6725,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     }
     CaptureSceneToolbarControl(*state_, 0);
     ImGui::EndDisabled();
-    ContinueSceneToolbar();
+    ContinueViewportToolbar();
     if (scene != nullptr) {
       if (state_->native_scene_preview) {
         state_->scene_markers.clear();
@@ -6729,7 +6737,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         state_->scene_frame_position =
             std::array{(frame_min.x + frame_max.x) * 0.5F, (frame_min.y + frame_max.y) * 0.5F};
         ImGui::EndDisabled();
-        ContinueSceneToolbar();
+        ContinueViewportToolbar();
         ImGui::BeginDisabled(state_->native_scene_drag_origin.has_value());
         const bool frame_all_clicked =
             detail::SmallIconButton("Frame all", detail::EditorIcon::FrameAll, false, "Home");
@@ -6737,7 +6745,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         state_->scene_frame_all_position =
             std::array{(all_min.x + all_max.x) * 0.5F, (all_min.y + all_max.y) * 0.5F};
         ImGui::EndDisabled();
-        ContinueSceneToolbar();
+        ContinueViewportToolbar();
         ImGui::BeginDisabled(!state_->app_focused || interaction_blocked ||
                              !state_->native_scene_preview_available ||
                              state_->native_scene_drag_origin || state_->native_scene_drag);
@@ -6758,7 +6766,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                                         detail::EditorIcon::Move, detail::EditorIcon::Rotate,
                                         detail::EditorIcon::Scale};
         for (std::size_t index = 0; index < tools.size(); ++index) {
-          ContinueSceneToolbar();
+          ContinueViewportToolbar();
           if (detail::IconRadioButton(tool_labels[index], tool_icons[index],
                                       state_->native_scene_tool == tools[index])) {
             state_->native_scene_tool = tools[index];
@@ -6937,13 +6945,52 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         }
         state_->gameplay_project_generation = content->Browser().ProjectGeneration();
       }
-      ImGui::BeginDisabled(game_running);
-      ImGui::InputTextWithHint("Gameplay library", "Optional path within this project",
-                               state_->gameplay_library.data(), state_->gameplay_library.size());
-      ImGui::EndDisabled();
-      if (!state_->gameplay_status.empty())
-        ImGui::TextWrapped("%s", state_->gameplay_status.c_str());
       const auto state = play->State();
+      if (state == runtime::PlayState::Stopped) {
+        if (detail::IconButton("Play", detail::EditorIcon::Play, false, "Ctrl+P (F5)"))
+          state_->play_command = PlayCommand::Start;
+        CaptureGameToolbarControl(*state_, 2);
+      } else {
+        if (detail::IconButton("Stop", detail::EditorIcon::Stop, false, "Ctrl+P (F5)"))
+          state_->play_command = PlayCommand::Stop;
+        CaptureGameToolbarControl(*state_, 2);
+        ContinueViewportToolbar();
+        if (state == runtime::PlayState::Playing) {
+          if (detail::IconButton("Pause", detail::EditorIcon::Pause, false, "Ctrl+Shift+P (F6)"))
+            state_->play_command = PlayCommand::Pause;
+          CaptureGameToolbarControl(*state_, 3);
+        } else {
+          if (detail::IconButton("Resume", detail::EditorIcon::Play, false, "Ctrl+Shift+P (F6)"))
+            state_->play_command = PlayCommand::Resume;
+          CaptureGameToolbarControl(*state_, 3);
+          ContinueViewportToolbar();
+          if (detail::IconButton("Step", detail::EditorIcon::Step, false, "Ctrl+Alt+P (F10)"))
+            state_->play_command = PlayCommand::Step;
+          CaptureGameToolbarControl(*state_, 4);
+        }
+        ContinueViewportToolbar();
+        ImGui::BeginDisabled(scene == nullptr || !writable || !play->CanApplyTransforms() ||
+                             interaction_blocked || state_->close_prompt_requested);
+        if (detail::IconButton("Apply Changes", detail::EditorIcon::Apply)) {
+          state_->play_apply_review = CapturePlayTransformReview(*scene, *play);
+          state_->play_apply_open = true;
+          state_->game_input_focused = false;
+          CancelSceneGestures(*state_);
+          state_->play_command =
+              state == runtime::PlayState::Playing ? PlayCommand::Pause : PlayCommand::None;
+          state_->play_apply_popup_pending = true;
+        }
+        const auto apply_min = ImGui::GetItemRectMin();
+        const auto apply_max = ImGui::GetItemRectMax();
+        const ImVec2 apply_center{(apply_min.x + apply_max.x) * 0.5F,
+                                  (apply_min.y + apply_max.y) * 0.5F};
+        const auto *apply_window = ImGui::GetCurrentWindow();
+        if (ImGui::IsItemVisible() && !apply_window->Hidden &&
+            apply_window->ClipRect.Contains(apply_center))
+          state_->play_apply_position = std::array{apply_center.x, apply_center.y};
+        ImGui::EndDisabled();
+      }
+      ContinueViewportToolbar();
       ImGui::BeginDisabled(state != runtime::PlayState::Stopped || interaction_blocked ||
                            !state_->app_focused);
       if (detail::IconButton("Input bindings###game.input.bindings",
@@ -6959,7 +7006,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       state_->game_input_binding_positions[0] = std::array{(binding_min.x + binding_max.x) * 0.5F,
                                                            (binding_min.y + binding_max.y) * 0.5F};
       ImGui::EndDisabled();
-      ImGui::SameLine();
+      ContinueViewportToolbar(85);
       ImGui::BeginDisabled(interaction_blocked || !state_->app_focused);
       ImGui::SetNextItemWidth(85);
       constexpr std::array labels{"User 0", "User 1", "User 2", "User 3"};
@@ -6982,59 +7029,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         ImGui::EndCombo();
       }
       ImGui::EndDisabled();
-      if (!state_->game_input_binding_status.empty())
-        ImGui::TextWrapped("%s", state_->game_input_binding_status.c_str());
-      if (state == runtime::PlayState::Stopped) {
-        if (detail::IconButton("Play", detail::EditorIcon::Play, false, "Ctrl+P (F5)"))
-          state_->play_command = PlayCommand::Start;
-      } else {
-        if (detail::IconButton("Stop", detail::EditorIcon::Stop, false, "Ctrl+P (F5)"))
-          state_->play_command = PlayCommand::Stop;
-        ImGui::SameLine();
-        if (state == runtime::PlayState::Playing) {
-          if (detail::IconButton("Pause", detail::EditorIcon::Pause, false, "Ctrl+Shift+P (F6)"))
-            state_->play_command = PlayCommand::Pause;
-        } else {
-          if (detail::IconButton("Resume", detail::EditorIcon::Play, false, "Ctrl+Shift+P (F6)"))
-            state_->play_command = PlayCommand::Resume;
-          ImGui::SameLine();
-          if (detail::IconButton("Step", detail::EditorIcon::Step, false, "Ctrl+Alt+P (F10)"))
-            state_->play_command = PlayCommand::Step;
-        }
-        const float apply_width = detail::IconButtonExtent();
-        const float same_line_end =
-            ImGui::GetItemRectMax().x + ImGui::GetStyle().ItemSpacing.x + apply_width;
-        if (same_line_end <= ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x)
-          ImGui::SameLine();
-        ImGui::BeginDisabled(scene == nullptr || !writable || !play->CanApplyTransforms() ||
-                             interaction_blocked || state_->close_prompt_requested);
-        if (detail::IconButton("Apply Changes", detail::EditorIcon::Apply)) {
-          state_->play_apply_review = CapturePlayTransformReview(*scene, *play);
-          state_->play_apply_open = true;
-          state_->game_input_focused = false;
-          CancelSceneGestures(*state_);
-          state_->play_command =
-              state == runtime::PlayState::Playing ? PlayCommand::Pause : PlayCommand::None;
-          state_->play_apply_popup_pending = true;
-        }
-        const auto apply_min = ImGui::GetItemRectMin();
-        const auto apply_max = ImGui::GetItemRectMax();
-        const ImVec2 apply_center{(apply_min.x + apply_max.x) * 0.5F,
-                                  (apply_min.y + apply_max.y) * 0.5F};
-        const auto *apply_window = ImGui::GetCurrentWindow();
-        if (ImGui::IsItemVisible() && !apply_window->Hidden &&
-            apply_window->ClipRect.Contains(apply_center))
-          state_->play_apply_position = std::array{apply_center.x, apply_center.y};
-        ImGui::EndDisabled();
-      }
-      ImGui::Text("State: %s", state == runtime::PlayState::Stopped   ? "Stopped"
-                               : state == runtime::PlayState::Playing ? "Playing"
-                                                                      : "Paused");
-      if (state == runtime::PlayState::Paused) {
-        ImGui::SameLine();
-        ImGui::Text("| %s", PauseReasonLabel(play->LastPauseReason()));
-      }
-      ImGui::SameLine();
+      ContinueViewportToolbar();
       if (detail::SmallIconButton("Host memory###game.host.memory", detail::EditorIcon::Inspect)) {
         state_->play_memory_open = true;
         state_->game_input_focused = false;
@@ -7043,15 +7038,58 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       state_->play_memory_button =
           std::array{(memory_min.x + memory_max.x) * .5F, (memory_min.y + memory_max.y) * .5F};
       state_->play_memory_button_id = ImGui::GetItemID();
-      ImGui::Text("Fixed ticks: %llu | Steps: %llu | Callback failures: %llu",
-                  static_cast<unsigned long long>(play->Stats().fixed_ticks),
-                  static_cast<unsigned long long>(play->Stats().manual_steps),
-                  static_cast<unsigned long long>(play->Stats().crashes));
+      ContinueViewportToolbar();
+      ImGui::BeginDisabled(interaction_blocked || !state_->app_focused);
+      if (detail::IconButton("Gameplay library settings", detail::EditorIcon::File)) {
+        state_->game_input_focused = false;
+        ImGui::OpenPopup("Gameplay library settings");
+      }
+      ImGui::EndDisabled();
+      CaptureGameToolbarControl(*state_, 1);
+      const auto library_item = GImGui->LastItemData;
+      if (ImGui::BeginPopup("Gameplay library settings")) {
+        ImGui::BeginDisabled(game_running || interaction_blocked || !state_->app_focused);
+        ImGui::SetNextItemWidth(std::max(
+            1.0F, std::min(ImGui::GetFontSize() * 24, ImGui::GetMainViewport()->WorkSize.x - 48)));
+        ImGui::InputTextWithHint("Gameplay library", "Optional path within this project",
+                                 state_->gameplay_library.data(), state_->gameplay_library.size());
+        CaptureGameToolbarControl(*state_, 6);
+        ImGui::EndDisabled();
+        ImGui::TextWrapped("Relative to this project. Leave blank for inspection-only Play.");
+        ImGui::EndPopup();
+      }
+      GImGui->LastItemData = library_item;
+      ContinueViewportToolbar();
+      ImGui::BeginDisabled(interaction_blocked || !state_->app_focused);
+      if (detail::IconButton(
+              state_->game_input_focused ? "Play diagnostics: input captured###game.diagnostics"
+                                         : "Play diagnostics and input help###game.diagnostics",
+              detail::EditorIcon::Info, state_->game_input_focused, "Escape: release input")) {
+        state_->game_input_focused = false;
+        ImGui::OpenPopup("Play diagnostics and input help");
+      }
+      ImGui::EndDisabled();
+      CaptureGameToolbarControl(*state_, 0);
+      ContinueViewportToolbar(ImGui::GetFontSize() * 9);
+      ImGui::AlignTextToFramePadding();
+      ImGui::TextUnformatted(state == runtime::PlayState::Stopped   ? "Stopped"
+                             : state == runtime::PlayState::Playing ? "Playing"
+                                                                    : "Paused");
+      if (ImGui::IsItemHovered())
+        ImGui::SetTooltip(
+            "%s", state == runtime::PlayState::Paused ? PauseReasonLabel(play->LastPauseReason())
+                  : state_->game_input_focused        ? "Game input captured; Escape releases"
+                                                      : "Click the Game canvas to capture input");
       if (game_running && state_->game_two_d_available) {
+        ContinueViewportToolbar(ImGui::GetFontSize() * 4);
         ImGui::BeginDisabled(interaction_blocked);
-        const bool open = ImGui::BeginCombo("View", state_->game_two_d_selected ? "2D" : "3D");
+        ImGui::SetNextItemWidth(ImGui::GetFontSize() * 4);
+        const bool open =
+            ImGui::BeginCombo("###game.view", state_->game_two_d_selected ? "2D" : "3D");
         const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
         state_->game_view_combo = std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+        if (ImGui::IsItemHovered())
+          ImGui::SetTooltip("Game view: 3D / 2D");
         if (open) {
           for (unsigned choice = 0; choice < 2; ++choice) {
             if (ImGui::Selectable(choice ? "2D" : "3D",
@@ -7077,10 +7115,14 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         };
         ImGui::BeginDisabled(interaction_blocked);
         ImGui::PushID(std::to_string(state_->game_camera_generation).c_str());
-        ImGui::SetNextItemWidth(200.0F);
-        const bool open = ImGui::BeginCombo("Preview camera###game.camera",
-                                            label(state_->game_camera_selection).c_str());
+        const float camera_width = ImGui::GetFontSize() * 12;
+        ContinueViewportToolbar(camera_width);
+        ImGui::SetNextItemWidth(camera_width);
+        const bool open =
+            ImGui::BeginCombo("###game.camera", label(state_->game_camera_selection).c_str());
         const auto minimum = ImGui::GetItemRectMin(), maximum = ImGui::GetItemRectMax();
+        if (ImGui::IsItemHovered())
+          ImGui::SetTooltip("Preview camera");
         state_->game_camera_combo_position =
             std::array{(minimum.x + maximum.x) * 0.5F, (minimum.y + maximum.y) * 0.5F};
         if (open) {
@@ -7104,13 +7146,62 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         ImGui::EndDisabled();
       }
       const auto &snapshot = play_snapshot;
-      ImGui::Text("Play World entities: %zu", snapshot.entities.size());
+      const auto toolbar_item = GImGui->LastItemData;
+      if (ImGui::BeginPopup("Play diagnostics and input help")) {
+        const auto popup_position = ImGui::GetWindowPos(), popup_size = ImGui::GetWindowSize();
+        state_->game_diagnostics_rect =
+            std::array{popup_position.x, popup_position.y, popup_position.x + popup_size.x,
+                       popup_position.y + popup_size.y};
+        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() +
+                               std::max(1.0F, std::min(ImGui::GetFontSize() * 28,
+                                                       ImGui::GetMainViewport()->WorkSize.x - 48)));
+        ImGui::TextUnformatted("Play diagnostics");
+        ImGui::Text("Fixed ticks: %llu | Steps: %llu | Callback failures: %llu",
+                    static_cast<unsigned long long>(play->Stats().fixed_ticks),
+                    static_cast<unsigned long long>(play->Stats().manual_steps),
+                    static_cast<unsigned long long>(play->Stats().crashes));
+        ImGui::Text("Play World entities: %zu", snapshot.entities.size());
+        ImGui::TextWrapped("Click a playing Game canvas to capture input. Escape releases input.");
+        ImGui::TextWrapped("F5: Play/Stop | F6: Pause/Resume | F10: Step while paused");
+        if (state_->game_two_d_available && state_->game_two_d_selected)
+          ImGui::TextWrapped("2D Play camera; assets frozen at Play start.");
+        if (state == runtime::PlayState::Paused)
+          ImGui::TextWrapped("Paused: %s", PauseReasonLabel(play->LastPauseReason()));
+        ImGui::SeparatorText("Inspect Play entities");
+        ImGui::BeginChild("##play-diagnostic-entities",
+                          {0, ImGui::GetTextLineHeightWithSpacing() * 7}, ImGuiChildFlags_Borders);
+        ImGuiListClipper clipper;
+        clipper.Begin(static_cast<int>(snapshot.entities.size()));
+        while (clipper.Step())
+          for (int index = clipper.DisplayStart; index < clipper.DisplayEnd; ++index) {
+            const auto &entity = snapshot.entities[static_cast<std::size_t>(index)];
+            char text[192];
+            std::snprintf(text, sizeof(text), "#%llu  world (%.2f, %.2f, %.2f)%s%s%s",
+                          static_cast<unsigned long long>(entity.id), entity.world_transform.x,
+                          entity.world_transform.y, entity.world_transform.z,
+                          entity.camera ? " Camera" : "", entity.light ? " Light" : "",
+                          entity.mesh_renderer ? " Mesh" : "");
+            const auto label = std::string(text) + "###play.entity";
+            ImGui::PushID(std::to_string(entity.id).c_str());
+            if (ImGui::Selectable(label.c_str(), state_->play_inspection_entity == entity.id)) {
+              state_->play_inspection_entity = entity.id;
+              state_->inspect_play_selection = true;
+            }
+            if (index == 0)
+              CaptureGameToolbarControl(*state_, 5);
+            ImGui::PopID();
+          }
+        ImGui::EndChild();
+        ImGui::PopTextWrapPos();
+        ImGui::EndPopup();
+      }
+      GImGui->LastItemData = toolbar_item;
+      if (!state_->gameplay_status.empty())
+        ImGui::TextWrapped("%s", state_->gameplay_status.c_str());
+      if (!state_->game_input_binding_status.empty())
+        ImGui::TextWrapped("%s", state_->game_input_binding_status.c_str());
       ImGui::Separator();
-      if (game_running)
-        ImGui::TextDisabled(state_->game_input_focused ? "Game input captured | Escape releases"
-                                                       : "Click Game canvas to capture input");
       if (game_running && two_d) {
-        ImGui::TextDisabled("2D Play camera | Assets frozen at Play start");
         if (!state_->game_two_d_status.empty())
           ImGui::TextWrapped("%s", state_->game_two_d_status.c_str());
         const auto position = ImGui::GetCursorScreenPos();
@@ -7132,7 +7223,6 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         ImGui::InvisibleButton("##game-2d-preview", size);
       } else if (game_running && state_->native_game_available &&
                  (!NativeScenePreviewViewport() || state_->concurrent_native_views)) {
-        ImGui::TextDisabled("Play camera");
         if (!state_->native_game_status.empty())
           ImGui::TextWrapped("%s", state_->native_game_status.c_str());
         const auto available = ImGui::GetContentRegionAvail();
@@ -7188,25 +7278,6 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           state_->game_input_focused = false;
         }
       }
-      ImGuiListClipper clipper;
-      clipper.Begin(static_cast<int>(snapshot.entities.size()));
-      while (clipper.Step())
-        for (int index = clipper.DisplayStart; index < clipper.DisplayEnd; ++index) {
-          const auto &entity = snapshot.entities[static_cast<std::size_t>(index)];
-          char text[192];
-          std::snprintf(text, sizeof(text), "#%llu  world (%.2f, %.2f, %.2f)%s%s%s",
-                        static_cast<unsigned long long>(entity.id), entity.world_transform.x,
-                        entity.world_transform.y, entity.world_transform.z,
-                        entity.camera ? " Camera" : "", entity.light ? " Light" : "",
-                        entity.mesh_renderer ? " Mesh" : "");
-          const auto label = std::string(text) + "###play.entity";
-          ImGui::PushID(std::to_string(entity.id).c_str());
-          if (ImGui::Selectable(label.c_str(), state_->play_inspection_entity == entity.id)) {
-            state_->play_inspection_entity = entity.id;
-            state_->inspect_play_selection = true;
-          }
-          ImGui::PopID();
-        }
     }
   }
   ImGui::End();
@@ -10926,6 +10997,17 @@ std::optional<std::array<float, 2>> EditorImGuiTestAccess::PrefabPlacementRebase
 const PrefabPlacementRebaseReport *
 EditorImGuiTestAccess::PrefabRebaseReport(const EditorImGuiHost &host) noexcept {
   return host.state_->prefab_rebase_report ? &*host.state_->prefab_rebase_report : nullptr;
+}
+std::optional<std::array<float, 4>>
+EditorImGuiTestAccess::GameDiagnosticsRect(const EditorImGuiHost &host) noexcept {
+  return host.state_->game_diagnostics_rect;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::GameToolbarPosition(const EditorImGuiHost &host,
+                                           std::size_t control) noexcept {
+  return control < host.state_->game_toolbar_positions.size()
+             ? host.state_->game_toolbar_positions[control]
+             : std::nullopt;
 }
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::SceneToolbarPosition(const EditorImGuiHost &host,

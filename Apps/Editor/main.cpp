@@ -4303,6 +4303,105 @@ int RunGraphical(std::optional<ProjectState> project,
         continue;
     }
 #endif
+    const auto compose_game_image = [&](const Nexora::Presentation::SceneDrawData &source,
+                                        bool visible) {
+      using Nexora::Presentation::SurfaceStatus;
+      if (!visible || source.instances.empty())
+        return SurfaceStatus::Ready;
+      auto image_draw = source;
+      image_draw.viewport = {};
+      image_draw.offscreen = image_draw.sampledByUi = true;
+      const auto status = created.surface->DrawScene(image_draw);
+      if (status != SurfaceStatus::Ready)
+        return status;
+      const auto image = created.surface->SceneTexture();
+      Nexora::Presentation::UiDrawData image_packet{};
+      image_packet.indices32Bit = true;
+      return image && ui.DrawGameScene(*image, image_packet) ? SurfaceStatus::Ready
+                                                             : SurfaceStatus::InvalidDescriptor;
+    };
+#if NEXORA_ASSET_PIPELINE_ENABLED
+    if (packaged_play && play.PlayWorld() && !packaged_play->HasSprites()) {
+      const auto visible = ui.NativeGameViewport();
+      const auto viewport = visible.value_or(Nexora::Presentation::SceneViewport{0, 0, 1, 1});
+      const auto packaged_frame = packaged_play->RenderWithUi(
+          viewport, created.surface->SupportsSceneGeometryResidency(),
+          [&](const Nexora::Presentation::SceneDrawData &draw) {
+            // A rejected/ended GUI frame cannot be appended or replayed for retained content.
+            if (packaged_ui_status)
+              return *packaged_ui_status;
+            const auto status = compose_game_image(draw, visible.has_value());
+            if (status != Nexora::Presentation::SurfaceStatus::Ready)
+              return status;
+            packaged_ui_status = Nexora::Presentation::SurfaceStatus::Unsupported;
+            static_cast<void>(ui.EndFrame());
+            packaged_ui_status = ui.Render(*created.surface, frame.width, frame.height);
+            return *packaged_ui_status;
+          });
+      if (!finish_packaged_frame(packaged_frame, viewport))
+        continue;
+    }
+#endif
+#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+    std::optional<float> game_draw_admitted_test_x;
+#endif
+    if (const auto viewport = ui.NativeGameViewport();
+        !packaged_ui_status && viewport && play.PlayWorld() && play_meshes && play_materials &&
+        (!ui.NativeScenePreviewViewport() || created.surface->SupportsBoundedSceneViews())) {
+      auto game = nexora::editor::preview::BuildGameFrame(
+          *play.PlayWorld(), play.Inspect(), *play_meshes,
+          static_cast<float>(viewport->width) / viewport->height, ui.GameCameraSelection(),
+          &*play_materials);
+      nexora::editor::preview::AppendGameDebugLines(game, gameplay.DebugLines());
+      if (!game.camera || game.instances.empty()) {
+        ui.SetNativeGameStatus(
+            !game.camera ? "Add an active camera to the scene before Play."
+                         : "No resolved mesh geometry or debug lines in the active Play scenes.");
+      } else {
+        auto draw = game.DrawData(*viewport);
+        // Debug geometry changes with lifetime/camera; use the fence-owned upload path rather
+        // than retaining each transient combination in the immutable geometry cache.
+        draw.retainMeshGeometry =
+            !game.debug_lines && created.surface->SupportsSceneGeometryResidency();
+        const auto status = compose_game_image(draw, true);
+#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+        if (status == Nexora::Presentation::SurfaceStatus::Ready &&
+            std::getenv("NEXORA_NATIVE_GAME_PRESENT_TEST_GEOMETRY") && game.instances.size() == 1) {
+          const auto &instance = game.instances.front();
+          game_draw_admitted_test_x =
+              instance.model_transform ? (*instance.model_transform)[3] : instance.translation[0];
+        }
+#endif
+        ui.SetNativeGameStatus(
+            (game.unavailable_debug_lines ? std::to_string(game.unavailable_debug_lines) +
+                                                " debug lines could not be displayed. "
+                                          : "") +
+                (game.unavailable
+                     ? std::to_string(game.unavailable) +
+                           " mesh renderers could not be displayed (asset, budget, or transform). "
+                     : "") +
+                (game.unavailable_materials ? std::to_string(game.unavailable_materials) +
+                                                  " materials use fallback shading."
+                                            : ""),
+            status != Nexora::Presentation::SurfaceStatus::Unsupported);
+        if (status == Nexora::Presentation::SurfaceStatus::Ready &&
+            (!native_game_viewport_reported || native_game_viewport_reported->x != viewport->x ||
+             native_game_viewport_reported->y != viewport->y ||
+             native_game_viewport_reported->width != viewport->width ||
+             native_game_viewport_reported->height != viewport->height)) {
+          std::cerr << "native game viewport: " << viewport->x << ' ' << viewport->y << ' '
+                    << viewport->width << ' ' << viewport->height << '\n';
+          native_game_viewport_reported = *viewport;
+        }
+        if (status != Nexora::Presentation::SurfaceStatus::Ready &&
+            status != Nexora::Presentation::SurfaceStatus::Unsupported) {
+          if (surface_recoverable(status))
+            continue;
+          result = 1;
+          break;
+        }
+      }
+    }
     startup_checkpoint("end-ui");
     if (!packaged_ui_status)
       static_cast<void>(ui.EndFrame());
@@ -4440,6 +4539,11 @@ int RunGraphical(std::optional<ProjectState> project,
              Access::NativeSceneToolPosition(ui, nexora::editor::imgui::NativeSceneTool::Select));
       record("scene_hand_tool",
              Access::NativeSceneToolPosition(ui, nexora::editor::imgui::NativeSceneTool::Hand));
+      record("game_diagnostics", Access::GameToolbarPosition(ui, 0));
+      if (const auto rect = Access::GameDiagnosticsRect(ui)) {
+        record("game_diagnostics_min", std::array{(*rect)[0], (*rect)[1]});
+        record("game_diagnostics_max", std::array{(*rect)[2], (*rect)[3]});
+      }
       record("appearance_settings", Access::AppearancePosition(ui, 0));
       record("appearance_menu", Access::AppearancePosition(ui, 1));
       record("appearance_dark", Access::AppearancePosition(ui, 2));
@@ -4731,83 +4835,6 @@ int RunGraphical(std::optional<ProjectState> project,
         if (scene_status != Nexora::Presentation::SurfaceStatus::Ready &&
             scene_status != Nexora::Presentation::SurfaceStatus::Unsupported) {
           if (surface_recoverable(scene_status))
-            continue;
-          result = 1;
-          break;
-        }
-      }
-    }
-#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
-    std::optional<float> game_draw_admitted_test_x;
-#endif
-#if NEXORA_ASSET_PIPELINE_ENABLED
-    if (packaged_play && play.PlayWorld()
-#if defined(NEXORA_HAS_2D)
-        && !packaged_play->HasSprites()
-#endif
-    ) {
-      const auto viewport =
-          ui.NativeGameViewport().value_or(Nexora::Presentation::SceneViewport{0, 0, 1, 1});
-      const auto packaged_frame =
-          packaged_play->Render(viewport, created.surface->SupportsSceneGeometryResidency(),
-                                [&](const Nexora::Presentation::SceneDrawData &draw) {
-                                  return created.surface->DrawScene(draw);
-                                });
-      if (!finish_packaged_frame(packaged_frame, viewport))
-        continue;
-    }
-#endif
-    if (const auto viewport = ui.NativeGameViewport();
-        viewport && play.PlayWorld() && play_meshes && play_materials &&
-        (!ui.NativeScenePreviewViewport() || created.surface->SupportsBoundedSceneViews())) {
-      auto game = nexora::editor::preview::BuildGameFrame(
-          *play.PlayWorld(), play.Inspect(), *play_meshes,
-          static_cast<float>(viewport->width) / viewport->height, ui.GameCameraSelection(),
-          &*play_materials);
-      nexora::editor::preview::AppendGameDebugLines(game, gameplay.DebugLines());
-      if (!game.camera || game.instances.empty()) {
-        ui.SetNativeGameStatus(
-            !game.camera ? "Add an active camera to the scene before Play."
-                         : "No resolved mesh geometry or debug lines in the active Play scenes.");
-      } else {
-        auto draw = game.DrawData(*viewport);
-        // Debug geometry changes with lifetime/camera; use the fence-owned upload path rather
-        // than retaining each transient combination in the immutable geometry cache.
-        draw.retainMeshGeometry =
-            !game.debug_lines && created.surface->SupportsSceneGeometryResidency();
-        const auto status = created.surface->DrawScene(draw);
-#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
-        if (status == Nexora::Presentation::SurfaceStatus::Ready &&
-            std::getenv("NEXORA_NATIVE_GAME_PRESENT_TEST_GEOMETRY") && game.instances.size() == 1) {
-          const auto &instance = game.instances.front();
-          game_draw_admitted_test_x =
-              instance.model_transform ? (*instance.model_transform)[3] : instance.translation[0];
-        }
-#endif
-        ui.SetNativeGameStatus(
-            (game.unavailable_debug_lines ? std::to_string(game.unavailable_debug_lines) +
-                                                " debug lines could not be displayed. "
-                                          : "") +
-                (game.unavailable
-                     ? std::to_string(game.unavailable) +
-                           " mesh renderers could not be displayed (asset, budget, or transform). "
-                     : "") +
-                (game.unavailable_materials ? std::to_string(game.unavailable_materials) +
-                                                  " materials use fallback shading."
-                                            : ""),
-            status != Nexora::Presentation::SurfaceStatus::Unsupported);
-        if (status == Nexora::Presentation::SurfaceStatus::Ready &&
-            (!native_game_viewport_reported || native_game_viewport_reported->x != viewport->x ||
-             native_game_viewport_reported->y != viewport->y ||
-             native_game_viewport_reported->width != viewport->width ||
-             native_game_viewport_reported->height != viewport->height)) {
-          std::cerr << "native game viewport: " << viewport->x << ' ' << viewport->y << ' '
-                    << viewport->width << ' ' << viewport->height << '\n';
-          native_game_viewport_reported = *viewport;
-        }
-        if (status != Nexora::Presentation::SurfaceStatus::Ready &&
-            status != Nexora::Presentation::SurfaceStatus::Unsupported) {
-          if (surface_recoverable(status))
             continue;
           result = 1;
           break;

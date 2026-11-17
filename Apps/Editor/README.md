@@ -923,7 +923,7 @@ geometry. Failed/cancelled/stale results keep the prior mesh; rename/move Undo k
 published geometry and delete/Undo removes/restores live resolution. UI borrows snapshots for the
 frame and performs no mesh source IO while rendering or picking.
 
-The Game panel accepts an optional UTF-8 gameplay-library path relative to the project root;
+The Game panel's file icon opens settings for an optional UTF-8 gameplay-library path relative to the project root;
 `--gameplay-library=Content/libGame.so` overrides the saved project setting for automation. Start loads
 its V3 library only after cloning the World. Component wires read/write the clone, FixedUpdate is
 optional and runs on fixed ticks/manual Step, and Update runs once per playing frame. Blank paths
@@ -953,9 +953,12 @@ their existing behavior. A view with no renderable geometry does not consume sce
 Unsupported backends retain Scene/map precedence. Overlapping native rectangles suppress both native
 draws and show an actionable UI/inspection fallback; moving the windows apart restores the pair.
 This avoids fatal overlap descriptors and native draws covering the other panel's fallback. The
-bounded path admits only two explicit direct LDR/non-shadow views after UI. Full-surface, offscreen,
-HDR and shadow workflows stay exclusive. General floating-window occlusion, advanced multi-view
-materials/HDR and physical-host acceptance remain open. No source format or stable C ABI changes.
+bounded path admits at most two scoped LDR/non-shadow views. Ordinary Game images and the existing
+Sprite consumers may use typed sampled Scene images before UI; remaining direct views after UI
+must be disjoint from their image clips. Untagged offscreen, full-surface, HDR and shadow workflows
+stay exclusive. Sampled Game images preserve popup/window order; general direct-view occlusion,
+advanced multi-view materials/HDR and physical-host acceptance remain open. No source format or
+stable C ABI changes.
 
 See [ADR-0009](../../Roadmap/en/ADR-0009-Editor-Concurrent-Canvases.md) and
 [Linux evidence](../../Tools/Build/evidence/EditorEDM3-ConcurrentCanvases-Linux-2026-10-14.md).
@@ -2222,3 +2225,29 @@ previous operation feedback separately. Routine
 save/history feedback is shown in the Save tooltip; errors stay visible above the canvas. The
 lock icon explains read-only access without a permanent text banner. Existing shortcuts, gesture
 cancellation and file/edit permission checks continue to apply.
+
+
+## Compact Game controls
+
+Game uses a wrapping icon toolbar for Play/Stop, Pause/Resume, paused Step, Apply Changes,
+input bindings, input owner, host memory and secondary settings. State stays compact; hover actions
+for names and shortcuts. The information icon highlights while Game input is captured; Escape
+releases capture. Opening diagnostics or library settings releases Game input.
+
+The file icon opens the optional gameplay-library field. Edit it while stopped; Play keeps the
+field disabled. Existing saved settings, project-relative validation and blank-path inspection
+behavior continue to apply. Module/input status and rendering failures remain visible.
+
+The information icon opens Play diagnostics and input help: fixed ticks, manual steps, callback
+failures, entity count, pause reason and the copied Play entity list. Selecting an entity there
+inspects the isolated clone in Inspector. The host-memory icon still opens its separate read-only
+window. Detailed counts, entity rows and navigation instructions no longer occupy permanent Game
+canvas rows. The existing bounded native 3D/2D preview, camera choice, fallback and input/permission
+contracts remain in effect.
+
+Ordinary camera/OBJ and pure 3D packaged Game previews use the existing acquired-frame Scene
+image composition path before GUI completion. This preserves Game content while contextual popups cover it; the native
+image no longer draws over those UI pixels after the GUI pass. Packaged Sprite composition keeps
+its existing owner and single submission. Pure 3D packaged candidates require successful UI
+submission before World publication, including camera-only frames. Scene/Game overlap admission
+and frozen Play assets retain their existing contracts.

@@ -733,9 +733,9 @@ privacy, not an extension signature verifier or a telemetry transport implementa
   preserving UI pixels. Without the capability, visible native Scene keeps precedence. BeginFrame
   clears prior Game/overlap observations; clipping/DPI, Pause/Step/Stop and input ownership remain
   scoped to current panels. See [ADR-0009](../../Roadmap/en/ADR-0009-Editor-Concurrent-Canvases.md).
-  The Game panel's optional UTF-8 gameplay-library field emits a project-relative path and is
-  disabled during Play. The application restores the project setting with its generation; otherwise
-  project generation changes reset the field. The application
+  The Game panel's file icon opens the optional UTF-8 gameplay-library field. It emits a
+  project-relative path and is disabled during Play. The application restores the project setting
+  with its generation; otherwise project generation changes reset the field. The application
   validates the canonical library remains inside the project, loads its V3 module into the clone,
   runs optional FixedUpdate on ticks/Step and Update once per playing frame, and routes bounded
   module messages to Console. Failure pauses Play or rejects Start with status. It unloads before
@@ -2246,3 +2246,23 @@ compact icon toolbars, named shortcut tooltips and contextual settings/help over
 viewport instructions. Retain compact state indicators and visible actionable errors/warnings;
 route diagnostics to dedicated views. Preserve command/permission/input ownership and check
 actual rendered narrow docks plus representative 1x/2x interaction when changing viewport UI.
+
+
+## Compact Game presentation
+
+The [Game controls](../../Apps/Editor/README.md#compact-game-controls) follow the shared Editor
+interface standard. Common playback/input/view actions wrap within the dock. The information
+button highlights captured input and opens contextual diagnostics/help; the file button opens
+library settings. Both release input when opened. Live counters and copied Play entity selection
+remain available in diagnostics, and host memory retains its separate read-only window. Runtime
+and input status plus rendering failures remain visible. This changes presentation without
+expanding the bounded native Game rendering or Runtime ownership contract.
+
+The application also composes ordinary native camera/OBJ and pure 3D packaged Game images through
+`DrawGameScene` before `EndFrame`, using the existing typed acquired-frame reference and an empty
+Sprite packet.
+It renders the same frozen Play frame offscreen and appends that owning image to the Game draw
+list, preserving popup/window order. Packaged Sprite owners retain their separate existing path;
+UI completion/submission remains single-owner, and no Runtime or renderer borrow survives it.
+Pure 3D packaged candidates publish only after successful UI submission, including empty geometry;
+a failed or ended UI frame cannot be replayed during retained-World fallback.

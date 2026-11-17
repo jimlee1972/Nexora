@@ -66,3 +66,13 @@ untagged offscreen, HDR and shadow paths remain exclusive, and the total draw co
 The Editor continues to suppress overlapping Scene/Game canvases. Floating auxiliary-window
 occlusion is supported for sampled images; this does not accept arbitrary Scene/Game overlap.
 See [Scene-image lifetime](../../Engine/Presentation/SceneUiComposition.md).
+
+
+## Game image consumers (2026-11-17)
+
+The ordinary camera/OBJ and pure 3D packaged Game previews also use the existing sampled UI extension. It prepares
+its frozen Play frame and appends the typed image to the owning Game draw list before GUI
+completion, preserving popup order. Packaged Sprite owners keep their existing single submission.
+Pure 3D packaged World publication requires successful UI submission even with empty geometry;
+an ended GUI frame is not retried on retained content. No admission/resource/ABI bounds change; direct Scene precedence, disjoint-view checks and
+unsupported fallback remain. See [scoped acceptance](../../Tools/Build/evidence/EditorWorkflow/Game-Toolbar-Linux.md).

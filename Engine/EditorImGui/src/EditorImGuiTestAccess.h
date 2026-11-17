@@ -235,6 +235,10 @@ public:
                                                                  const std::filesystem::path &path,
                                                                  bool breadcrumb = false);
   static void FocusGame(EditorImGuiHost &host) noexcept;
+  static std::optional<std::array<float, 4>> GameDiagnosticsRect(const EditorImGuiHost &) noexcept;
+  // Diagnostics, library, Play/Stop, Pause/Resume, Step, first diagnostic entity, library field.
+  static std::optional<std::array<float, 2>> GameToolbarPosition(const EditorImGuiHost &,
+                                                                 std::size_t control) noexcept;
   static std::optional<std::array<float, 2>> PlayMemoryButton(const EditorImGuiHost &) noexcept;
   static std::string_view PlayMemoryText(const EditorImGuiHost &) noexcept;
   static bool PlayMemoryOpen(const EditorImGuiHost &) noexcept;

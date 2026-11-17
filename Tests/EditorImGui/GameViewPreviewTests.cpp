@@ -1,19 +1,188 @@
 #include "EditorImGuiTestAccess.h"
 #include "GameViewPreview.h"
 #include "Nexora/EditorImGui/EditorImGui.h"
+#include <imgui.h>
+#include <imgui_internal.h>
 #include <iostream>
 #include <limits>
 #include <numbers>
 #include <stdexcept>
+#include <string>
 
 namespace {
 void Require(bool value, const char *message) {
   if (!value)
     throw std::runtime_error(message);
 }
+void CheckCompactGame(float dpi) {
+  using namespace nexora;
+  using namespace editor;
+  runtime::World world;
+  const auto scene = world.LoadScene("Compact Game");
+  Require(world.Activate(scene), "compact Game activation failed");
+  SceneDocument document(world, scene);
+  const auto inspected = document.Create("Inspect me");
+  const auto baseline = world.SaveScene(scene);
+  runtime::PlaySession play(world);
+  Require(play.Start(.1, [](runtime::World &, double) { return true; }),
+          "compact Game start failed");
+  ProductShell shell;
+  imgui::EditorImGuiHost ui;
+  ui.SetDisplay(1280 * dpi, 900 * dpi, dpi);
+  imgui::EditorImGuiTestAccess::ConfigureSyntheticInput(ui);
+  Nexora::Window::WindowEvent focus{};
+  focus.type = Nexora::Window::WindowEventType::FocusChanged;
+  focus.value0 = 1;
+  ui.ProcessEvents(std::array{focus});
+  std::string frame_text;
+  const auto draw = [&](bool log = false) {
+    ui.BeginFrame();
+    if (log)
+      ImGui::LogToBuffer();
+    ui.DrawProductShell(shell, &document, nullptr, nullptr, nullptr, nullptr, nullptr, &play);
+    if (log) {
+      frame_text = GImGui->LogBuffer.c_str();
+      ImGui::LogFinish();
+    }
+    static_cast<void>(ui.EndFrame());
+  };
+  imgui::EditorImGuiTestAccess::FocusGame(ui);
+  for (int i = 0; i < 4; ++i)
+    draw();
+  const auto viewport = ui.NativeGameViewport();
+  auto *window = ImGui::FindWindowByName("Game###nexora.game");
+  Require(viewport && window && viewport->y / dpi - window->Pos.y < 110,
+          "Game header still reserves permanent diagnostic/instruction rows");
+  using Access = imgui::EditorImGuiTestAccess;
+  using Event = Nexora::Window::WindowEvent;
+  using Type = Nexora::Window::WindowEventType;
+  using Key = Nexora::Window::Key;
+  const auto click = [&](std::optional<std::array<float, 2>> point) {
+    Require(point.has_value(), "Game control absent");
+    Event pointer{}, button{};
+    pointer.type = Type::Pointer;
+    pointer.value0 = static_cast<int>((*point)[0] * dpi);
+    pointer.value1 = static_cast<int>((*point)[1] * dpi);
+    button.type = Type::PointerButton;
+    button.value0 = 0;
+    ui.ProcessEvents(std::array{pointer});
+    draw();
+    button.value1 = 1;
+    ui.ProcessEvents(std::array{button});
+    draw();
+    button.value1 = 0;
+    ui.ProcessEvents(std::array{button});
+    draw();
+    draw();
+  };
+  const auto control = [&](std::size_t index) { click(Access::GameToolbarPosition(ui, index)); };
+  const auto escape = [&] {
+    Event key{};
+    key.type = Type::Key;
+    key.value0 = static_cast<int>(Key::Escape);
+    key.value1 = 1;
+    ui.ProcessEvents(std::array{key});
+    draw();
+    key.value1 = 0;
+    ui.ProcessEvents(std::array{key});
+    draw();
+  };
+  draw(true);
+  Require(frame_text.find("Fixed ticks:") == std::string::npos &&
+              frame_text.find("Play World entities:") == std::string::npos &&
+              !Access::GameToolbarPosition(ui, 6),
+          "Game still renders diagnostics or secondary settings permanently");
+  click(std::array{(viewport->x + viewport->width * .5F) / dpi,
+                   (viewport->y + viewport->height * .5F) / dpi});
+  Require(ui.GameInputFocused(), "actual Game canvas did not capture input");
+  Require(ui.NativeGameViewport() && ui.NativeGameViewport()->y == viewport->y,
+          "input capture status reflowed the Game toolbar");
+  control(0);
+  draw(true);
+  Require(!ui.GameInputFocused() && GImGui->OpenPopupStack.Size > 0 &&
+              frame_text.find("Fixed ticks:") != std::string::npos &&
+              frame_text.find("Play World entities:") != std::string::npos,
+          "Game diagnostics did not open with actual counters and release input");
+  control(5);
+  Require(Access::PlayInspectorEntity(ui) == inspected,
+          "contextual Play entity selection no longer reaches the Inspector");
+  escape();
+  Access::FocusGame(ui);
+  draw();
+  control(1);
+  draw(true);
+  Require(GImGui->OpenPopupStack.Size > 0 && Access::GameToolbarPosition(ui, 6),
+          "optional gameplay-library settings are unreachable");
+  control(6);
+  Event text{};
+  text.type = Type::Text;
+  text.value0 = 'x';
+  ui.ProcessEvents(std::array{text});
+  draw();
+  Require(ui.GameplayLibrary().empty(), "running Play allowed library edits");
+  escape();
+  Access::FocusGame(ui);
+  draw();
+  control(3);
+  Require(ui.TakePlayCommand() == imgui::PlayCommand::Pause && play.Pause(),
+          "compact Pause did not emit its original command");
+  draw();
+  control(4);
+  Require(ui.TakePlayCommand() == imgui::PlayCommand::Step && play.Step(),
+          "compact Step did not emit its original command");
+  draw();
+  control(3);
+  Require(ui.TakePlayCommand() == imgui::PlayCommand::Resume && play.Resume(),
+          "compact Resume did not emit its original command");
+  draw();
+  // A floating narrow Game panel must retain every common action without clipping.
+  ImGui::SetWindowDock(window, 0, ImGuiCond_Always);
+  ImGui::SetWindowPos(window, {300, 100}, ImGuiCond_Always);
+  ImGui::SetWindowSize(window, {240, 650}, ImGuiCond_Always);
+  Access::FocusGame(ui);
+  draw();
+  draw();
+  const auto in_panel = [&](const auto &point) {
+    return point && (*point)[0] >= window->Pos.x && (*point)[0] < window->Pos.x + window->Size.x &&
+           (*point)[1] >= window->Pos.y && (*point)[1] < window->Pos.y + window->Size.y;
+  };
+  for (std::size_t index = 0; index < 4; ++index)
+    Require(in_panel(Access::GameToolbarPosition(ui, index)),
+            "narrow Game clipped a common action");
+  Require(in_panel(Access::GameInputUserPosition(ui)) && in_panel(Access::PlayMemoryButton(ui)) &&
+              in_panel(Access::GameInputBindingPosition(ui, 0)) &&
+              in_panel(Access::GameCameraPosition(ui, {})),
+          "narrow Game clipped its input, memory or camera control");
+  const auto before_error = ui.NativeGameViewport();
+  ui.SetGameplayStatus("Gameplay module failed to load.");
+  draw(true);
+  Require(before_error && ui.NativeGameViewport() && ui.NativeGameViewport()->y > before_error->y &&
+              frame_text.find("Gameplay module failed to load.") != std::string::npos,
+          "compact Game hid actionable module feedback");
+  ui.SetGameplayStatus("");
+  draw();
+  control(2);
+  Require(ui.TakePlayCommand() == imgui::PlayCommand::Stop && play.Stop(),
+          "compact Stop did not emit its original command");
+  draw();
+  control(1);
+  control(6);
+  for (const char character : std::string("libGame.so")) {
+    text.value0 = character;
+    ui.ProcessEvents(std::array{text});
+    draw();
+  }
+  Require(ui.GameplayLibrary() == "libGame.so",
+          "stopped library settings did not accept real text");
+  escape();
+  Require(world.SaveScene(scene) == baseline,
+          "Game toolbar or diagnostics mutated the Editor World");
+}
 } // namespace
 int main() {
   try {
+    CheckCompactGame(1);
+    CheckCompactGame(2);
     using namespace nexora;
     using namespace editor;
     runtime::World world;

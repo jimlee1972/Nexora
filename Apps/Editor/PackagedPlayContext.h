@@ -197,6 +197,23 @@ public:
   }
 #endif
 
+  // The UI owner must admit its complete submission before publishing a candidate, including
+  // camera-only/empty geometry. The callback guards against retrying an already-ended GUI frame.
+  Frame RenderWithUi(Nexora::Presentation::SceneViewport viewport, bool retain_geometry,
+                     const Draw &draw) {
+    if (HasSprites()) {
+      Frame result;
+      result.status = Nexora::Presentation::SurfaceStatus::Unsupported;
+      result.error = "Source packages require the owning Scene/Sprite compositor.";
+      return result;
+    }
+    return RenderPrepared(
+        viewport, retain_geometry,
+        draw ? DrawView([&](const auto &data, const auto &, const twod::SpriteFrame *,
+                            std::string &) { return draw(data); })
+             : DrawView{});
+  }
+
   // Invoke after gameplay callbacks, inside the acquired native render frame. Draw borrows all
   // descriptor spans only for its call. The real surface owns uploaded/fence resources. A CPU
   // admission failure keeps the old World/palette and draws it; a native backend failure is

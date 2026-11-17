@@ -292,9 +292,13 @@ def main():
         covered = root / 'occlusion'
         shutil.copytree(project, covered)
         layout_path = covered / '.nexora/editor-layout.ini'
+        # Place the Inspector over the observed Game canvas; its header may wrap or shrink.
+        inspector_x = viewport[0] + viewport[2] // 2 - 125
+        inspector_y = viewport[1]
         layout_path.write_text(layout.replace(
             '[Window][Inspector###nexora.inspector]\nPos=0,700\nSize=100,20\nCollapsed=1',
-            '[Window][Inspector###nexora.inspector]\nPos=890,340\nSize=250,200\nCollapsed=0'))
+            f'[Window][Inspector###nexora.inspector]\nPos={inspector_x},{inspector_y}\n'
+            'Size=250,200\nCollapsed=0'))
         covered_hashes = hashes(covered)
         log, window, observation, wait, key = launch(covered, 'occlusion', automatic=True)
         wait(lambda s: s.get('state') == '1' and s.get('visible') == '2' and 'viewport' in s,
@@ -306,7 +310,8 @@ def main():
         wait(lambda _: not any(source_mask(native_pixels(display, window, viewport))),
              'floating Inspector did not occlude source pixels')
         screenshot(display, window, evidence / 'occluded.png')
-        subprocess.run([args.xdotool, 'mousemove', '--window', str(window), '920', '350'],
+        subprocess.run([args.xdotool, 'mousemove', '--window', str(window),
+                        str(inspector_x + 30), str(inspector_y + 10)],
                        env=env, check=True, timeout=3)
         subprocess.run([args.xdotool, 'click', '--repeat', '2', '--delay', '100', '1'],
                        env=env, check=True, timeout=3)
