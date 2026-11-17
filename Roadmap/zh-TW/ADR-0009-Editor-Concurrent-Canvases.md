@@ -58,3 +58,12 @@ Stable C／Zig layout、asset／resource identity、source format、shader 與 m
 不相交 direct 視圖仍可使用。一般未標記離屏、HDR、陰影路徑仍為獨占，總繪製次數仍為二。
 Editor 繼續抑制重疊的 Scene／Game 畫布。取樣影像支援浮動輔助視窗遮擋，並未接受任意
 Scene／Game 重疊。參見 [Scene 影像生命週期](../../Engine/Presentation/SceneUiComposition.md)。
+
+
+## Game 影像 consumer（2026-11-17）
+
+一般相機／OBJ 與純 3D 封裝 Game 預覽也使用既有 UI 取樣擴充。在 GUI 完成前準備凍結的 Play frame，
+並將型別影像加入所屬 Game draw list，保留彈出視窗順序。封裝 Sprite 擁有者沿用原本的單次提交。
+純 3D 封裝候選即使沒有幾何，也必須在 UI 提交成功後才發布 World；已結束的 GUI 影格不會因保留內容而重試。
+Admission／資源／ABI 界限不變；direct Scene 優先權、不相交視圖檢查及不支援時的 fallback 仍保留。
+參閱[限定驗收](../../Tools/Build/evidence/EditorWorkflow/Game-Toolbar-Linux.md)。

@@ -78,6 +78,63 @@ void NativeRejectionKeepsPlaying() {
               "retained scene stopped after candidate admission rejection");
   }
 }
+void UiSubmissionConservation() {
+  using Nexora::Presentation::SceneDrawData;
+  using Nexora::Presentation::SurfaceStatus;
+  auto package = testscene::Package();
+  package.assets.clear();
+  for (const auto id : {testscene::kLevel, testscene::kTitle}) {
+    runtime::World world;
+    const auto scene = world.LoadScene("Camera only");
+    const auto camera = world.CreateEntity(scene).id;
+    runtime::WorldCommandBuffer edits;
+    edits.SetCamera(camera, runtime::CameraComponent{});
+    Require(edits.Apply(world), "empty UI fixture camera");
+    const auto bytes = runtime::EncodeCookedScene({*world.SaveScene(scene), {}, {}});
+    Require(bool(bytes), "empty UI fixture encoding");
+    package.assets.push_back(testscene::Cook(id, runtime::kCookedSceneType, bytes.Value()));
+  }
+  const auto loaded = runtime::LoadGameProjectPackage(std::move(package));
+  Require(bool(loaded), "empty UI fixture package");
+  auto project = std::make_shared<const runtime::LoadedGameProject>(std::move(*loaded));
+  editor::preview::PackagedPlayContext context(project);
+  unsigned submissions{};
+  const auto reject = [&](const SceneDrawData &data) {
+    Require(data.instances.empty(), "empty UI fixture unexpectedly rendered meshes");
+    ++submissions;
+    return SurfaceStatus::InvalidDescriptor;
+  };
+  const auto rejected = context.RenderWithUi({0, 0, 640, 480}, false, reject);
+  Require(submissions == 1 && rejected.rejected && !rejected.committed && !context.Ready() &&
+              context.Commits() == 0,
+          "empty candidate bypassed GUI admission or published after GUI failure");
+  std::uint64_t request{};
+  Require(context.Scenes().RequestLoad(testscene::kLevel, runtime::GameSceneLoadMode::Replace,
+                                       false, request) == runtime::GameSceneError::None,
+          "empty UI startup retry");
+  const auto accept = [&](const SceneDrawData &data) {
+    Require(data.instances.empty(), "empty UI retained unexpected meshes");
+    ++submissions;
+    return SurfaceStatus::Ready;
+  };
+  Require(context.RenderWithUi({0, 0, 640, 480}, false, accept).committed && context.Ready() &&
+              context.Commits() == 1 && submissions == 2,
+          "empty candidate did not publish after GUI admission");
+  const auto primary = context.Scenes().View().primary;
+  const auto baseline = context.World().InternalWorld().SaveScene(primary);
+  Require(context.Scenes().RequestLoad(testscene::kTitle, runtime::GameSceneLoadMode::Replace,
+                                       false, request) == runtime::GameSceneError::None,
+          "empty UI replacement request");
+  const auto lost_ui = [&](const SceneDrawData &) {
+    ++submissions;
+    return SurfaceStatus::DeviceLost;
+  };
+  const auto retained = context.RenderWithUi({0, 0, 640, 480}, false, lost_ui);
+  Require(retained.rejected && !retained.committed && context.Commits() == 1 && submissions == 3 &&
+              context.Scenes().View().primary == primary &&
+              context.World().InternalWorld().SaveScene(primary) == baseline,
+          "empty candidate UI failure replaced the live World or retried a lost device");
+}
 void Run(const std::filesystem::path &module_path, const std::filesystem::path &root) {
   std::filesystem::create_directory(root);
   const auto library = root / module_path.filename();
@@ -162,6 +219,7 @@ int main(int argc, char **argv) {
                     ("nexora-packaged-play-services-" +
                      std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
   try {
+    UiSubmissionConservation();
     CandidateConservation();
     NativeRejectionKeepsPlaying();
     const std::string_view value(argv[1]);
