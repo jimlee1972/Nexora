@@ -50,6 +50,14 @@ Windows / macOS / Android / iOS 的 preset 在雲端跑不了（缺 MSVC、Xcode
 - 里程碑進度不要虛報。SDK backend 或工具沒有實際跑過，就不要標記為完成 —
   README 現有的措辭刻意區分「contract 基礎」與「實作完成」，維持這個區分。
 
+## Editor 介面規範
+
+Editor UI 依循 [AGENTS.md 的介面約定](AGENTS.md#editor-interface-conventions)與
+[Editor 使用文件](Apps/Editor/README.md#editor-interface-standard)：參考 Unity Editor 的等價功能，
+使用精簡圖示工具列、具名稱與快捷鍵的提示，以及按需展開的設定／說明。狀態用簡短指示呈現，
+可採取行動的錯誤／警告保持可見；除錯與實作資訊放在專用診斷介面。
+調整版面時保留操作、權限與輸入保護，檢查實際 Editor、窄面板及代表性的 1x／2x 互動，並同步操作文件。
+
 ## 工作習慣
 
 - 動手前先讀相關的 README 與 roadmap 文件，不要從檔名猜架構。

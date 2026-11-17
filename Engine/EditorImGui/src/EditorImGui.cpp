@@ -396,6 +396,7 @@ struct EditorImGuiHost::State final {
   std::optional<std::array<float, 2>> scene_frame_all_position, scene_select_all_position;
   std::optional<SceneFileToken> native_scene_select_all_request;
   std::array<std::optional<std::array<float, 2>>, 5> native_scene_tool_positions;
+  std::array<std::optional<std::array<float, 2>>, 7> scene_toolbar_positions;
   std::optional<SceneFileToken> scene_frame_token;
   std::optional<SceneFileToken> native_scene_frame_all_request, native_scene_frame_all_apply;
   std::optional<Nexora::Presentation::SceneViewport> native_game_viewport;
@@ -2366,17 +2367,95 @@ void AcceptSceneMeshDrop(StateT &state, SceneDocument &scene, ProjectContentSess
   ImGui::EndDragDropTarget();
 }
 
+// Keep every toolbar control reachable when a dock is narrowed or the font grows.
+void ContinueSceneToolbar() {
+  const auto right = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
+  if (ImGui::GetItemRectMax().x + ImGui::GetStyle().ItemSpacing.x + detail::IconButtonExtent() <=
+      right)
+    ImGui::SameLine();
+}
+
+template <typename StateT> void CaptureSceneToolbarControl(StateT &state, std::size_t index) {
+  const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+  state.scene_toolbar_positions[index] = std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+}
+
+template <typename StateT>
+void DrawSceneViewOptions(StateT &state, bool native, bool settings_allowed) {
+  ContinueSceneToolbar();
+  ImGui::BeginDisabled(!settings_allowed);
+  if (detail::IconButton("Scene view settings", detail::EditorIcon::Settings,
+                         state.scene_snap_to_grid))
+    ImGui::OpenPopup("Scene view settings");
+  ImGui::EndDisabled();
+  CaptureSceneToolbarControl(state, 1);
+  const auto settings_item = GImGui->LastItemData;
+  if (ImGui::BeginPopup("Scene view settings")) {
+    ImGui::BeginDisabled(!settings_allowed);
+    if (native) {
+      ImGui::BeginDisabled(state.native_scene_tool == NativeSceneTool::Scale);
+      ImGui::Checkbox("Local axes (X)", &state.native_scene_local_axes);
+      CaptureSceneToolbarControl(state, 3);
+      ImGui::EndDisabled();
+      ImGui::Checkbox("Center pivot (Z)", &state.native_scene_center_pivot);
+      CaptureSceneToolbarControl(state, 4);
+    }
+    ImGui::Checkbox("Snap movement", &state.scene_snap_to_grid);
+    CaptureSceneToolbarControl(state, 5);
+    ImGui::BeginDisabled(!state.scene_snap_to_grid);
+    ImGui::SetNextItemWidth(ImGui::GetFontSize() * 7);
+    ImGui::Combo("Step (world units)", &state.scene_snap_step_index,
+                 "0.25\0"
+                 "0.5\0"
+                 "1\0"
+                 "2\0"
+                 "4\0");
+    ImGui::EndDisabled();
+    ImGui::EndDisabled();
+    ImGui::EndPopup();
+  }
+  GImGui->LastItemData = settings_item;
+  ContinueSceneToolbar();
+  if (detail::IconButton("Scene navigation help", detail::EditorIcon::Info))
+    ImGui::OpenPopup("Scene navigation help");
+  CaptureSceneToolbarControl(state, 2);
+  const auto help_item = GImGui->LastItemData;
+  if (ImGui::BeginPopup("Scene navigation help")) {
+    const float help_width = std::max(
+        1.0F, std::min(ImGui::GetFontSize() * 40.0F, ImGui::GetMainViewport()->WorkSize.x - 32.0F));
+    ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + help_width);
+    ImGui::TextUnformatted("Scene navigation");
+    ImGui::Separator();
+    ImGui::TextUnformatted("F: frame selection | Home: frame all | Ctrl+A: select all");
+    if (native) {
+      ImGui::TextUnformatted("Shift+F: follow selection | Alt+Left: orbit");
+      ImGui::TextUnformatted("Middle / Space+Left: pan | Right+WASD/QE: fly");
+      ImGui::TextUnformatted("Wheel: zoom / flight speed");
+      ImGui::Separator();
+      ImGui::TextUnformatted("Q: hand | W: move | E: rotate | R: scale");
+      ImGui::TextUnformatted("X: local/global | Z: pivot/center | Escape: cancel drag");
+      ImGui::TextUnformatted("Ctrl: move snap | Shift: 15-degree / 0.25 scale snap");
+      ImGui::TextUnformatted("Ctrl/Shift+click: toggle selection");
+    } else {
+      ImGui::TextUnformatted("Top-down X/Z | Middle: pan | Wheel: zoom");
+      ImGui::TextUnformatted("Drag marker: free move | Red X / blue Z: axis move");
+      ImGui::TextUnformatted("Escape: cancel drag | Ctrl+click: toggle selection");
+    }
+    ImGui::PopTextWrapPos();
+    ImGui::EndPopup();
+  }
+  GImGui->LastItemData = help_item;
+}
+
 template <typename StateT>
 void DrawSceneOverview(StateT &state, SceneDocument &scene, bool editable,
                        ProjectContentSession *content, const MeshAssetCatalog *meshes,
                        bool navigation_allowed) {
-  ImGui::TextUnformatted("Top-down X/Z | Drag marker: free move | Drag red X/blue Z: axis move | "
-                         "Middle: pan | Wheel: zoom");
   ImGui::BeginDisabled(scene.Selection().empty() || state.scene_drag.has_value());
   const bool frame_selected =
       detail::SmallIconButton("Frame selected", detail::EditorIcon::FrameSelected, false, "F");
   ImGui::EndDisabled();
-  ImGui::SameLine();
+  ContinueSceneToolbar();
   ImGui::BeginDisabled(state.scene_drag.has_value());
   const bool frame_all =
       detail::SmallIconButton("Frame all", detail::EditorIcon::FrameAll, false, "Home");
@@ -2384,7 +2463,7 @@ void DrawSceneOverview(StateT &state, SceneDocument &scene, bool editable,
   state.scene_frame_all_position =
       std::array{(frame_min.x + frame_max.x) * 0.5F, (frame_min.y + frame_max.y) * 0.5F};
   ImGui::EndDisabled();
-  ImGui::SameLine();
+  ContinueSceneToolbar();
   ImGui::BeginDisabled(!navigation_allowed || state.scene_drag.has_value());
   const bool select_all =
       detail::SmallIconButton("Select all", detail::EditorIcon::SelectAll, false, "Ctrl+A");
@@ -2392,19 +2471,8 @@ void DrawSceneOverview(StateT &state, SceneDocument &scene, bool editable,
   state.scene_select_all_position =
       std::array{(select_min.x + select_max.x) * 0.5F, (select_min.y + select_max.y) * 0.5F};
   ImGui::EndDisabled();
-  ImGui::TextDisabled("F: selected | Home: all | Ctrl+A: select all");
   constexpr std::array snap_steps{0.25F, 0.5F, 1.0F, 2.0F, 4.0F};
-  ImGui::Checkbox("Snap movement", &state.scene_snap_to_grid);
-  ImGui::SameLine();
-  ImGui::BeginDisabled(!state.scene_snap_to_grid);
-  ImGui::SetNextItemWidth(100.0F);
-  ImGui::Combo("Step (world units)", &state.scene_snap_step_index,
-               "0.25\0"
-               "0.5\0"
-               "1\0"
-               "2\0"
-               "4\0");
-  ImGui::EndDisabled();
+  DrawSceneViewOptions(state, false, navigation_allowed && !state.scene_drag);
   const auto available = ImGui::GetContentRegionAvail();
   const ImVec2 size{std::max(available.x, 1.0F), std::max(available.y, 160.0F)};
   ImGui::InvisibleButton("##scene-overview", size,
@@ -5582,6 +5650,7 @@ void EditorImGuiHost::BeginFrame(float delta_seconds) {
   state_->scene_select_all_position.reset();
   state_->native_scene_select_all_request.reset();
   state_->native_scene_tool_positions = {};
+  state_->scene_toolbar_positions = {};
   state_->scene_frame_token.reset();
   state_->native_scene_frame_all_request.reset();
   state_->native_scene_frame_all_apply.reset();
@@ -6281,7 +6350,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       state_->saved_game_decision_positions[index] =
           std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
     };
-    if (detail::IconButton("Save Scene", detail::EditorIcon::Save, false, "Ctrl+S"))
+    if (detail::IconButton("Save Scene", detail::EditorIcon::Save, scene && scene->Dirty(),
+                           "Ctrl+S"))
       decide(SavedGameDecision::Save);
     capture_decision(0);
     ImGui::SameLine();
@@ -6560,29 +6630,24 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   const auto scene_window = PanelWindowName("nexora.scene");
   if (ImGui::Begin(scene_window.c_str(), nullptr, PanelWindowFlags(*state_))) {
     if (state_->scene_tabs.empty() && scene && workspace) {
-      ImGui::AlignTextToFramePadding();
-      ImGui::TextUnformatted(state_->scene_file_path
-                                 ? PathLabel(state_->scene_file_path->filename()).c_str()
-                                 : "Untitled Scene");
       ImGui::BeginDisabled(!file_context_valid || file_external_block || file_busy ||
                            game_running || state_->content_rename_target);
       ImGui::BeginDisabled(!writable);
       if (detail::IconButton("New Scene", detail::EditorIcon::Add, false, "Ctrl+N"))
         BeginSceneFile(*state_, *scene, SceneFileAction::New);
       ImGui::EndDisabled();
-      ImGui::SameLine();
+      ContinueSceneToolbar();
       if (detail::IconButton("Open Scene...", detail::EditorIcon::Open, false, "Ctrl+O"))
         BeginSceneFile(*state_, *scene, SceneFileAction::Open);
       ImGui::EndDisabled();
-      ImGui::Separator();
     }
     DrawSceneTabs(*state_,
                   tab_context_valid && !file_external_block && !game_running &&
                       state_->scene_file_dialog == State::FileDialog::None &&
                       !state_->scene_file_output && !state_->content_rename_target,
                   workspace && workspace->Writable());
-    if (workspace && !workspace->Writable())
-      ImGui::TextDisabled("Read-only project: scene editing disabled.");
+    if (state_->scene_tabs.empty() && scene && workspace)
+      ContinueSceneToolbar();
     ImGui::BeginDisabled(scene == nullptr || !scene_editable);
     if (detail::IconButton("Undo", detail::EditorIcon::Undo, false, "Ctrl+Z")) {
       CancelSceneGestures(*state_);
@@ -6592,7 +6657,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       state_->scene_save_success = true;
       state_->hierarchy_selection_anchor.reset();
     }
-    ImGui::SameLine();
+    ContinueSceneToolbar();
     if (detail::IconButton("Redo", detail::EditorIcon::Redo, false, "Ctrl+Shift+Z")) {
       CancelSceneGestures(*state_);
       static_cast<void>(shell.RouteCommand("editor.scene.redo"));
@@ -6601,27 +6666,58 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       state_->scene_save_success = true;
       state_->hierarchy_selection_anchor.reset();
     }
-    ImGui::SameLine();
-    if (detail::IconButton("Save Scene", detail::EditorIcon::Save, false, "Ctrl+S") &&
+    ContinueSceneToolbar();
+    // Dirty computes the document signature; share one observation after Undo/Redo.
+    const bool scene_header_dirty = scene && scene->Dirty();
+    if (detail::IconButton("Save Scene", detail::EditorIcon::Save, scene_header_dirty, "Ctrl+S") &&
         scene != nullptr) {
       static_cast<void>(shell.RouteCommand("editor.scene.save"));
       state_->scene_save_requested = true;
     }
     ImGui::EndDisabled();
-    if (scene != nullptr) {
-      if (scene->Dirty())
-        ImGui::TextColored(detail::WarningColor(), "Unsaved scene changes");
-      else
-        ImGui::TextDisabled("Scene saved");
+    CaptureSceneToolbarControl(*state_, 6);
+    const auto save_item = GImGui->LastItemData;
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+      ImGui::SetTooltip("Save Scene (Ctrl+S)\n%s%s%s",
+                        scene ? (scene_header_dirty ? "Unsaved changes" : "Saved") : "No scene",
+                        state_->scene_save_message.empty() ? "" : "\nLast action: ",
+                        state_->scene_save_message.c_str());
+    GImGui->LastItemData = save_item;
+    if (workspace && !workspace->Writable()) {
+      ContinueSceneToolbar();
+      static_cast<void>(detail::IconButton("Read-only project: scene editing disabled",
+                                           detail::EditorIcon::Lock));
     }
-    if (!state_->scene_save_message.empty()) {
-      if (!state_->scene_save_success)
-        ImGui::TextColored(detail::ErrorColor(), "%s", state_->scene_save_message.c_str());
-      else
-        ImGui::TextUnformatted(state_->scene_save_message.c_str());
+    if (scene && state_->scene_tabs.empty()) {
+      ContinueSceneToolbar();
+      ImGui::AlignTextToFramePadding();
+      const auto label = (state_->scene_file_path ? PathLabel(state_->scene_file_path->filename())
+                                                  : std::string("Untitled Scene")) +
+                         (scene_header_dirty ? " *" : "");
+      const auto pos = ImGui::GetCursorScreenPos();
+      const auto end = ImVec2(pos.x + std::max(1.0F, ImGui::GetContentRegionAvail().x),
+                              pos.y + ImGui::GetTextLineHeight());
+      ImGui::RenderTextEllipsis(ImGui::GetWindowDrawList(), pos, end, end.x, end.x, label.c_str(),
+                                nullptr, nullptr);
+      ImGui::Dummy({std::max(1.0F, end.x - pos.x), ImGui::GetTextLineHeight()});
+      if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("%s", label.c_str());
     }
-    if (ImGui::Checkbox("3D Preview", &state_->native_scene_preview))
+    if (!state_->scene_save_success && !state_->scene_save_message.empty()) {
+      ImGui::PushStyleColor(ImGuiCol_Text, detail::ErrorColor());
+      ImGui::TextWrapped("%s", state_->scene_save_message.c_str());
+      ImGui::PopStyleColor();
+    }
+    ImGui::Separator();
+    ImGui::BeginDisabled(!state_->app_focused || interaction_blocked || state_->scene_drag ||
+                         state_->native_scene_drag_origin || state_->native_scene_drag);
+    if (detail::IconButton("3D Preview", detail::EditorIcon::Mesh, state_->native_scene_preview)) {
+      state_->native_scene_preview = !state_->native_scene_preview;
       CancelSceneGestures(*state_);
+    }
+    CaptureSceneToolbarControl(*state_, 0);
+    ImGui::EndDisabled();
+    ContinueSceneToolbar();
     if (scene != nullptr) {
       if (state_->native_scene_preview) {
         state_->scene_markers.clear();
@@ -6633,7 +6729,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         state_->scene_frame_position =
             std::array{(frame_min.x + frame_max.x) * 0.5F, (frame_min.y + frame_max.y) * 0.5F};
         ImGui::EndDisabled();
-        ImGui::SameLine();
+        ContinueSceneToolbar();
         ImGui::BeginDisabled(state_->native_scene_drag_origin.has_value());
         const bool frame_all_clicked =
             detail::SmallIconButton("Frame all", detail::EditorIcon::FrameAll, false, "Home");
@@ -6641,7 +6737,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         state_->scene_frame_all_position =
             std::array{(all_min.x + all_max.x) * 0.5F, (all_min.y + all_max.y) * 0.5F};
         ImGui::EndDisabled();
-        ImGui::SameLine();
+        ContinueSceneToolbar();
         ImGui::BeginDisabled(!state_->app_focused || interaction_blocked ||
                              !state_->native_scene_preview_available ||
                              state_->native_scene_drag_origin || state_->native_scene_drag);
@@ -6651,24 +6747,6 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         state_->scene_select_all_position =
             std::array{(select_min.x + select_max.x) * 0.5F, (select_min.y + select_max.y) * 0.5F};
         ImGui::EndDisabled();
-        ImGui::TextDisabled("F: frame | Shift+F: follow | Alt+Left: orbit | Middle: pan | "
-                            "Right+WASD/QE: fly | Wheel: zoom/speed");
-        if (state_->native_scene_tool == NativeSceneTool::Hand)
-          ImGui::TextDisabled("Left drag: pan | Alt+Left: orbit | Right+WASD/QE: fly");
-        else if (state_->native_scene_tool == NativeSceneTool::Select)
-          ImGui::TextDisabled(
-              "Click: select | Ctrl+click: toggle | W: move | E: rotate | R: scale");
-        else if (state_->native_scene_tool == NativeSceneTool::Rotate)
-          ImGui::TextDisabled(
-              "Drag colored rings: rotate | Shift: 15 deg snap | W: move | R: scale");
-        else if (state_->native_scene_tool == NativeSceneTool::Scale)
-          ImGui::TextDisabled(
-              "Drag cubes: local/uniform scale | Shift: 0.25 snap | W: move | E: rotate");
-        else
-          ImGui::TextDisabled("Drag axes/planes: move | Ctrl: snap | Ctrl/Shift+click: toggle "
-                              "selection | E/R: rotate/scale");
-        ImGui::TextDisabled(
-            "Q: hand | W/E/R: move/rotate/scale | X: local/global | Z: pivot/center");
         ImGui::BeginDisabled(!state_->app_focused || interaction_blocked ||
                              state_->native_scene_drag_origin || state_->native_scene_drag);
         constexpr std::array tools{NativeSceneTool::Hand, NativeSceneTool::Select,
@@ -6680,8 +6758,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                                         detail::EditorIcon::Move, detail::EditorIcon::Rotate,
                                         detail::EditorIcon::Scale};
         for (std::size_t index = 0; index < tools.size(); ++index) {
-          if (index != 0)
-            ImGui::SameLine();
+          ContinueSceneToolbar();
           if (detail::IconRadioButton(tool_labels[index], tool_icons[index],
                                       state_->native_scene_tool == tools[index])) {
             state_->native_scene_tool = tools[index];
@@ -6692,25 +6769,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           state_->native_scene_tool_positions[static_cast<std::size_t>(tools[index])] =
               std::array{(tool_min.x + tool_max.x) * 0.5F, (tool_min.y + tool_max.y) * 0.5F};
         }
-        ImGui::BeginDisabled(state_->native_scene_tool == NativeSceneTool::Scale);
-        ImGui::Checkbox("Local axes (X)", &state_->native_scene_local_axes);
         ImGui::EndDisabled();
-        ImGui::SameLine();
-        ImGui::Checkbox("Center pivot (Z)", &state_->native_scene_center_pivot);
-        ImGui::EndDisabled();
-        ImGui::SameLine();
         constexpr std::array snap_steps{0.25, 0.5, 1.0, 2.0, 4.0};
-        ImGui::Checkbox("Snap movement", &state_->scene_snap_to_grid);
-        ImGui::SameLine();
-        ImGui::BeginDisabled(!state_->scene_snap_to_grid);
-        ImGui::SetNextItemWidth(140.0F);
-        ImGui::Combo("Step (world units)", &state_->scene_snap_step_index,
-                     "0.25\0"
-                     "0.5\0"
-                     "1\0"
-                     "2\0"
-                     "4\0");
-        ImGui::EndDisabled();
+        DrawSceneViewOptions(*state_, true,
+                             state_->app_focused && !interaction_blocked &&
+                                 !state_->native_scene_drag_origin && !state_->native_scene_drag);
         if (!state_->native_scene_preview_available)
           ImGui::TextUnformatted("Native 3D preview is unavailable on this backend.");
         if (!state_->scene_sprite_status.empty())
@@ -10863,6 +10926,13 @@ std::optional<std::array<float, 2>> EditorImGuiTestAccess::PrefabPlacementRebase
 const PrefabPlacementRebaseReport *
 EditorImGuiTestAccess::PrefabRebaseReport(const EditorImGuiHost &host) noexcept {
   return host.state_->prefab_rebase_report ? &*host.state_->prefab_rebase_report : nullptr;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::SceneToolbarPosition(const EditorImGuiHost &host,
+                                            std::size_t control) noexcept {
+  return control < host.state_->scene_toolbar_positions.size()
+             ? host.state_->scene_toolbar_positions[control]
+             : std::nullopt;
 }
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::SceneFramePosition(const EditorImGuiHost &host) noexcept {

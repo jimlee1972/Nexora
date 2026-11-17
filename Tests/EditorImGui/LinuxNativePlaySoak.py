@@ -219,11 +219,23 @@ def main():
             wait(lambda: len(re.findall(rb'native game viewport:', captured)) >= cycle,
                  'Native Game viewport did not return')
             if fresh_pixels is None:
+                stable_game_pixels = None
+                stable_game_since = None
+
                 def fresh_ready():
-                    nonlocal fresh_pixels
+                    nonlocal fresh_pixels, stable_game_pixels, stable_game_since
                     actual = pixels()
-                    if sum(r > 100 and g > 90 and b > 75 and r > b + 10
-                           for r, g, b in zip(actual[::3], actual[1::3], actual[2::3])) > 20:
+                    visible = sum(r > 100 and g > 90 and b > 75 and r > b + 10
+                                  for r, g, b in zip(actual[::3], actual[1::3], actual[2::3])) > 20
+                    now = time.monotonic()
+                    if not visible:
+                        stable_game_pixels = stable_game_since = None
+                    elif actual != stable_game_pixels:
+                        stable_game_pixels, stable_game_since = actual, now
+                    elif now - stable_game_since >= .3:
+                        # As for the authoring canvas above, a viewport/first colored readback
+                        # can precede completed presentation. Freeze before sending any input;
+                        # later exact comparisons never move this baseline or extend deadlines.
                         fresh_pixels = actual
                         return True
                     return False

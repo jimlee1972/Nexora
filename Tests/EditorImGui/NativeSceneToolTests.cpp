@@ -1,5 +1,6 @@
 #include "EditorImGuiTestAccess.h"
 #include <imgui.h>
+#include <imgui_internal.h>
 
 #include <algorithm>
 #include <array>
@@ -8,6 +9,7 @@
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
+#include <string>
 
 namespace {
 using namespace nexora;
@@ -45,9 +47,17 @@ void Run(float dpi) {
   editor::ProjectWorkspace *workspace = &writer;
   bool auxiliary_text_visible{}, auxiliary_text_active{}, auxiliary_focus_requested{};
   std::array<char, 64> auxiliary_text{};
+  bool log_scene_frame{};
+  std::string scene_frame_text;
   const auto draw = [&] {
     ui.BeginFrame();
+    if (log_scene_frame)
+      ImGui::LogToBuffer();
     ui.DrawProductShell(shell, &scene, workspace);
+    if (log_scene_frame) {
+      scene_frame_text = GImGui->LogBuffer.c_str();
+      ImGui::LogFinish();
+    }
     if (auxiliary_text_visible) {
       if (auxiliary_focus_requested)
         ImGui::SetNextWindowFocus();
@@ -95,6 +105,60 @@ void Run(float dpi) {
     ui.ProcessEvents(std::array{key(value, false)});
     draw();
   };
+  // The Scene canvas keeps its space; routine feedback must not grow persistent help rows.
+  auto *scene_window = ImGui::FindWindowByName("Scene###nexora.scene");
+  Require(scene_window && viewport->y / dpi - scene_window->Pos.y < 120,
+          "Scene toolbar still consumes excessive vertical canvas space");
+  ui.SetSceneSaveResult("Nothing to redo.", true);
+  draw();
+  Require(ui.NativeScenePreviewViewport()->y == viewport->y,
+          "routine history feedback added a persistent Scene row");
+  ui.SetSceneSaveResult("Scene save failed: output unavailable.", false);
+  draw();
+  Require(ui.NativeScenePreviewViewport()->y > viewport->y,
+          "save errors became hidden with routine feedback");
+  ui.SetSceneSaveResult("Scene saved.", true);
+  draw();
+  const auto click_control = [&](std::size_t control) {
+    const auto point = Access::SceneToolbarPosition(ui, control);
+    Require(point.has_value(), "Scene toolbar control was not rendered");
+    auto mouse = pointer;
+    mouse.value0 = static_cast<int>((*point)[0] * dpi);
+    mouse.value1 = static_cast<int>((*point)[1] * dpi);
+    button.value1 = 1;
+    ui.ProcessEvents(std::array{mouse, button});
+    draw();
+    button.value1 = 0;
+    ui.ProcessEvents(std::array{button});
+    draw();
+    draw();
+  };
+  click_control(1);
+  Require(GImGui->OpenPopupStack.Size > 0, "Scene settings did not open");
+  const bool local_axes_before = ui.NativeSceneLocalAxes();
+  const bool center_pivot_before = ui.NativeSceneCenterPivot();
+  click_control(3);
+  click_control(4);
+  Require(ui.NativeSceneLocalAxes() != local_axes_before &&
+              ui.NativeSceneCenterPivot() != center_pivot_before,
+          "Scene settings no longer change axes/pivot");
+  click_control(3);
+  click_control(4);
+  click_control(5);
+  click_control(5);
+  press(Key::Escape);
+  click_control(2);
+  Require(GImGui->OpenPopupStack.Size > 0, "Scene navigation help did not open");
+  press(Key::Escape);
+  click_control(0);
+  Require(!ui.NativeScenePreviewViewport() && ui.SceneCanvasViewport(),
+          "Scene view toggle no longer opens the overview");
+  click_control(0);
+  Require(ui.NativeScenePreviewViewport().has_value(), "Scene view toggle did not restore 3D");
+  Access::FocusScene(ui);
+  ui.ProcessEvents(std::array{pointer});
+  draw();
+  button.value1 = 1;
   // Q must pan the view without picking, authoring, or producing a transform gesture.
   const auto camera_before = ui.GetSceneOverviewCamera();
   ui.ProcessEvents(std::array{pointer, key(Key::Q, true), button});
@@ -452,6 +516,61 @@ void Run(float dpi) {
               std::ranges::equal(scene.Selection(), std::array{entity}) && scene.Redo() &&
               scene.Name(redo) == "Retained Redo",
           "tool navigation mutated authoring/history");
+  // All actions remain in bounds when the Scene dock becomes a narrow floating panel.
+  scene_window = ImGui::FindWindowByName("Scene###nexora.scene");
+  ImGui::SetWindowDock(scene_window, 0, ImGuiCond_Always);
+  ImGui::SetWindowPos(scene_window, {300, 100}, ImGuiCond_Always);
+  ImGui::SetWindowSize(scene_window, {240, 600}, ImGuiCond_Always);
+  Access::FocusScene(ui);
+  draw();
+  draw();
+  const auto in_panel = [&](const auto &point) {
+    return point && (*point)[0] >= scene_window->Pos.x &&
+           (*point)[0] < scene_window->Pos.x + scene_window->Size.x &&
+           (*point)[1] >= scene_window->Pos.y &&
+           (*point)[1] < scene_window->Pos.y + scene_window->Size.y;
+  };
+  for (const auto tool : {Tool::Hand, Tool::Select, Tool::Move, Tool::Rotate, Tool::Scale})
+    Require(in_panel(Access::NativeSceneToolPosition(ui, tool)),
+            "narrow Scene clipped a transform tool");
+  for (std::size_t control = 0; control < 3; ++control)
+    Require(in_panel(Access::SceneToolbarPosition(ui, control)),
+            "narrow Scene clipped its view/settings/help control");
+  // Hovering Save must not change the narrow toolbar's wrapping or canvas bounds.
+  ui.SetSceneSaveResult("Scene saved.", true);
+  Require(scene.Dirty(), "Save feedback fixture must have new unsaved changes");
+  press(Key::Escape);
+  auto neutral_pointer = pointer;
+  neutral_pointer.value0 = 10;
+  neutral_pointer.value1 = 10;
+  ui.ProcessEvents(std::array{neutral_pointer});
+  draw();
+  draw();
+  const auto before_save_hover = ui.NativeScenePreviewViewport();
+  const auto save_position = Access::SceneToolbarPosition(ui, 6);
+  Require(before_save_hover && save_position, "narrow Scene save control/viewport missing");
+  auto save_hover = pointer;
+  save_hover.value0 = static_cast<int>((*save_position)[0] * dpi);
+  save_hover.value1 = static_cast<int>((*save_position)[1] * dpi);
+  ui.ProcessEvents(std::array{save_hover});
+  draw();
+  log_scene_frame = true;
+  draw();
+  log_scene_frame = false;
+  Require(GImGui->HoveredId == scene_window->GetID("Save Scene"),
+          "narrow Scene did not actually hover Save");
+  bool tooltip_visible = false;
+  for (const auto *window : GImGui->Windows)
+    tooltip_visible |=
+        (window->Flags & ImGuiWindowFlags_Tooltip) && window->LastFrameActive == GImGui->FrameCount;
+  Require(tooltip_visible, "Save hover did not render its actual tooltip");
+  Require(ui.NativeScenePreviewViewport() &&
+              ui.NativeScenePreviewViewport()->y == before_save_hover->y,
+          "Save hover reflowed the compact Scene toolbar");
+  const auto tooltip_text = scene_frame_text.find("Save Scene (Ctrl+S)");
+  Require(tooltip_text != std::string::npos, "Save tooltip text was not actually rendered");
+  Require(scene_frame_text.substr(tooltip_text, 100).find("Unsaved changes") != std::string::npos,
+          "Save tooltip hid current dirty state behind stale success feedback");
   reader = editor::ProjectWorkspace{};
   writer = editor::ProjectWorkspace{};
   std::filesystem::remove_all(root);

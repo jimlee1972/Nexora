@@ -36,7 +36,7 @@ def source_mask(rgb):
                  for r, g, b in zip(rgb[::3], rgb[1::3], rgb[2::3]))
 
 
-def native_pixels(display_name, window, viewport):
+def native_pixels(display_name, window, viewport, *, verify_bulk=False):
     """Read the complete physical canvas; the older Scene helper samples only its center."""
     x11 = ctypes.CDLL('libX11.so.6')
     x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
@@ -56,6 +56,20 @@ def native_pixels(display_name, window, viewport):
         image = x11.XGetImage(display, window, x, y, width, height,
                               ctypes.c_ulong(-1).value, 2)
         require(image, 'native canvas readback failed')
+        # Xvfb's packed little-endian BGRX8 image can be converted without one ctypes
+        # call per pixel. Preserve every RGB byte; other formats keep the original reader.
+        frame = image.contents
+        bulk = None
+        if (frame.bits_per_pixel == 32 and frame.byte_order == 0 and frame.xoffset == 0 and
+                frame.bytes_per_line == width * 4 and
+                (frame.red_mask, frame.green_mask, frame.blue_mask) ==
+                (0xff0000, 0xff00, 0xff)):
+            packed = ctypes.string_at(frame.data, width * height * 4)
+            rgb = bytearray(width * height * 3)
+            rgb[0::3], rgb[1::3], rgb[2::3] = packed[2::4], packed[1::4], packed[0::4]
+            bulk = bytes(rgb)
+            if not verify_bulk:
+                return bulk
         rgb = bytearray()
         for y in range(height):
             for x in range(width):
@@ -63,7 +77,11 @@ def native_pixels(display_name, window, viewport):
                 rgb.extend(channel(pixel, mask) for mask in
                            (image.contents.red_mask, image.contents.green_mask,
                             image.contents.blue_mask))
-        return bytes(rgb)
+        reference = bytes(rgb)
+        if bulk is not None:
+            require(bulk == reference, 'bulk X11 readback differs from XGetPixel reference')
+            print(f'Native bulk RGB readback matches XGetPixel: {width}x{height}', flush=True)
+        return reference
     finally:
         if image:
             x11.XDestroyImage(image)

@@ -1,5 +1,9 @@
 # Nexora 圖形化 Editor Roadmap
 
+### ✅ 精簡 Scene 視圖控制
+
+Scene 檔案／視圖操作改為可換行的圖示工具列。座標軸、Pivot、吸附設定與導航說明按需開啟；例行狀態不再佔用畫布，未儲存／唯讀指示及儲存失敗仍保留。實際 1x／2x 設定與視圖切換、窄面板工具邊界，以及原有導航／歷史保護均通過。參閱[限定 Linux 證據](../../Tools/Build/evidence/EditorWorkflow/Scene-Toolbar-Linux.md)。共同的 [Editor 介面規範](../../Apps/Editor/README.md#editor-interface-standard)與 [AGENTS.md 約定](../../AGENTS.md#editor-interface-conventions)也將此做法納入後續 Editor 開發。此支援性 UI 調整不改變 5/9 workflow 或 0/8 Editor 里程碑計數。
+
 ### ✅ 保存停靠分頁與無測試圖形版建置（2026-11-12）
 
 還原保存版面時，常駐面板不再因首次顯示而搶走焦點，重建 UI context 與原生程序重啟均保留
