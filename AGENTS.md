@@ -153,5 +153,3 @@ repository files. Do not merge if validation fails.
 ## Manual CI policy (2026-11-17 update)
 
 - The user requested manual-only routine CI across their repositories. PR creation/updates and ordinary branch pushes, including merges into main, must not trigger CI. Preserve workflow_dispatch and explicit release tag/recovery pipelines. This supersedes the earlier main-push CI policy.
-
-- 2026-11-17: Per user instruction, all manual CI workflow display names are `CI`. Identify individual workflows by filename; deployment and release names remain unchanged.
