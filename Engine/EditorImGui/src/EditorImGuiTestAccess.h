@@ -452,10 +452,10 @@ public:
   [[nodiscard]] static std::optional<std::array<float, 4>>
   InspectorTransformFieldRect(const EditorImGuiHost &host, std::size_t row,
                               std::size_t axis) noexcept;
-  // Transform, Camera, Light (0, 1, 2); reports actual UI widget positions for pointer tests.
+  // Transform, Camera, Light (0, 1, 2); Reset appears only in an open component menu.
   [[nodiscard]] static std::optional<std::array<float, 2>>
   InspectorResetPosition(const EditorImGuiHost &host, std::size_t component) noexcept;
-  // Component 0/1/2: Transform/Camera/Light; control 0/1: Copy/Paste values.
+  // Component 0/1/2: Transform/Camera/Light; control 0/1: popup Copy/Paste; 2: header menu.
   [[nodiscard]] static std::optional<std::array<float, 2>>
   InspectorClipboardPosition(const EditorImGuiHost &host, std::size_t component,
                              std::size_t control) noexcept;

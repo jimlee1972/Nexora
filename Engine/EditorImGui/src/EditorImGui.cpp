@@ -525,7 +525,7 @@ struct EditorImGuiHost::State final {
   using ComponentValues =
       std::variant<TransformValues, runtime::CameraComponent, runtime::LightComponent>;
   std::optional<ComponentValues> inspector_component_clipboard;
-  std::array<std::array<std::optional<std::array<float, 2>>, 2>, 3> inspector_clipboard_positions{};
+  std::array<std::array<std::optional<std::array<float, 2>>, 3>, 3> inspector_clipboard_positions{};
   std::optional<std::size_t> inspector_camera_focus_request;
   std::vector<SceneDocument::NodeKey> inspector_component_selection;
   std::array<std::array<char, 64>, 3> inspector_camera_text{};
@@ -3447,78 +3447,117 @@ template <typename StateT> void CaptureInspectorReset(StateT &state, std::size_t
 
 // The clipboard owns only committed numeric values. It never borrows a source entity/document.
 template <typename StateT>
-bool DrawInspectorClipboard(StateT &state, SceneDocument &scene,
-                            std::span<const SceneDocument::NodeKey> keys, std::size_t component,
-                            bool editable, bool copy_allowed) {
+bool DrawInspectorComponentActions(StateT &state, SceneDocument &scene,
+                                   std::span<const SceneDocument::NodeKey> keys,
+                                   std::size_t component, bool editable, bool copy_allowed,
+                                   std::uint32_t selection_hash) {
   const bool present =
       component == 0 || std::ranges::any_of(keys, [&](const auto key) {
         return component == 1 ? scene.Camera(key).has_value() : scene.Light(key).has_value();
       });
   const bool can_copy = copy_allowed && state.app_focused && keys.size() == 1 && present;
+  // Menus belong to this document selection, not the input cancellation generation. Opening a
+  // menu discards drafts; that must not invalidate the popup on its next frame.
+  ImGui::PushOverrideID(
+      ImHashData(&selection_hash, sizeof(selection_hash), ImGui::GetCurrentWindow()->ID));
   ImGui::PushID(static_cast<int>(component));
   const auto capture = [&](std::size_t control) {
     const auto minimum = ImGui::GetItemRectMin(), maximum = ImGui::GetItemRectMax();
     state.inspector_clipboard_positions[component][control] =
         std::array{(minimum.x + maximum.x) * 0.5F, (minimum.y + maximum.y) * 0.5F};
   };
-  ImGui::BeginDisabled(!can_copy);
-  if (detail::SmallIconButton("Copy values", detail::EditorIcon::Copy)) {
+  constexpr std::array labels{"Transform actions", "Camera actions", "Light actions"};
+  const bool allowed = copy_allowed && state.app_focused;
+  const bool has_copied_values = state.inspector_component_clipboard &&
+                                 state.inspector_component_clipboard->index() == component;
+  ImGui::BeginDisabled(!allowed);
+  if (detail::SmallIconButton(labels[component], detail::EditorIcon::Settings, has_copied_values)) {
     CancelSceneGestures(state);
     CancelInspectorDrafts(state);
     ImGui::ClearActiveID();
-    if (component == 0)
-      state.inspector_component_clipboard = typename StateT::TransformValues{
-          *scene.Transform(keys.front().id), *scene.EulerAngles(keys.front().id)};
-    else if (component == 1)
-      state.inspector_component_clipboard = *scene.Camera(keys.front());
-    else
-      state.inspector_component_clipboard = *scene.Light(keys.front());
-    state.inspector_error.clear();
+    ImGui::OpenPopup("Component actions");
   }
-  capture(0);
+  capture(2);
   ImGui::EndDisabled();
-  if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-    ImGui::SetTooltip(
-        "Copy committed values from one selected entity. Unsubmitted input is discarded.");
-  ImGui::SameLine();
-  const bool can_paste = editable && state.app_focused && present &&
-                         state.inspector_component_clipboard &&
-                         state.inspector_component_clipboard->index() == component;
-  ImGui::BeginDisabled(!can_paste);
-  bool pasted = false;
-  if (detail::SmallIconButton("Paste values", detail::EditorIcon::Paste)) {
-    CancelSceneGestures(state);
-    CancelInspectorDrafts(state);
-    ImGui::ClearActiveID();
-    const auto &copied = *state.inspector_component_clipboard;
-    if (component == 0) {
-      const auto &value = std::get<0>(copied);
-      pasted = scene.SetTransformValues(keys, value.transform, value.degrees);
-    } else if (component == 1) {
-      std::vector<std::optional<runtime::CameraComponent>> values;
-      for (const auto key : keys)
-        values.push_back(scene.Camera(key) ? std::optional{std::get<1>(copied)} : std::nullopt);
-      pasted = scene.SetCameras(keys, values);
-    } else {
-      std::vector<std::optional<runtime::LightComponent>> values;
-      for (const auto key : keys)
-        values.push_back(scene.Light(key) ? std::optional{std::get<2>(copied)} : std::nullopt);
-      pasted = scene.SetLights(keys, values);
+  const auto header_item = GImGui->LastItemData;
+  if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) && has_copied_values)
+    ImGui::SetTooltip("%s: values copied. Open for Copy, Paste or Reset.", labels[component]);
+  bool changed = false;
+  if (ImGui::BeginPopup("Component actions")) {
+    if (!allowed) {
+      ImGui::CloseCurrentPopup();
+      ImGui::EndPopup();
+      ImGui::PopID();
+      ImGui::PopID();
+      GImGui->LastItemData = header_item;
+      return false;
     }
-    if (pasted)
+    if (state.inspector_component_clipboard) {
+      constexpr std::array names{"Transform", "Camera", "Light"};
+      ImGui::TextDisabled("Copied values: %s", names[state.inspector_component_clipboard->index()]);
+      ImGui::Separator();
+    }
+    if (ImGui::MenuItem("Copy values", nullptr, false, can_copy)) {
+      CancelSceneGestures(state);
+      CancelInspectorDrafts(state);
+      ImGui::ClearActiveID();
+      if (component == 0)
+        state.inspector_component_clipboard = typename StateT::TransformValues{
+            *scene.Transform(keys.front().id), *scene.EulerAngles(keys.front().id)};
+      else if (component == 1)
+        state.inspector_component_clipboard = *scene.Camera(keys.front());
+      else
+        state.inspector_component_clipboard = *scene.Light(keys.front());
       state.inspector_error.clear();
-    else
-      state.inspector_error =
-          "Paste rejected because the selected entities are no longer available.";
+    }
+    capture(0);
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+      ImGui::SetTooltip(
+          "Copy committed values from one selected entity. Unsubmitted input is discarded.");
+    const bool can_paste = editable && state.app_focused && present &&
+                           state.inspector_component_clipboard &&
+                           state.inspector_component_clipboard->index() == component;
+    if (ImGui::MenuItem("Paste values", nullptr, false, can_paste)) {
+      CancelSceneGestures(state);
+      CancelInspectorDrafts(state);
+      ImGui::ClearActiveID();
+      const auto &copied = *state.inspector_component_clipboard;
+      if (component == 0) {
+        const auto &value = std::get<0>(copied);
+        changed = scene.SetTransformValues(keys, value.transform, value.degrees);
+      } else if (component == 1) {
+        std::vector<std::optional<runtime::CameraComponent>> values;
+        for (const auto key : keys)
+          values.push_back(scene.Camera(key) ? std::optional{std::get<1>(copied)} : std::nullopt);
+        changed = scene.SetCameras(keys, values);
+      } else {
+        std::vector<std::optional<runtime::LightComponent>> values;
+        for (const auto key : keys)
+          values.push_back(scene.Light(key) ? std::optional{std::get<2>(copied)} : std::nullopt);
+        changed = scene.SetLights(keys, values);
+      }
+      if (changed)
+        state.inspector_error.clear();
+      else
+        state.inspector_error =
+            "Paste rejected because the selected entities are no longer available.";
+    }
+    capture(1);
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+      ImGui::SetTooltip(
+          component == 0 ? "Paste copied Transform values, including authored Euler turns."
+                         : "Paste matching copied values to existing components in the selection.");
+    ImGui::Separator();
+    if (ImGui::MenuItem("Reset", nullptr, false, editable && present))
+      changed = ResetInspectorComponent(state, scene, keys, component);
+    CaptureInspectorReset(state, component);
+    ImGui::EndPopup();
   }
-  capture(1);
-  ImGui::EndDisabled();
-  if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-    ImGui::SetTooltip(
-        component == 0 ? "Paste copied Transform values, including authored Euler turns."
-                       : "Paste matching copied values to existing components in the selection.");
   ImGui::PopID();
-  return pasted;
+  ImGui::PopID();
+  // Popup/tooltip submission must not replace the header's layout item.
+  GImGui->LastItemData = header_item;
+  return changed;
 }
 
 template <typename StateT>
@@ -3629,10 +3668,6 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
                 scene->Name(keys.front().id).data());
   else
     ImGui::Text("%zu entities selected", keys.size());
-  if (state.inspector_component_clipboard) {
-    constexpr std::array names{"Transform", "Camera", "Light"};
-    ImGui::TextDisabled("Copied values: %s", names[state.inspector_component_clipboard->index()]);
-  }
   std::optional<runtime::AssetUuid> material_reference;
   bool has_material_reference = false;
   bool material_reference_mixed = false;
@@ -3721,15 +3756,10 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
   ImGui::AlignTextToFramePadding();
   ImGui::TextUnformatted("Transform");
   ImGui::SameLine();
-  if (DrawInspectorClipboard(state, *scene, keys, 0, editable, copy_allowed))
+  if (DrawInspectorComponentActions(state, *scene, keys, 0, editable, copy_allowed, selection_hash))
     for (std::size_t i = 0; i < keys.size(); ++i)
       transforms[i] = *scene->Transform(keys[i].id);
-  ImGui::SameLine();
   ImGui::BeginDisabled(!editable);
-  if (detail::SmallIconButton("Reset Transform", detail::EditorIcon::Reset) &&
-      ResetInspectorComponent(state, *scene, keys, 0))
-    std::ranges::fill(transforms, runtime::Transform{});
-  CaptureInspectorReset(state, 0);
   struct Field final {
     const char *label;
     double runtime::Transform::*member;
@@ -3903,8 +3933,11 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
     cameras.push_back(scene->Camera(key));
     lights.push_back(scene->Light(key));
   }
-  ImGui::SeparatorText("Camera");
-  if (DrawInspectorClipboard(state, *scene, keys, 1, editable, copy_allowed))
+  ImGui::Separator();
+  ImGui::AlignTextToFramePadding();
+  ImGui::TextUnformatted("Camera");
+  ImGui::SameLine();
+  if (DrawInspectorComponentActions(state, *scene, keys, 1, editable, copy_allowed, selection_hash))
     for (std::size_t i = 0; i < keys.size(); ++i)
       cameras[i] = scene->Camera(keys[i]);
   ImGui::BeginDisabled(!editable);
@@ -3928,16 +3961,6 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
                               : std::optional<runtime::CameraComponent>{};
     state.inspector_camera_request = typename StateT::InspectorCameraRequest{keys, cameras};
   }
-  ImGui::SameLine();
-  ImGui::BeginDisabled(
-      std::ranges::none_of(cameras, [](const auto &camera) { return camera.has_value(); }));
-  if (detail::SmallIconButton("Reset Camera", detail::EditorIcon::Reset) &&
-      ResetInspectorComponent(state, *scene, keys, 1))
-    for (auto &camera : cameras)
-      if (camera)
-        camera = runtime::CameraComponent{};
-  CaptureInspectorReset(state, 1);
-  ImGui::EndDisabled();
   if (!camera_presence_mixed && camera_enabled) {
     ImGui::BeginDisabled(keys.size() != 1 || !state.native_scene_preview ||
                          !state.native_scene_preview_available);
@@ -4039,8 +4062,11 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
       state.inspector_error.clear();
   }
   ImGui::EndDisabled();
-  ImGui::SeparatorText("Light");
-  if (DrawInspectorClipboard(state, *scene, keys, 2, editable, copy_allowed))
+  ImGui::Separator();
+  ImGui::AlignTextToFramePadding();
+  ImGui::TextUnformatted("Light");
+  ImGui::SameLine();
+  if (DrawInspectorComponentActions(state, *scene, keys, 2, editable, copy_allowed, selection_hash))
     for (std::size_t i = 0; i < keys.size(); ++i)
       lights[i] = scene->Light(keys[i]);
   ImGui::BeginDisabled(!editable);
@@ -4064,16 +4090,6 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
                             : std::optional<runtime::LightComponent>{};
     state.inspector_light_request = typename StateT::InspectorLightRequest{keys, lights};
   }
-  ImGui::SameLine();
-  ImGui::BeginDisabled(
-      std::ranges::none_of(lights, [](const auto &light) { return light.has_value(); }));
-  if (detail::SmallIconButton("Reset Light", detail::EditorIcon::Reset) &&
-      ResetInspectorComponent(state, *scene, keys, 2))
-    for (auto &light : lights)
-      if (light)
-        light = runtime::LightComponent{};
-  CaptureInspectorReset(state, 2);
-  ImGui::EndDisabled();
   if (!light_presence_mixed && light_enabled) {
     float intensity = lights.front()->intensity;
     const bool mixed = std::ranges::any_of(
@@ -11330,7 +11346,7 @@ EditorImGuiTestAccess::InspectorResetPosition(const EditorImGuiHost &host,
 
 std::optional<std::array<float, 2>> EditorImGuiTestAccess::InspectorClipboardPosition(
     const EditorImGuiHost &host, std::size_t component, std::size_t control) noexcept {
-  return component < host.state_->inspector_clipboard_positions.size() && control < 2
+  return component < host.state_->inspector_clipboard_positions.size() && control < 3
              ? host.state_->inspector_clipboard_positions[component][control]
              : std::nullopt;
 }

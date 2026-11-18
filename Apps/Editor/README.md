@@ -691,6 +691,10 @@ Create child and Ctrl+Shift+N initialize the selected built-in component as one 
 start at the parent's local origin. Default names follow type changes while custom names remain.
 Queued requests revalidate access and scene/parent generations before mutation. Save/reload retains the
 initialized components, names and hierarchy; full reflected component creation remains open.
+Each Inspector Transform, Camera or Light heading has one gear menu for Copy values, Paste values
+and Reset. A highlighted gear identifies the copied component; its tooltip and menu show clipboard
+feedback without a permanent status row. Opening the menu abandons unsubmitted Inspector drafts
+and prospective Scene gestures; dismissing it does not change committed values or history.
 Inspector Copy values snapshots one selected entity's committed Transform/Euler, Camera or Light
 numeric values; Paste values applies the matching type to the displayed selection as one Undo.
 Camera/Light Paste preserves absent components, and Transform Paste preserves authored turns.
@@ -704,6 +708,7 @@ Reset Camera/Light restores existing components to defaults without adding missi
 Reset cancels pending Inspector drafts and Scene gestures, preserves unrelated payloads and parents,
 and follows the workspace/modal authoring gate. Already-default clicks retain Redo; Save/Reload
 stores committed defaults. Real ImGui input tests cover 1x/2x scale and mixed component presence.
+See [compact Inspector acceptance](../../Tools/Build/evidence/EditorWorkflow/Inspector-Actions-Linux.md).
 The Hierarchy can create root entities and children of the single selected entity, then selects the
 new node. Invalid names and stale parents are rejected, while creation participates in scene Undo.
 Ctrl+Shift+N creates a root with the current Hierarchy name outside text input. The Linux Xvfb

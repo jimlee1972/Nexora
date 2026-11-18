@@ -183,7 +183,7 @@ add_test(NAME editor.inspector_component_reset COMMAND NexoraInspectorComponentR
 
 add_executable(NexoraInspectorComponentValueTests ComponentValueTests.cpp)
 target_include_directories(NexoraInspectorComponentValueTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
-target_link_libraries(NexoraInspectorComponentValueTests PRIVATE Nexora::EditorImGui)
+target_link_libraries(NexoraInspectorComponentValueTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
 nexora_apply_defaults(NexoraInspectorComponentValueTests)
 add_test(NAME editor.inspector_component_values COMMAND NexoraInspectorComponentValueTests)
 

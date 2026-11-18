@@ -1,5 +1,9 @@
 # Nexora 圖形化 Editor Roadmap
 
+### ✅ 精簡 Inspector 元件操作
+
+Transform、Camera 與 Light 各以標題旁的單一齒輪選單提供 Copy values、Paste values 與 Reset。複製狀態移入情境提示與選單；開啟選單會捨棄未確認草稿，保留已提交資料與歷史。既有型別剪貼簿、混合元件存在狀態、權限及 modal 約定持續保留。實際 1x／2x 元件、150 單位窄面板及原生 Camera Copy／Reset／Undo 已通過。完整 Linux gate 通過 558/558，沒有失敗、略過或重跑，包含 33 次原生模組替換及 70 次重新匯入發布。參閱[限定驗收](../../Tools/Build/evidence/EditorWorkflow/Inspector-Actions-Linux.md)。此支援切片不改變 workflow5/9、圖形 Editor0/8 或 TwoD9/11 驗收。
+
 ### ✅ 精簡 Hierarchy 操作與按需物件建立
 
 Hierarchy 改用可換行的操作工具列與按需展開的建立表單，取代常駐名稱／類型欄位。例行操作確認移入提示，可採取行動的錯誤仍保持可見。實際 1x／2x 元件、150 單位窄面板及原生 Camera 建立／Undo 已通過，保留世代、權限與歷史約定。完整 Linux gate 已通過 558/558，沒有失敗或重跑；參閱[限定驗收](../../Tools/Build/evidence/EditorWorkflow/Hierarchy-Toolbar-Linux.md)及[操作文件](../../Apps/Editor/README.md#compact-hierarchy-controls)。此支援切片不改變 workflow5/9、圖形 Editor0/8 或 TwoD9/11 驗收計數。
