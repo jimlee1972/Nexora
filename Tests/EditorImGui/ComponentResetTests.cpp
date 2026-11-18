@@ -48,7 +48,7 @@ struct Fixture final {
             scene.Select(Keys()) && scene.Save(Path()),
         "Inspector reset entity fixture failed");
     original = world.SaveScene(id);
-    ui.SetDisplay(1600, 1200, scale);
+    ui.SetDisplay(1600 * scale, 1200 * scale, scale);
     Access::ConfigureSyntheticInput(ui);
     Nexora::Window::WindowEvent focus;
     focus.type = Nexora::Window::WindowEventType::FocusChanged;
@@ -73,13 +73,11 @@ struct Fixture final {
     ui.DrawProductShell(shell, &scene, active);
     static_cast<void>(ui.EndFrame());
   }
-  void Click(std::size_t component) {
-    const auto point = Access::InspectorResetPosition(ui, component);
-    Require(point.has_value(), "Inspector reset control absent");
+  void PointerClick(const std::array<float, 2> &point) {
     Nexora::Window::WindowEvent pointer, button;
     pointer.type = Nexora::Window::WindowEventType::Pointer;
-    pointer.value0 = static_cast<int>((*point)[0] * scale);
-    pointer.value1 = static_cast<int>((*point)[1] * scale);
+    pointer.value0 = static_cast<int>(point[0] * scale);
+    pointer.value1 = static_cast<int>(point[1] * scale);
     button.type = Nexora::Window::WindowEventType::PointerButton;
     button.value0 = 0;
     button.value1 = 1;
@@ -88,6 +86,16 @@ struct Fixture final {
     button.value1 = 0;
     ui.ProcessEvents(std::array{button});
     Draw();
+  }
+  void Click(std::size_t component) {
+    const auto header = Access::InspectorClipboardPosition(ui, component, 2);
+    Require(header.has_value(), "Inspector component action menu absent");
+    PointerClick(*header);
+    Draw();
+    if (const auto point = Access::InspectorResetPosition(ui, component)) {
+      PointerClick(*point);
+      Key(Nexora::Window::Key::Escape);
+    }
   }
   void Key(Nexora::Window::Key key, Nexora::Window::KeyModifiers modifiers = {}) {
     Nexora::Window::WindowEvent event;

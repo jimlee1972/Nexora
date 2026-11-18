@@ -1067,8 +1067,13 @@ values, Undo/Redo and committed-only scene persistence retain the existing contr
 
 ## Inspector component values and reset
 
-The Editor Inspector exposes Copy values / Paste values for Transform, Camera and Light. Copy
-requires one live selected entity with that component and snapshots committed numeric values,
+The Editor Inspector exposes Copy values / Paste values / Reset through one gear menu on each
+Transform, Camera and Light heading. Matching copied values highlight that heading's gear; feedback
+lives in its tooltip and popup rather than a permanent Inspector row. Popup identity follows the
+document selection independently of draft cancellation generations. Opening a menu cancels drafts
+and prospective Scene gestures before subsequent fields render; dismissal preserves scene/history.
+Focus/access/modal gates close a previously open menu before its actions can run.
+Copy requires one live selected entity with that component and snapshots committed numeric values,
 including authored Euler turns; it discards unsubmitted drafts and works in read-only workspaces.
 One host-owned typed payload survives selection, source edits/deletion and document/workspace
 changes until replaced by another successful Copy or host destruction. It retains no source keys

@@ -1,5 +1,9 @@
 # Nexora Graphical Editor Roadmap
 
+### ✅ Compact Inspector component actions
+
+Transform, Camera and Light now use one gear menu per heading for Copy values, Paste values and Reset. Copied-value feedback moves into contextual tooltips and menus. Opening a menu discards unsubmitted drafts while retaining committed values and history. Existing typed clipboard, mixed-presence, permission and modal contracts remain. Actual 1x/2x widgets, 150-unit panels and native Camera Copy/Reset/Undo pass. The full Linux gate passes 558/558 without failures, skips or retries, including 33 native module replacements and 70 reimport publications. See [scoped acceptance](../../Tools/Build/evidence/EditorWorkflow/Inspector-Actions-Linux.md). This supporting slice does not change workflow5/9, graphical Editor0/8 or TwoD9/11 acceptance.
+
 ### ✅ Compact Hierarchy controls and contextual entity creation
 
 The Hierarchy uses a wrapping action toolbar and an on-demand creation form instead of permanent name/type rows. Routine confirmations move to action tooltips; errors stay visible. Actual 1x/2x widgets, 150-unit narrow panels and native Camera creation/Undo pass with existing generation, permission and history contracts. The complete Linux gate passes 558/558 without failures or retries; see [scoped acceptance](../../Tools/Build/evidence/EditorWorkflow/Hierarchy-Toolbar-Linux.md) and [controls](../../Apps/Editor/README.md#compact-hierarchy-controls). This supporting slice does not change workflow5/9, graphical Editor0/8 or TwoD9/11 acceptance.

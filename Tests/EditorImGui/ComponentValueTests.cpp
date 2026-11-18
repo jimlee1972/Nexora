@@ -1,5 +1,8 @@
 #include "EditorImGuiTestAccess.h"
 
+#include <imgui.h>
+#include <imgui_internal.h>
+
 #include <chrono>
 #include <iostream>
 #include <stdexcept>
@@ -25,6 +28,7 @@ struct Fixture final {
   editor::imgui::EditorImGuiHost ui;
   runtime::Id parent{}, first{}, second{}, source{};
   float scale;
+  std::string frame_text;
   explicit Fixture(float dpi) : scale(dpi) {
     Require(writer.Create(root, "Inspector Values") &&
                 reader.Open(root, editor::ProjectAccess::ReadOnly) && world.Activate(id),
@@ -55,7 +59,7 @@ struct Fixture final {
                 scene.SetLight(*scene.Key(source), runtime::LightComponent{11}) &&
                 scene.Save(Path()),
             "Source value fixture failed");
-    ui.SetDisplay(1600, 1200, scale);
+    ui.SetDisplay(1600 * scale, 1200 * scale, scale);
     Access::ConfigureSyntheticInput(ui);
     Nexora::Window::WindowEvent focus;
     focus.type = Nexora::Window::WindowEventType::FocusChanged;
@@ -75,18 +79,22 @@ struct Fixture final {
     return {*scene.Key(first), *scene.Key(second)};
   }
   std::filesystem::path Path() const { return root / "Content/values.scene"; }
-  void Draw() {
+  void Draw(bool log = false) {
     ui.BeginFrame();
+    if (log)
+      ImGui::LogToBuffer();
     ui.DrawProductShell(shell, &scene, active);
+    if (log) {
+      frame_text = GImGui->LogBuffer.c_str();
+      ImGui::LogFinish();
+    }
     static_cast<void>(ui.EndFrame());
   }
-  void Click(std::size_t component, std::size_t control) {
-    const auto point = Access::InspectorClipboardPosition(ui, component, control);
-    Require(point.has_value(), "Inspector values control absent");
+  void PointerClick(const std::array<float, 2> &point) {
     Nexora::Window::WindowEvent pointer, button;
     pointer.type = Nexora::Window::WindowEventType::Pointer;
-    pointer.value0 = static_cast<int>((*point)[0] * scale);
-    pointer.value1 = static_cast<int>((*point)[1] * scale);
+    pointer.value0 = static_cast<int>(point[0] * scale);
+    pointer.value1 = static_cast<int>(point[1] * scale);
     button.type = Nexora::Window::WindowEventType::PointerButton;
     button.value0 = 0;
     button.value1 = 1;
@@ -95,6 +103,16 @@ struct Fixture final {
     button.value1 = 0;
     ui.ProcessEvents(std::array{button});
     Draw();
+  }
+  void Click(std::size_t component, std::size_t control) {
+    const auto header = Access::InspectorClipboardPosition(ui, component, 2);
+    Require(header.has_value(), "Inspector component action menu absent");
+    PointerClick(*header);
+    Draw(); // The popup settles its size before pointer interaction.
+    if (const auto point = Access::InspectorClipboardPosition(ui, component, control)) {
+      PointerClick(*point);
+      Key(Nexora::Window::Key::Escape); // Disabled items leave the popup open.
+    }
   }
   void Key(Nexora::Window::Key key, Nexora::Window::KeyModifiers modifiers = {}) {
     Nexora::Window::WindowEvent event;
@@ -185,6 +203,48 @@ struct Fixture final {
               "Component value Paste changed Light");
   }
 };
+void RunCompactMenus(float dpi) {
+  Fixture f(dpi);
+  f.SelectSource();
+  auto *window = ImGui::FindWindowByName("###nexora.inspector");
+  Require(window != nullptr, "Inspector window is absent");
+  ImGui::SetWindowDock(window, 0, ImGuiCond_Always);
+  ImGui::SetWindowPos(window, {40, 50}, ImGuiCond_Always);
+  ImGui::SetWindowSize(window, {150, 1000}, ImGuiCond_Always);
+  f.Draw();
+  f.Draw();
+  const auto baseline = f.world.SaveScene(f.id);
+  for (std::size_t component = 0; component < 3; ++component) {
+    Require(!Access::InspectorClipboardPosition(f.ui, component, 0) &&
+                !Access::InspectorClipboardPosition(f.ui, component, 1) &&
+                !Access::InspectorResetPosition(f.ui, component),
+            "Inspector retains permanent Copy/Paste/Reset controls");
+    const auto header = Access::InspectorClipboardPosition(f.ui, component, 2);
+    Require(header && (*header)[0] > window->Pos.x &&
+                (*header)[0] < window->Pos.x + window->Size.x && (*header)[1] > window->Pos.y &&
+                (*header)[1] < window->Pos.y + window->Size.y,
+            "Narrow Inspector clips a component menu");
+    f.PointerClick(*header);
+    f.Draw();
+    Require(Access::InspectorClipboardPosition(f.ui, component, 0) &&
+                Access::InspectorClipboardPosition(f.ui, component, 1) &&
+                Access::InspectorResetPosition(f.ui, component),
+            "Component actions are unreachable through their actual menu");
+    f.Key(Nexora::Window::Key::Escape);
+    f.Draw();
+    Require(f.world.SaveScene(f.id) == baseline, "Opening/dismissing a menu changed data");
+    f.Click(component, 0);
+    f.Draw(true);
+    Require(f.frame_text.find("Copied values:") == std::string::npos,
+            "Copied values feedback still occupies a permanent Inspector row");
+    f.PointerClick(*Access::InspectorClipboardPosition(f.ui, component, 2));
+    f.Draw(true);
+    Require(f.frame_text.find("Copied values:") != std::string::npos,
+            "Component menu lost discoverable clipboard feedback");
+    f.Key(Nexora::Window::Key::Escape);
+    f.Draw();
+  }
+}
 void Run(float dpi, std::size_t component, bool mixed = false) {
   Fixture f(dpi);
   if (mixed)
@@ -265,23 +325,37 @@ void RunAccess(float dpi, std::size_t component) {
   f.Verify(component);
   Require(f.scene.Undo(), "Read-only Copy did not retain usable values");
   f.Draw();
+  f.PointerClick(*Access::InspectorClipboardPosition(f.ui, component, 2));
+  f.Draw();
+  Require(Access::InspectorClipboardPosition(f.ui, component, 1).has_value(),
+          "Focus-loss fixture did not open a component menu");
   Nexora::Window::WindowEvent focus;
   focus.type = Nexora::Window::WindowEventType::FocusChanged;
   focus.value0 = 0;
   f.ui.ProcessEvents(std::array{focus});
   f.Draw();
+  Require(!Access::InspectorClipboardPosition(f.ui, component, 1),
+          "Focus loss retained an actionable component popup");
   f.Click(component, 0);
   f.Click(component, 1);
   Require(f.world.SaveScene(f.id) == before_copy, "Unfocused clipboard controls admitted writes");
   focus.value0 = 1;
   f.ui.ProcessEvents(std::array{focus});
   f.Draw();
+  Require(!Access::InspectorClipboardPosition(f.ui, component, 1),
+          "Focus return revived a cancelled component popup");
   f.Click(component, 1);
   f.Verify(component);
   Require(f.scene.Undo(), "Unfocused Copy replaced the retained payload");
   f.Draw();
+  f.PointerClick(*Access::InspectorClipboardPosition(f.ui, component, 2));
+  f.Draw();
+  Require(Access::InspectorClipboardPosition(f.ui, component, 1).has_value(),
+          "Modal fixture did not open a component menu");
   f.ui.RequestCloseConfirmation();
   f.Draw();
+  Require(!Access::InspectorClipboardPosition(f.ui, component, 1),
+          "Close confirmation retained an actionable component popup");
   f.Click(component, 0);
   f.Click(component, 1);
   Require(f.world.SaveScene(f.id) == before_copy, "Modal admitted clipboard mutation");
@@ -329,6 +403,7 @@ void RunAbsent(float dpi, std::size_t component) {
 int main() {
   try {
     for (const auto dpi : {1.0F, 2.0F}) {
+      RunCompactMenus(dpi);
       for (std::size_t component = 0; component < 3; ++component) {
         Run(dpi, component);
         RunAccess(dpi, component);
