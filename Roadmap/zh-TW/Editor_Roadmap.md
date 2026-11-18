@@ -1,5 +1,9 @@
 # Nexora 圖形化 Editor Roadmap
 
+### ✅ 精簡 Hierarchy 操作與按需物件建立
+
+Hierarchy 改用可換行的操作工具列與按需展開的建立表單，取代常駐名稱／類型欄位。例行操作確認移入提示，可採取行動的錯誤仍保持可見。實際 1x／2x 元件、150 單位窄面板及原生 Camera 建立／Undo 已通過，保留世代、權限與歷史約定。完整 Linux gate 已通過 558/558，沒有失敗或重跑；參閱[限定驗收](../../Tools/Build/evidence/EditorWorkflow/Hierarchy-Toolbar-Linux.md)及[操作文件](../../Apps/Editor/README.md#compact-hierarchy-controls)。此支援切片不改變 workflow5/9、圖形 Editor0/8 或 TwoD9/11 驗收計數。
+
 ### ✅ 精簡 Game 操作與按需 Play 診斷
 
 Game 改用可換行的播放／輸入／視圖控制，並保留精簡狀態與輸入擷取指示。檔案圖示開啟僅停止時可編輯的 gameplay-library 設定；資訊圖示開啟計數、輸入說明及複製的 Play 實體檢查。Host memory 與可採取行動的狀態仍可使用。一般與純 3D 封裝原生 Game 影像沿用既有型別 UI 合成路徑，保留彈出視窗順序。實際 1x／2x 互動與窄面板控制，以及相關輸入／相機／2D／記憶體／Scene 案例均通過。參閱[限定 Linux 證據](../../Tools/Build/evidence/EditorWorkflow/Game-Toolbar-Linux.md)及 [Game 操作文件](../../Apps/Editor/README.md#compact-game-controls)。此支援性呈現切片保留有界原生畫布與所有權約定，不改變 5/9 workflow 或 0/8 Editor 里程碑計數。

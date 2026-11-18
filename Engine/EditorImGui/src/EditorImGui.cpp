@@ -366,7 +366,7 @@ struct EditorImGuiHost::State final {
   std::array<char, 128> hierarchy_create_name{'E', 'n', 't', 'i', 't', 'y'};
   int hierarchy_create_kind{};
   bool hierarchy_create_custom_name{};
-  std::array<std::optional<std::array<float, 2>>, 7> hierarchy_create_positions{};
+  std::array<std::optional<std::array<float, 2>>, 17> hierarchy_create_positions{};
   std::array<char, 256> hierarchy_rename{};
   std::uint32_t hierarchy_visible_rows = 0;
   std::uint32_t hierarchy_rendered_rows = 0;
@@ -1545,6 +1545,13 @@ template <typename StateT> void DuplicateHierarchySelection(StateT &state, Scene
   state.hierarchy_error.clear();
 }
 
+// Keep every toolbar control reachable when a dock is narrowed or the font grows.
+void ContinueViewportToolbar(float next_width = detail::IconButtonExtent()) {
+  const auto right = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
+  if (ImGui::GetItemRectMax().x + ImGui::GetStyle().ItemSpacing.x + next_width <= right)
+    ImGui::SameLine();
+}
+
 template <typename StateT>
 void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
                    bool interaction_blocked, bool editable, bool rename_editable) {
@@ -1563,70 +1570,84 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
     state.hierarchy_create_positions[control] =
         std::array{(minimum.x + maximum.x) * 0.5F, (minimum.y + maximum.y) * 0.5F};
   };
-  ImGui::SetNextItemWidth(-92.0F);
-  if (ImGui::InputTextWithHint("##hierarchy-create-name", "New entity name...",
-                               state.hierarchy_create_name.data(),
-                               state.hierarchy_create_name.size()))
-    state.hierarchy_create_custom_name = true;
-  capture_create(6);
-  ImGui::SameLine();
-  ImGui::SetNextItemWidth(84.0F);
-  constexpr std::array kinds{"Empty", "Camera", "Light"};
-  ImGui::BeginDisabled(!editable);
-  const bool kind_open =
-      ImGui::BeginCombo("##hierarchy-create-kind", kinds[state.hierarchy_create_kind]);
-  capture_create(0);
-  if (kind_open) {
-    for (int kind = 0; kind < static_cast<int>(kinds.size()); ++kind) {
-      if (ImGui::Selectable(kinds[kind], state.hierarchy_create_kind == kind)) {
-        if (!state.hierarchy_create_custom_name)
-          std::snprintf(state.hierarchy_create_name.data(), state.hierarchy_create_name.size(),
-                        "%s", kind == 0 ? "Entity" : kinds[kind]);
-        state.hierarchy_create_kind = kind;
+  const auto feedback = [&](const char *action, const char *shortcut = nullptr) {
+    const auto item = GImGui->LastItemData;
+    if (!state.hierarchy_status.empty() && ImGui::IsItemHovered())
+      ImGui::SetTooltip("%s%s%s\nPrevious operation: %s", action, shortcut ? " | " : "",
+                        shortcut ? shortcut : "", state.hierarchy_status.c_str());
+    GImGui->LastItemData = item;
+  };
+  ImGui::BeginDisabled(interaction_blocked || !state.app_focused);
+  if (detail::SmallIconButton("Create entity...", detail::EditorIcon::Add))
+    ImGui::OpenPopup("Create entity");
+  capture_create(7);
+  feedback("Create entity...");
+  ImGui::EndDisabled();
+  const auto create_item = GImGui->LastItemData;
+  if (ImGui::BeginPopup("Create entity")) {
+    ImGui::BeginDisabled(interaction_blocked || !state.app_focused);
+    const float field_width = std::max(
+        1.0F, std::min(ImGui::GetFontSize() * 18, ImGui::GetMainViewport()->WorkSize.x - 80));
+    ImGui::SetNextItemWidth(field_width);
+    if (ImGui::InputTextWithHint("Name", "New entity name...", state.hierarchy_create_name.data(),
+                                 state.hierarchy_create_name.size()))
+      state.hierarchy_create_custom_name = true;
+    capture_create(6);
+    ImGui::BeginDisabled(!editable);
+    ImGui::SetNextItemWidth(field_width);
+    constexpr std::array kinds{"Empty", "Camera", "Light"};
+    const bool kind_open = ImGui::BeginCombo("Type", kinds[state.hierarchy_create_kind]);
+    capture_create(0);
+    if (kind_open) {
+      for (int kind = 0; kind < static_cast<int>(kinds.size()); ++kind) {
+        if (ImGui::Selectable(kinds[kind], state.hierarchy_create_kind == kind)) {
+          if (!state.hierarchy_create_custom_name)
+            std::snprintf(state.hierarchy_create_name.data(), state.hierarchy_create_name.size(),
+                          "%s", kind == 0 ? "Entity" : kinds[kind]);
+          state.hierarchy_create_kind = kind;
+        }
+        capture_create(static_cast<std::size_t>(kind + 1));
       }
-      capture_create(static_cast<std::size_t>(kind + 1));
+      ImGui::EndCombo();
     }
-    ImGui::EndCombo();
-  }
-  ImGui::EndDisabled();
-  ImGui::BeginDisabled(!editable);
-  if (detail::SmallIconButton("Create root", detail::EditorIcon::Add))
-    state.hierarchy_create_request = typename StateT::HierarchyCreateRequest{
-        std::string(state.hierarchy_create_name.data()), std::nullopt, state.hierarchy_create_kind,
-        scene->Generation()};
-  capture_create(4);
-  ImGui::SameLine();
-  const bool one_selected = scene->Selection().size() == 1;
-  ImGui::BeginDisabled(!one_selected);
-  if (detail::SmallIconButton("Create child", detail::EditorIcon::AddChild) && one_selected) {
-    if (const auto parent = scene->Key(scene->Selection().front()))
+    ImGui::EndDisabled();
+    ImGui::Separator();
+    if (ImGui::MenuItem("Create root", "Ctrl+Shift+N", false, editable))
       state.hierarchy_create_request = typename StateT::HierarchyCreateRequest{
-          std::string(state.hierarchy_create_name.data()), parent, state.hierarchy_create_kind,
-          scene->Generation()};
-    else
-      state.hierarchy_error = "Create rejected because the selected parent is stale.";
+          std::string(state.hierarchy_create_name.data()), std::nullopt,
+          state.hierarchy_create_kind, scene->Generation()};
+    capture_create(4);
+    const bool one_selected = scene->Selection().size() == 1;
+    if (ImGui::MenuItem("Create child", nullptr, false, editable && one_selected)) {
+      if (const auto parent = scene->Key(scene->Selection().front()))
+        state.hierarchy_create_request = typename StateT::HierarchyCreateRequest{
+            std::string(state.hierarchy_create_name.data()), parent, state.hierarchy_create_kind,
+            scene->Generation()};
+      else
+        state.hierarchy_error = "Create rejected because the selected parent is stale.";
+    }
+    capture_create(5);
+    ImGui::EndDisabled();
+    ImGui::EndPopup();
   }
-  capture_create(5);
-  ImGui::EndDisabled();
-  ImGui::SameLine();
-  ImGui::BeginDisabled(scene->Selection().empty());
+  GImGui->LastItemData = create_item;
+  ContinueViewportToolbar();
+  ImGui::BeginDisabled(scene->Selection().empty() || !editable);
   if (detail::SmallIconButton("Delete selected", detail::EditorIcon::Delete, false, "Delete")) {
     static_cast<void>(shell.RouteCommand("editor.scene.delete"));
     DeleteHierarchySelection(state, *scene);
   }
+  capture_create(8);
+  feedback("Delete selected", "Delete");
   ImGui::EndDisabled();
-  ImGui::EndDisabled();
-  if (editable && ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
-      !ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_Delete, false)) {
-    static_cast<void>(shell.RouteCommand("editor.scene.delete"));
-    DeleteHierarchySelection(state, *scene);
-  }
-  ImGui::Separator();
+  ContinueViewportToolbar();
   ImGui::BeginDisabled(scene->Selection().empty() || interaction_blocked);
   if (detail::SmallIconButton("Copy", detail::EditorIcon::Copy, false, "Ctrl+C"))
     CopyHierarchySelection(state, *scene);
+  capture_create(9);
+  feedback("Copy", "Ctrl+C");
   ImGui::EndDisabled();
-  ImGui::SameLine();
+  ContinueViewportToolbar();
   ImGui::BeginDisabled(scene->Selection().empty() || !editable);
   if (detail::SmallIconButton("Cut", detail::EditorIcon::Cut, false, "Ctrl+X")) {
     static_cast<void>(shell.RouteCommand("editor.scene.cut"));
@@ -1635,24 +1656,30 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
   const auto cut_min = ImGui::GetItemRectMin(), cut_max = ImGui::GetItemRectMax();
   state.hierarchy_cut_position =
       std::array{(cut_min.x + cut_max.x) * 0.5F, (cut_min.y + cut_max.y) * 0.5F};
+  capture_create(10);
+  feedback("Cut", "Ctrl+X");
   ImGui::EndDisabled();
-  ImGui::SameLine();
+  ContinueViewportToolbar();
   ImGui::BeginDisabled(!editable);
   if (detail::SmallIconButton("Paste", detail::EditorIcon::Paste, false, "Ctrl+V"))
     PasteHierarchySelection(state, *scene);
+  capture_create(11);
+  feedback("Paste", "Ctrl+V");
   ImGui::EndDisabled();
-  ImGui::SameLine();
+  ContinueViewportToolbar();
   ImGui::BeginDisabled(scene->Selection().empty() || !editable);
   if (detail::SmallIconButton("Duplicate", detail::EditorIcon::Duplicate, false, "Ctrl+D")) {
     static_cast<void>(shell.RouteCommand("editor.scene.duplicate"));
     DuplicateHierarchySelection(state, *scene);
   }
+  capture_create(12);
+  feedback("Duplicate", "Ctrl+D");
   ImGui::EndDisabled();
-  if (!state.hierarchy_error.empty())
-    ImGui::TextWrapped("%s", state.hierarchy_error.c_str());
-  if (!state.hierarchy_status.empty())
-    ImGui::TextUnformatted(state.hierarchy_status.c_str());
-
+  if (editable && ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+      !ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_Delete, false)) {
+    static_cast<void>(shell.RouteCommand("editor.scene.delete"));
+    DeleteHierarchySelection(state, *scene);
+  }
   const auto nodes = scene->Nodes();
   const std::string_view filter(state.hierarchy_filter.data());
   if (state.hierarchy_navigation_generation != scene->Generation() ||
@@ -1798,23 +1825,34 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
   if (selected_node && editable && ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
       !ImGui::GetIO().WantTextInput && ImGui::Shortcut(ImGuiKey_F2, ImGuiInputFlags_RouteFocused))
     begin_rename(*selected_node);
+  ContinueViewportToolbar();
   ImGui::BeginDisabled(selected_node == nullptr || !editable);
   if (detail::SmallIconButton("Rename", detail::EditorIcon::Rename, false, "F2") &&
       selected_node != nullptr)
     begin_rename(*selected_node);
-  ImGui::SameLine();
+  capture_create(13);
+  feedback("Rename", "F2");
+  ContinueViewportToolbar();
   if (detail::SmallIconButton("Move up", detail::EditorIcon::Up))
     static_cast<void>(MoveHierarchySelection(*scene, nodes, -1));
-  ImGui::SameLine();
+  capture_create(14);
+  feedback("Move up");
+  ContinueViewportToolbar();
   if (detail::SmallIconButton("Move down", detail::EditorIcon::Down))
     static_cast<void>(MoveHierarchySelection(*scene, nodes, 1));
+  capture_create(15);
+  feedback("Move down");
   ImGui::EndDisabled();
-  ImGui::SameLine();
+  ContinueViewportToolbar();
   if (detail::SmallIconButton("Clear selection", detail::EditorIcon::Clear)) {
     static_cast<void>(scene->Select(std::span<const runtime::Id>{}));
     state.hierarchy_selection_anchor.reset();
     state.hierarchy_navigation_cursor.reset();
   }
+  capture_create(16);
+  feedback("Clear selection");
+  if (!state.hierarchy_error.empty())
+    ImGui::TextWrapped("%s", state.hierarchy_error.c_str());
   ImGui::Separator();
 
   const auto handle_selection = [&](SceneDocument::NodeKey entity) {
@@ -2367,13 +2405,6 @@ void AcceptSceneMeshDrop(StateT &state, SceneDocument &scene, ProjectContentSess
                                          copied.project_generation, *pose, editable));
   }
   ImGui::EndDragDropTarget();
-}
-
-// Keep every toolbar control reachable when a dock is narrowed or the font grows.
-void ContinueViewportToolbar(float next_width = detail::IconButtonExtent()) {
-  const auto right = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
-  if (ImGui::GetItemRectMax().x + ImGui::GetStyle().ItemSpacing.x + next_width <= right)
-    ImGui::SameLine();
 }
 
 template <typename StateT> void CaptureSceneToolbarControl(StateT &state, std::size_t index) {

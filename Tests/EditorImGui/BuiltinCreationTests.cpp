@@ -1,6 +1,8 @@
 #include "EditorImGuiTestAccess.h"
 
 #include <chrono>
+#include <imgui.h>
+#include <imgui_internal.h>
 #include <iostream>
 #include <stdexcept>
 
@@ -25,6 +27,7 @@ struct Fixture final {
   editor::imgui::EditorImGuiHost ui;
   runtime::Id parent{};
   float scale;
+  std::string frame_text;
   explicit Fixture(float dpi) : scale(dpi) {
     Require(writer.Create(root, "Builtin creation") &&
                 reader.Open(root, editor::ProjectAccess::ReadOnly) && world.Activate(id),
@@ -33,7 +36,7 @@ struct Fixture final {
     Require(scene.SetTransform(parent, {12, 3, -5, 0, 0, 0, 1, -2, 3, 4}) &&
                 scene.Select(std::array{*scene.Key(parent)}) && scene.Save(Path()),
             "Builtin UI parent fixture failed");
-    ui.SetDisplay(1600, 1000, dpi);
+    ui.SetDisplay(1600 * dpi, 1000 * dpi, dpi);
     Access::ConfigureSyntheticInput(ui);
     Nexora::Window::WindowEvent focus;
     focus.type = Nexora::Window::WindowEventType::FocusChanged;
@@ -50,9 +53,15 @@ struct Fixture final {
     std::filesystem::remove_all(root);
   }
   std::filesystem::path Path() const { return root / "Content/Main.scene"; }
-  void Draw() {
+  void Draw(bool log = false) {
     ui.BeginFrame();
+    if (log)
+      ImGui::LogToBuffer();
     ui.DrawProductShell(shell, &scene, active);
+    if (log) {
+      frame_text = GImGui->LogBuffer.c_str();
+      ImGui::LogFinish();
+    }
     static_cast<void>(ui.EndFrame());
   }
   void Click(std::size_t control, bool apply = true) {
@@ -73,7 +82,15 @@ struct Fixture final {
     if (apply)
       Draw();
   }
+  void OpenCreation() {
+    if (!Access::HierarchyCreatePosition(ui, 0))
+      Click(7);
+    Require(Access::HierarchyCreatePosition(ui, 0).has_value() &&
+                Access::HierarchyCreatePosition(ui, 6).has_value(),
+            "Contextual creation did not expose name/type controls");
+  }
   void Choose(bool camera) {
+    OpenCreation();
     Click(0);
     Click(camera ? 2 : 3);
   }
@@ -96,6 +113,7 @@ struct Fixture final {
                                     static_cast<unsigned>(Nexora::Window::KeyModifiers::Shift)));
   }
   void CustomName(std::string_view name) {
+    OpenCreation();
     Click(6);
     Key(Nexora::Window::Key::A, Nexora::Window::KeyModifiers::Control);
     for (char character : name) {
@@ -122,15 +140,77 @@ struct Fixture final {
     return created;
   }
 };
+void RunCompactHeader(float dpi) {
+  Fixture f(dpi);
+  Require(!Access::HierarchyCreatePosition(f.ui, 0) && !Access::HierarchyCreatePosition(f.ui, 6),
+          "Hierarchy still reserves permanent creation name/type rows");
+  Require(Access::HierarchyCreatePosition(f.ui, 7).has_value(),
+          "Hierarchy contextual creation is unreachable");
+  auto *window = ImGui::FindWindowByName("Hierarchy###nexora.hierarchy");
+  const auto row = Access::HierarchyRowPosition(f.ui, *f.scene.Key(f.parent));
+  Require(window && row && (*row)[1] - window->Pos.y < 100,
+          "Hierarchy toolbar crowds out the entity tree");
+  const auto baseline = f.world.SaveScene(f.id);
+  ImGui::SetWindowDock(window, 0, ImGuiCond_Always);
+  ImGui::SetWindowPos(window, {40, 100}, ImGuiCond_Always);
+  ImGui::SetWindowSize(window, {150, 320}, ImGuiCond_Always);
+  Access::FocusHierarchy(f.ui);
+  f.Draw();
+  f.Draw();
+  for (std::size_t control = 7; control < 17; ++control) {
+    const auto point = Access::HierarchyCreatePosition(f.ui, control);
+    Require(point && (*point)[0] > window->Pos.x && (*point)[0] < window->Pos.x + window->Size.x &&
+                (*point)[1] > window->Pos.y && (*point)[1] < window->Pos.y + window->Size.y,
+            "Narrow Hierarchy clipped an action");
+  }
+  const auto before_error = Access::HierarchyRowPosition(f.ui, *f.scene.Key(f.parent));
+  f.Click(11); // Empty clipboard is an actionable error, not a routine confirmation.
+  f.Draw(true);
+  const auto error_row = Access::HierarchyRowPosition(f.ui, *f.scene.Key(f.parent));
+  Require(before_error && error_row && (*error_row)[1] > (*before_error)[1] &&
+              f.frame_text.find("Paste failed.") != std::string::npos,
+          "Compact Hierarchy hid actionable clipboard feedback");
+  f.Click(9);
+  f.Draw(true);
+  Require(f.frame_text.find("Previous operation: Copied selected subtrees.") != std::string::npos &&
+              f.frame_text.find("Ctrl+C") != std::string::npos,
+          "Copy confirmation or its shortcut is missing from contextual feedback");
+  Nexora::Window::WindowEvent pointer{};
+  pointer.type = Nexora::Window::WindowEventType::Pointer;
+  pointer.value0 = static_cast<int>(700 * dpi);
+  pointer.value1 = static_cast<int>(20 * dpi);
+  f.ui.ProcessEvents(std::array{pointer});
+  f.Draw();
+  f.Draw(true);
+  Require(f.frame_text.find("Copied selected subtrees.") == std::string::npos &&
+              f.world.SaveScene(f.id) == baseline && !f.scene.Dirty(),
+          "Copy feedback occupies permanent tree rows or mutates the scene");
+  f.Click(12);
+  Require(f.scene.Nodes().size() == 2 && f.scene.Undo() && f.world.SaveScene(f.id) == baseline,
+          "Compact Duplicate lost its complete Undo transaction");
+  f.Draw();
+  f.Click(10);
+  Require(f.scene.Nodes().empty(), "Compact Cut did not remove the selected subtree");
+  f.Click(11);
+  Require(f.scene.Nodes().size() == 1 && f.scene.Undo() && f.scene.Undo() &&
+              f.world.SaveScene(f.id) == baseline,
+          "Compact Cut/Paste lost its Undo transactions");
+  f.Draw();
+  f.Click(8);
+  Require(f.scene.Nodes().empty() && f.scene.Undo() && f.world.SaveScene(f.id) == baseline &&
+              !f.scene.Dirty(),
+          "Compact Delete lost the original scene or Undo state");
+}
 void Run(float dpi, bool camera, bool child, bool keyboard = false) {
   Fixture f(dpi);
   const auto before = f.world.SaveScene(f.id);
   f.Choose(camera);
   Require(f.world.SaveScene(f.id) == before && !f.scene.Dirty(),
           "Choosing an entity type changed World or history");
-  if (keyboard)
+  if (keyboard) {
+    f.Key(Nexora::Window::Key::Escape);
     f.CreateKey();
-  else
+  } else
     f.Click(child ? 5 : 4);
   const auto created = f.Verify(camera, child);
   const auto initialized = f.world.SaveScene(f.id);
@@ -168,10 +248,13 @@ void RunAccess(float dpi, bool camera) {
           "Read-only builtin controls admitted creation");
   f.active = &f.writer;
   f.Draw();
+  f.Key(Nexora::Window::Key::Escape);
   f.ui.RequestCloseConfirmation();
   f.Draw();
-  f.Click(4);
-  f.Click(5);
+  f.Click(7);
+  Require(!Access::HierarchyCreatePosition(f.ui, 0) && !Access::HierarchyCreatePosition(f.ui, 4) &&
+              !Access::HierarchyCreatePosition(f.ui, 5),
+          "Close modal admitted the contextual creation form");
   f.CreateKey();
   Require(f.world.SaveScene(f.id) == before && !f.scene.Dirty(),
           "Close modal admitted builtin creation");
@@ -201,7 +284,8 @@ void RunStaleParent(float dpi, bool camera) {
 } // namespace
 int main() {
   try {
-    for (const auto dpi : {1.0F, 2.0F})
+    for (const auto dpi : {1.0F, 2.0F}) {
+      RunCompactHeader(dpi);
       for (const bool camera : {true, false}) {
         Run(dpi, camera, false);
         Run(dpi, camera, true);
@@ -212,6 +296,7 @@ int main() {
         RunStaleParent(dpi, camera);
         RunStaleDocument(dpi, camera);
       }
+    }
     std::cout << "Camera/Light Hierarchy creation input contracts passed\n";
     return 0;
   } catch (const std::exception &error) {
