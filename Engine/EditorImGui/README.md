@@ -615,7 +615,7 @@ privacy, not an extension signature verifier or a telemetry transport implementa
   applies the request even if the dock tab is hidden on the next frame. Success selects the new
   entity, expands its parent, and clears a filter that would hide it. Invalid names or stale parents
   leave the document unchanged and show an error. Ctrl+Shift+N queues a root with the current
-  create-name field outside text input and recovery.
+  creation name outside text input and recovery.
   Copy and Paste buttons, plus Ctrl+C and Ctrl+V outside text inputs, route to the scene document's
   snapshot clipboard. Paste selects and reveals the new roots; failures appear in the Hierarchy.
   Shortcuts are disabled while a recovery journal awaits a choice.
@@ -1464,7 +1464,7 @@ Editor or plugin wire ABI changes.
 
 ## Hierarchy Camera/Light creation
 
-The Hierarchy's name row now selects Empty, Camera or Light. Create root / Create child and
+The Hierarchy plus icon opens contextual name and Empty/Camera/Light controls. Create root / Create child and
 Ctrl+Shift+N capture the selected type and name in an owning request; the next frame rechecks
 workspace/modal gates and the original scene generation / parent NodeKey before creating anything. Child creation starts at
 identity local TRS under the current single selection; the new entity is selected and its parent
@@ -2266,3 +2266,13 @@ list, preserving popup/window order. Packaged Sprite owners retain their separat
 UI completion/submission remains single-owner, and no Runtime or renderer borrow survives it.
 Pure 3D packaged candidates publish only after successful UI submission, including empty geometry;
 a failed or ended UI frame cannot be replayed during retained-World fallback.
+
+
+## Compact Hierarchy presentation
+
+The [Hierarchy controls](../../Apps/Editor/README.md#compact-hierarchy-controls) follow the shared
+Editor interface standard. The plus icon opens a contextual creation form; ten common toolbar
+actions wrap within narrow panels. Routine confirmations remain in toolbar tooltips while errors
+stay visible above the tree. Popup/tooltip drawing restores the owning toolbar item before layout
+continues. The existing generation-owned creation request, model/clipboard/history, permissions,
+keyboard and root/child initialization contracts remain unchanged. UI preferences perform no IO.

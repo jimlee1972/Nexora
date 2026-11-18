@@ -189,7 +189,7 @@ add_test(NAME editor.inspector_component_values COMMAND NexoraInspectorComponent
 
 add_executable(NexoraBuiltinCreationInputTests BuiltinCreationTests.cpp)
 target_include_directories(NexoraBuiltinCreationInputTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
-target_link_libraries(NexoraBuiltinCreationInputTests PRIVATE Nexora::EditorImGui)
+target_link_libraries(NexoraBuiltinCreationInputTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
 nexora_apply_defaults(NexoraBuiltinCreationInputTests)
 add_test(NAME editor.builtin_creation_input COMMAND NexoraBuiltinCreationInputTests)
 

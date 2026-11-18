@@ -1,5 +1,9 @@
 # Nexora Graphical Editor Roadmap
 
+### ✅ Compact Hierarchy controls and contextual entity creation
+
+The Hierarchy uses a wrapping action toolbar and an on-demand creation form instead of permanent name/type rows. Routine confirmations move to action tooltips; errors stay visible. Actual 1x/2x widgets, 150-unit narrow panels and native Camera creation/Undo pass with existing generation, permission and history contracts. The complete Linux gate passes 558/558 without failures or retries; see [scoped acceptance](../../Tools/Build/evidence/EditorWorkflow/Hierarchy-Toolbar-Linux.md) and [controls](../../Apps/Editor/README.md#compact-hierarchy-controls). This supporting slice does not change workflow5/9, graphical Editor0/8 or TwoD9/11 acceptance.
+
 ### ✅ Compact Game controls and contextual Play diagnostics
 
 Game now uses wrapping playback/input/view controls with compact state and captured-input indication. The file icon opens stopped-only gameplay-library settings; information opens counters, input help and copied Play entity inspection. Host memory and actionable status remain available. Ordinary and pure 3D packaged native Game images use the existing typed UI composition path to preserve popup order. Actual 1x/2x interaction and narrow-panel controls pass alongside the related input/camera/2D/memory/Scene cases. See [scoped Linux evidence](../../Tools/Build/evidence/EditorWorkflow/Game-Toolbar-Linux.md) and [Game controls](../../Apps/Editor/README.md#compact-game-controls). This supporting presentation slice retains the bounded native canvas/ownership contract and does not change the 5/9 workflow or 0/8 Editor milestone counts.

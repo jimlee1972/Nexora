@@ -386,7 +386,8 @@ public:
   // File menu/New/Open/Save As/path/submit/Cancel/Save/Discard/Replace/menu Save (0..10).
   [[nodiscard]] static std::optional<std::array<float, 2>>
   SceneFilePosition(const EditorImGuiHost &host, std::size_t control) noexcept;
-  // Controls: kind combo, Empty/Camera/Light entries, Create root, Create child, name (0..6).
+  // Controls: kind combo, Empty/Camera/Light, root, child, name (0..6); create menu (7);
+  // delete/copy/cut/paste/duplicate (8..12); rename/up/down/clear (13..16).
   [[nodiscard]] static std::optional<std::array<float, 2>>
   HierarchyCreatePosition(const EditorImGuiHost &host, std::size_t control) noexcept;
   static void QueueHierarchyCreate(EditorImGuiHost &host, std::string name,

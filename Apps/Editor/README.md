@@ -686,7 +686,7 @@ write. SceneDocument persists authored Euler hints through save/reload and resto
 For one selected entity, the Inspector can add/remove a Camera component and edit its field of view
 and clipping planes. Invalid values are rejected; Save, Reload, and Undo retain the camera contract.
 The single-selection Light section likewise adds/removes a Light and edits nonnegative intensity.
-Hierarchy creation now offers Empty, Camera or Light alongside the name field. Create root,
+The Hierarchy plus icon opens a creation form with a name and Empty, Camera or Light type. Create root,
 Create child and Ctrl+Shift+N initialize the selected built-in component as one Undo; child poses
 start at the parent's local origin. Default names follow type changes while custom names remain.
 Queued requests revalidate access and scene/parent generations before mutation. Save/reload retains the
@@ -2251,3 +2251,17 @@ image no longer draws over those UI pixels after the GUI pass. Packaged Sprite c
 its existing owner and single submission. Pure 3D packaged candidates require successful UI
 submission before World publication, including camera-only frames. Scene/Game overlap admission
 and frozen Play assets retain their existing contracts.
+
+
+## Compact Hierarchy controls
+
+The filter and a wrapping icon toolbar leave space for the entity tree. The plus icon opens
+**Create entity**: choose a name and Empty, Camera or Light, then **Create root** or **Create child**.
+Child creation requires one selected parent. Ctrl+Shift+N still creates a root with the current
+name/type outside text input. Choosing settings does not edit the scene; creation retains the
+same generation checks, component defaults and complete Undo/save/reload behavior.
+
+Delete, Copy, Cut, Paste, Duplicate, Rename, sibling movement and Clear selection remain in the
+wrapping toolbar with named tooltips and available shortcuts. Hover a toolbar action for the
+previous routine operation result. Errors remain visible above the tree. Existing filtering,
+selection, clipboard, drag/drop, permissions, modal and keyboard contracts continue to apply.
