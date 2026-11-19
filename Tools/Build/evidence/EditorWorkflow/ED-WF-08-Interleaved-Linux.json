@@ -2,9 +2,17 @@
   "baseline_commit": "21be880c49d53f25cde4d0ea69062c714af91382",
   "baseline_tree": "d6279e8bdf6d805f6e7026d57411b1cdd4859907",
   "source_sha256": {
-    "Tests/EditorImGui/CMakeLists.txt": "96731adfce6367564227543f601c9a5a04734e8826095f27de241f51304bd740",
-    "Tests/EditorImGui/LinuxPackagedSourceServices.py": "d9701f6587ddffb551c13b6dbf5b86f4219118c672cb7e7a954f4f9e90ceaa8b",
-    "Tests/EditorImGui/InterleavedSourceUpdates.py": "5b26d0b0a0739b6b14d43271966bbb3b5a5cc66f2dbe4cd07ea6d57cebeda2fe"
+    "Tests/EditorImGui/CMakeLists.txt": "c2eb79748307e5afc00c600e57f4aa088ab1da0172023f71cb3cf3778fb32a7f",
+    "Tests/EditorImGui/LinuxPackagedSourceServices.py": "db810bfae2bc8b80075feed6b4248135b1112fc2ecfa2c715d2fabb86cc5cbb1",
+    "Tests/EditorImGui/InterleavedSourceUpdates.py": "5b26d0b0a0739b6b14d43271966bbb3b5a5cc66f2dbe4cd07ea6d57cebeda2fe",
+    "Apps/TwoDPlayer/TwoDPlayer.cpp": "a44ba37b040ff21ead7ab0796d4d961d176a9ba62c6462b6941af4457ebad5d2",
+    "Tests/TwoD/ProductAcceptance.py": "4d4735432f87672405a9c545024c6206ccb764b332f46eaf0a8f34955423422c",
+    "Tests/EditorImGui/LinuxAuthoredPreview.py": "b5bd43caa494b841d162347b61b7ea3e2dc3af23ddd5900e768dde21d4623ef2",
+    "Engine/EditorImGui/src/EditorImGui.cpp": "69dc3d3726cb51119a322f2832e6e8757c35f8dd64071cd815fe38524bc00357",
+    "Engine/EditorImGui/src/EditorImGuiTestAccess.h": "9920e29546742e1ce848e6617f9a541bd42bd44fb168a698fdde30a29276ac8d",
+    "Tests/EditorImGui/SceneFileTests.cpp": "2476e192e90b105199fdcd00c42310f663fecf87ecbaebde78f502e0d954ccf0",
+    "Engine/EditorImGui/src/ModifierInputFrame.h": "c085558e70a0d3ef5249d029a69f3563bf39132c671a6e3bd860d9137dac5148",
+    "Tests/EditorImGui/ModifierChordTests.cpp": "f2ea187d5a487f1f377b1ebd331254e32fce959cc79495294bd41a06ad19ac9b"
   },
   "registered_tests": [
     "build.module_graph",
@@ -504,6 +512,7 @@
     "editor.hierarchy_select_all",
     "editor.keyboard_rename_lifecycle",
     "editor.scene_file_input",
+    "editor.modifier_chord_frames",
     "editor.native_surface_lifetime",
     "editor.content_keyboard_shortcuts",
     "editor.game_input_bindings",
@@ -1032,15 +1041,484 @@
     "exit_code": 130,
     "reason": "Deliberately stopped at54completed cases to strengthen new native counter assertion; not a complete gate or a failed-case retry."
   },
-  "validation_input_tree": "c126c7e3255e1849333c83d13fc648e95e95a6a3",
-  "status": "complete local validation recorded before PR; final-head review/merge guards apply",
-  "full_gate": {
+  "completed_pre_correction_gate": {
+    "directory": "/workspace/work/editor-interleaved-source-updates/complete-before-receipt-count-correction",
+    "exit_code": 0,
     "registered": 561,
     "passed": 561,
+    "seconds": 6562.32,
+    "source_sha256": {
+      "Tests/EditorImGui/CMakeLists.txt": "96731adfce6367564227543f601c9a5a04734e8826095f27de241f51304bd740",
+      "Tests/EditorImGui/LinuxPackagedSourceServices.py": "d9701f6587ddffb551c13b6dbf5b86f4219118c672cb7e7a954f4f9e90ceaa8b",
+      "Tests/EditorImGui/InterleavedSourceUpdates.py": "5b26d0b0a0739b6b14d43271966bbb3b5a5cc66f2dbe4cd07ea6d57cebeda2fe"
+    },
+    "published_commit": "fb59c81c6d20468247929871da2de9eced9bb52d",
+    "native_seconds": 367.14,
+    "actual_native_publications": 13,
+    "incorrect_receipt_top_level_publications": 70,
+    "reason": "All native behavior/assertions passed; final diff review found the shared receipt update hardcoded70 for both modes. Read the actual captured native observation instead. Preserve this original output; final corrected source needs fresh full qualification."
+  },
+  "final_receipt_correction": "Use int(state[reimports]) from the acknowledged native Game observation for the shared receipt field. No input, product, runtime, or existing test oracle changed. Finalizer additionally requires top-level and nested native counts equal13.",
+  "validation_input_tree": "3866198ac42f48b3205d29ba8b00d6befb6ba0ad",
+  "status": "complete local validation recorded before PR; final-head review/merge guards apply",
+  "receipt_corrected_gate_observation": {
+    "status": "terminal failed gate preserved; followed by a separately qualified correction",
+    "failed_case": "twod.cooked_product_native",
+    "case_seconds": 9.92,
+    "original_native_report": {
+      "status": "PASS",
+      "module_abi": 3,
+      "project_mode": false,
+      "api": 1,
+      "native_frames": 899,
+      "movement_frames": 29,
+      "entity_x": 0.366667,
+      "final_width": 800,
+      "final_height": 600,
+      "viewport_x": 0.0,
+      "viewport_y": 0.0,
+      "viewport_width": 800.0,
+      "viewport_height": 600.0,
+      "native_ui_draws": 16200,
+      "effects_completed_frame": 0,
+      "effects_revision": 0,
+      "effects_timing_mask": 0,
+      "effects_timing_source": 0,
+      "effects_timing_status": 0,
+      "effects_shadow_ms": null,
+      "effects_world_ms": null,
+      "effects_bloom_ms": null,
+      "effects_composite_ms": null,
+      "effects_scene_bytes": 0,
+      "effects_shadow_bytes": 0,
+      "effects_bloom_bytes": 0,
+      "effects_upload_capacity_bytes": 0,
+      "effects_peak_bytes": 0,
+      "effects_peak_textures": 4,
+      "native_ui_texture_uploads": 4,
+      "resize_generations": 1,
+      "surface_backend_requested": "auto",
+      "render_device_ids_available": true,
+      "render_vendor_id": 65541,
+      "render_device_id": 0,
+      "initial_dpi_scale": 1.0,
+      "minimum_dpi_scale": 1.0,
+      "maximum_dpi_scale": 1.0,
+      "focus_lost_events": 1,
+      "focus_gained_events": 1,
+      "key_press_events": 1,
+      "mouse_press_events": 2,
+      "wheel_events": 0,
+      "unfocused_movement_frames": 0,
+      "sprite_instanced_draws": 900,
+      "sprite_gpu_instances": 30600,
+      "sprite_instance_upload_bytes": 1346400,
+      "asset_active_bytes": 448,
+      "asset_retired_bytes": 0,
+      "asset_staging_bytes": 0,
+      "asset_peak_content_bytes": 448,
+      "audio_active_bytes": 19200,
+      "audio_retired_bytes": 0,
+      "audio_peak_live_bytes": 19200,
+      "pool_capacity": 1024,
+      "visible": 34,
+      "reloaded": true,
+      "validation_package": true,
+      "resumed": false,
+      "initial_x": 0.0,
+      "ui_frames": 900,
+      "ui_saves": 1,
+      "ui_opens": 1,
+      "cooked_reloads": 1,
+      "audio_submitted_frames": 720000,
+      "audio_open_attempts": 1,
+      "audio_open_successes": 1,
+      "audio_pump_failures": 0,
+      "save_reopened": true,
+      "audible_acceptance": "NOT VERIFIED",
+      "allocations_balanced": true,
+      "physical_windows": "NOT RUN"
+    },
+    "original_artifacts_directory": "/workspace/work/editor-interleaved-source-updates/cooked-product-failure",
+    "prerequisite_task": "nexora-d0i",
+    "full_gate_terminal_result": 8,
+    "qualification": "not a passing full gate; retain failure history and qualify corrected final sources separately",
+    "original_report_sha256": "376a49a96cd21608592487277c921ebf79bf1589ed802f26dcd96cf10aeea46c",
+    "proposed_report_fields": [
+      "acquired_frames",
+      "presented_frames",
+      "recoverable_present_frames",
+      "last_platform_result"
+    ],
+    "proposed_final_success_check": "final Linux/Vulkan platform result must equal0 after the requested resize",
+    "registered": 561,
+    "passed": 560,
+    "failed": [
+      "twod.cooked_product_native"
+    ],
+    "skipped": [],
+    "seconds": 6329.09,
+    "archive_directory": "/workspace/work/editor-interleaved-source-updates/complete-with-cooked-product-failure",
+    "patch_applied_during_this_gate": false
+  },
+  "completed_receipt_corrected_failed_gate": {
+    "directory": "/workspace/work/editor-interleaved-source-updates/complete-with-cooked-product-failure",
+    "exit_code": 8,
+    "registered": 561,
+    "passed": 560,
+    "failed": [
+      "twod.cooked_product_native"
+    ],
+    "skipped": [],
+    "seconds": 6329.09,
+    "source_sha256": {
+      "Tests/EditorImGui/CMakeLists.txt": "96731adfce6367564227543f601c9a5a04734e8826095f27de241f51304bd740",
+      "Tests/EditorImGui/LinuxPackagedSourceServices.py": "a82eb3d3a585ebee9517091a0a68fd6ca874c40e49b831183c43a85fcbdd3919",
+      "Tests/EditorImGui/InterleavedSourceUpdates.py": "5b26d0b0a0739b6b14d43271966bbb3b5a5cc66f2dbe4cd07ea6d57cebeda2fe"
+    },
+    "interleaved_case": {
+      "status": "receipt-corrected interleaved scenario passed; known other full-gate failure still prevents merge qualification",
+      "seconds": 357.87,
+      "artifact": "/workspace/Nexora/build/linux-development/artifacts/editor-packaged-source-interleaved/source-services-1795087442458051123/receipt.json",
+      "receipt_sha256": "471fef1b4f59f5758e470bdcbb30bf7347e07a7546b9e48507b38e4b566aa87d",
+      "sdk_log_sha256": "8937f6a93d5c03153438bc04c1204eb40028e5dd668ed1f6e97d54e083c4608a",
+      "successful_replacements": 5,
+      "reimport_publications": 13,
+      "failed_imports": [
+        "corrupt Atlas",
+        "missing Sprite source"
+      ],
+      "rejected_candidates": 1,
+      "late_counter_observations": {
+        "0": [
+          0,
+          1
+        ],
+        "1": [
+          192,
+          699
+        ],
+        "2": [
+          864,
+          1352
+        ],
+        "3": [
+          1520,
+          2157
+        ],
+        "4": [
+          2336,
+          3112
+        ],
+        "6": [
+          3872,
+          4468
+        ]
+      },
+      "phases": 5,
+      "finalizers0through5_observed": true
+    },
+    "sdk_reload_case": {
+      "status": "individual regression passed within full gate that has a known other failure; not merge qualification",
+      "seconds": 1588.1,
+      "artifact": "/workspace/Nexora/build/linux-development/artifacts/editor-packaged-source-reload/source-services-1795085443313427868/receipt.json",
+      "sha256": "f16c0abeebb708c5fd12d213a58cdd8753d64530fe23d668c812536cebabed9e",
+      "actual_native_replacements": 33,
+      "rejected_candidates": 7,
+      "obsolete_result_discarded": true,
+      "stop_cancelled_compilation": true
+    },
+    "source_reimport_case": {
+      "status": "individual regression passed within full gate with a known other failure; not merge qualification",
+      "seconds": 411.0,
+      "artifact": "/workspace/Nexora/build/linux-development/artifacts/editor-packaged-source-reimport/source-services-1795087031608167247/receipt.json",
+      "sha256": "23063a00c4142508415e5a1d8ba41f56b9f424a1b67496593cfbf0290e8c1210",
+      "reimport_publications": 70,
+      "half_frame_clock_preserved": true,
+      "corrupt_and_missing_retained": true,
+      "saved_reopen_verified": true,
+      "reimported_sdk_build_verified": true
+    }
+  },
+  "focused_resize_accounting": {
+    "seconds": 11.03,
+    "case_seconds": 11.0,
+    "artifact": "/workspace/Nexora/build/linux-development/artifacts/twod-product-native/package-rxlk_88n/native.json",
+    "report_sha256": "aabf60ace0d07220afd8637bfd759767ebfec239cfae0346973b2e4f3e49393a",
+    "report": {
+      "status": "PASS",
+      "module_abi": 3,
+      "project_mode": false,
+      "api": 1,
+      "native_frames": 900,
+      "movement_frames": 29,
+      "entity_x": 0.333333,
+      "final_width": 800,
+      "final_height": 600,
+      "viewport_x": 0.0,
+      "viewport_y": 0.0,
+      "viewport_width": 800.0,
+      "viewport_height": 600.0,
+      "native_ui_draws": 16200,
+      "effects_completed_frame": 0,
+      "effects_revision": 0,
+      "effects_timing_mask": 0,
+      "effects_timing_source": 0,
+      "effects_timing_status": 0,
+      "effects_shadow_ms": null,
+      "effects_world_ms": null,
+      "effects_bloom_ms": null,
+      "effects_composite_ms": null,
+      "effects_scene_bytes": 0,
+      "effects_shadow_bytes": 0,
+      "effects_bloom_bytes": 0,
+      "effects_upload_capacity_bytes": 0,
+      "effects_peak_bytes": 0,
+      "effects_peak_textures": 4,
+      "native_ui_texture_uploads": 4,
+      "resize_generations": 1,
+      "acquired_frames": 900,
+      "presented_frames": 900,
+      "recoverable_present_frames": 0,
+      "last_platform_result": 0,
+      "surface_backend_requested": "auto",
+      "render_device_ids_available": true,
+      "render_vendor_id": 65541,
+      "render_device_id": 0,
+      "initial_dpi_scale": 1.0,
+      "minimum_dpi_scale": 1.0,
+      "maximum_dpi_scale": 1.0,
+      "focus_lost_events": 1,
+      "focus_gained_events": 1,
+      "key_press_events": 1,
+      "mouse_press_events": 2,
+      "wheel_events": 0,
+      "unfocused_movement_frames": 0,
+      "sprite_instanced_draws": 900,
+      "sprite_gpu_instances": 30600,
+      "sprite_instance_upload_bytes": 1346400,
+      "asset_active_bytes": 448,
+      "asset_retired_bytes": 0,
+      "asset_staging_bytes": 0,
+      "asset_peak_content_bytes": 448,
+      "audio_active_bytes": 19200,
+      "audio_retired_bytes": 0,
+      "audio_peak_live_bytes": 19200,
+      "pool_capacity": 1024,
+      "visible": 34,
+      "reloaded": true,
+      "validation_package": true,
+      "resumed": false,
+      "initial_x": 0.0,
+      "ui_frames": 900,
+      "ui_saves": 1,
+      "ui_opens": 1,
+      "cooked_reloads": 1,
+      "audio_submitted_frames": 720000,
+      "audio_open_attempts": 1,
+      "audio_open_successes": 1,
+      "audio_pump_failures": 0,
+      "save_reopened": true,
+      "audible_acceptance": "NOT VERIFIED",
+      "allocations_balanced": true,
+      "physical_windows": "NOT RUN"
+    },
+    "build_log_sha256": "1bc3e77fc8f7ddc94e0ba1a7a7439f217adb69b4e9ae2859f8e3bd000f798c4f",
+    "ctest_log_sha256": "496df5cfbd577811496cdc2a5266d1165045b624c96eee47166f62ed39aa9acc",
+    "junit_sha256": "ae46b5df88b2c3fda8a8a467490bcc8ea3be92b62556cdc67b277758e45490b0",
+    "scope": "Only cooked product native accounting case; final five-input complete qualification still pending."
+  },
+  "final_receipt_consistency_assertion": "The registered interleaved native case compares the shared receipt count with the independently tracked live publication count. First executed by the next complete gate.",
+  "native_accounting_correction": "Existing acquired/presented/recoverable surface counters and last backend result are additive report fields. Require900 UI/draw/acquired frames, positive native_frames==presented_frames, presented+recoverable==900 and final Vulkan result0. Keep movement/SAVE/OPEN/resize/audio/ownership checks; no rendering/admission/lifetime/ABI/linkage changes.",
+  "acknowledged_preview_focused": {
+    "status": "focused changed-source native case passed; fresh six-input full gate required",
+    "case_seconds": 81.69,
+    "total_seconds": 81.71,
+    "artifact": "/workspace/Nexora/build/linux-development/artifacts/editor-authored-preview/attempt-41197952104967/acceptance.json",
+    "receipt_sha256": "42ca6ec488109057d772fe4d294d269ac24c1764be226e4d2f4c20b0fd094b58",
+    "gui_requests": 98,
+    "physical_key_edges": 196,
+    "cycles": 32,
+    "full_gate_not_yet_passed": true
+  },
+  "completed_six_input_gate": {
+    "status": "failed; archived before product fix",
+    "passed": 560,
+    "total": 561,
+    "seconds": 7133.51,
+    "exit_code": 8,
+    "skips": 0,
+    "retries": 0,
+    "failure": "editor.linux_plugin_manager",
+    "archive_verified_files": 314,
+    "changed_source_qualification": false,
+    "source_sha256": {
+      "Tests/EditorImGui/CMakeLists.txt": "96731adfce6367564227543f601c9a5a04734e8826095f27de241f51304bd740",
+      "Tests/EditorImGui/LinuxPackagedSourceServices.py": "db810bfae2bc8b80075feed6b4248135b1112fc2ecfa2c715d2fabb86cc5cbb1",
+      "Tests/EditorImGui/InterleavedSourceUpdates.py": "5b26d0b0a0739b6b14d43271966bbb3b5a5cc66f2dbe4cd07ea6d57cebeda2fe",
+      "Apps/TwoDPlayer/TwoDPlayer.cpp": "a44ba37b040ff21ead7ab0796d4d961d176a9ba62c6462b6941af4457ebad5d2",
+      "Tests/TwoD/ProductAcceptance.py": "4d4735432f87672405a9c545024c6206ccb764b332f46eaf0a8f34955423422c",
+      "Tests/EditorImGui/LinuxAuthoredPreview.py": "b5bd43caa494b841d162347b61b7ea3e2dc3af23ddd5900e768dde21d4623ef2"
+    }
+  },
+  "product_modifier_followup": {
+    "status": "historical focused validation before the passing combined gate",
+    "tests": {
+      "editor.linux_plugin_manager": 34.8,
+      "editor.scene_file_input": 13.36,
+      "editor.modifier_chord_frames": 64.48
+    },
+    "total_seconds": 112.67,
+    "preload": false,
+    "test_command": "ctest --preset linux-development -R '^(editor.modifier_chord_frames|editor.linux_plugin_manager|editor.scene_file_input)$' --output-on-failure",
+    "source_sha256": {
+      "Tests/EditorImGui/LinuxPluginManager.py": "41a41130d204f60474d579bdd3e93c8240e5282c1fbcea5df6f4c7b02c8d6b35",
+      "Tests/EditorImGui/LinuxExtensionControls.py": "019bbf1a67d70662c35769a901ace231489efc2705c320db01b09b3f016d8ca6",
+      "Engine/EditorImGui/src/ModifierInputFrame.h": "c085558e70a0d3ef5249d029a69f3563bf39132c671a6e3bd860d9137dac5148",
+      "Tests/EditorImGui/ModifierChordTests.cpp": "f2ea187d5a487f1f377b1ebd331254e32fce959cc79495294bd41a06ad19ac9b"
+    },
+    "scope_note": "Executed before Project chrome integration; Plugin Manager producer and gesture deadlines unchanged."
+  },
+  "combined_qualification_status": "combined eleven-source 562-case full gate passed; final-head review and merge pending",
+  "completed_five_input_failed_gate_observations": {
+    "status": "terminal failed; follow-up diagnosis required before fresh qualification",
+    "product_native": {
+      "status": "individual case passed within terminal failed five-input gate",
+      "artifact": "/workspace/Nexora/build/linux-development/artifacts/twod-product-native/package-8dh8pk58/native.json",
+      "report_sha256": "64c70b67940b00704b5331f02ced35c5b27bc0684264f77ff304429da49ec245",
+      "seconds": 9.63,
+      "native_frames": 900,
+      "ui_frames": 900,
+      "sprite_instanced_draws": 900,
+      "acquired_frames": 900,
+      "presented_frames": 900,
+      "recoverable_present_frames": 0,
+      "last_platform_result": 0,
+      "final_width": 800,
+      "final_height": 600,
+      "resize_generations": 1
+    },
+    "failures": [
+      {
+        "case": "editor.linux_native_play_pointer_buttons",
+        "seconds": 4.93,
+        "button": 9,
+        "window_seconds": 0.15,
+        "observed_neutral": true,
+        "postneutral_draws_observed": 1,
+        "postneutral_draws_required": 2,
+        "raw_artifacts": "/workspace/work/editor-interleaved-source-updates/pointer-button-failure",
+        "followup_task": "nexora-nqn.15.15",
+        "source_changed": false,
+        "retry_performed": false,
+        "root_cause": "not established"
+      },
+      {
+        "case": "editor.linux_authored_preview",
+        "seconds": 15.48,
+        "cycle": 1,
+        "observed_state": "Stopped,module0,bound0 after a single raw30ms F5 pulse",
+        "raw_artifacts": "/workspace/work/editor-interleaved-source-updates/authored-preview-failure",
+        "original_scratch_retained": false,
+        "original_input_edge_trace_available": false,
+        "source_changed": false,
+        "retry_performed": false,
+        "root_cause": "not established",
+        "followup_task": "nexora-nqn.15.16"
+      }
+    ],
+    "exit_code": 8,
+    "registered": 561,
+    "passed": 559,
+    "failed": 2,
+    "skipped": 0,
+    "failed_case_retries": 0,
+    "seconds": 6654.86,
+    "archive": "/workspace/work/editor-interleaved-source-updates/complete-with-pointer-baseline-failure",
+    "sdk_reload": {
+      "status": "individual SDK regression passed in ongoing five-input gate with two other failures; no merge qualification",
+      "seconds": 1790.39,
+      "artifact": "/workspace/Nexora/build/linux-development/artifacts/editor-packaged-source-reload/source-services-1795092746980396171/receipt.json",
+      "sha256": "8ac4ef5ac8b667eff7da8f9c812e31dded6e5427581a91463da800b19ea10230",
+      "actual_native_replacements": 33,
+      "rejected_candidates": 7,
+      "obsolete_result_discarded": true,
+      "stop_cancelled_compilation": true
+    },
+    "source_reimport": {
+      "status": "individual regression passed within five-input full gate with known other failures; not merge qualification",
+      "seconds": 425.44,
+      "artifact": "/workspace/Nexora/build/linux-development/artifacts/editor-packaged-source-reimport/source-services-1795094537442564190/receipt.json",
+      "sha256": "819a33cd27dcb3740a9cdbc6df9273805be77b6f2f769db11e462bb08b1c1798",
+      "reimport_publications": 70,
+      "half_frame_clock_preserved": true,
+      "corrupt_and_missing_retained": true,
+      "saved_reopen_verified": true,
+      "reimported_sdk_build_verified": true
+    },
+    "interleaved": {
+      "status": "receipt-consistency and native interleaving passed within five-input gate with known other failures; not merge qualification",
+      "seconds": 364.62,
+      "artifact": "/workspace/Nexora/build/linux-development/artifacts/editor-packaged-source-interleaved/source-services-1795094962832282445/receipt.json",
+      "receipt_sha256": "3c118402b7211178a47da42c830983b0b1545c358c6ed36836d48e390a16a212",
+      "sdk_log_sha256": "20ddcc1d9fea73ebf15a3a7db313d7222cd8d499e3e182cd01bec1d7c1fcc0e5",
+      "successful_replacements": 5,
+      "reimport_publications": 13,
+      "shared_receipt_count_matches": true,
+      "failed_imports": [
+        "corrupt Atlas",
+        "missing Sprite source"
+      ],
+      "rejected_candidates": 1,
+      "late_counter_observations": {
+        "0": [
+          0,
+          1
+        ],
+        "1": [
+          160,
+          664
+        ],
+        "2": [
+          832,
+          1407
+        ],
+        "3": [
+          1536,
+          2095
+        ],
+        "4": [
+          2256,
+          3008
+        ],
+        "6": [
+          3936,
+          4366
+        ]
+      },
+      "phases": 5,
+      "finalizers0through5_observed": true
+    }
+  },
+  "final_qualification_observations": {
+    "status": "terminal combined eleven-input full gate passed; review and merge still pending",
+    "exit_code": 0,
+    "registered": 562,
+    "passed": 562,
+    "failed": 0,
+    "skipped": 0,
+    "failed_case_retries": 0,
+    "seconds": 7170.52,
+    "source_count": 11,
+    "historical_pointer_cause": "unproven; original failed gate and diagnostic remain retained"
+  },
+  "full_gate": {
+    "registered": 562,
+    "passed": 562,
     "failed": 0,
     "skipped": 0,
     "retries": 0,
-    "seconds": 6562.32,
+    "seconds": 7170.52,
     "exit_code": 0,
     "tests": [
       {
@@ -1049,11 +1527,11 @@
       },
       {
         "name": "build.editor_target_evidence",
-        "result": "Passed    0.81 sec"
+        "result": "Passed    1.16 sec"
       },
       {
         "name": "build.shader_contract",
-        "result": "Passed    0.03 sec"
+        "result": "Passed    0.02 sec"
       },
       {
         "name": "build.plugin_manifests",
@@ -1061,19 +1539,19 @@
       },
       {
         "name": "build.showcase_package",
-        "result": "Passed    0.33 sec"
+        "result": "Passed    0.32 sec"
       },
       {
         "name": "build.showcase_package_launch_safety",
-        "result": "Passed    1.02 sec"
+        "result": "Passed    0.79 sec"
       },
       {
         "name": "build.v2_migration_scanner",
-        "result": "Passed    0.07 sec"
+        "result": "Passed    0.05 sec"
       },
       {
         "name": "build.v2_production_toolchain",
-        "result": "Passed    0.68 sec"
+        "result": "Passed    0.97 sec"
       },
       {
         "name": "gameplay.zig_abi_smoke",
@@ -1081,11 +1559,11 @@
       },
       {
         "name": "gameplay.zig_pointer_wire_layout",
-        "result": "Passed    0.00 sec"
+        "result": "Passed    0.01 sec"
       },
       {
         "name": "gameplay.zig_twod_static",
-        "result": "Passed    0.03 sec"
+        "result": "Passed    0.05 sec"
       },
       {
         "name": "gameplay.zig_twod_dynamic",
@@ -1101,43 +1579,43 @@
       },
       {
         "name": "gameplay.zig_input_wrapper",
-        "result": "Passed    3.42 sec"
+        "result": "Passed    3.68 sec"
       },
       {
         "name": "gameplay.zig_ui_wrapper",
-        "result": "Passed    3.02 sec"
+        "result": "Passed    3.92 sec"
       },
       {
         "name": "gameplay.zig_audio_wrapper",
-        "result": "Passed    3.60 sec"
+        "result": "Passed    3.11 sec"
       },
       {
         "name": "gameplay.zig_storage_wrapper",
-        "result": "Passed    3.25 sec"
+        "result": "Passed    4.07 sec"
       },
       {
         "name": "gameplay.zig_content_wrapper",
-        "result": "Passed    3.55 sec"
+        "result": "Passed    4.04 sec"
       },
       {
         "name": "gameplay.zig_display_wrapper",
-        "result": "Passed    3.14 sec"
+        "result": "Passed    4.75 sec"
       },
       {
         "name": "gameplay.zig_ui_draw_wrapper",
-        "result": "Passed    3.57 sec"
+        "result": "Passed    3.95 sec"
       },
       {
         "name": "gameplay.zig_assets_wrapper",
-        "result": "Passed    3.80 sec"
+        "result": "Passed    3.50 sec"
       },
       {
         "name": "gameplay.zig_color_wrapper",
-        "result": "Passed    3.73 sec"
+        "result": "Passed    3.82 sec"
       },
       {
         "name": "gameplay.zig_display_player",
-        "result": "Passed    0.35 sec"
+        "result": "Passed    0.45 sec"
       },
       {
         "name": "gameplay.zig_ui_showcase",
@@ -1145,23 +1623,23 @@
       },
       {
         "name": "gameplay.zig_image_ui_player",
-        "result": "Passed    0.36 sec"
+        "result": "Passed    0.76 sec"
       },
       {
         "name": "gameplay.zig_asset_transitions",
-        "result": "Passed    6.94 sec"
+        "result": "Passed    6.85 sec"
       },
       {
         "name": "gameplay.zig_color_slice",
-        "result": "Passed    0.55 sec"
+        "result": "Passed    0.48 sec"
       },
       {
         "name": "gameplay.zig_voice_dialogue",
-        "result": "Passed    0.14 sec"
+        "result": "Passed    0.15 sec"
       },
       {
         "name": "gameplay.zig_voice_player",
-        "result": "Passed    7.03 sec"
+        "result": "Passed    6.28 sec"
       },
       {
         "name": "gameplay.zig_lifecycle_slice",
@@ -1169,7 +1647,7 @@
       },
       {
         "name": "gameplay.zig_lifecycle_player",
-        "result": "Passed    0.25 sec"
+        "result": "Passed    0.28 sec"
       },
       {
         "name": "gameplay.zig_minimized_modules",
@@ -1177,39 +1655,39 @@
       },
       {
         "name": "gameplay.zig_hd2d_fallback",
-        "result": "Passed    3.39 sec"
+        "result": "Passed    3.54 sec"
       },
       {
         "name": "gameplay.zig_hd2d_native",
-        "result": "Passed   74.82 sec"
+        "result": "Passed   79.94 sec"
       },
       {
         "name": "gameplay.hd2d_diagnostic_assets",
-        "result": "Passed    0.11 sec"
+        "result": "Passed    0.16 sec"
       },
       {
         "name": "showcase.embedded_vulkan_shaders",
-        "result": "Passed    0.69 sec"
+        "result": "Passed    1.16 sec"
       },
       {
         "name": "showcase.courtyard_asset_generation",
-        "result": "Passed    3.18 sec"
+        "result": "Passed    4.16 sec"
       },
       {
         "name": "showcase.courtyard_hero_generation",
-        "result": "Passed   34.92 sec"
+        "result": "Passed   40.58 sec"
       },
       {
         "name": "showcase.courtyard_environment_generation",
-        "result": "Passed    7.82 sec"
+        "result": "Passed    8.00 sec"
       },
       {
         "name": "showcase.courtyard_environment_contracts",
-        "result": "Passed    5.42 sec"
+        "result": "Passed    5.45 sec"
       },
       {
         "name": "showcase.courtyard_asset_conversion",
-        "result": "Passed    2.98 sec"
+        "result": "Passed    3.05 sec"
       },
       {
         "name": "showcase.performance_statistics",
@@ -1217,11 +1695,11 @@
       },
       {
         "name": "showcase.benchmark_evidence_policy",
-        "result": "Passed    0.19 sec"
+        "result": "Passed    0.20 sec"
       },
       {
         "name": "showcase.benchmark_evidence_policy_optimized",
-        "result": "Passed    0.66 sec"
+        "result": "Passed    0.64 sec"
       },
       {
         "name": "showcase.v1_probe",
@@ -1229,47 +1707,47 @@
       },
       {
         "name": "showcase.runtime_rooms",
-        "result": "Passed    3.60 sec"
+        "result": "Passed    3.62 sec"
       },
       {
         "name": "showcase.visual_tour_cli",
-        "result": "Passed    1.62 sec"
+        "result": "Passed    1.59 sec"
       },
       {
         "name": "showcase.guided_tour_cli",
-        "result": "Passed    0.32 sec"
+        "result": "Passed    0.37 sec"
       },
       {
         "name": "showcase.probe_export",
-        "result": "Passed    0.43 sec"
-      },
-      {
-        "name": "showcase.zig_headless",
-        "result": "Passed    0.34 sec"
-      },
-      {
-        "name": "showcase.feature_gallery",
-        "result": "Passed    0.35 sec"
-      },
-      {
-        "name": "showcase.zig_dynamic",
         "result": "Passed    0.41 sec"
       },
       {
+        "name": "showcase.zig_headless",
+        "result": "Passed    0.38 sec"
+      },
+      {
+        "name": "showcase.feature_gallery",
+        "result": "Passed    0.31 sec"
+      },
+      {
+        "name": "showcase.zig_dynamic",
+        "result": "Passed    0.37 sec"
+      },
+      {
         "name": "showcase.capability_fallbacks",
-        "result": "Passed    0.33 sec"
+        "result": "Passed    0.34 sec"
       },
       {
         "name": "showcase.linux_vulkan_interaction",
-        "result": "Passed  130.50 sec"
+        "result": "Passed  140.11 sec"
       },
       {
         "name": "showcase.linux_animation_handshake",
-        "result": "Passed    0.19 sec"
+        "result": "Passed    0.22 sec"
       },
       {
         "name": "showcase.linux_animation_handshake_optimized",
-        "result": "Passed    0.80 sec"
+        "result": "Passed    1.23 sec"
       },
       {
         "name": "showcase.linux_vulkan_evidence_policy",
@@ -1277,15 +1755,15 @@
       },
       {
         "name": "showcase.linux_vulkan_virtual_display",
-        "result": "Passed    4.85 sec"
+        "result": "Passed    7.74 sec"
       },
       {
         "name": "showcase.linux_vulkan_rendering_room",
-        "result": "Passed    1.19 sec"
+        "result": "Passed    2.06 sec"
       },
       {
         "name": "showcase.linux_vulkan_camera_input",
-        "result": "Passed    6.24 sec"
+        "result": "Passed    8.96 sec"
       },
       {
         "name": "foundation.build_info",
@@ -1297,7 +1775,7 @@
       },
       {
         "name": "cryptography.ed25519_sha256",
-        "result": "Passed    0.94 sec"
+        "result": "Passed    0.64 sec"
       },
       {
         "name": "core.runtime",
@@ -1305,31 +1783,31 @@
       },
       {
         "name": "core.async_log_stream",
-        "result": "Passed    0.28 sec"
+        "result": "Passed    0.25 sec"
       },
       {
         "name": "core.process_memory",
-        "result": "Passed    0.02 sec"
+        "result": "Passed    0.03 sec"
       },
       {
         "name": "core.v2_m11_remote_diagnostics",
-        "result": "Passed    0.00 sec"
+        "result": "Passed    0.01 sec"
       },
       {
         "name": "ai.v2_m7_navigation_crowd_policy",
-        "result": "Passed    0.02 sec"
+        "result": "Passed    0.03 sec"
       },
       {
         "name": "build.pose_search_profiles",
-        "result": "Passed    6.32 sec"
+        "result": "Passed    4.71 sec"
       },
       {
         "name": "animation.v2_m8_pose_search",
-        "result": "Passed    0.29 sec"
+        "result": "Passed    0.24 sec"
       },
       {
         "name": "build.animation_profiles",
-        "result": "Passed    5.58 sec"
+        "result": "Passed    4.55 sec"
       },
       {
         "name": "animation.v2_m8_inertial_pose_blend",
@@ -1337,7 +1815,7 @@
       },
       {
         "name": "animation.v2_m8_synchronized_trs_graph",
-        "result": "Passed    0.10 sec"
+        "result": "Passed    0.13 sec"
       },
       {
         "name": "animation.v2_m8_marker_sync",
@@ -1349,15 +1827,15 @@
       },
       {
         "name": "network.v2_m5_transport",
-        "result": "Passed    0.08 sec"
+        "result": "Passed    0.15 sec"
       },
       {
         "name": "network.v2_m6_entity_mapping",
-        "result": "Passed    0.09 sec"
+        "result": "Passed    0.08 sec"
       },
       {
         "name": "network.v2_m6_replication_interest",
-        "result": "Passed    0.09 sec"
+        "result": "Passed    0.08 sec"
       },
       {
         "name": "network.v2_m6_dormancy",
@@ -1369,7 +1847,7 @@
       },
       {
         "name": "network.server_runtime_contract",
-        "result": "Passed    0.09 sec"
+        "result": "Passed    0.12 sec"
       },
       {
         "name": "network.v2_m5_headless_dependency",
@@ -1377,19 +1855,19 @@
       },
       {
         "name": "window_presentation.contracts",
-        "result": "Passed    0.02 sec"
+        "result": "Passed    0.01 sec"
       },
       {
         "name": "window_presentation.staged_upload_allocation",
-        "result": "Passed    0.01 sec"
+        "result": "Passed    0.00 sec"
       },
       {
         "name": "window_presentation.scene_geometry_upload_key",
-        "result": "Passed    0.01 sec"
+        "result": "Passed    0.00 sec"
       },
       {
         "name": "window_presentation.scene_geometry_residency",
-        "result": "Passed    0.01 sec"
+        "result": "Passed    0.00 sec"
       },
       {
         "name": "window_presentation.scene_instance_contract",
@@ -1397,7 +1875,7 @@
       },
       {
         "name": "window_presentation.scene_view_admission",
-        "result": "Passed    0.00 sec"
+        "result": "Passed    0.09 sec"
       },
       {
         "name": "window_presentation.scene_ui_composition",
@@ -1405,43 +1883,43 @@
       },
       {
         "name": "window_presentation.vulkan_dual_scene_ui",
-        "result": "Passed    1.11 sec"
+        "result": "Passed    1.04 sec"
       },
       {
         "name": "window_presentation.vulkan_scene_ui",
-        "result": "Passed    1.03 sec"
+        "result": "Passed    1.13 sec"
       },
       {
         "name": "window_presentation.vulkan_scene",
-        "result": "Passed    1.30 sec"
+        "result": "Passed    1.24 sec"
       },
       {
         "name": "window_presentation.vulkan_pbr",
-        "result": "Passed    7.75 sec"
+        "result": "Passed    7.32 sec"
       },
       {
         "name": "window_presentation.vulkan_scene_upload_reuse",
-        "result": "Passed    4.45 sec"
+        "result": "Passed    4.26 sec"
       },
       {
         "name": "window_presentation.vulkan_swapchain",
-        "result": "Passed    4.34 sec"
+        "result": "Passed    3.43 sec"
       },
       {
         "name": "window_presentation.hlsl_embedding",
-        "result": "Passed    0.12 sec"
+        "result": "Passed    0.11 sec"
       },
       {
         "name": "window_presentation.pbr_shader_generation",
-        "result": "Passed    9.36 sec"
+        "result": "Passed    7.32 sec"
       },
       {
         "name": "window_presentation.tone_shader_generation",
-        "result": "Passed    5.48 sec"
+        "result": "Passed    4.39 sec"
       },
       {
         "name": "window_presentation.gpu_timing",
-        "result": "Passed    0.00 sec"
+        "result": "Passed    0.01 sec"
       },
       {
         "name": "window.x11_key_repeat_matcher",
@@ -1449,11 +1927,11 @@
       },
       {
         "name": "window.x11_held_key_native",
-        "result": "Passed    2.17 sec"
+        "result": "Passed    3.20 sec"
       },
       {
         "name": "window.x11_display_metrics_native",
-        "result": "Passed    0.15 sec"
+        "result": "Passed    0.16 sec"
       },
       {
         "name": "window_presentation.twod_linear_packet",
@@ -1461,27 +1939,27 @@
       },
       {
         "name": "window_presentation.twod_linear_shader_artifacts",
-        "result": "Passed   10.55 sec"
+        "result": "Passed   11.59 sec"
       },
       {
         "name": "window_presentation.twod_linear_native",
-        "result": "Passed   14.42 sec"
+        "result": "Passed   20.57 sec"
       },
       {
         "name": "window_presentation.scene_texture_retirement",
-        "result": "Passed    0.63 sec"
+        "result": "Passed    0.57 sec"
       },
       {
         "name": "api.sprite_source_baseline_guard",
-        "result": "Passed    1.21 sec"
+        "result": "Passed    1.18 sec"
       },
       {
         "name": "api.scene_baseline_guard",
-        "result": "Passed    1.47 sec"
+        "result": "Passed    0.91 sec"
       },
       {
         "name": "api.foundation_math_types",
-        "result": "Passed    0.06 sec"
+        "result": "Passed    0.07 sec"
       },
       {
         "name": "api.core_services_handle_and_vfs_contract",
@@ -1493,11 +1971,11 @@
       },
       {
         "name": "api.m6_manifest_compatibility",
-        "result": "Passed    0.07 sec"
+        "result": "Passed    0.08 sec"
       },
       {
         "name": "api.audio_state_baseline_guard",
-        "result": "Passed    0.80 sec"
+        "result": "Passed    0.85 sec"
       },
       {
         "name": "samples.api_foundation",
@@ -1505,35 +1983,35 @@
       },
       {
         "name": "samples.editor_reflected_arrays",
-        "result": "Passed    0.02 sec"
+        "result": "Passed    0.03 sec"
       },
       {
         "name": "api.gameplay_scene_zig_abi",
-        "result": "Passed    4.89 sec"
+        "result": "Passed    4.15 sec"
       },
       {
         "name": "api.gameplay_input_zig_abi",
-        "result": "Passed    4.17 sec"
+        "result": "Passed    3.97 sec"
       },
       {
         "name": "api.lifecycle_baseline_guard",
-        "result": "Passed    0.89 sec"
+        "result": "Passed    0.83 sec"
       },
       {
         "name": "api.gameplay_lifecycle_zig_abi",
-        "result": "Passed    3.82 sec"
+        "result": "Passed    4.26 sec"
       },
       {
         "name": "api.twod_effects_baseline_guard",
-        "result": "Passed    1.10 sec"
+        "result": "Passed    1.05 sec"
       },
       {
         "name": "renderer.d3d12_adapter_policy",
-        "result": "Passed    0.00 sec"
+        "result": "Passed    0.01 sec"
       },
       {
         "name": "renderer.submission_gpu_timing",
-        "result": "Passed    0.16 sec"
+        "result": "Passed    0.21 sec"
       },
       {
         "name": "renderer.metal_source_contract",
@@ -1541,15 +2019,15 @@
       },
       {
         "name": "renderer.indirect_range_source_contract",
-        "result": "Passed    0.04 sec"
+        "result": "Passed    0.05 sec"
       },
       {
         "name": "renderer.dxil_artifact_readiness",
-        "result": "Passed    0.00 sec"
+        "result": "Passed    0.01 sec"
       },
       {
         "name": "renderer.contracts",
-        "result": "Passed    0.10 sec"
+        "result": "Passed    0.09 sec"
       },
       {
         "name": "renderer.graph_buffer_dependencies",
@@ -1565,7 +2043,7 @@
       },
       {
         "name": "renderer.scene_frame_contracts",
-        "result": "Passed    0.01 sec"
+        "result": "Passed    0.00 sec"
       },
       {
         "name": "renderer.material_contracts",
@@ -1573,7 +2051,7 @@
       },
       {
         "name": "renderer.golden_image_acceptance",
-        "result": "Passed    0.01 sec"
+        "result": "Passed    0.00 sec"
       },
       {
         "name": "renderer.v2_gpu_scene",
@@ -1581,43 +2059,43 @@
       },
       {
         "name": "renderer.v2_gpu_driven",
-        "result": "Passed    0.17 sec"
+        "result": "Passed    0.15 sec"
       },
       {
         "name": "renderer.vulkan_texture_recording",
-        "result": "Passed    0.16 sec"
-      },
-      {
-        "name": "renderer.vulkan_graphics_resource_reuse",
-        "result": "Passed    0.61 sec"
-      },
-      {
-        "name": "renderer.vulkan_descriptor_isolation",
-        "result": "Passed    0.17 sec"
-      },
-      {
-        "name": "renderer.vulkan_recording_gpu_timing",
-        "result": "Passed    0.21 sec"
-      },
-      {
-        "name": "renderer.vulkan_recording_resource_reuse",
         "result": "Passed    0.20 sec"
       },
       {
+        "name": "renderer.vulkan_graphics_resource_reuse",
+        "result": "Passed    0.56 sec"
+      },
+      {
+        "name": "renderer.vulkan_descriptor_isolation",
+        "result": "Passed    0.14 sec"
+      },
+      {
+        "name": "renderer.vulkan_recording_gpu_timing",
+        "result": "Passed    0.29 sec"
+      },
+      {
+        "name": "renderer.vulkan_recording_resource_reuse",
+        "result": "Passed    0.25 sec"
+      },
+      {
         "name": "renderer.vulkan_recording_benchmark",
-        "result": "Passed    0.30 sec"
+        "result": "Passed    0.44 sec"
       },
       {
         "name": "renderer.vulkan_recording_benchmark_reuse",
-        "result": "Passed    0.30 sec"
+        "result": "Passed    0.33 sec"
       },
       {
         "name": "build.shader_crosscompile",
-        "result": "Passed    0.04 sec"
+        "result": "Passed    0.02 sec"
       },
       {
         "name": "renderer.vulkan_golden_triangle",
-        "result": "Passed    0.09 sec"
+        "result": "Passed    0.08 sec"
       },
       {
         "name": "renderer.enhanced_barrier_projection",
@@ -1625,7 +2103,7 @@
       },
       {
         "name": "renderer.tessellation",
-        "result": "Passed    0.16 sec"
+        "result": "Passed    0.11 sec"
       },
       {
         "name": "renderer.shading_rate",
@@ -1633,19 +2111,19 @@
       },
       {
         "name": "renderer.mesh_shader",
-        "result": "Passed    0.24 sec"
+        "result": "Passed    0.10 sec"
       },
       {
         "name": "renderer.work_graph",
-        "result": "Passed    0.09 sec"
+        "result": "Passed    0.10 sec"
       },
       {
         "name": "renderer.ray_tracing",
-        "result": "Passed    0.15 sec"
+        "result": "Passed    0.20 sec"
       },
       {
         "name": "renderer.sampler_feedback",
-        "result": "Passed    0.07 sec"
+        "result": "Passed    0.08 sec"
       },
       {
         "name": "renderer.shading_rate_image",
@@ -1653,15 +2131,15 @@
       },
       {
         "name": "renderer.modern_compute_fallback",
-        "result": "Passed    0.07 sec"
+        "result": "Passed    0.08 sec"
       },
       {
         "name": "runtime.shader_artifact_contracts",
-        "result": "Passed    0.00 sec"
+        "result": "Passed    0.01 sec"
       },
       {
         "name": "runtime.v1_m4_m11_contracts",
-        "result": "Passed    0.00 sec"
+        "result": "Passed    0.01 sec"
       },
       {
         "name": "api.game_world_facade",
@@ -1673,15 +2151,15 @@
       },
       {
         "name": "runtime.entity_parenting",
-        "result": "Passed    0.76 sec"
+        "result": "Passed    0.88 sec"
       },
       {
         "name": "runtime.scene_world_pose_snapshot",
-        "result": "Passed    2.14 sec"
+        "result": "Passed    1.91 sec"
       },
       {
         "name": "runtime.render_sync",
-        "result": "Passed    0.87 sec"
+        "result": "Passed    0.74 sec"
       },
       {
         "name": "api.gameplay_host_bridge",
@@ -1693,15 +2171,15 @@
       },
       {
         "name": "runtime.v1_m12_shipping",
-        "result": "Passed    0.13 sec"
+        "result": "Passed    0.09 sec"
       },
       {
         "name": "runtime.v2_m12_hardening_reference_projects",
-        "result": "Passed    0.05 sec"
+        "result": "Passed    0.07 sec"
       },
       {
         "name": "runtime.bounded_scene_save",
-        "result": "Passed    0.61 sec"
+        "result": "Passed    0.57 sec"
       },
       {
         "name": "runtime.world_identity_exhaustion",
@@ -1717,7 +2195,7 @@
       },
       {
         "name": "runtime.v2_m7_ai_character_intent_bridge",
-        "result": "Passed    0.01 sec"
+        "result": "Passed    0.00 sec"
       },
       {
         "name": "runtime.v1_m10_large_world",
@@ -1725,11 +2203,11 @@
       },
       {
         "name": "runtime.v1_m11_platform",
-        "result": "Passed    0.01 sec"
+        "result": "Passed    0.00 sec"
       },
       {
         "name": "animation.v2_m8_sync_group_graph",
-        "result": "Passed    0.01 sec"
+        "result": "Passed    0.00 sec"
       },
       {
         "name": "runtime.v1_m9_presentation",
@@ -1745,7 +2223,7 @@
       },
       {
         "name": "runtime.gameplay_module_host",
-        "result": "Passed    0.01 sec"
+        "result": "Passed    0.00 sec"
       },
       {
         "name": "runtime.gameplay_reload_transaction",
@@ -1753,11 +2231,11 @@
       },
       {
         "name": "runtime.dynamic_gameplay_module",
-        "result": "Passed    0.44 sec"
+        "result": "Passed    0.45 sec"
       },
       {
         "name": "runtime.zig_reload_transaction",
-        "result": "Passed   12.45 sec"
+        "result": "Passed   12.83 sec"
       },
       {
         "name": "runtime.game_launch_descriptor",
@@ -1765,7 +2243,7 @@
       },
       {
         "name": "runtime.game_scene_session",
-        "result": "Passed    0.02 sec"
+        "result": "Passed    0.01 sec"
       },
       {
         "name": "runtime.game_scene_zig_module",
@@ -1777,11 +2255,11 @@
       },
       {
         "name": "api.bundle_mount",
-        "result": "Passed    0.00 sec"
+        "result": "Passed    0.01 sec"
       },
       {
         "name": "runtime.console_record_admission",
-        "result": "Passed    0.14 sec"
+        "result": "Passed    0.15 sec"
       },
       {
         "name": "runtime.v1_m6_editor_sdk",
@@ -1801,7 +2279,7 @@
       },
       {
         "name": "runtime.game_project_package",
-        "result": "Passed    0.01 sec"
+        "result": "Passed    0.03 sec"
       },
       {
         "name": "runtime.game_project_player_cli",
@@ -1809,39 +2287,39 @@
       },
       {
         "name": "runtime.cooked_scene_assets",
-        "result": "Passed    0.50 sec"
+        "result": "Passed    0.53 sec"
       },
       {
         "name": "runtime.static_project_package",
-        "result": "Passed    0.87 sec"
+        "result": "Passed    1.00 sec"
       },
       {
         "name": "runtime.static_project_player_cli",
-        "result": "Passed    0.26 sec"
+        "result": "Passed    0.25 sec"
       },
       {
         "name": "runtime.native_static_view",
-        "result": "Passed    3.27 sec"
+        "result": "Passed    3.56 sec"
       },
       {
         "name": "runtime.linux_native_static_player",
-        "result": "Passed    1.69 sec"
+        "result": "Passed    2.06 sec"
       },
       {
         "name": "runtime.linux_native_game_player",
-        "result": "Passed    8.78 sec"
+        "result": "Passed   10.52 sec"
       },
       {
         "name": "runtime.gameplay_action_input",
-        "result": "Passed    0.01 sec"
+        "result": "Passed    0.02 sec"
       },
       {
         "name": "runtime.gameplay_audio",
-        "result": "Passed    0.01 sec"
+        "result": "Passed    0.04 sec"
       },
       {
         "name": "runtime.gameplay_alsa_lifetime",
-        "result": "Passed    0.37 sec"
+        "result": "Passed    0.74 sec"
       },
       {
         "name": "runtime.gameplay_persistent_storage",
@@ -1849,7 +2327,7 @@
       },
       {
         "name": "runtime.gameplay_gamepad_routing",
-        "result": "Passed    0.02 sec"
+        "result": "Passed    0.01 sec"
       },
       {
         "name": "runtime.gameplay_audio_queue",
@@ -1857,7 +2335,7 @@
       },
       {
         "name": "runtime.gameplay_audio_residency",
-        "result": "Passed    2.13 sec"
+        "result": "Passed    2.00 sec"
       },
       {
         "name": "runtime.gameplay_lifecycle",
@@ -1865,11 +2343,11 @@
       },
       {
         "name": "runtime.crash_diagnostics",
-        "result": "Passed    0.67 sec"
+        "result": "Passed    1.59 sec"
       },
       {
         "name": "twod.runtime_contracts",
-        "result": "Passed    0.20 sec"
+        "result": "Passed    0.26 sec"
       },
       {
         "name": "twod.sprite_source",
@@ -1877,11 +2355,11 @@
       },
       {
         "name": "twod.windows_vm_transport",
-        "result": "Passed    0.55 sec"
+        "result": "Passed    0.80 sec"
       },
       {
         "name": "twod.gameplay_bridge",
-        "result": "Passed    0.01 sec"
+        "result": "Passed    0.03 sec"
       },
       {
         "name": "twod.sprite_source_gameplay",
@@ -1889,35 +2367,35 @@
       },
       {
         "name": "twod.source_animation",
-        "result": "Passed    0.01 sec"
-      },
-      {
-        "name": "twod.game_sprite_session",
-        "result": "Passed    0.03 sec"
-      },
-      {
-        "name": "twod.gameplay_generation",
-        "result": "Passed    0.01 sec"
-      },
-      {
-        "name": "gameplay.zig_sprite_source_wire_layout",
-        "result": "Passed    3.74 sec"
-      },
-      {
-        "name": "twod.project_play_assets",
-        "result": "Passed    0.03 sec"
-      },
-      {
-        "name": "twod.editor_sprite_sources",
         "result": "Passed    0.02 sec"
       },
       {
+        "name": "twod.game_sprite_session",
+        "result": "Passed    0.08 sec"
+      },
+      {
+        "name": "twod.gameplay_generation",
+        "result": "Passed    0.06 sec"
+      },
+      {
+        "name": "gameplay.zig_sprite_source_wire_layout",
+        "result": "Passed    7.06 sec"
+      },
+      {
+        "name": "twod.project_play_assets",
+        "result": "Passed    0.04 sec"
+      },
+      {
+        "name": "twod.editor_sprite_sources",
+        "result": "Passed    0.03 sec"
+      },
+      {
         "name": "twod.content_import",
-        "result": "Passed    1.55 sec"
+        "result": "Passed    2.41 sec"
       },
       {
         "name": "twod.play_assets",
-        "result": "Passed    0.19 sec"
+        "result": "Passed    0.18 sec"
       },
       {
         "name": "twod.authoring_contracts",
@@ -1925,39 +2403,39 @@
       },
       {
         "name": "twod.authored_sources",
-        "result": "Passed    0.06 sec"
+        "result": "Passed    0.07 sec"
       },
       {
         "name": "twod.authored_source_export",
-        "result": "Passed    2.80 sec"
+        "result": "Passed    2.66 sec"
       },
       {
         "name": "twod.authored_source_native",
-        "result": "Passed   12.25 sec"
+        "result": "Passed   10.85 sec"
       },
       {
         "name": "twod.play_context",
-        "result": "Passed    1.45 sec"
+        "result": "Passed    1.51 sec"
       },
       {
         "name": "twod.play_context_native",
-        "result": "Passed    2.42 sec"
+        "result": "Passed    1.99 sec"
       },
       {
         "name": "twod.native_pixels",
-        "result": "Passed    1.28 sec"
+        "result": "Passed    1.33 sec"
       },
       {
         "name": "gameplay.zig_twod_native",
-        "result": "Passed    3.76 sec"
+        "result": "Passed    4.87 sec"
       },
       {
         "name": "twod.asset_tool",
-        "result": "Passed    0.24 sec"
+        "result": "Passed    0.34 sec"
       },
       {
         "name": "twod.cpu_stress",
-        "result": "Passed    1.23 sec"
+        "result": "Passed    1.39 sec"
       },
       {
         "name": "twod.benchmark_trace",
@@ -1965,11 +2443,11 @@
       },
       {
         "name": "twod.integrated_stress",
-        "result": "Passed    8.59 sec"
+        "result": "Passed    9.19 sec"
       },
       {
         "name": "twod.cloud_native",
-        "result": "Passed    9.53 sec"
+        "result": "Passed   10.37 sec"
       },
       {
         "name": "twod.graphical_controls",
@@ -1981,7 +2459,7 @@
       },
       {
         "name": "gameplay.zig_ui_wire_layout",
-        "result": "Passed    3.37 sec"
+        "result": "Passed    4.04 sec"
       },
       {
         "name": "twod.gameplay_content",
@@ -1989,35 +2467,35 @@
       },
       {
         "name": "gameplay.zig_content_wire_layout",
-        "result": "Passed    4.27 sec"
+        "result": "Passed    3.95 sec"
       },
       {
         "name": "twod.audio_device_lifecycle",
-        "result": "Passed    0.09 sec"
+        "result": "Passed    0.07 sec"
       },
       {
         "name": "twod.cooked_product_services",
-        "result": "Passed    0.58 sec"
+        "result": "Passed    0.57 sec"
       },
       {
         "name": "twod.cooked_product_native",
-        "result": "Passed    9.09 sec"
+        "result": "Passed    9.91 sec"
       },
       {
         "name": "twod.host_fixture",
-        "result": "Passed    0.31 sec"
+        "result": "Passed    0.60 sec"
       },
       {
         "name": "twod.project_export",
-        "result": "Passed    0.39 sec"
+        "result": "Passed    0.49 sec"
       },
       {
         "name": "twod.sprite_catalog_export",
-        "result": "Passed    1.27 sec"
+        "result": "Passed    1.16 sec"
       },
       {
         "name": "twod.backend_options",
-        "result": "Passed    0.93 sec"
+        "result": "Passed    1.06 sec"
       },
       {
         "name": "twod.game_entry",
@@ -2025,7 +2503,7 @@
       },
       {
         "name": "twod.game_entry_acceptance",
-        "result": "Passed    0.21 sec"
+        "result": "Passed    0.20 sec"
       },
       {
         "name": "twod.project_manifest",
@@ -2033,7 +2511,7 @@
       },
       {
         "name": "twod.project_export_native",
-        "result": "Passed    0.86 sec"
+        "result": "Passed    0.85 sec"
       },
       {
         "name": "twod.gameplay_display",
@@ -2041,7 +2519,7 @@
       },
       {
         "name": "gameplay.zig_display_wire_layout",
-        "result": "Passed    3.93 sec"
+        "result": "Passed    4.25 sec"
       },
       {
         "name": "twod.gameplay_ui_draw",
@@ -2049,7 +2527,7 @@
       },
       {
         "name": "gameplay.zig_ui_draw_wire_layout",
-        "result": "Passed    4.08 sec"
+        "result": "Passed    3.68 sec"
       },
       {
         "name": "twod.portable_font_bake",
@@ -2061,27 +2539,27 @@
       },
       {
         "name": "twod.asset_residency_stress",
-        "result": "Passed    9.50 sec"
+        "result": "Passed    9.70 sec"
       },
       {
         "name": "gameplay.zig_assets_wire_layout",
-        "result": "Passed    4.08 sec"
+        "result": "Passed    3.80 sec"
       },
       {
         "name": "twod.voice_inventory",
-        "result": "Passed    0.06 sec"
+        "result": "Passed    0.05 sec"
       },
       {
         "name": "gameplay.zig_game_script_adapter",
-        "result": "Passed    3.64 sec"
+        "result": "Passed    3.95 sec"
       },
       {
         "name": "gameplay.zig_script_project",
-        "result": "Passed   61.14 sec"
+        "result": "Passed   60.23 sec"
       },
       {
         "name": "twod.sdk_portable_pe",
-        "result": "Passed    0.32 sec"
+        "result": "Passed    0.35 sec"
       },
       {
         "name": "twod.gameplay_effects",
@@ -2089,7 +2567,7 @@
       },
       {
         "name": "gameplay.zig_effects_wire_layout",
-        "result": "Passed    4.33 sec"
+        "result": "Passed    4.12 sec"
       },
       {
         "name": "twod.lighting_rendering",
@@ -2097,55 +2575,55 @@
       },
       {
         "name": "twod.macos_development_export",
-        "result": "Passed    0.24 sec"
+        "result": "Passed    0.21 sec"
       },
       {
         "name": "twod.emission_asset_tool",
-        "result": "Passed    0.32 sec"
+        "result": "Passed    0.35 sec"
       },
       {
         "name": "twod.scene_session",
-        "result": "Passed    0.02 sec"
+        "result": "Passed    0.01 sec"
       },
       {
         "name": "twod.sprite_source_player",
-        "result": "Passed   42.69 sec"
+        "result": "Passed   42.80 sec"
       },
       {
         "name": "twod.sprite_source_catalog_player",
-        "result": "Passed   43.60 sec"
+        "result": "Passed   41.32 sec"
       },
       {
         "name": "twod.sprite_source_repack_player",
-        "result": "Passed   59.34 sec"
+        "result": "Passed   54.09 sec"
       },
       {
         "name": "twod.source_animation_player",
-        "result": "Passed   68.96 sec"
+        "result": "Passed   56.08 sec"
       },
       {
         "name": "twod.scene_project_zig",
-        "result": "Passed   35.27 sec"
+        "result": "Passed   33.64 sec"
       },
       {
         "name": "twod.scene_project_native",
-        "result": "Passed   37.15 sec"
+        "result": "Passed   33.88 sec"
       },
       {
         "name": "twod.source_reload_transaction",
-        "result": "Passed    4.71 sec"
+        "result": "Passed    4.73 sec"
       },
       {
         "name": "twod.player_reload_generations",
-        "result": "Passed    4.67 sec"
+        "result": "Passed    4.73 sec"
       },
       {
         "name": "twod.player_reload_native",
-        "result": "Passed   17.26 sec"
+        "result": "Passed   17.66 sec"
       },
       {
         "name": "editor.brand_assets",
-        "result": "Passed    2.38 sec"
+        "result": "Passed    2.24 sec"
       },
       {
         "name": "editor.game_build_progress",
@@ -2153,7 +2631,7 @@
       },
       {
         "name": "editor.game_script_compiler",
-        "result": "Passed    2.55 sec"
+        "result": "Passed    2.54 sec"
       },
       {
         "name": "editor.play_api_proxy",
@@ -2161,15 +2639,15 @@
       },
       {
         "name": "editor.windows_package_admission",
-        "result": "Passed    0.23 sec"
+        "result": "Passed    0.31 sec"
       },
       {
         "name": "editor.windows_build_evidence",
-        "result": "Passed    0.35 sec"
+        "result": "Passed    0.34 sec"
       },
       {
         "name": "editor.game_build_sdk_commands",
-        "result": "Passed    0.56 sec"
+        "result": "Passed    0.57 sec"
       },
       {
         "name": "editor.game_build_sdk_bytes",
@@ -2181,39 +2659,39 @@
       },
       {
         "name": "editor.game_sprite_build",
-        "result": "Passed    0.06 sec"
+        "result": "Passed    0.05 sec"
       },
       {
         "name": "editor.linux_game_sprite_build",
-        "result": "Passed   50.68 sec"
+        "result": "Passed   50.42 sec"
       },
       {
         "name": "editor.linux_game_animation_build",
-        "result": "Passed   51.15 sec"
+        "result": "Passed   54.49 sec"
       },
       {
         "name": "editor.linux_game_source_services",
-        "result": "Passed   62.61 sec"
+        "result": "Passed   80.39 sec"
       },
       {
         "name": "editor.linux_build_animation_picker",
-        "result": "Passed   91.85 sec"
+        "result": "Passed   95.59 sec"
       },
       {
         "name": "editor.game_build",
-        "result": "Passed  134.83 sec"
+        "result": "Passed  143.27 sec"
       },
       {
         "name": "editor.game_script_build",
-        "result": "Passed   73.29 sec"
+        "result": "Passed   85.94 sec"
       },
       {
         "name": "editor.game_script_authored_tests",
-        "result": "Passed   66.12 sec"
+        "result": "Passed   80.19 sec"
       },
       {
         "name": "editor.game_script_unicode_temporary",
-        "result": "Passed   34.46 sec"
+        "result": "Passed   45.09 sec"
       },
       {
         "name": "editor.game_project_export",
@@ -2229,31 +2707,31 @@
       },
       {
         "name": "editor.content_directory_index",
-        "result": "Passed   31.30 sec"
+        "result": "Passed   35.35 sec"
       },
       {
         "name": "editor.scene_golden_migrations",
-        "result": "Passed    0.50 sec"
+        "result": "Passed    0.53 sec"
       },
       {
         "name": "editor.prefab_instance_source_apply",
-        "result": "Passed    0.21 sec"
+        "result": "Passed    0.25 sec"
       },
       {
         "name": "editor.content_path_sort",
-        "result": "Passed   30.98 sec"
+        "result": "Passed   42.10 sec"
       },
       {
         "name": "editor.chrome_cpu_trace",
-        "result": "Passed    0.33 sec"
+        "result": "Passed    0.36 sec"
       },
       {
         "name": "editor.extension_signature_trust",
-        "result": "Passed    0.02 sec"
+        "result": "Passed    0.01 sec"
       },
       {
         "name": "editor.signed_extension_admission",
-        "result": "Passed    0.11 sec"
+        "result": "Passed    0.12 sec"
       },
       {
         "name": "editor.native_tool_c_abi",
@@ -2261,11 +2739,11 @@
       },
       {
         "name": "editor.native_tool_callbacks",
-        "result": "Passed    0.02 sec"
+        "result": "Passed    0.03 sec"
       },
       {
         "name": "editor.build_artifact_verification",
-        "result": "Passed    0.18 sec"
+        "result": "Passed    0.21 sec"
       },
       {
         "name": "editor.plugin_manager",
@@ -2273,11 +2751,11 @@
       },
       {
         "name": "editor.prefab_placement_revision_snapshot",
-        "result": "Passed    0.09 sec"
+        "result": "Passed    0.12 sec"
       },
       {
         "name": "editor.prefab_placement_source_rebase",
-        "result": "Passed    0.11 sec"
+        "result": "Passed    0.10 sec"
       },
       {
         "name": "editor.signed_tool_invocation",
@@ -2285,11 +2763,11 @@
       },
       {
         "name": "editor.scalar_material_native_tool",
-        "result": "Passed    0.01 sec"
+        "result": "Passed    0.02 sec"
       },
       {
         "name": "editor.property_snapshot_hint_preservation",
-        "result": "Passed    0.05 sec"
+        "result": "Passed    0.11 sec"
       },
       {
         "name": "editor.atomic_property_snapshot",
@@ -2297,7 +2775,7 @@
       },
       {
         "name": "editor.prefab_document_isolation",
-        "result": "Passed    0.02 sec"
+        "result": "Passed    0.03 sec"
       },
       {
         "name": "editor.prefab_stable_comparison",
@@ -2305,11 +2783,11 @@
       },
       {
         "name": "editor.prefab_nested_materialization",
-        "result": "Passed   10.62 sec"
+        "result": "Passed   12.41 sec"
       },
       {
         "name": "editor.project_prefab_placement",
-        "result": "Passed    0.03 sec"
+        "result": "Passed    0.05 sec"
       },
       {
         "name": "editor.prefab_revision_history",
@@ -2317,19 +2795,19 @@
       },
       {
         "name": "editor.prefab_property_revert_plan",
-        "result": "Passed    0.03 sec"
+        "result": "Passed    0.04 sec"
       },
       {
         "name": "editor.prefab_asset_graph",
-        "result": "Passed    1.53 sec"
+        "result": "Passed    1.97 sec"
       },
       {
         "name": "editor.atomic_forest_import",
-        "result": "Passed    0.10 sec"
+        "result": "Passed    0.08 sec"
       },
       {
         "name": "editor.shader_authoring_contracts",
-        "result": "Passed    0.04 sec"
+        "result": "Passed    0.03 sec"
       },
       {
         "name": "editor.project_upgrade_evidence",
@@ -2341,39 +2819,39 @@
       },
       {
         "name": "editor.project_cli",
-        "result": "Passed    0.56 sec"
-      },
-      {
-        "name": "editor.bounded_build_process",
         "result": "Passed    0.52 sec"
       },
       {
+        "name": "editor.bounded_build_process",
+        "result": "Passed    0.57 sec"
+      },
+      {
         "name": "editor.tool_capability_metadata",
-        "result": "Passed    0.04 sec"
+        "result": "Passed    0.05 sec"
       },
       {
         "name": "editor.additive_scene_composition",
-        "result": "Passed    9.79 sec"
+        "result": "Passed   12.12 sec"
       },
       {
         "name": "editor.additive_scene_session",
-        "result": "Passed    0.04 sec"
+        "result": "Passed    0.03 sec"
       },
       {
         "name": "editor.prepared_scene_save",
-        "result": "Passed    0.01 sec"
+        "result": "Passed    0.02 sec"
       },
       {
         "name": "editor.semantic_scene_merge_candidate",
-        "result": "Passed    1.66 sec"
+        "result": "Passed    2.02 sec"
       },
       {
         "name": "editor.semantic_scene_merge_candidate_job",
-        "result": "Passed    0.04 sec"
+        "result": "Passed    0.05 sec"
       },
       {
         "name": "editor.semantic_scene_comparison",
-        "result": "Passed   14.82 sec"
+        "result": "Passed   17.01 sec"
       },
       {
         "name": "editor.semantic_scene_comparison_job",
@@ -2381,7 +2859,7 @@
       },
       {
         "name": "editor.scene_save_batch",
-        "result": "Passed   15.99 sec"
+        "result": "Passed   19.70 sec"
       },
       {
         "name": "editor.additive_scene_contract",
@@ -2401,11 +2879,11 @@
       },
       {
         "name": "editor.autosave_journal",
-        "result": "Passed    0.34 sec"
+        "result": "Passed    0.37 sec"
       },
       {
         "name": "editor.workspace_budget",
-        "result": "Passed    1.49 sec"
+        "result": "Passed    1.71 sec"
       },
       {
         "name": "editor.viewport_math",
@@ -2417,35 +2895,35 @@
       },
       {
         "name": "editor.asset_source",
-        "result": "Passed    0.46 sec"
+        "result": "Passed    0.56 sec"
       },
       {
         "name": "editor.mesh_asset_catalog",
-        "result": "Passed    0.09 sec"
+        "result": "Passed    0.01 sec"
       },
       {
         "name": "editor.mesh_thumbnails",
-        "result": "Passed    0.09 sec"
+        "result": "Passed    0.14 sec"
       },
       {
         "name": "editor.mesh_reimport",
-        "result": "Passed    0.03 sec"
+        "result": "Passed    0.04 sec"
       },
       {
         "name": "editor.parser_robustness",
-        "result": "Passed    4.07 sec"
+        "result": "Passed    6.25 sec"
       },
       {
         "name": "editor.affine_gizmo_contract",
-        "result": "Passed    0.02 sec"
+        "result": "Passed    0.03 sec"
       },
       {
         "name": "editor.component_reset_contract",
-        "result": "Passed    0.05 sec"
+        "result": "Passed    0.04 sec"
       },
       {
         "name": "editor.transform_value_contract",
-        "result": "Passed    0.02 sec"
+        "result": "Passed    0.03 sec"
       },
       {
         "name": "editor.builtin_creation_contract",
@@ -2453,23 +2931,23 @@
       },
       {
         "name": "editor.scene_file_contract",
-        "result": "Passed    0.02 sec"
+        "result": "Passed    0.03 sec"
       },
       {
         "name": "editor.external_scene_save_contract",
-        "result": "Passed    0.12 sec"
+        "result": "Passed    0.09 sec"
       },
       {
         "name": "editor.play_input_settings",
-        "result": "Passed    0.01 sec"
+        "result": "Passed    0.02 sec"
       },
       {
         "name": "editor.scene_runtime_capture",
-        "result": "Passed    7.72 sec"
+        "result": "Passed    8.62 sec"
       },
       {
         "name": "editor.static_project_export",
-        "result": "Passed   10.62 sec"
+        "result": "Passed   12.17 sec"
       },
       {
         "name": "editor.static_project_export_job",
@@ -2477,27 +2955,27 @@
       },
       {
         "name": "editor.static_project_export_cli_diagnostics",
-        "result": "Passed    0.24 sec"
+        "result": "Passed    0.40 sec"
       },
       {
         "name": "editor.static_project_export_cli_diagnostics_optimized",
-        "result": "Passed    0.47 sec"
+        "result": "Passed    0.51 sec"
       },
       {
         "name": "editor.static_project_export_cli",
-        "result": "Passed   21.27 sec"
+        "result": "Passed   23.87 sec"
       },
       {
         "name": "editor.static_project_export_cli_optimized",
-        "result": "Passed   21.03 sec"
+        "result": "Passed   24.75 sec"
       },
       {
         "name": "editor.material_import",
-        "result": "Passed    0.37 sec"
+        "result": "Passed    0.55 sec"
       },
       {
         "name": "editor.material_scene_native",
-        "result": "Passed    0.69 sec"
+        "result": "Passed    0.91 sec"
       },
       {
         "name": "editor.material_catalog",
@@ -2505,15 +2983,15 @@
       },
       {
         "name": "editor.sprite_source_catalog",
-        "result": "Passed    0.09 sec"
+        "result": "Passed    0.11 sec"
       },
       {
         "name": "editor.sprite_source_creation",
-        "result": "Passed    0.10 sec"
+        "result": "Passed    0.13 sec"
       },
       {
         "name": "editor.twod_asset_editing",
-        "result": "Passed    0.06 sec"
+        "result": "Passed    0.07 sec"
       },
       {
         "name": "editor.sprite_source_editing",
@@ -2521,31 +2999,31 @@
       },
       {
         "name": "editor.play_authored_sprites",
-        "result": "Passed    2.67 sec"
+        "result": "Passed    2.98 sec"
       },
       {
         "name": "editor.process_memory_capture",
-        "result": "Passed    0.08 sec"
+        "result": "Passed    0.09 sec"
       },
       {
         "name": "editor.process_memory_json_schema",
-        "result": "Passed    0.19 sec"
+        "result": "Passed    0.18 sec"
       },
       {
         "name": "editor.process_memory_json_schema_optimized",
-        "result": "Passed    0.35 sec"
+        "result": "Passed    0.49 sec"
       },
       {
         "name": "editor.mesh_memory_capture",
-        "result": "Passed    0.11 sec"
+        "result": "Passed    0.16 sec"
       },
       {
         "name": "editor.mesh_memory_json_schema",
-        "result": "Passed    0.17 sec"
+        "result": "Passed    0.24 sec"
       },
       {
         "name": "editor.mesh_memory_json_schema_optimized",
-        "result": "Passed    0.45 sec"
+        "result": "Passed    0.41 sec"
       },
       {
         "name": "editor.gpu_profile",
@@ -2553,19 +3031,19 @@
       },
       {
         "name": "editor.gpu_timing_capture",
-        "result": "Passed    0.07 sec"
+        "result": "Passed    0.08 sec"
       },
       {
         "name": "editor.gpu_timing_json",
-        "result": "Passed    0.16 sec"
+        "result": "Passed    0.17 sec"
       },
       {
         "name": "editor.gpu_timing_json_optimized",
-        "result": "Passed    0.35 sec"
+        "result": "Passed    0.38 sec"
       },
       {
         "name": "editor.reflected_dynamic_arrays",
-        "result": "Passed    0.15 sec"
+        "result": "Passed    0.16 sec"
       },
       {
         "name": "editor.reflected_inspector",
@@ -2577,7 +3055,7 @@
       },
       {
         "name": "editor.material_tool_source_session",
-        "result": "Passed    0.08 sec"
+        "result": "Passed    0.09 sec"
       },
       {
         "name": "editor.managed_tool_invocation",
@@ -2593,119 +3071,119 @@
       },
       {
         "name": "editor.git_status_provider",
-        "result": "Passed    0.42 sec"
+        "result": "Passed    0.48 sec"
       },
       {
         "name": "editor.git_diff_provider",
-        "result": "Passed    0.63 sec"
+        "result": "Passed    0.61 sec"
       },
       {
         "name": "editor.semantic_scene_merge_publication",
-        "result": "Passed    0.04 sec"
+        "result": "Passed    0.05 sec"
       },
       {
         "name": "editor.content_search_keys",
-        "result": "Passed    1.22 sec"
+        "result": "Passed    1.47 sec"
       },
       {
         "name": "editor.plugin_manager_ui",
-        "result": "Passed    1.88 sec"
+        "result": "Passed    2.28 sec"
       },
       {
         "name": "editor.git_status_ui_1x",
-        "result": "Passed    1.40 sec"
-      },
-      {
-        "name": "editor.git_diff_ui_1x",
-        "result": "Passed    1.86 sec"
-      },
-      {
-        "name": "editor.git_status_ui_2x",
-        "result": "Passed    1.83 sec"
-      },
-      {
-        "name": "editor.git_diff_ui_2x",
-        "result": "Passed    1.85 sec"
-      },
-      {
-        "name": "editor.diagnostic_privacy",
-        "result": "Passed    1.54 sec"
-      },
-      {
-        "name": "editor.project_picker_ui",
-        "result": "Passed    1.51 sec"
-      },
-      {
-        "name": "editor.project_upgrade_ui",
-        "result": "Passed    1.54 sec"
-      },
-      {
-        "name": "editor.build_process_console",
-        "result": "Passed    2.57 sec"
-      },
-      {
-        "name": "editor.imgui_contract",
-        "result": "Passed   12.98 sec"
-      },
-      {
-        "name": "editor.recovery_scope",
-        "result": "Passed    6.23 sec"
-      },
-      {
-        "name": "editor.semantic_scene_comparison_ui",
-        "result": "Passed    4.84 sec"
-      },
-      {
-        "name": "editor.deep_hierarchy",
-        "result": "Passed   61.36 sec"
-      },
-      {
-        "name": "editor.hierarchy_scale_lifecycle",
-        "result": "Passed  189.34 sec"
-      },
-      {
-        "name": "editor.overview_pose_snapshot",
-        "result": "Passed   46.79 sec"
-      },
-      {
-        "name": "editor.scene_tabs",
-        "result": "Passed    2.96 sec"
-      },
-      {
-        "name": "editor.content_diagnostic_display",
-        "result": "Passed    1.55 sec"
-      },
-      {
-        "name": "editor.console_display",
-        "result": "Passed    1.57 sec"
-      },
-      {
-        "name": "editor.process_memory_display",
         "result": "Passed    1.71 sec"
       },
       {
+        "name": "editor.git_diff_ui_1x",
+        "result": "Passed    1.96 sec"
+      },
+      {
+        "name": "editor.git_status_ui_2x",
+        "result": "Passed    1.65 sec"
+      },
+      {
+        "name": "editor.git_diff_ui_2x",
+        "result": "Passed    2.01 sec"
+      },
+      {
+        "name": "editor.diagnostic_privacy",
+        "result": "Passed    1.75 sec"
+      },
+      {
+        "name": "editor.project_picker_ui",
+        "result": "Passed    1.67 sec"
+      },
+      {
+        "name": "editor.project_upgrade_ui",
+        "result": "Passed    1.88 sec"
+      },
+      {
+        "name": "editor.build_process_console",
+        "result": "Passed    2.89 sec"
+      },
+      {
+        "name": "editor.imgui_contract",
+        "result": "Passed   16.53 sec"
+      },
+      {
+        "name": "editor.recovery_scope",
+        "result": "Passed    6.59 sec"
+      },
+      {
+        "name": "editor.semantic_scene_comparison_ui",
+        "result": "Passed    5.05 sec"
+      },
+      {
+        "name": "editor.deep_hierarchy",
+        "result": "Passed   72.09 sec"
+      },
+      {
+        "name": "editor.hierarchy_scale_lifecycle",
+        "result": "Passed  231.67 sec"
+      },
+      {
+        "name": "editor.overview_pose_snapshot",
+        "result": "Passed   81.68 sec"
+      },
+      {
+        "name": "editor.scene_tabs",
+        "result": "Passed    4.42 sec"
+      },
+      {
+        "name": "editor.content_diagnostic_display",
+        "result": "Passed    1.75 sec"
+      },
+      {
+        "name": "editor.console_display",
+        "result": "Passed    2.31 sec"
+      },
+      {
+        "name": "editor.process_memory_display",
+        "result": "Passed    1.74 sec"
+      },
+      {
         "name": "editor.mesh_memory_display",
-        "result": "Passed    1.58 sec"
+        "result": "Passed    1.91 sec"
       },
       {
         "name": "editor.imgui_context_lifetime",
-        "result": "Passed    2.08 sec"
+        "result": "Passed    4.29 sec"
       },
       {
         "name": "editor.layout_restart",
-        "result": "Passed   29.06 sec"
+        "result": "Passed   41.26 sec"
       },
       {
         "name": "editor.scene_mesh_frame_selection",
-        "result": "Passed    7.55 sec"
+        "result": "Passed    8.50 sec"
       },
       {
         "name": "editor.native_scene_tools",
-        "result": "Passed    1.69 sec"
+        "result": "Passed    1.98 sec"
       },
       {
         "name": "editor.scene_select_all",
-        "result": "Passed    8.55 sec"
+        "result": "Passed   10.91 sec"
       },
       {
         "name": "editor.scene_move_planes",
@@ -2713,19 +3191,19 @@
       },
       {
         "name": "editor.inspector_component_reset",
-        "result": "Passed    6.17 sec"
+        "result": "Passed    7.33 sec"
       },
       {
         "name": "editor.inspector_component_values",
-        "result": "Passed   11.53 sec"
+        "result": "Passed   13.62 sec"
       },
       {
         "name": "editor.builtin_creation_input",
-        "result": "Passed   16.74 sec"
+        "result": "Passed   19.47 sec"
       },
       {
         "name": "editor.mesh_inspector",
-        "result": "Passed    1.07 sec"
+        "result": "Passed    1.20 sec"
       },
       {
         "name": "editor.scene_mesh_preview_geometry",
@@ -2737,7 +3215,7 @@
       },
       {
         "name": "editor.game_view_preview",
-        "result": "Passed    2.13 sec"
+        "result": "Passed    2.45 sec"
       },
       {
         "name": "editor.game_material_preview",
@@ -2749,15 +3227,15 @@
       },
       {
         "name": "editor.reloadable_play",
-        "result": "Passed    0.36 sec"
+        "result": "Passed    0.43 sec"
       },
       {
         "name": "editor.packaged_play_services",
-        "result": "Passed    0.03 sec"
+        "result": "Passed    0.04 sec"
       },
       {
         "name": "editor.play_diagnostics",
-        "result": "Passed    0.01 sec"
+        "result": "Passed    0.02 sec"
       },
       {
         "name": "editor.play_host_allocations",
@@ -2765,15 +3243,15 @@
       },
       {
         "name": "editor.play_host_memory_ui",
-        "result": "Passed    1.62 sec"
+        "result": "Passed    2.06 sec"
       },
       {
         "name": "editor.play_debug_lines",
-        "result": "Passed    0.04 sec"
+        "result": "Passed    0.05 sec"
       },
       {
         "name": "editor.concurrent_game_view",
-        "result": "Passed    1.82 sec"
+        "result": "Passed    2.39 sec"
       },
       {
         "name": "editor.build_console_ingress",
@@ -2781,7 +3259,7 @@
       },
       {
         "name": "editor.core_console_ingress",
-        "result": "Passed    0.01 sec"
+        "result": "Passed    0.02 sec"
       },
       {
         "name": "editor.play_scene_services",
@@ -2789,7 +3267,7 @@
       },
       {
         "name": "editor.play_physics_services",
-        "result": "Passed    0.09 sec"
+        "result": "Passed    0.12 sec"
       },
       {
         "name": "editor.play_mesh_assets",
@@ -2797,455 +3275,459 @@
       },
       {
         "name": "editor.play_input_state",
-        "result": "Passed    2.99 sec"
+        "result": "Passed    3.63 sec"
       },
       {
         "name": "editor.play_pointer_input",
-        "result": "Passed    0.01 sec"
+        "result": "Passed    0.05 sec"
       },
       {
         "name": "editor.linux_validation_output",
-        "result": "Passed    0.99 sec"
+        "result": "Passed    1.06 sec"
       },
       {
         "name": "editor.linux_project_cli",
-        "result": "Passed    3.51 sec"
+        "result": "Passed    4.34 sec"
       },
       {
         "name": "editor.linux_project_asset_workflow",
-        "result": "Passed   27.75 sec"
+        "result": "Passed   28.34 sec"
       },
       {
         "name": "editor.linux_native_play_soak",
-        "result": "Passed   80.37 sec"
+        "result": "Passed   88.64 sec"
       },
       {
         "name": "editor.linux_prefab_isolation",
-        "result": "Passed   59.98 sec"
+        "result": "Passed   82.79 sec"
       },
       {
         "name": "editor.linux_reflected_inspector",
-        "result": "Passed    9.78 sec"
+        "result": "Passed   13.56 sec"
       },
       {
         "name": "editor.linux_reflected_arrays",
-        "result": "Passed    9.35 sec"
+        "result": "Passed   14.30 sec"
       },
       {
         "name": "editor.linux_plugin_manager",
-        "result": "Passed   36.37 sec"
+        "result": "Passed   40.87 sec"
       },
       {
         "name": "editor.linux_diagnostic_privacy",
-        "result": "Passed    8.14 sec"
+        "result": "Passed   10.17 sec"
       },
       {
         "name": "editor.linux_project_upgrade",
-        "result": "Passed   23.24 sec"
+        "result": "Passed   27.94 sec"
       },
       {
         "name": "editor.linux_xvfb_lifetime",
-        "result": "Passed    0.73 sec"
+        "result": "Passed    1.01 sec"
       },
       {
         "name": "editor.linux_scene_files",
-        "result": "Passed   68.18 sec"
+        "result": "Passed   80.79 sec"
       },
       {
         "name": "editor.linux_scene_comparison",
-        "result": "Passed   15.21 sec"
+        "result": "Passed   16.95 sec"
       },
       {
         "name": "editor.linux_scene_merge_candidate",
-        "result": "Passed   18.77 sec"
+        "result": "Passed   19.99 sec"
       },
       {
         "name": "editor.linux_scene_merge_publication",
-        "result": "Passed   29.39 sec"
+        "result": "Passed   29.79 sec"
       },
       {
         "name": "editor.linux_static_project_export",
-        "result": "Passed    7.44 sec"
+        "result": "Passed    9.21 sec"
       },
       {
         "name": "editor.linux_display_acceptance",
-        "result": "Passed   48.98 sec"
+        "result": "Passed   59.08 sec"
       },
       {
         "name": "editor.linux_process_memory",
-        "result": "Passed    1.99 sec"
-      },
-      {
-        "name": "editor.linux_build_process_console",
-        "result": "Passed   13.19 sec"
-      },
-      {
-        "name": "editor.linux_single_scene",
-        "result": "Passed    8.39 sec"
-      },
-      {
-        "name": "editor.linux_native_scene_preview",
-        "result": "Passed   31.01 sec"
-      },
-      {
-        "name": "editor.linux_native_scene_center",
-        "result": "Passed   33.67 sec"
-      },
-      {
-        "name": "editor.linux_native_scene_meshes",
-        "result": "Passed   34.22 sec"
-      },
-      {
-        "name": "editor.linux_native_game_view",
-        "result": "Passed    4.25 sec"
-      },
-      {
-        "name": "editor.linux_native_game_materials",
-        "result": "Passed    6.13 sec"
-      },
-      {
-        "name": "editor.linux_native_gameplay_module",
-        "result": "Passed   10.50 sec"
-      },
-      {
-        "name": "editor.linux_play_host_memory",
-        "result": "Passed    2.24 sec"
-      },
-      {
-        "name": "editor.linux_native_concurrent_game_views",
-        "result": "Passed   12.03 sec"
-      },
-      {
-        "name": "editor.linux_native_play_mesh_assets",
-        "result": "Passed   10.61 sec"
-      },
-      {
-        "name": "editor.linux_native_play_debug_lines",
-        "result": "Passed   10.86 sec"
-      },
-      {
-        "name": "editor.linux_native_play_scene_services",
-        "result": "Passed   10.83 sec"
-      },
-      {
-        "name": "editor.linux_native_play_physics_services",
-        "result": "Passed   10.63 sec"
-      },
-      {
-        "name": "editor.linux_native_game_input",
-        "result": "Passed    5.86 sec"
-      },
-      {
-        "name": "editor.linux_native_play_pointer_buttons",
-        "result": "Passed    7.13 sec"
-      },
-      {
-        "name": "editor.linux_native_play_pointer_motion",
-        "result": "Passed    8.33 sec"
-      },
-      {
-        "name": "editor.linux_native_project_input",
-        "result": "Passed   10.10 sec"
-      },
-      {
-        "name": "editor.profiler_export",
-        "result": "Passed    1.71 sec"
-      },
-      {
-        "name": "editor.profiler_json_schema",
-        "result": "Passed    1.75 sec"
-      },
-      {
-        "name": "editor.profiler_json_schema_optimized",
-        "result": "Passed    1.99 sec"
-      },
-      {
-        "name": "editor.play_apply_changes",
-        "result": "Passed    1.52 sec"
-      },
-      {
-        "name": "editor.pointer_dpi",
-        "result": "Passed    6.69 sec"
-      },
-      {
-        "name": "editor.unknown_component_inspector",
-        "result": "Passed    2.35 sec"
-      },
-      {
-        "name": "editor.component_multi_edit",
-        "result": "Passed    1.07 sec"
-      },
-      {
-        "name": "editor.transform_input",
-        "result": "Passed    1.16 sec"
-      },
-      {
-        "name": "editor.component_draft_lifecycle",
-        "result": "Passed   10.50 sec"
-      },
-      {
-        "name": "editor.scene_authoring_access",
-        "result": "Passed    3.31 sec"
-      },
-      {
-        "name": "editor.game_camera_selection",
-        "result": "Passed    1.07 sec"
-      },
-      {
-        "name": "editor.camera_scene_view_alignment",
-        "result": "Passed    3.82 sec"
-      },
-      {
-        "name": "editor.mesh_scene_instantiation",
-        "result": "Passed    6.21 sec"
-      },
-      {
-        "name": "editor.mesh_scene_drop",
-        "result": "Passed    9.30 sec"
-      },
-      {
-        "name": "editor.selection_delete_transaction",
-        "result": "Passed    1.15 sec"
-      },
-      {
-        "name": "editor.clipboard_initialized_forest",
-        "result": "Passed    1.30 sec"
-      },
-      {
-        "name": "editor.cut_clipboard_lifecycle",
-        "result": "Passed    4.78 sec"
-      },
-      {
-        "name": "editor.inspector_mesh_drop",
-        "result": "Passed    7.44 sec"
-      },
-      {
-        "name": "editor.hierarchy_select_all",
-        "result": "Passed    3.29 sec"
-      },
-      {
-        "name": "editor.keyboard_rename_lifecycle",
-        "result": "Passed    6.61 sec"
-      },
-      {
-        "name": "editor.scene_file_input",
-        "result": "Passed   14.27 sec"
-      },
-      {
-        "name": "editor.native_surface_lifetime",
-        "result": "Passed   12.55 sec"
-      },
-      {
-        "name": "editor.content_keyboard_shortcuts",
-        "result": "Passed   10.73 sec"
-      },
-      {
-        "name": "editor.game_input_bindings",
-        "result": "Passed    2.29 sec"
-      },
-      {
-        "name": "editor.hierarchy_keyboard_navigation",
-        "result": "Passed   23.24 sec"
-      },
-      {
-        "name": "editor.hierarchy_hidden_requests",
         "result": "Passed    2.36 sec"
       },
       {
+        "name": "editor.linux_build_process_console",
+        "result": "Passed   13.88 sec"
+      },
+      {
+        "name": "editor.linux_single_scene",
+        "result": "Passed    8.85 sec"
+      },
+      {
+        "name": "editor.linux_native_scene_preview",
+        "result": "Passed   36.37 sec"
+      },
+      {
+        "name": "editor.linux_native_scene_center",
+        "result": "Passed   37.74 sec"
+      },
+      {
+        "name": "editor.linux_native_scene_meshes",
+        "result": "Passed   35.95 sec"
+      },
+      {
+        "name": "editor.linux_native_game_view",
+        "result": "Passed    4.63 sec"
+      },
+      {
+        "name": "editor.linux_native_game_materials",
+        "result": "Passed    6.28 sec"
+      },
+      {
+        "name": "editor.linux_native_gameplay_module",
+        "result": "Passed   10.74 sec"
+      },
+      {
+        "name": "editor.linux_play_host_memory",
+        "result": "Passed    2.40 sec"
+      },
+      {
+        "name": "editor.linux_native_concurrent_game_views",
+        "result": "Passed   11.90 sec"
+      },
+      {
+        "name": "editor.linux_native_play_mesh_assets",
+        "result": "Passed   10.60 sec"
+      },
+      {
+        "name": "editor.linux_native_play_debug_lines",
+        "result": "Passed   11.06 sec"
+      },
+      {
+        "name": "editor.linux_native_play_scene_services",
+        "result": "Passed   11.03 sec"
+      },
+      {
+        "name": "editor.linux_native_play_physics_services",
+        "result": "Passed   10.69 sec"
+      },
+      {
+        "name": "editor.linux_native_game_input",
+        "result": "Passed    5.78 sec"
+      },
+      {
+        "name": "editor.linux_native_play_pointer_buttons",
+        "result": "Passed    7.23 sec"
+      },
+      {
+        "name": "editor.linux_native_play_pointer_motion",
+        "result": "Passed    7.82 sec"
+      },
+      {
+        "name": "editor.linux_native_project_input",
+        "result": "Passed   10.20 sec"
+      },
+      {
+        "name": "editor.profiler_export",
+        "result": "Passed    1.77 sec"
+      },
+      {
+        "name": "editor.profiler_json_schema",
+        "result": "Passed    1.87 sec"
+      },
+      {
+        "name": "editor.profiler_json_schema_optimized",
+        "result": "Passed    1.92 sec"
+      },
+      {
+        "name": "editor.play_apply_changes",
+        "result": "Passed    1.54 sec"
+      },
+      {
+        "name": "editor.pointer_dpi",
+        "result": "Passed    8.30 sec"
+      },
+      {
+        "name": "editor.unknown_component_inspector",
+        "result": "Passed    2.68 sec"
+      },
+      {
+        "name": "editor.component_multi_edit",
+        "result": "Passed    1.82 sec"
+      },
+      {
+        "name": "editor.transform_input",
+        "result": "Passed    1.82 sec"
+      },
+      {
+        "name": "editor.component_draft_lifecycle",
+        "result": "Passed   11.20 sec"
+      },
+      {
+        "name": "editor.scene_authoring_access",
+        "result": "Passed    3.44 sec"
+      },
+      {
+        "name": "editor.game_camera_selection",
+        "result": "Passed    1.11 sec"
+      },
+      {
+        "name": "editor.camera_scene_view_alignment",
+        "result": "Passed    4.01 sec"
+      },
+      {
+        "name": "editor.mesh_scene_instantiation",
+        "result": "Passed    5.99 sec"
+      },
+      {
+        "name": "editor.mesh_scene_drop",
+        "result": "Passed    9.31 sec"
+      },
+      {
+        "name": "editor.selection_delete_transaction",
+        "result": "Passed    1.21 sec"
+      },
+      {
+        "name": "editor.clipboard_initialized_forest",
+        "result": "Passed    1.24 sec"
+      },
+      {
+        "name": "editor.cut_clipboard_lifecycle",
+        "result": "Passed    5.68 sec"
+      },
+      {
+        "name": "editor.inspector_mesh_drop",
+        "result": "Passed    6.85 sec"
+      },
+      {
+        "name": "editor.hierarchy_select_all",
+        "result": "Passed    3.24 sec"
+      },
+      {
+        "name": "editor.keyboard_rename_lifecycle",
+        "result": "Passed    7.15 sec"
+      },
+      {
+        "name": "editor.scene_file_input",
+        "result": "Passed   15.48 sec"
+      },
+      {
+        "name": "editor.modifier_chord_frames",
+        "result": "Passed   65.75 sec"
+      },
+      {
+        "name": "editor.native_surface_lifetime",
+        "result": "Passed   12.89 sec"
+      },
+      {
+        "name": "editor.content_keyboard_shortcuts",
+        "result": "Passed   10.81 sec"
+      },
+      {
+        "name": "editor.game_input_bindings",
+        "result": "Passed    2.32 sec"
+      },
+      {
+        "name": "editor.hierarchy_keyboard_navigation",
+        "result": "Passed   18.60 sec"
+      },
+      {
+        "name": "editor.hierarchy_hidden_requests",
+        "result": "Passed    1.64 sec"
+      },
+      {
         "name": "editor.material_inspector",
-        "result": "Passed    4.91 sec"
+        "result": "Passed    3.71 sec"
       },
       {
         "name": "editor.gpu_profile_display",
-        "result": "Passed    3.20 sec"
+        "result": "Passed    1.59 sec"
       },
       {
         "name": "editor.gpu_capture_display",
-        "result": "Passed    2.26 sec"
+        "result": "Passed    1.70 sec"
       },
       {
         "name": "editor.static_project_export_ui",
-        "result": "Passed    2.98 sec"
+        "result": "Passed    1.80 sec"
       },
       {
         "name": "editor.prefab_placement_source_ui",
-        "result": "Passed    2.08 sec"
+        "result": "Passed    1.67 sec"
       },
       {
         "name": "editor.prefab_placement_rebase_ui",
-        "result": "Passed    2.58 sec"
+        "result": "Passed    1.87 sec"
       },
       {
         "name": "editor.prefab_placement_override_ui",
-        "result": "Passed    2.13 sec"
+        "result": "Passed    1.99 sec"
       },
       {
         "name": "editor.prefab_instance_source_apply_ui_1x",
-        "result": "Passed    1.29 sec"
+        "result": "Passed    1.35 sec"
       },
       {
         "name": "editor.prefab_instance_source_apply_ui_2x",
-        "result": "Passed    1.43 sec"
+        "result": "Passed    1.40 sec"
       },
       {
         "name": "editor.linux_prefab_placement_source_rebase",
-        "result": "Passed   17.43 sec"
+        "result": "Passed   17.13 sec"
       },
       {
         "name": "editor.linux_prefab_placement_source",
-        "result": "Passed    8.71 sec"
+        "result": "Passed    8.80 sec"
       },
       {
         "name": "editor.linux_prefab_placement_overrides",
-        "result": "Passed   15.39 sec"
+        "result": "Passed   15.24 sec"
       },
       {
         "name": "editor.linux_prefab_placement_selected_revert",
-        "result": "Passed   26.34 sec"
+        "result": "Passed   26.75 sec"
       },
       {
         "name": "editor.linux_prefab_instance_source_apply",
-        "result": "Passed   10.09 sec"
+        "result": "Passed   12.07 sec"
       },
       {
         "name": "editor.reflected_array_ui",
-        "result": "Passed    3.68 sec"
+        "result": "Passed    4.56 sec"
       },
       {
         "name": "editor.reflected_inspector_ui",
-        "result": "Passed    1.95 sec"
+        "result": "Passed    2.79 sec"
       },
       {
         "name": "editor.packaged_sprite_play",
-        "result": "Passed    0.20 sec"
+        "result": "Passed    0.29 sec"
       },
       {
         "name": "editor.twod_asset_editing_ui",
-        "result": "Passed    2.47 sec"
+        "result": "Passed    3.27 sec"
       },
       {
         "name": "editor.sprite_source_creation_ui",
-        "result": "Passed    3.56 sec"
+        "result": "Passed    3.81 sec"
       },
       {
         "name": "editor.build_animation_picker",
-        "result": "Passed    1.98 sec"
+        "result": "Passed    2.67 sec"
       },
       {
         "name": "editor.sprite_source_inspector",
-        "result": "Passed    3.40 sec"
+        "result": "Passed    4.18 sec"
       },
       {
         "name": "editor.linux_twod_asset_editing",
-        "result": "Passed   43.77 sec"
+        "result": "Passed   46.58 sec"
       },
       {
         "name": "editor.linux_sprite_source_workflow",
-        "result": "Passed  195.74 sec"
+        "result": "Passed  201.29 sec"
       },
       {
         "name": "editor.linux_sprite_source_inspector",
-        "result": "Passed   48.02 sec"
+        "result": "Passed   48.89 sec"
       },
       {
         "name": "editor.linux_sprite_source_creation",
-        "result": "Passed  102.60 sec"
+        "result": "Passed  106.32 sec"
       },
       {
         "name": "editor.linux_sprite_source_editing",
-        "result": "Passed  101.80 sec"
+        "result": "Passed   98.71 sec"
       },
       {
         "name": "editor.prefab_isolation_ui",
-        "result": "Passed    6.97 sec"
+        "result": "Passed    6.86 sec"
       },
       {
         "name": "editor.chrome_trace_display",
-        "result": "Passed    1.67 sec"
+        "result": "Passed    1.58 sec"
       },
       {
         "name": "editor.mesh_memory_capture_display",
-        "result": "Passed    1.62 sec"
+        "result": "Passed    2.08 sec"
       },
       {
         "name": "editor.play_twod_services",
-        "result": "Passed    0.17 sec"
+        "result": "Passed    0.41 sec"
       },
       {
         "name": "editor.sprite_source_play",
-        "result": "Passed    0.02 sec"
+        "result": "Passed    0.06 sec"
       },
       {
         "name": "editor.play_twod_native",
-        "result": "Passed    2.22 sec"
+        "result": "Passed    2.60 sec"
       },
       {
         "name": "editor.sprite_source_native",
-        "result": "Passed    1.67 sec"
+        "result": "Passed    1.77 sec"
       },
       {
         "name": "editor.game_twod_preview",
-        "result": "Passed    1.96 sec"
+        "result": "Passed    2.73 sec"
       },
       {
         "name": "editor.linux_native_game_twod",
-        "result": "Passed   69.17 sec"
+        "result": "Passed   78.29 sec"
       },
       {
         "name": "editor.linux_authored_preview",
-        "result": "Passed   61.46 sec"
+        "result": "Passed   65.15 sec"
       },
       {
         "name": "editor.linux_packaged_sprites",
-        "result": "Passed   50.36 sec"
+        "result": "Passed   57.72 sec"
       },
       {
         "name": "editor.linux_packaged_source_services",
-        "result": "Passed   66.26 sec"
+        "result": "Passed   67.30 sec"
       },
       {
         "name": "editor.linux_packaged_source_reload",
-        "result": "Passed  1706.19 sec"
+        "result": "Passed  1948.66 sec"
       },
       {
         "name": "editor.linux_packaged_source_reimport",
-        "result": "Passed  398.61 sec"
+        "result": "Passed  395.41 sec"
       },
       {
         "name": "editor.linux_packaged_source_interleaved",
-        "result": "Passed  367.14 sec"
+        "result": "Passed  305.98 sec"
       },
       {
         "name": "editor.content_dependency_reveal",
-        "result": "Passed    8.91 sec"
+        "result": "Passed    6.52 sec"
       },
       {
         "name": "editor.authoring_reopen_ui_1x",
-        "result": "Passed    3.54 sec"
+        "result": "Passed    2.25 sec"
       },
       {
         "name": "editor.authoring_mixed_replay_1000_1x",
-        "result": "Passed   11.72 sec"
+        "result": "Passed   10.50 sec"
       },
       {
         "name": "editor.authoring_reopen_ui_2x",
-        "result": "Passed    2.43 sec"
+        "result": "Passed    2.74 sec"
       },
       {
         "name": "editor.authoring_mixed_replay_1000_2x",
-        "result": "Passed   10.79 sec"
+        "result": "Passed   10.63 sec"
       },
       {
         "name": "editor.project_build_settings_ui",
-        "result": "Passed    1.68 sec"
+        "result": "Passed    1.74 sec"
       },
       {
         "name": "editor.font_glyphs",
-        "result": "Passed    0.28 sec"
+        "result": "Passed    0.30 sec"
       },
       {
         "name": "editor.linux_packaged_play",
-        "result": "Passed   57.61 sec"
+        "result": "Passed   54.82 sec"
       },
       {
         "name": "editor.icon_buttons_1x",
@@ -3253,56 +3735,56 @@
       },
       {
         "name": "editor.transform_layout_1x",
-        "result": "Passed    1.15 sec"
+        "result": "Passed    1.30 sec"
       },
       {
         "name": "editor.icon_buttons_2x",
-        "result": "Passed    0.02 sec"
-      },
-      {
-        "name": "editor.transform_layout_2x",
-        "result": "Passed    1.42 sec"
-      },
-      {
-        "name": "editor.appearance_1x",
-        "result": "Passed    1.86 sec"
-      },
-      {
-        "name": "editor.appearance_2x",
-        "result": "Passed    1.74 sec"
-      },
-      {
-        "name": "editor.linux_appearance",
-        "result": "Passed    9.43 sec"
-      },
-      {
-        "name": "editor.scene_sprite_preview",
         "result": "Passed    0.01 sec"
       },
       {
+        "name": "editor.transform_layout_2x",
+        "result": "Passed    1.34 sec"
+      },
+      {
+        "name": "editor.appearance_1x",
+        "result": "Passed    1.75 sec"
+      },
+      {
+        "name": "editor.appearance_2x",
+        "result": "Passed    1.70 sec"
+      },
+      {
+        "name": "editor.linux_appearance",
+        "result": "Passed    9.42 sec"
+      },
+      {
+        "name": "editor.scene_sprite_preview",
+        "result": "Passed    0.02 sec"
+      },
+      {
         "name": "editor.linux_scene_sprites",
-        "result": "Passed  116.33 sec"
+        "result": "Passed  108.16 sec"
       },
       {
         "name": "editor.hierarchy_context_actions",
-        "result": "Passed    5.02 sec"
+        "result": "Passed    5.42 sec"
       }
     ]
   },
   "log_sha256": {
-    "full-configure.log": "5f621ef18e82c0398ce18ed001e02e9ef2fa5d00d4c8f2a43270c8f4a2c6ca69",
-    "full-build.log": "16b296ee6b1a5a7f736053524def7540407569629cc014bd5a679620d2db4853",
-    "full-ctest.log": "ab3a47a450d6af3e5333fcfd8fac8a6a335a2f49b56851f2704b141c8671a7e6",
-    "full-inventory.json": "78a6524a63737086c3a5323190a4133e6c7ddc70c25f2947a711e4e03dac5ff3",
-    "full-junit.xml": "b220ac966eba5081bce8a05a8ee639d63c859ada0714ddb65426eb2f6d0f25a9",
-    "full-LastTest.log": "cd5311923fef620a00d591ee239ca29828898a1ffd5a5dc39be844c1e6c87a62",
+    "full-configure.log": "8ebea631ed176c52efda3bf0beb222e7161bcbfb9a61a8fff9c3a41611307317",
+    "full-build.log": "93d88b4f8d7aea860cd833a01dd19d0fd01514e137217b69c7dc4f8ff5b880ea",
+    "full-ctest.log": "644df8d10f1b509187ab813bdc3c53e5d29cbc535c47122a029bbf875412f050",
+    "full-inventory.json": "50eefbfcbfae900172648a6b83a861c3417e4d65056e40163182eed832c2a516",
+    "full-junit.xml": "6091c65d3e658b80a4492b74fee8459a639793eae519534e0387c1bef80c30be",
+    "full-LastTest.log": "6bf1d5f8c21422f73647837db8c475929babc965e9cd4c1a6fffe39bffd962b1",
     "full-gate-exit.code": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
-    "run-full-gate.sh": "4072320f1b440e8734802060a63a6636bc8c7508191b9f8dd5ef357930edc773"
+    "run-full-gate.sh": "1a22deec1bbb0a77635f6993aaebab2039ffbb687e3a91209af2a7360190ba26"
   },
   "full_gate_native": {
-    "artifact_directory": "/workspace/Nexora/build/linux-development/artifacts/editor-packaged-source-interleaved/source-services-1795080296615973762",
-    "receipt_sha256": "0b00e008079374a2f7b62f82d81e5b1f41c21715b647815d93f1e2d509d5f9ab",
-    "sdk_log_sha256": "638b4078603e9c1c124e8038b42acce3247604270555cf743a384daa3d60afc4",
+    "artifact_directory": "/workspace/Nexora/build/linux-development/artifacts/editor-packaged-source-interleaved/source-services-1795113670190854019",
+    "receipt_sha256": "33ba7ea58193af7efe160ca28df8b4a81899993e2041379ed7dfd12b010981f8",
+    "sdk_log_sha256": "80bb10bb58ca63f0c8dba7369bf98b9eb106a88d6cf6e828c60e525aabccd6ab",
     "proof": {
       "passed": true,
       "scope": "configured Editor SDK source/animation/pool adoption",
@@ -3407,11 +3889,11 @@
       "captures": [
         {
           "file": "interleaved-1.png",
-          "sha256": "61e6027042f5d519240bae34b7b799e3f543298d9975b189b819f1cd6d89724c"
+          "sha256": "ea233a47444b3546a4432a49b632b88c8adb2f1dda5b1c1b16bc2eabee0acf06"
         },
         {
           "file": "interleaved-2.png",
-          "sha256": "5cdb3c8560b85b7148f4768f4fb1e479d026ace34176187964ebb7431c2e26ba"
+          "sha256": "0c8fa35722a03d2a3b5bbdfb2fe46330a8d849d4ad3b37aa02de7dbc6bfcf259"
         },
         {
           "file": "interleaved-3.png",
@@ -3419,11 +3901,11 @@
         },
         {
           "file": "interleaved-4.png",
-          "sha256": "722e05dcec88b361ac693ec555421ffe71242ff7dfcba7443bc232f47a5cc64f"
+          "sha256": "fef35b5366a608e3ff2a8e24e29e27ecc4181b05623c9aa0d401c711a2f9df52"
         },
         {
           "file": "interleaved-recovered.png",
-          "sha256": "ba292b2103f9e67dc688b298a37eb7654b255687e57f22e18d90d962bfdf7fd9"
+          "sha256": "11da54f36a3f6f512a677ab1edceaa52515e2b5711a6e05f37ae672a2b9aa411"
         },
         {
           "file": "legacy.png",
@@ -3431,7 +3913,7 @@
         },
         {
           "file": "phase-0.png",
-          "sha256": "c10ecd85dd2d464408f3dd8018ea2139ef616e31b9df0b4cb5674edba3b2241c"
+          "sha256": "8f22733484dd15d1d645ef5c676f8178f97fb7cf1be714fc16f2e7dab603250b"
         },
         {
           "file": "phase-1.png",
@@ -3454,7 +3936,7 @@
         [
           "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--write-animation-fixture",
-          "/tmp/nexora-editor-source-services-8b58p_82/project \u4f86\u6e90"
+          "/tmp/nexora-editor-source-services-3v76cx3m/project \u4f86\u6e90"
         ],
         [
           "/workspace/Nexora/build/linux-development/Apps/Editor/NexoraEditor",
@@ -3462,8 +3944,8 @@
           "--native-scene-preview",
           "--frames=100000",
           "--play",
-          "--project=/tmp/nexora-editor-source-services-8b58p_82/legacy",
-          "--recent-projects=/tmp/nexora-editor-source-services-8b58p_82/legacy-recent",
+          "--project=/tmp/nexora-editor-source-services-3v76cx3m/legacy",
+          "--recent-projects=/tmp/nexora-editor-source-services-3v76cx3m/legacy-recent",
           "--read-only"
         ],
         [
@@ -3472,79 +3954,79 @@
           "--native-scene-preview",
           "--frames=100000",
           "--play",
-          "--project=/tmp/nexora-editor-source-services-8b58p_82/project \u4f86\u6e90",
-          "--recent-projects=/tmp/nexora-editor-source-services-8b58p_82/sdk-recent"
+          "--project=/tmp/nexora-editor-source-services-3v76cx3m/project \u4f86\u6e90",
+          "--recent-projects=/tmp/nexora-editor-source-services-3v76cx3m/sdk-recent"
         ],
         [
           "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-8b58p_82/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-3v76cx3m/project \u4f86\u6e90",
           "1"
         ],
         [
           "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-source",
-          "/tmp/nexora-editor-source-services-8b58p_82/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-3v76cx3m/project \u4f86\u6e90",
           "1"
         ],
         [
           "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-8b58p_82/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-3v76cx3m/project \u4f86\u6e90",
           "0"
         ],
         [
           "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-source",
-          "/tmp/nexora-editor-source-services-8b58p_82/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-3v76cx3m/project \u4f86\u6e90",
           "0"
         ],
         [
           "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-8b58p_82/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-3v76cx3m/project \u4f86\u6e90",
           "1"
         ],
         [
           "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-source",
-          "/tmp/nexora-editor-source-services-8b58p_82/project \u4f86\u6e90",
-          "1"
-        ],
-        [
-          "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-8b58p_82/project \u4f86\u6e90",
-          "0"
-        ],
-        [
-          "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-source",
-          "/tmp/nexora-editor-source-services-8b58p_82/project \u4f86\u6e90",
-          "0"
-        ],
-        [
-          "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-8b58p_82/project \u4f86\u6e90",
-          "1"
-        ],
-        [
-          "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-          "--reimport-source",
-          "/tmp/nexora-editor-source-services-8b58p_82/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-3v76cx3m/project \u4f86\u6e90",
           "1"
         ],
         [
           "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-atlas",
-          "/tmp/nexora-editor-source-services-8b58p_82/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-3v76cx3m/project \u4f86\u6e90",
           "0"
         ],
         [
           "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
           "--reimport-source",
-          "/tmp/nexora-editor-source-services-8b58p_82/project \u4f86\u6e90",
+          "/tmp/nexora-editor-source-services-3v76cx3m/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-3v76cx3m/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-3v76cx3m/project \u4f86\u6e90",
+          "1"
+        ],
+        [
+          "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-atlas",
+          "/tmp/nexora-editor-source-services-3v76cx3m/project \u4f86\u6e90",
+          "0"
+        ],
+        [
+          "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+          "--reimport-source",
+          "/tmp/nexora-editor-source-services-3v76cx3m/project \u4f86\u6e90",
           "0"
         ]
       ],
@@ -3563,7 +4045,7 @@
         {
           "code": 1,
           "accepted": 1,
-          "ticks": 798,
+          "ticks": 714,
           "scene": "1",
           "ids": "2,3",
           "pool": "1:0:1",
@@ -3573,42 +4055,42 @@
         {
           "code": 2,
           "accepted": 2,
-          "ticks": 1628,
+          "ticks": 1427,
           "scene": "1",
           "ids": "2,3",
           "pool": "1:0:1",
           "runtime_generation": 3,
-          "minimum_previous_ticks": 960
+          "minimum_previous_ticks": 880
         },
         {
           "code": 3,
           "accepted": 3,
-          "ticks": 2333,
+          "ticks": 2083,
           "scene": "1",
           "ids": "2,3",
           "pool": "1:0:1",
           "runtime_generation": 4,
-          "minimum_previous_ticks": 1744
+          "minimum_previous_ticks": 1584
         },
         {
           "code": 4,
           "accepted": 4,
-          "ticks": 2996,
+          "ticks": 2895,
           "scene": "1",
           "ids": "2,3",
           "pool": "1:0:1",
           "runtime_generation": 5,
-          "minimum_previous_ticks": 2480
+          "minimum_previous_ticks": 2224
         },
         {
           "code": 6,
           "accepted": 5,
-          "ticks": 4497,
+          "ticks": 4328,
           "scene": "1",
           "ids": "2,3",
           "pool": "1:0:1",
           "runtime_generation": 6,
-          "minimum_previous_ticks": 3920
+          "minimum_previous_ticks": 3952
         }
       ],
       "rejected_reloads": [
@@ -3629,22 +4111,22 @@
           {
             "code": 2,
             "source_publications": 4,
-            "old_ticks_before": 832,
-            "old_ticks_after": 960,
+            "old_ticks_before": 752,
+            "old_ticks_after": 880,
             "mask_sha256": "3dd9262bb3f088720e2ba57ed1d54b0529e5ae4b93ede6af81b59f476b2c4db7"
           },
           {
             "code": 3,
             "source_publications": 6,
-            "old_ticks_before": 1632,
-            "old_ticks_after": 1744,
+            "old_ticks_before": 1456,
+            "old_ticks_after": 1584,
             "mask_sha256": "af360c7212e6dcd520ffe101a9bf5f8dba96f11d8d0245d1ad056d7e48bdcdfc"
           },
           {
             "code": 4,
             "source_publications": 8,
-            "old_ticks_before": 2368,
-            "old_ticks_after": 2480,
+            "old_ticks_before": 2112,
+            "old_ticks_after": 2224,
             "mask_sha256": "3dd9262bb3f088720e2ba57ed1d54b0529e5ae4b93ede6af81b59f476b2c4db7"
           }
         ],
@@ -3696,7 +4178,7 @@
         "independent_source_pool_and_3d_pixels": true,
         "old_module_continued": true
       },
-      "reimport_publications": 70,
+      "reimport_publications": 13,
       "corrupt_and_missing_retained": true,
       "half_frame_clock_preserved": true,
       "source_hashes": {
@@ -3721,7 +4203,7 @@
         "Scripts/project.json": "a8e85ca2ed3344be6ca8fe41c8916dc58d7ebdbd8f98d325627dd6c5094f66a2",
         "Title.scene": "2084bbff51d5f3c986d7e991ab3129f3f1c28255640a2c3fb7c3a837e6235263",
         "project.build.json": "dad6c7422ede2766b0619ce0f2e212b74c74c0ea1eec54df2ffdde97219041d8",
-        "project.nexora": "910583a961965f9a82755833ac2223630f25041b999e117eb6e023bddbeea23f",
+        "project.nexora": "83a6872f71236e89ebed7fed36f04a145151afd352844519c396d3939cf0748b",
         "Content/Source.nx2sprite": "16b9c57fa36162107fbb568fa7a781f23d2baee3d1e59f9debb41e3dde2650a4"
       },
       "pool_handle": "1:0:1",
@@ -3731,8 +4213,8 @@
   },
   "existing_native_regressions": {
     "reload": {
-      "artifact_directory": "/workspace/Nexora/build/linux-development/artifacts/editor-packaged-source-reload/source-services-1795078191790533756",
-      "receipt_sha256": "23eae6cfe015735ab056031e59bd27c308b542de53eb170e30a4dbc2c33da612",
+      "artifact_directory": "/workspace/Nexora/build/linux-development/artifacts/editor-packaged-source-reload/source-services-1795111326017197094",
+      "receipt_sha256": "b40fec319a7202f23a14c4b9815a810f618a35cf4d2d95abe26811962a3c51ca",
       "proof": {
         "passed": true,
         "scope": "configured Editor SDK source/animation/pool adoption",
@@ -3865,22 +4347,22 @@
           },
           {
             "file": "reload-24.png",
-            "sha256": "409d30d87786af012561da55306d3cd2ebcb91a40f7313fd14e98f8a1e54c3cc"
+            "sha256": "deb05fe9fc4212721158b0df66f75308a11ecd2cf03a6a34aff5c0533f0927fb"
           },
           {
             "file": "reload-32.png",
-            "sha256": "4a2d39caaf841cee3a6bb3b3193ec8a1c7bc0c3cc303eaeec21ea4357cda0168"
+            "sha256": "409d30d87786af012561da55306d3cd2ebcb91a40f7313fd14e98f8a1e54c3cc"
           },
           {
             "file": "reload-8.png",
-            "sha256": "409d30d87786af012561da55306d3cd2ebcb91a40f7313fd14e98f8a1e54c3cc"
+            "sha256": "deb05fe9fc4212721158b0df66f75308a11ecd2cf03a6a34aff5c0533f0927fb"
           }
         ],
         "commands": [
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--write-animation-fixture",
-            "/tmp/nexora-editor-source-services-tuvey_55/project \u4f86\u6e90"
+            "/tmp/nexora-editor-source-services-6uht7kmz/project \u4f86\u6e90"
           ],
           [
             "/workspace/Nexora/build/linux-development/Apps/Editor/NexoraEditor",
@@ -3888,8 +4370,8 @@
             "--native-scene-preview",
             "--frames=100000",
             "--play",
-            "--project=/tmp/nexora-editor-source-services-tuvey_55/legacy",
-            "--recent-projects=/tmp/nexora-editor-source-services-tuvey_55/legacy-recent",
+            "--project=/tmp/nexora-editor-source-services-6uht7kmz/legacy",
+            "--recent-projects=/tmp/nexora-editor-source-services-6uht7kmz/legacy-recent",
             "--read-only"
           ],
           [
@@ -3898,8 +4380,8 @@
             "--native-scene-preview",
             "--frames=100000",
             "--play",
-            "--project=/tmp/nexora-editor-source-services-tuvey_55/project \u4f86\u6e90",
-            "--recent-projects=/tmp/nexora-editor-source-services-tuvey_55/sdk-recent",
+            "--project=/tmp/nexora-editor-source-services-6uht7kmz/project \u4f86\u6e90",
+            "--recent-projects=/tmp/nexora-editor-source-services-6uht7kmz/sdk-recent",
             "--read-only"
           ]
         ],
@@ -3917,7 +4399,7 @@
           {
             "code": 1,
             "accepted": 1,
-            "ticks": 4626,
+            "ticks": 4887,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -3926,7 +4408,7 @@
           {
             "code": 2,
             "accepted": 2,
-            "ticks": 5372,
+            "ticks": 5656,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -3935,7 +4417,7 @@
           {
             "code": 3,
             "accepted": 3,
-            "ticks": 5969,
+            "ticks": 6371,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -3944,7 +4426,7 @@
           {
             "code": 4,
             "accepted": 4,
-            "ticks": 6566,
+            "ticks": 6903,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -3953,7 +4435,7 @@
           {
             "code": 5,
             "accepted": 5,
-            "ticks": 7153,
+            "ticks": 7578,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -3962,7 +4444,7 @@
           {
             "code": 6,
             "accepted": 6,
-            "ticks": 7830,
+            "ticks": 8264,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -3971,7 +4453,7 @@
           {
             "code": 7,
             "accepted": 7,
-            "ticks": 8473,
+            "ticks": 8936,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -3980,7 +4462,7 @@
           {
             "code": 8,
             "accepted": 8,
-            "ticks": 9227,
+            "ticks": 9614,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -3989,7 +4471,7 @@
           {
             "code": 9,
             "accepted": 9,
-            "ticks": 9912,
+            "ticks": 10450,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -3998,7 +4480,7 @@
           {
             "code": 10,
             "accepted": 10,
-            "ticks": 10604,
+            "ticks": 11281,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -4007,7 +4489,7 @@
           {
             "code": 11,
             "accepted": 11,
-            "ticks": 11332,
+            "ticks": 12072,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -4016,7 +4498,7 @@
           {
             "code": 12,
             "accepted": 12,
-            "ticks": 11987,
+            "ticks": 12853,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -4025,7 +4507,7 @@
           {
             "code": 13,
             "accepted": 13,
-            "ticks": 12776,
+            "ticks": 13513,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -4034,7 +4516,7 @@
           {
             "code": 14,
             "accepted": 14,
-            "ticks": 13529,
+            "ticks": 14278,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -4043,7 +4525,7 @@
           {
             "code": 15,
             "accepted": 15,
-            "ticks": 14364,
+            "ticks": 15307,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -4052,7 +4534,7 @@
           {
             "code": 16,
             "accepted": 16,
-            "ticks": 15169,
+            "ticks": 16226,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -4061,7 +4543,7 @@
           {
             "code": 17,
             "accepted": 17,
-            "ticks": 15989,
+            "ticks": 16962,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -4070,7 +4552,7 @@
           {
             "code": 18,
             "accepted": 18,
-            "ticks": 16803,
+            "ticks": 17670,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -4079,7 +4561,7 @@
           {
             "code": 19,
             "accepted": 19,
-            "ticks": 17527,
+            "ticks": 18407,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -4088,7 +4570,7 @@
           {
             "code": 20,
             "accepted": 20,
-            "ticks": 18202,
+            "ticks": 19041,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -4097,7 +4579,7 @@
           {
             "code": 21,
             "accepted": 21,
-            "ticks": 18842,
+            "ticks": 19825,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -4106,7 +4588,7 @@
           {
             "code": 22,
             "accepted": 22,
-            "ticks": 19666,
+            "ticks": 20578,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -4115,7 +4597,7 @@
           {
             "code": 23,
             "accepted": 23,
-            "ticks": 20384,
+            "ticks": 21342,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -4124,7 +4606,7 @@
           {
             "code": 24,
             "accepted": 24,
-            "ticks": 21093,
+            "ticks": 21974,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -4133,7 +4615,7 @@
           {
             "code": 25,
             "accepted": 25,
-            "ticks": 21960,
+            "ticks": 22739,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -4142,7 +4624,7 @@
           {
             "code": 26,
             "accepted": 26,
-            "ticks": 22545,
+            "ticks": 23443,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -4151,7 +4633,7 @@
           {
             "code": 27,
             "accepted": 27,
-            "ticks": 23307,
+            "ticks": 24143,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -4160,7 +4642,7 @@
           {
             "code": 28,
             "accepted": 28,
-            "ticks": 23964,
+            "ticks": 24821,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -4169,7 +4651,7 @@
           {
             "code": 29,
             "accepted": 29,
-            "ticks": 24628,
+            "ticks": 25646,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -4178,7 +4660,7 @@
           {
             "code": 30,
             "accepted": 30,
-            "ticks": 25361,
+            "ticks": 26399,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -4187,7 +4669,7 @@
           {
             "code": 31,
             "accepted": 31,
-            "ticks": 26123,
+            "ticks": 27175,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -4196,7 +4678,7 @@
           {
             "code": 32,
             "accepted": 32,
-            "ticks": 26793,
+            "ticks": 28028,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -4205,7 +4687,7 @@
           {
             "code": 33,
             "accepted": 33,
-            "ticks": 27424,
+            "ticks": 28728,
             "scene": "1",
             "ids": "2,3",
             "pool": "1:0:1",
@@ -4505,7 +4987,7 @@
           "Scripts/project.json": "a8e85ca2ed3344be6ca8fe41c8916dc58d7ebdbd8f98d325627dd6c5094f66a2",
           "Title.scene": "2084bbff51d5f3c986d7e991ab3129f3f1c28255640a2c3fb7c3a837e6235263",
           "project.build.json": "dad6c7422ede2766b0619ce0f2e212b74c74c0ea1eec54df2ffdde97219041d8",
-          "project.nexora": "56ab992fc2abbe31974acf9fd9ebb3cf98ecebd5799e92de7732a6e9f22beda0"
+          "project.nexora": "07d4ee654f7eb4b153526a03a65e463c2e2ab2122cb4fae4bed19d88a4f8a35e"
         },
         "pool_handle": "1:0:1",
         "sdk_compiled_from_saved_settings": true,
@@ -4513,8 +4995,8 @@
       }
     },
     "reimport": {
-      "artifact_directory": "/workspace/Nexora/build/linux-development/artifacts/editor-packaged-source-reimport/source-services-1795079898002033870",
-      "receipt_sha256": "3d06ad4bb9da20f9700949bfab9ce56e354d2e25679f427e88d075cbc22c7bcb",
+      "artifact_directory": "/workspace/Nexora/build/linux-development/artifacts/editor-packaged-source-reimport/source-services-1795113274711475833",
+      "receipt_sha256": "a78b2c97f5b5b0d8cb4e2e7b02f6dc7ebdbe55311a9cd6b3f44bc24560db5b99",
       "proof": {
         "passed": true,
         "scope": "configured Editor SDK source/animation/pool adoption",
@@ -4643,18 +5125,18 @@
           },
           {
             "file": "reimport-1.png",
-            "sha256": "df5ed74c32ef2ee79a1a845463688b42e08d8206d1a54e1ac524e9cc1e314b90"
+            "sha256": "6b1927cc73a3c9f65a87292783701f6ce3077fb4a39084fde5b35b95f50fe9fa"
           },
           {
             "file": "reimport-32.png",
-            "sha256": "fcc018117889b1bdbeaec6004a797d020692cf5dcf8b9a51a89d478f7b074b5e"
+            "sha256": "eec8ca002c7b026a3feec65fcb67908164e65d880874492b487dd4a3c25778cd"
           }
         ],
         "commands": [
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--write-animation-fixture",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90"
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90"
           ],
           [
             "/workspace/Nexora/build/linux-development/Apps/Editor/NexoraEditor",
@@ -4662,8 +5144,8 @@
             "--native-scene-preview",
             "--frames=100000",
             "--play",
-            "--project=/tmp/nexora-editor-source-services-qb7df4ux/legacy",
-            "--recent-projects=/tmp/nexora-editor-source-services-qb7df4ux/legacy-recent",
+            "--project=/tmp/nexora-editor-source-services-4t_1i0yh/legacy",
+            "--recent-projects=/tmp/nexora-editor-source-services-4t_1i0yh/legacy-recent",
             "--read-only"
           ],
           [
@@ -4672,404 +5154,404 @@
             "--native-scene-preview",
             "--frames=100000",
             "--play",
-            "--project=/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "--recent-projects=/tmp/nexora-editor-source-services-qb7df4ux/sdk-recent"
+            "--project=/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "--recent-projects=/tmp/nexora-editor-source-services-4t_1i0yh/sdk-recent"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "1"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "1"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "0"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "0"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "1"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "1"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "0"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "0"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "1"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "1"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "0"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "0"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "1"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "1"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "0"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "0"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "1"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "1"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "0"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "0"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "1"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "1"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "0"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "0"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "1"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "1"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "0"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "0"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "1"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "1"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "0"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "0"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "1"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "1"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "0"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "0"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "1"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "1"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "0"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "0"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "1"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "1"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "0"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "0"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "1"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "1"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "0"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "0"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "1"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "1"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "0"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "0"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "1"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "1"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "0"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "0"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "1"
-          ],
-          [
-            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
-            "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "1"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "0"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "0"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "1"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "1"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-atlas",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "0"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--reimport-source",
-            "/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "0"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-atlas",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "1"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-source",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "1"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-atlas",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "0"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-source",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "0"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-atlas",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "1"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-source",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "1"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-atlas",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "0"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-source",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "0"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-atlas",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "1"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-source",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "1"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-atlas",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "0"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-source",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "0"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-atlas",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "1"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-source",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "1"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-atlas",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "0"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-source",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "0"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-atlas",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "1"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-source",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "1"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-atlas",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "0"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-source",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "0"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-atlas",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "1"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-source",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "1"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-atlas",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "0"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-source",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "0"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-atlas",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "1"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-source",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "1"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-atlas",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "0"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-source",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "0"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-atlas",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "1"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-source",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "1"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-atlas",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "0"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-source",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "0"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-atlas",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "1"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-source",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "1"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-atlas",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "0"
+          ],
+          [
+            "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
+            "--reimport-source",
+            "/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
             "0"
           ],
           [
             "/workspace/Nexora/build/linux-development/Apps/Editor/NexoraEditor",
-            "--build-game=/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "--output=/tmp/nexora-editor-source-services-qb7df4ux/reimported Build \u4f86\u6e90",
+            "--build-game=/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "--output=/tmp/nexora-editor-source-services-4t_1i0yh/reimported Build \u4f86\u6e90",
             "--script-project=Scripts/project.json",
-            "--build-records=/workspace/Nexora/build/linux-development/artifacts/editor-packaged-source-reimport/source-services-1795079898002033870/reimport-build-records"
+            "--build-records=/workspace/Nexora/build/linux-development/artifacts/editor-packaged-source-reimport/source-services-1795113274711475833/reimport-build-records"
           ],
           [
             "/workspace/Nexora/build/linux-development/Tests/Editor/NexoraGameSpriteBuildTests",
             "--verify-reimported-package",
-            "/tmp/nexora-editor-source-services-qb7df4ux/reimported Build \u4f86\u6e90/Game.nxgame"
+            "/tmp/nexora-editor-source-services-4t_1i0yh/reimported Build \u4f86\u6e90/Game.nxgame"
           ],
           [
             "/workspace/Nexora/build/linux-development/Apps/Editor/NexoraEditor",
@@ -5077,8 +5559,8 @@
             "--native-scene-preview",
             "--frames=100000",
             "--play",
-            "--project=/tmp/nexora-editor-source-services-qb7df4ux/project \u4f86\u6e90",
-            "--recent-projects=/tmp/nexora-editor-source-services-qb7df4ux/reopened-recent",
+            "--project=/tmp/nexora-editor-source-services-4t_1i0yh/project \u4f86\u6e90",
+            "--recent-projects=/tmp/nexora-editor-source-services-4t_1i0yh/reopened-recent",
             "--read-only"
           ]
         ],
@@ -5370,13 +5852,155 @@
           "Scripts/project.json": "a8e85ca2ed3344be6ca8fe41c8916dc58d7ebdbd8f98d325627dd6c5094f66a2",
           "Title.scene": "2084bbff51d5f3c986d7e991ab3129f3f1c28255640a2c3fb7c3a837e6235263",
           "project.build.json": "dad6c7422ede2766b0619ce0f2e212b74c74c0ea1eec54df2ffdde97219041d8",
-          "project.nexora": "1596eb87f074dd0ca4de493d9ae94a7a1af035d2a2129fab266615c41cc0c418"
+          "project.nexora": "77f30891fb4aa9f4d22af92cddec96078a43649787f701c28da1ab5e9babda0b"
         },
         "pool_handle": "1:0:1",
         "sdk_compiled_from_saved_settings": true,
         "authoring_unchanged": true
       }
     }
+  },
+  "cooked_product_resize_accounting": {
+    "artifact": "/workspace/Nexora/build/linux-development/artifacts/twod-product-native/package-frtvxc1z/native.json",
+    "report_sha256": "36b7f91eef0dffa96bbabdb255c5d27e8b0cf8de5bee39b43d744d89db2f6bc5",
+    "log_sha256": "c86cc0ceb2a6cafb76d9598a40613435b4d4010a04d30f8817012478515d9413",
+    "report": {
+      "status": "PASS",
+      "module_abi": 3,
+      "project_mode": false,
+      "api": 1,
+      "native_frames": 900,
+      "movement_frames": 27,
+      "entity_x": 0.3,
+      "final_width": 800,
+      "final_height": 600,
+      "viewport_x": 0.0,
+      "viewport_y": 0.0,
+      "viewport_width": 800.0,
+      "viewport_height": 600.0,
+      "native_ui_draws": 16200,
+      "effects_completed_frame": 0,
+      "effects_revision": 0,
+      "effects_timing_mask": 0,
+      "effects_timing_source": 0,
+      "effects_timing_status": 0,
+      "effects_shadow_ms": null,
+      "effects_world_ms": null,
+      "effects_bloom_ms": null,
+      "effects_composite_ms": null,
+      "effects_scene_bytes": 0,
+      "effects_shadow_bytes": 0,
+      "effects_bloom_bytes": 0,
+      "effects_upload_capacity_bytes": 0,
+      "effects_peak_bytes": 0,
+      "effects_peak_textures": 4,
+      "native_ui_texture_uploads": 4,
+      "resize_generations": 1,
+      "acquired_frames": 900,
+      "presented_frames": 900,
+      "recoverable_present_frames": 0,
+      "last_platform_result": 0,
+      "surface_backend_requested": "auto",
+      "render_device_ids_available": true,
+      "render_vendor_id": 65541,
+      "render_device_id": 0,
+      "initial_dpi_scale": 1.0,
+      "minimum_dpi_scale": 1.0,
+      "maximum_dpi_scale": 1.0,
+      "focus_lost_events": 1,
+      "focus_gained_events": 1,
+      "key_press_events": 1,
+      "mouse_press_events": 2,
+      "wheel_events": 0,
+      "unfocused_movement_frames": 0,
+      "sprite_instanced_draws": 900,
+      "sprite_gpu_instances": 30600,
+      "sprite_instance_upload_bytes": 1346400,
+      "asset_active_bytes": 448,
+      "asset_retired_bytes": 0,
+      "asset_staging_bytes": 0,
+      "asset_peak_content_bytes": 448,
+      "audio_active_bytes": 19200,
+      "audio_retired_bytes": 0,
+      "audio_peak_live_bytes": 19200,
+      "pool_capacity": 1024,
+      "visible": 34,
+      "reloaded": true,
+      "validation_package": true,
+      "resumed": false,
+      "initial_x": 0.0,
+      "ui_frames": 900,
+      "ui_saves": 1,
+      "ui_opens": 1,
+      "cooked_reloads": 1,
+      "audio_submitted_frames": 720000,
+      "audio_open_attempts": 1,
+      "audio_open_successes": 1,
+      "audio_pump_failures": 0,
+      "save_reopened": true,
+      "audible_acceptance": "NOT VERIFIED",
+      "allocations_balanced": true,
+      "physical_windows": "NOT RUN"
+    }
+  },
+  "acknowledged_preview_native": {
+    "artifact": "/workspace/Nexora/build/linux-development/artifacts/editor-authored-preview/attempt-56517539256211/acceptance.json",
+    "proof": {
+      "cycles": 32,
+      "module_loaded": false,
+      "native_source_pixels": "passed",
+      "red_pixels": 1296,
+      "blue_pixels": 1296,
+      "source_mask_sha256": "8b21efb8629f391918204fc79837fe594a90d4613976afb79b7afe6f97e5e9b7",
+      "pause_step_resume_stop": "passed",
+      "exact_restart_geometry": true,
+      "acknowledged_play_shortcuts": 98,
+      "authoring_pixels": "unchanged",
+      "source_bytes": "unchanged",
+      "validation_errors": 0,
+      "evidence": "/workspace/Nexora/build/linux-development/artifacts/editor-authored-preview/attempt-56517539256211",
+      "elapsed_seconds": 63.712
+    },
+    "receipt_sha256": "c887d4811eb566a609158c015b7f10ba5705d726690e674f0f67973cbea538d5",
+    "log_sha256": "c0828d8e8b20cc0e2448f5549c64e09c09a0bf65dea5947716c5096a860954d5",
+    "input_sha256": "3778610f372d14d2d63eca38c59143ae7b6adf7f79e280e9ba756a898e7dccfe"
+  },
+  "combined_project_native": {
+    "status": "actual native Project capture closed normally with unchanged authored bytes",
+    "binary": "/workspace/Nexora/build/linux-development/Apps/Editor/NexoraEditor",
+    "binary_sha256": "d534c7934f5b0bb60b5547ea79f1dfd8527d3c70f586562773af139954f474db",
+    "authored_sha256": {
+      "project.nexora": "7c337ecc0e8b6407af0d6e11360104b03139c98f96e59566881a2af2f718933e",
+      ".nexora/workspace": "103b92e45253890820db806383c5f4c25ae009d8cbada5f175afac93ddd445d1",
+      ".nexora/scenes/Main.scene": "6edc8adc2cf767b7197b7739edf5852c14f7f1250731d6183ce87ea2058dfd1d",
+      ".nexora/scenes/Other.scene": "7d321a33cf30987da2b31bbe2e904c0a305d202e87ff5641c4c943579e94ff0e",
+      ".nexora/Private.txt": "94c3581dc2b5591310f53d8f4ba98d2ce7869d414258ce8b4d0c918b78ef63a3",
+      "Content/Triangle.obj": "fb7dfd56dac77ea4246f2be61e44efed3bba2aab1c8ee9f2cc88b0b1801194a8",
+      "Content/Triangle.obj.meta": "a9460061fd642b519baf974f4cba94395cee0d0f8a73ea99a4eebd82678cef61",
+      "README.txt": "a745679e6132da452d9fecd97929fed452c0c03a20e8277b363bf66d518a1df7"
+    },
+    "project": "/workspace/work/editor-project-chrome/capture-project-52055811120170",
+    "source_sha256": {
+      "Engine/EditorImGui/src/EditorImGui.cpp": "69dc3d3726cb51119a322f2832e6e8757c35f8dd64071cd815fe38524bc00357",
+      "Engine/EditorImGui/src/EditorImGuiTestAccess.h": "9920e29546742e1ce848e6617f9a541bd42bd44fb168a698fdde30a29276ac8d",
+      "Tests/EditorImGui/SceneFileTests.cpp": "2476e192e90b105199fdcd00c42310f663fecf87ecbaebde78f502e0d954ccf0",
+      "Tests/EditorImGui/CMakeLists.txt": "c2eb79748307e5afc00c600e57f4aa088ab1da0172023f71cb3cf3778fb32a7f"
+    }
+  },
+  "modifier_product_fix": {
+    "original_native_producer_unchanged": true,
+    "original_native_source_sha256": {
+      "Tests/EditorImGui/LinuxPluginManager.py": "41a41130d204f60474d579bdd3e93c8240e5282c1fbcea5df6f4c7b02c8d6b35",
+      "Tests/EditorImGui/LinuxExtensionControls.py": "019bbf1a67d70662c35769a901ace231489efc2705c320db01b09b3f016d8ca6"
+    },
+    "full_gate_test": "editor.modifier_chord_frames",
+    "partitions": 32,
+    "scenarios": 128,
+    "additional_guards": [
+      "plain key before modifiers",
+      "focus loss",
+      "text owner"
+    ]
   },
   "curated_captures": [
     {
@@ -5385,19 +6009,19 @@
     },
     {
       "file": "Interleaved-Source-Updates/phase-0.png",
-      "sha256": "c10ecd85dd2d464408f3dd8018ea2139ef616e31b9df0b4cb5674edba3b2241c"
+      "sha256": "8f22733484dd15d1d645ef5c676f8178f97fb7cf1be714fc16f2e7dab603250b"
     },
     {
       "file": "Interleaved-Source-Updates/interleaved-1.png",
-      "sha256": "61e6027042f5d519240bae34b7b799e3f543298d9975b189b819f1cd6d89724c"
+      "sha256": "ea233a47444b3546a4432a49b632b88c8adb2f1dda5b1c1b16bc2eabee0acf06"
     },
     {
       "file": "Interleaved-Source-Updates/interleaved-4.png",
-      "sha256": "722e05dcec88b361ac693ec555421ffe71242ff7dfcba7443bc232f47a5cc64f"
+      "sha256": "fef35b5366a608e3ff2a8e24e29e27ecc4181b05623c9aa0d401c711a2f9df52"
     },
     {
       "file": "Interleaved-Source-Updates/interleaved-recovered.png",
-      "sha256": "ba292b2103f9e67dc688b298a37eb7654b255687e57f22e18d90d962bfdf7fd9"
+      "sha256": "11da54f36a3f6f512a677ab1edceaa52515e2b5711a6e05f37ae672a2b9aa411"
     },
     {
       "file": "Interleaved-Source-Updates/phase-1.png",
@@ -5407,11 +6031,5 @@
       "file": "Interleaved-Source-Updates/phase-4.png",
       "sha256": "5b5c19c29fd4a456815d8c3d320cb5b237c7883b3db78338d640f17912cbaa2f"
     }
-  ],
-  "documentation_validation": {
-    "unit_tests": 16,
-    "markdown_documents": 665,
-    "failures": 0,
-    "unit_log_sha256": "6c1bc3282c6355f792b903e09c814ce5ec2348a79df27944fcd49fc90d0f39b2"
-  }
+  ]
 }

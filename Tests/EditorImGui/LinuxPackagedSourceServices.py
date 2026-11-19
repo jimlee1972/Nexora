@@ -499,8 +499,12 @@ def main():
                     search('')
                     click((x + width // 2, y + height // 2))
                     state = wait(lambda s: s.get('captured') == '1', 'reacquire Game input')
-                    proof.update(reimport_publications=70, corrupt_and_missing_retained=True,
+                    proof.update(reimport_publications=int(state['reimports']), corrupt_and_missing_retained=True,
                                  half_frame_clock_preserved=True)
+                    if args.interleaved:
+                        require(proof['reimport_publications'] ==
+                                proof['interleaved']['reimport_publications'],
+                                'shared receipt count differs from interleaved native publications')
         if args.reload:
             progress_count = log.read_text().count('script reload progress:')
             admissions_before_stop = len(admission.findall(log.read_text()))

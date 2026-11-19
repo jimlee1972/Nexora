@@ -2,6 +2,7 @@
 #include "EditorIcons.h"
 #include "EditorSystemFont.h"
 #include "EditorTheme.h"
+#include "ModifierInputFrame.h"
 #include "Nexora/Editor/InspectorRotation.h"
 #include "Nexora/Editor/PrefabAssets.h"
 #include "Nexora/Editor/ViewportMath.h"
@@ -757,6 +758,8 @@ struct EditorImGuiHost::State final {
   std::vector<ProjectFileItem> project_files;
   std::string project_files_error;
   bool project_files_refresh{};
+  bool project_files_show_internal{};
+  std::array<std::optional<std::array<float, 4>>, 4> project_toolbar_rects{};
   bool project_window_requested{};
   std::vector<std::pair<std::filesystem::path, std::array<float, 2>>> project_file_positions;
   std::vector<std::pair<std::filesystem::path, std::uint32_t>> project_file_ids;
@@ -4652,35 +4655,103 @@ void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
           : static_cast<std::uint32_t>(std::min<std::size_t>(
                 recent_projects->Entries().size(), std::numeric_limits<std::uint32_t>::max()));
 
-  const auto draw_export_status = [&] {
-    if (!state.static_export.message.empty()) {
-      ImGui::SeparatorText("StaticView export");
-      ImGui::TextWrapped("%s", state.static_export.message.c_str());
-      if (state.static_export.phase == StaticExportPhase::Published) {
-        ImGui::TextWrapped("%s", state.static_export.relative_path.c_str());
-        ImGui::TextWrapped("Verify: %s", state.static_export.verify_command.c_str());
-        ImGui::Text("Bytes: %llu / FNV-1a: %s",
-                    static_cast<unsigned long long>(state.static_export.bytes),
-                    state.static_export.checksum.c_str());
-      }
+  const auto draw_export_status = [&](bool details) {
+    if (state.static_export.message.empty())
+      return;
+    const auto phase = state.static_export.phase;
+    if (!details &&
+        (phase == StaticExportPhase::Published || phase == StaticExportPhase::Cancelled))
+      return;
+    ImGui::SeparatorText("StaticView export");
+    ImGui::TextWrapped("%s", state.static_export.message.c_str());
+    if (details && phase == StaticExportPhase::Published) {
+      ImGui::TextWrapped("%s", state.static_export.relative_path.c_str());
+      ImGui::TextWrapped("Verify: %s", state.static_export.verify_command.c_str());
+      ImGui::Text("Bytes: %llu / FNV-1a: %s",
+                  static_cast<unsigned long long>(state.static_export.bytes),
+                  state.static_export.checksum.c_str());
     }
   };
   const auto window = PanelWindowName("nexora.project");
   state.project_file_positions.clear();
   state.project_file_ids.clear();
+  state.project_toolbar_rects = {};
   if (!ImGui::Begin(window.c_str(), nullptr, PanelWindowFlags(state))) {
     ImGui::End();
     return;
   }
-  if (workspace && state.project_files_root == workspace->Root()) {
-    ImGui::TextUnformatted(workspace->Project().name.c_str());
-    ImGui::SameLine();
-    if (detail::IconButton("Refresh", detail::EditorIcon::Refresh))
-      state.project_files_refresh = true;
-    ImGui::TextDisabled("Double-click a scene to open it.");
-    if (!state.project_files_error.empty())
-      ImGui::TextWrapped("%s", state.project_files_error.c_str());
-    draw_export_status();
+  const auto capture = [&](std::size_t index) {
+    if (ImGui::GetCurrentWindow()->Hidden || !ImGui::IsItemVisible())
+      return;
+    const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+    state.project_toolbar_rects[index] = std::array{low.x, low.y, high.x, high.y};
+  };
+  const bool indexed = workspace && state.project_files_root == workspace->Root();
+  ImGui::BeginDisabled(!indexed);
+  if (detail::IconButton("Refresh project files", detail::EditorIcon::Refresh, false, "Ctrl+R"))
+    state.project_files_refresh = true;
+  capture(0);
+  ImGui::EndDisabled();
+  ContinueViewportToolbar();
+  const bool read_only = workspace && !workspace->Writable();
+  if (detail::IconButton(read_only ? "Project view options (read-only)###project-view-options"
+                                   : "Project view options###project-view-options",
+                         read_only ? detail::EditorIcon::Lock : detail::EditorIcon::Settings,
+                         state.project_files_show_internal))
+    ImGui::OpenPopup("Project view options");
+  capture(1);
+  const auto options_item = GImGui->LastItemData;
+  if (ImGui::BeginPopup("Project view options")) {
+    ImGui::Checkbox("Show internal files", &state.project_files_show_internal);
+    capture(3);
+    ImGui::Separator();
+    const float width = std::max(
+        1.0F, std::min(ImGui::GetFontSize() * 36.0F, ImGui::GetMainViewport()->WorkSize.x - 32.0F));
+    ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + width);
+    if (workspace) {
+      ImGui::TextWrapped("Project: %s", workspace->Project().name.c_str());
+      ImGui::TextWrapped("Root: %s", PathLabel(workspace->Root()).c_str());
+      ImGui::TextWrapped("UUID: %s", workspace->Project().id.ToString().c_str());
+      ImGui::Text("Schema: %u / %u", workspace->Project().schema_version,
+                  ProjectDescriptor::kSchemaVersion);
+      ImGui::TextColored(read_only ? detail::WarningColor() : detail::SuccessColor(), "Access: %s",
+                         read_only ? "Read-only" : "Read-write");
+      if (workspace->UpgradeState() == ProjectUpgradeState::Applied)
+        ImGui::TextWrapped("Project descriptor upgraded during this session.");
+    }
+    if (recent_projects && !recent_projects->Entries().empty()) {
+      ImGui::SeparatorText("Recent projects");
+      for (const auto &recent : recent_projects->Entries())
+        ImGui::TextWrapped("%s: %s", recent.name.c_str(), PathLabel(recent.root).c_str());
+    }
+    draw_export_status(true);
+    ImGui::PopTextWrapPos();
+    ImGui::EndPopup();
+  }
+  GImGui->LastItemData = options_item;
+  ContinueViewportToolbar();
+  if (detail::IconButton("Project browser help", detail::EditorIcon::Info))
+    ImGui::OpenPopup("Project browser help");
+  capture(2);
+  if (ImGui::BeginPopup("Project browser help")) {
+    const float width = std::max(
+        1.0F, std::min(ImGui::GetFontSize() * 32.0F, ImGui::GetMainViewport()->WorkSize.x - 32.0F));
+    ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + width);
+    ImGui::TextUnformatted("Double-click a scene to open it.");
+    ImGui::TextWrapped("Scenes contains the project's managed scenes. Expand folders with their "
+                       "arrows or a double-click. Scene changes offer Save, Discard or Cancel.");
+    ImGui::TextWrapped("Use Project view options > Show internal files to browse workspace data. "
+                       "Project information and the last StaticView export are also in that menu.");
+    ImGui::PopTextWrapPos();
+    ImGui::EndPopup();
+  }
+  if (workspace && workspace->UpgradeState() == ProjectUpgradeState::Required)
+    ImGui::TextWrapped(
+        "This legacy project is open read-only. Reopen it for writing to upgrade safely.");
+  if (indexed && !state.project_files_error.empty())
+    ImGui::TextWrapped("%s", state.project_files_error.c_str());
+  draw_export_status(false);
+  if (indexed) {
     const auto root_label = PathLabel(state.project_files_root);
     const auto project_scope =
         ContentIdentity(ImGui::GetID("editor.project.files"), "root", root_label);
@@ -4688,7 +4759,15 @@ void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
     ImGui::BeginChild("Project files", {0, 0});
     for (std::size_t index = 0; index < state.project_files.size(); ++index) {
       const auto &item = state.project_files[index];
-      const auto depth = static_cast<float>(std::distance(item.path.begin(), item.path.end()) - 1);
+      const auto relative = PathLabel(item.path);
+      const bool managed_scene =
+          relative == ".nexora/scenes" || relative.starts_with(".nexora/scenes/");
+      if (!state.project_files_show_internal &&
+          (relative == ".nexora" || (relative.starts_with(".nexora/") && !managed_scene)))
+        continue;
+      const auto depth =
+          static_cast<float>(std::distance(item.path.begin(), item.path.end()) - 1 -
+                             (!state.project_files_show_internal && managed_scene ? 1 : 0));
       if (depth > 0)
         ImGui::Indent(depth * 16.0F);
       ImGui::PushOverrideID(ContentIdentity(project_scope, "file", PathLabel(item.path)));
@@ -4713,7 +4792,11 @@ void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
           item.path.extension() == ".scene" && ImGui::IsItemHovered() &&
           ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && state.scene_file_path != item.path)
         BeginContentScene(state, *scene, item.path);
-      const auto label = PathLabel(item.path.filename());
+      const auto label = !state.project_files_show_internal && relative == ".nexora/scenes"
+                             ? std::string("Scenes")
+                             : PathLabel(item.path.filename());
+      if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("%s", relative.c_str());
       ImGui::GetWindowDrawList()->AddText({low.x + ImGui::GetTreeNodeToLabelSpacing(), low.y},
                                           ImGui::GetColorU32(ImGuiCol_Text), label.data(),
                                           label.data() + label.size());
@@ -4732,34 +4815,11 @@ void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
     ImGui::End();
     return;
   }
-  if (workspace == nullptr) {
+  if (workspace == nullptr)
     ImGui::TextUnformatted("No project is open.");
-  } else {
-    ImGui::Text("Name: %s", workspace->Project().name.c_str());
-    ImGui::Text("UUID: %s", workspace->Project().id.ToString().c_str());
-    ImGui::Text("Root: %s", PathLabel(workspace->Root()).c_str());
-    ImGui::Text("Schema: %u / %u", workspace->Project().schema_version,
-                ProjectDescriptor::kSchemaVersion);
-    ImGui::TextColored(workspace->Writable() ? detail::SuccessColor() : detail::WarningColor(),
-                       "Access: %s", workspace->Writable() ? "Read-write" : "Read-only");
-    if (workspace->UpgradeState() == ProjectUpgradeState::Applied)
-      ImGui::TextUnformatted("Project descriptor upgraded during this session.");
-    else if (workspace->UpgradeState() == ProjectUpgradeState::Required)
-      ImGui::TextWrapped(
-          "This legacy project is open read-only. Reopen it for writing to upgrade safely.");
-  }
+  else
+    ImGui::TextDisabled("Loading project files...");
 
-  draw_export_status();
-  ImGui::SeparatorText("Recent projects");
-  if (recent_projects == nullptr || recent_projects->Entries().empty()) {
-    ImGui::TextUnformatted("No recent projects.");
-  } else {
-    for (const auto &recent : recent_projects->Entries()) {
-      ImGui::BulletText("%s", recent.name.c_str());
-      ImGui::SameLine();
-      ImGui::TextDisabled("%s", PathLabel(recent.root).c_str());
-    }
-  }
   ImGui::End();
 }
 
@@ -5832,7 +5892,7 @@ void EditorImGuiHost::BeginFrame(float delta_seconds) {
   state_->native_scene_drag_preview.reset();
   ImGui::GetIO().DeltaTime =
       std::isfinite(delta_seconds) ? std::max(delta_seconds, 0.0001F) : 0.0001F;
-  ImGui::NewFrame();
+  detail::BeginModifierSafeFrame();
 }
 
 void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_projects,
@@ -10716,6 +10776,22 @@ void EditorImGuiTestAccess::FocusContent(EditorImGuiHost &host) noexcept {
 void EditorImGuiTestAccess::FocusProject(EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);
   ImGui::SetWindowFocus(PanelWindowName("nexora.project").c_str());
+}
+
+std::optional<std::array<float, 4>>
+EditorImGuiTestAccess::ProjectToolbarRect(const EditorImGuiHost &host, std::size_t index) noexcept {
+  return index < host.state_->project_toolbar_rects.size()
+             ? host.state_->project_toolbar_rects[index]
+             : std::nullopt;
+}
+
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ProjectToolbarPosition(const EditorImGuiHost &host,
+                                              std::size_t index) noexcept {
+  const auto rect = ProjectToolbarRect(host, index);
+  if (!rect)
+    return std::nullopt;
+  return std::array{((*rect)[0] + (*rect)[2]) * .5F, ((*rect)[1] + (*rect)[3]) * .5F};
 }
 
 std::optional<std::uint32_t>

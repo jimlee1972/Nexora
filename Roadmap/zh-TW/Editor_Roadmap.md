@@ -1,14 +1,29 @@
 # Nexora 圖形化 Editor Roadmap
 
-### ✅ 來源發布與模組替換交錯驗證
+### ✅ Editor 按鍵修飾狀態保留
 
-同一段真實主 Game Play 已有 SDK 替換期間來源／Atlas 發布的原生證據，包含上一代模組持續
-Update、計數器／身分保留、失敗來源與隱藏 pool 候選拒絕、回復，以及五階段原生場景／動畫。
-最後來源通過完整 Linux **561/561**，零失敗／略過／重跑，**6562.32 秒**；整合原生案例
-**367.14 秒**，五次替換與 13 次發布。詳見
-[限定驗收](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-Interleaved-Linux.md)。
-此支援切片維持 workflow **6/9**、Editor **0/8**、TwoD **9/11**、ED-WF-08 與既有執行者／
-實體主機驗收邊界。
+同批原生輸入中較晚的修飾鍵轉換，不再改變新按鍵按下時的修飾狀態。原版 Plugin Manager
+原生案例通過40.87秒，128種情境回歸通過65.75秒，包含1x／2x、可寫／唯讀、普通按鍵、失焦
+及文字輸入保護。十一份最終來源通過完整 Linux **562/562，7170.52秒**，零失敗／略過／重跑，
+configure／build亦通過。詳見[輸入證據](../../Tools/Build/evidence/EditorWorkflow/Modifier-Chord-Linux.md)。
+先前失敗紀錄保留；原指標／F5失敗成因仍未證實。
+
+### ✅ 精簡 Project 瀏覽器
+
+Project 使用可換行的重新整理／檢視／說明圖示、Scenes導覽與按需開啟的專案／最近項目／
+匯出資訊。實際1x／2x元件與150單位窄面板於完整 Linux **562/562** gate通過 **15.48秒**。
+原生檢視／選單／場景導覽正常關閉，八份來源雜湊不變。
+詳見[驗收](../../Tools/Build/evidence/EditorWorkflow/Project-Toolbar-Linux.md)。
+
+### ✅ 來源與 SDK 交錯更新支援驗證
+
+同一段設定式 Game 在真實 SDK 編譯期間發布 Atlas／Sprite來源，上一代持續 Update，並保留
+計數器與場景／entity／pool身分。最終原生案例通過 **305.98秒**：五次替換／十三次發布、
+失敗保留／候選拒絕、有效回復及全部五階段場景／動畫。同一輪完整 Linux 通過 **562/562，
+7170.52秒**，零失敗／略過／重跑，包含33次實際 SDK替換及70次發布。
+詳見[限定證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-Interleaved-Linux.md)。
+僅驗收此支援切片：workflow **6/9**、完整 Editor **0/8**、TwoD **9/11**、ED-WF-08／parent8.3、
+獨立8.2／ED-WF-05及實體／乾淨主機gate仍分開處理。
 
 ### ✅ Sprite 來源製作整合驗收
 

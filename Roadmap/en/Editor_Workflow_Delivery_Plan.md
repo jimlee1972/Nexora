@@ -1,5 +1,14 @@
 # Editor script workflow and Sprite integration delivery
 
+### ✅ Modifier-preserving Editor input
+
+Keyboard presses retain their press-time modifiers when later modifier transitions share a native
+input batch. The original native Plugin Manager passes in 40.87 s and the 128-scenario regression passes in 65.75 s,
+including 1x/2x, writer/read-only, plain-key, focus-loss and text-owner guards. The final eleven-source
+Linux gate passes **562/562 in 7170.52 s**, zero failures/skips/retries, after configure/build.
+See [input evidence](../../Tools/Build/evidence/EditorWorkflow/Modifier-Chord-Linux.md).
+Earlier failed gates remain preserved; historical pointer/F5 causes remain unproven.
+
 [繁體中文](../zh-TW/Editor_Workflow_Delivery_Plan.md) · [Epic #741](https://github.com/jimlee1972/Nexora/issues/741)
 
 Updated: 2026-11-19. Baseline: `8c4aa989ee7443cc0b2129d54f0f0f77c73d2b49`.
@@ -24,17 +33,16 @@ and source reimport **383.03 s** (70 publications). See the
 Workflow becomes **6/9 (66.7%)** on reviewed delivery; graphical Editor **0/8**, TwoD **9/11**,
 ED-WF-05/08/09 and physical/clean-host gates remain separate. Routine CI stays manual-only.
 
-## ✅ Interleaved main Game source and SDK updates
+## ✅ Supporting interleaved main Game updates
 
-The independent `nexora-whr.8.3.9` case verifies real Content publication while SDK replacement is
-pending in the same Play session. The final native case passes **367.14 s**: five replacements,
-13 publications, actual old-module dispatch and strictly conserved counters, corrupt/missing
-retention, rejected hidden-pool mutation, recovery, six finalizers and all five scene/animation
-phases. Complete Linux passes **561/561**, zero failures/skips/retries, **6562.32 s**; existing
-33-replacement and 70-publication cases also pass unchanged. See the
-[scoped evidence and receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-Interleaved-Linux.md).
-This accepts only the supporting interleaving slice. ED-WF-08/the 8.3 parent, workflow **6/9**,
-Editor **0/8**, TwoD **9/11**, physical gates and independently owned 8.2/ED-WF-05 claims remain separate.
+One configured Game session publishes Atlas/Sprite sources during actual SDK compilation while
+old-module Update continues, retaining counters and scene/entity/pool identities. The final native
+case passes **305.98 s**: five replacements/thirteen publications, negative retention/rejection,
+valid recovery and all five scene/animation phases. The same full Linux gate passes **562/562 in
+7170.52 s**, zero failures/skips/retries, including 33 actual SDK replacements and 70 publications.
+See [scoped evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-Interleaved-Linux.md).
+This accepts the supporting slice only: workflow **6/9**, complete Editor **0/8**, TwoD **9/11**,
+ED-WF-08/parent 8.3, independent 8.2/ED-WF-05 and physical/clean-host gates stay separate.
 
 ## Existing foundations and remaining work
 
@@ -559,7 +567,7 @@ acceptance stay open/unchanged. The independently owned standalone reload task i
 Main Content now edits Atlas Grid/individual rectangles and Clip frames, duration, events, loop,
 source and order through owning drafts, independent draft Undo/Redo and immutable previews.
 Identity-preserving typed publication enforces current baselines, Ready dependency closure,
-writer/idle/stopped-Play admission and unchanged Scene/Runtime. Actual1x/2x UI and native
+writer/idle/stopped-Play admission and unchanged Scene/Runtime. Actual 1x/2x UI and native
 edit/save/read-only reopen/Build/source-deleted relocated Player flows pass.
 Modular and Monolithic native acceptance each completes33 canonical SDK replacements,7 rejected
 candidates and32 reimport cycles/70 publications. Shipping Full edited-assets/SDK flows and actual

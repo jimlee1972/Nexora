@@ -1,0 +1,91 @@
+{
+  "status": "combined local Linux qualification passed; final-head review and merge pending",
+  "binary": "/workspace/Nexora/build/linux-development/Apps/Editor/NexoraEditor",
+  "binary_sha256": "d534c7934f5b0bb60b5547ea79f1dfd8527d3c70f586562773af139954f474db",
+  "authored_sha256": {
+    "project.nexora": "7c337ecc0e8b6407af0d6e11360104b03139c98f96e59566881a2af2f718933e",
+    ".nexora/workspace": "103b92e45253890820db806383c5f4c25ae009d8cbada5f175afac93ddd445d1",
+    ".nexora/scenes/Main.scene": "6edc8adc2cf767b7197b7739edf5852c14f7f1250731d6183ce87ea2058dfd1d",
+    ".nexora/scenes/Other.scene": "7d321a33cf30987da2b31bbe2e904c0a305d202e87ff5641c4c943579e94ff0e",
+    ".nexora/Private.txt": "94c3581dc2b5591310f53d8f4ba98d2ce7869d414258ce8b4d0c918b78ef63a3",
+    "Content/Triangle.obj": "fb7dfd56dac77ea4246f2be61e44efed3bba2aab1c8ee9f2cc88b0b1801194a8",
+    "Content/Triangle.obj.meta": "a9460061fd642b519baf974f4cba94395cee0d0f8a73ea99a4eebd82678cef61",
+    "README.txt": "a745679e6132da452d9fecd97929fed452c0c03a20e8277b363bf66d518a1df7"
+  },
+  "project": "/workspace/work/editor-project-chrome/capture-project-52055811120170",
+  "source_sha256": {
+    "Engine/EditorImGui/src/EditorImGui.cpp": "69dc3d3726cb51119a322f2832e6e8757c35f8dd64071cd815fe38524bc00357",
+    "Engine/EditorImGui/src/EditorImGuiTestAccess.h": "9920e29546742e1ce848e6617f9a541bd42bd44fb168a698fdde30a29276ac8d",
+    "Tests/EditorImGui/SceneFileTests.cpp": "2476e192e90b105199fdcd00c42310f663fecf87ecbaebde78f502e0d954ccf0",
+    "Tests/EditorImGui/CMakeLists.txt": "c2eb79748307e5afc00c600e57f4aa088ab1da0172023f71cb3cf3778fb32a7f"
+  },
+  "widget": {
+    "test": "editor.scene_file_input",
+    "seconds": 15.88,
+    "dpi": [
+      1,
+      2
+    ],
+    "narrow_width": 150,
+    "permissions": [
+      "writer",
+      "read-only"
+    ]
+  },
+  "captures": [
+    {
+      "file": "Project-Toolbar/project-browser.png",
+      "sha256": "b6e6a4687002a5121baf5fc9765706b663b54b5802cc251bd2ac3b76143d1889"
+    },
+    {
+      "file": "Project-Toolbar/project-options.png",
+      "sha256": "e1ec0f2ea443ca7d25f24831aef6d6655749377e01b7542c5ae6bd1af88f8acc"
+    },
+    {
+      "file": "Project-Toolbar/project-internal-files.png",
+      "sha256": "cde3fca0e1cc25b6e5b1961d7b466bcd994e812d40f6d9a541fd0c5d75cc6998"
+    },
+    {
+      "file": "Project-Toolbar/project-help.png",
+      "sha256": "8d7dbee6a8e467195220b1ba66924d36026fdb37a4436e9c2ec232c6351bc828"
+    },
+    {
+      "file": "Project-Toolbar/project-normal-other-scene.png",
+      "sha256": "e4e74e841fae753101cc8a837bf07dbecf01a4d42fc509416d60b837d2ab23c1"
+    }
+  ],
+  "log_sha256": "5f2303890167d65d483db142ed56a77bfbb173be940fd2031fd676992879d199",
+  "navigation": {
+    "actual_rendered_target": ".nexora/scenes/Other.scene",
+    "metadata_acknowledged": true,
+    "normal_close": true,
+    "exit_code": 0
+  },
+  "capture_attempt_history": "An earlier capture clicked the old row coordinate after changing tree views; it did not open a scene and is not acceptance. The accepted attempt uses the actual rendered target coordinates.",
+  "full_gate": {
+    "registered": 562,
+    "passed": 562,
+    "failed": 0,
+    "skipped": 0,
+    "retries": 0,
+    "seconds": 7170.52,
+    "exit_code": 0
+  },
+  "full_gate_cases": {
+    "editor.scene_file_input": "Passed   15.48 sec"
+  },
+  "validation_input_tree": "3866198ac42f48b3205d29ba8b00d6befb6ba0ad",
+  "combined_source_sha256": {
+    "Tests/EditorImGui/CMakeLists.txt": "c2eb79748307e5afc00c600e57f4aa088ab1da0172023f71cb3cf3778fb32a7f",
+    "Tests/EditorImGui/LinuxPackagedSourceServices.py": "db810bfae2bc8b80075feed6b4248135b1112fc2ecfa2c715d2fabb86cc5cbb1",
+    "Tests/EditorImGui/InterleavedSourceUpdates.py": "5b26d0b0a0739b6b14d43271966bbb3b5a5cc66f2dbe4cd07ea6d57cebeda2fe",
+    "Apps/TwoDPlayer/TwoDPlayer.cpp": "a44ba37b040ff21ead7ab0796d4d961d176a9ba62c6462b6941af4457ebad5d2",
+    "Tests/TwoD/ProductAcceptance.py": "4d4735432f87672405a9c545024c6206ccb764b332f46eaf0a8f34955423422c",
+    "Tests/EditorImGui/LinuxAuthoredPreview.py": "b5bd43caa494b841d162347b61b7ea3e2dc3af23ddd5900e768dde21d4623ef2",
+    "Engine/EditorImGui/src/EditorImGui.cpp": "69dc3d3726cb51119a322f2832e6e8757c35f8dd64071cd815fe38524bc00357",
+    "Engine/EditorImGui/src/EditorImGuiTestAccess.h": "9920e29546742e1ce848e6617f9a541bd42bd44fb168a698fdde30a29276ac8d",
+    "Tests/EditorImGui/SceneFileTests.cpp": "2476e192e90b105199fdcd00c42310f663fecf87ecbaebde78f502e0d954ccf0",
+    "Engine/EditorImGui/src/ModifierInputFrame.h": "c085558e70a0d3ef5249d029a69f3563bf39132c671a6e3bd860d9137dac5148",
+    "Tests/EditorImGui/ModifierChordTests.cpp": "f2ea187d5a487f1f377b1ebd331254e32fce959cc79495294bd41a06ad19ac9b"
+  }
+}
