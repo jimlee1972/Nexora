@@ -718,7 +718,7 @@ The Hierarchy also offers Copy and Paste buttons and Ctrl+C/Ctrl+V outside text 
 the source's captured world pose even after the source moves; Paste selects the new root entity,
 and one Undo removes a single pasted copy.
 Delete selected, or press Delete while the Hierarchy is focused or the native 3D canvas is hovered, to remove selected subtrees.
-Undo restores the deleted entities and their names; multiple selected roots undo one at a time.
+One Undo restores the deleted roots, descendants, names and prior selection.
 Duplicate or Ctrl+D copies the current selection without replacing an earlier Copy selection.
 The central Scene panel also shows a top-down X/Z grid and entity markers at their world positions.
 Click a marker to select it, use the wheel to zoom, or drag with the middle button to pan.
@@ -2259,6 +2259,13 @@ and frozen Play assets retain their existing contracts.
 
 
 ## Compact Hierarchy controls
+
+Right-click an entity row for Copy, Cut, Paste, Duplicate, Rename or Delete, with the same shortcuts
+and permissions as the toolbar. An unselected row becomes the selection; a selected row retains
+the complete selected group. Copy remains available in read-only workspaces. The menu captures
+current entity/document keys and dismisses when selection, generations, focus or modal access
+changes. Opening/dismissing does not create an Undo step; actions retain the existing model history.
+See [context-action acceptance](../../Tools/Build/evidence/EditorWorkflow/Hierarchy-Context-Linux.md).
 
 The filter and a wrapping icon toolbar leave space for the entity tree. The plus icon opens
 **Create entity**: choose a name and Empty, Camera or Light, then **Create root** or **Create child**.

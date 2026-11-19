@@ -1,5 +1,9 @@
 # Nexora Graphical Editor Roadmap
 
+### ✅ Hierarchy object context actions
+
+Object rows now offer Copy/Cut/Paste/Duplicate/Rename/Delete on right-click. Clicking an unselected row selects it; clicking a selected row preserves the group. Generation-owned menu targets revalidate selection, focus and modal access before using the existing scene commands. Actual 1x/2x widgets, 150-unit docks, native Duplicate/Undo and the full Linux gate pass 559/559 without failures, skips or retries. See [scoped acceptance](../../Tools/Build/evidence/EditorWorkflow/Hierarchy-Context-Linux.md). Workflow5/9, graphical Editor0/8 and TwoD9/11 remain unchanged.
+
 ### ✅ Compact Inspector component actions
 
 Transform, Camera and Light now use one gear menu per heading for Copy values, Paste values and Reset. Copied-value feedback moves into contextual tooltips and menus. Opening a menu discards unsubmitted drafts while retaining committed values and history. Existing typed clipboard, mixed-presence, permission and modal contracts remain. Actual 1x/2x widgets, 150-unit panels and native Camera Copy/Reset/Undo pass. The full Linux gate passes 558/558 without failures, skips or retries, including 33 native module replacements and 70 reimport publications. See [scoped acceptance](../../Tools/Build/evidence/EditorWorkflow/Inspector-Actions-Linux.md). This supporting slice does not change workflow5/9, graphical Editor0/8 or TwoD9/11 acceptance.

@@ -2281,3 +2281,17 @@ actions wrap within narrow panels. Routine confirmations remain in toolbar toolt
 stay visible above the tree. Popup/tooltip drawing restores the owning toolbar item before layout
 continues. The existing generation-owned creation request, model/clipboard/history, permissions,
 keyboard and root/child initialization contracts remain unchanged. UI preferences perform no IO.
+
+
+## Hierarchy object context actions
+
+Right-clicking a rendered entity row opens Copy/Cut/Paste/Duplicate/Rename/Delete through the
+existing scene commands. An unselected row uses normal single selection; clicking a selected row
+retains the whole selection. Opening cancels prospective Scene gestures and Inspector drafts.
+The popup owns only generation-checked selection keys, with no borrowed entity or NodeView.
+Before drawing actions it revalidates exact selection and current keys, application focus and
+modal access. Invalid contexts close without acting; focus loss also abandons the owning keys.
+Read-only access permits Copy and selection; authoring actions use the normal editable gate.
+Commands execute after all clipped tree rows and root drag targets finish borrowing NodeViews.
+Rename opens the existing generation-owned modal. Toolbar/shortcut paths, typed model operations,
+scene formats and complete subtree history retain their existing contracts.

@@ -390,6 +390,9 @@ public:
   // delete/copy/cut/paste/duplicate (8..12); rename/up/down/clear (13..16).
   [[nodiscard]] static std::optional<std::array<float, 2>>
   HierarchyCreatePosition(const EditorImGuiHost &host, std::size_t control) noexcept;
+  // Object context menu: Copy, Cut, Paste, Duplicate, Rename, Delete (0..5).
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  HierarchyContextPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
   static void QueueHierarchyCreate(EditorImGuiHost &host, std::string name,
                                    std::optional<SceneDocument::NodeKey> parent = std::nullopt);
   static void QueueHierarchyReorder(EditorImGuiHost &host, int direction) noexcept;

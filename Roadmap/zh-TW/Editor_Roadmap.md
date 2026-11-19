@@ -1,5 +1,9 @@
 # Nexora 圖形化 Editor Roadmap
 
+### ✅ Hierarchy 物件右鍵操作
+
+物件列現在可按右鍵開啟 Copy／Cut／Paste／Duplicate／Rename／Delete。右鍵點未選取物件會改選該物件，點已選取物件則保留整組選取。選單持有世代檢查的目標，在沿用既有 Scene 指令前重新驗證選取、焦點與 modal 權限。實際 1x／2x 元件、150 單位窄面板、原生 Duplicate／Undo 與完整 Linux gate 已通過 559/559，沒有失敗、略過或重跑。參閱[限定驗收](../../Tools/Build/evidence/EditorWorkflow/Hierarchy-Context-Linux.md)。workflow5/9、圖形 Editor0/8 與 TwoD9/11 維持不變。
+
 ### ✅ 精簡 Inspector 元件操作
 
 Transform、Camera 與 Light 各以標題旁的單一齒輪選單提供 Copy values、Paste values 與 Reset。複製狀態移入情境提示與選單；開啟選單會捨棄未確認草稿，保留已提交資料與歷史。既有型別剪貼簿、混合元件存在狀態、權限及 modal 約定持續保留。實際 1x／2x 元件、150 單位窄面板及原生 Camera Copy／Reset／Undo 已通過。完整 Linux gate 通過 558/558，沒有失敗、略過或重跑，包含 33 次原生模組替換及 70 次重新匯入發布。參閱[限定驗收](../../Tools/Build/evidence/EditorWorkflow/Inspector-Actions-Linux.md)。此支援切片不改變 workflow5/9、圖形 Editor0/8 或 TwoD9/11 驗收。
