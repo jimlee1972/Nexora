@@ -2316,3 +2316,22 @@ Read-only access permits Copy and selection; authoring actions use the normal ed
 Commands execute after all clipped tree rows and root drag targets finish borrowing NodeViews.
 Rename opens the existing generation-owned modal. Toolbar/shortcut paths, typed model operations,
 scene formats and complete subtree history retain their existing contracts.
+
+## Compact Content controls
+
+Content search uses the current dock width, with wrapping type-filter, Undo, asset-information,
+help and import-details controls. Asset information follows the current browser selection; its
+UUID/path/artifact and dependency rows are resolved from the current root/generation during the
+frame. It retains no ContentItem borrow across frames. Reveal is consumed only after all borrowed
+rows have been drawn, closes information and uses the existing generation/revision/root/folder
+checked deferred scroll. Read-only inspection does not acquire authoring permission.
+The same current-frame popup ownership snapshot excludes navigation, scene Enter and asset F2
+from underlying Content handlers; closing inspection restores their existing availability gates.
+
+The host takes one owning reimport snapshot after authoring-thread polling for that GUI frame.
+Active progress/cancellation and warning/error diagnostics remain in the panel; routine operation
+identifiers, completed progress and bounded history details appear on demand. Selected-asset import
+failures, dependency cycles and dirty conflicts retain their direct feedback/decision paths.
+Actual 1x/2x widgets, narrow docks and native interaction pass; full Linux qualification passes
+562/562 (6046.70 s), with no failures/skips/retries.
+See the [Content evidence](../../Tools/Build/evidence/EditorWorkflow/Content-Controls-Linux.md).

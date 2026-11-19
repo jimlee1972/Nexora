@@ -2322,3 +2322,17 @@ cannot open a scene. Refresh and view choices remain available in read-only work
 Widget and actual native Project observations are recorded in the
 [scoped Linux evidence](../../Tools/Build/evidence/EditorWorkflow/Project-Toolbar-Linux.md);
 the final Linux gate passes 562/562; final-head review and merge guards still apply.
+
+## Compact Content browser
+
+Search asset names across the available dock width. **Filter asset type** opens the optional type
+field; clear it to show all types. **Asset information** displays the current selection's path,
+identity, artifact and forward/reverse dependencies. Reveal navigates to the actual asset without
+editing it. **Content browser help** keeps navigation/keyboard guidance on demand.
+Inspection popups own Enter/F2; close them with Escape to resume normal scene Open/Rename shortcuts.
+
+**Import details** contains the last operation and bounded diagnostic history. Active import work,
+cancellation and actionable warnings/errors stay in the Content panel. Existing scene Open,
+mesh placement, Rename/Delete, Content Undo, drag/drop and reimport permissions continue to apply.
+Actual widgets and native interaction pass; the complete Linux gate passes 562/562 (6046.70 s).
+See the [Content acceptance evidence](../../Tools/Build/evidence/EditorWorkflow/Content-Controls-Linux.md).

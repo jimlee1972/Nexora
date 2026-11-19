@@ -1,6 +1,9 @@
 #include "EditorImGuiTestAccess.h"
 #include "TemporaryDirectoryCleanup.h"
 
+#include <imgui.h>
+#include <imgui_internal.h>
+
 #include <algorithm>
 #include <chrono>
 #include <fstream>
@@ -187,6 +190,12 @@ void Run(float dpi, bool macos) {
   Require(browser.Selection().size() == 1 && browser.Items().size() == 129,
           "another panel's focus admitted Content shortcuts");
   f.FocusContent();
+  // Bring the actual search control into view after earlier asset navigation.
+  auto *content_window = ImGui::FindWindowByName("Content###nexora.content");
+  Require(content_window != nullptr, "Content window missing");
+  ImGui::SetScrollY(content_window, 0);
+  f.Draw();
+  f.Draw();
   // The focused search field owns Ctrl/Cmd+A and Delete.
   const auto point = Access::ContentSearchPosition(f.ui);
   Require(point.has_value(), "search field absent");
@@ -382,6 +391,11 @@ void FolderNavigation(float dpi, bool macos) {
   f.Press(Key::UpArrow, Mod::Alt);
   Require(current() == "Content", "read-only parent traversal failed");
   enter_child();
+  auto *content_window = ImGui::FindWindowByName("Content###nexora.content");
+  Require(content_window != nullptr, "Content window missing");
+  ImGui::SetScrollY(content_window, 0);
+  f.Draw();
+  f.Draw();
   const auto search = Access::ContentSearchPosition(f.ui);
   Require(search.has_value(), "folder search field absent");
   Nexora::Window::WindowEvent pointer, button;

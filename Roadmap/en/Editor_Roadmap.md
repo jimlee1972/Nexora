@@ -1,5 +1,17 @@
 # Nexora Graphical Editor Roadmap
 
+### ✅ Compact Content controls
+
+The Content panel uses a dock-width search, wrapping controls and on-demand asset,
+dependency/help/import details. Actionable import/cycle/conflict diagnostics retain direct feedback.
+Existing model, permissions, IDs and file/history behavior stay scoped to their current owners.
+Inspection popups own Enter/F2; closing them restores normal Open/Rename. The original review
+regression and the corrected source qualification are retained separately.
+Actual 1x/2x/150-unit widgets and native inspection pass; the complete Linux gate passes
+**562/562 in 6046.70 s**, zero failures/skips/retries, after configure/build.
+See [scoped evidence](../../Tools/Build/evidence/EditorWorkflow/Content-Controls-Linux.md).
+This supporting UI slice does not change workflow6/9, Editor0/8 or TwoD9/11.
+
 ### ✅ Modifier-preserving Editor input
 
 Keyboard presses retain their press-time modifiers when later modifier transitions share a native
