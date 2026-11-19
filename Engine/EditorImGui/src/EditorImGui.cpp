@@ -4988,12 +4988,13 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   ImGui::EndDisabled();
   ContinueViewportToolbar();
 
-  const bool keyboard =
-      selection_commands_allowed && !state.content_rename_target &&
-      ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
-      !ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive() && !ImGui::GetDragDropPayload() &&
-      !ImGui::IsMouseDown(ImGuiMouseButton_Left) &&
-      !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
+  const bool popup_owns_keyboard =
+      ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
+  const bool keyboard = selection_commands_allowed && !state.content_rename_target &&
+                        ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+                        !ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive() &&
+                        !ImGui::GetDragDropPayload() &&
+                        !ImGui::IsMouseDown(ImGuiMouseButton_Left) && !popup_owns_keyboard;
   // Register the Alt route before its modifier transition. Parent navigation never escapes
   // the first breadcrumb, and uses the same inspection-only ownership gates as asset selection.
   if (keyboard && !ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyShift && !ImGui::GetIO().KeySuper &&
@@ -5159,8 +5160,8 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
       activation == 0 ||
       (selected_scene &&
        activation == ContentRowId(content_scope, "asset", selected_scene->id.ToString()));
-  if (!folder_activation && asset_activation && scene_openable && selected_scene_file &&
-      !ImGui::GetIO().WantTextInput &&
+  if (!popup_owns_keyboard && !folder_activation && asset_activation && scene_openable &&
+      selected_scene_file && !ImGui::GetIO().WantTextInput &&
       ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
       ImGui::IsKeyPressed(ImGuiKey_Enter, false))
     BeginContentScene(state, *scene, selected_scene->path);
@@ -5185,8 +5186,9 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
     state.content_rename_focus = true;
     open_rename = true;
   };
-  if (commands_allowed && content.Writable() && !state.content_rename_target &&
-      selected_assets.size() == 1 && !ImGui::GetIO().WantTextInput &&
+  if (!popup_owns_keyboard && commands_allowed && content.Writable() &&
+      !state.content_rename_target && selected_assets.size() == 1 &&
+      !ImGui::GetIO().WantTextInput &&
       ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
       ImGui::IsKeyPressed(ImGuiKey_F2, false)) {
     if (const auto *item = browser.Find(selected_assets.front()))

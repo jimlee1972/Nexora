@@ -2325,11 +2325,13 @@ UUID/path/artifact and dependency rows are resolved from the current root/genera
 frame. It retains no ContentItem borrow across frames. Reveal is consumed only after all borrowed
 rows have been drawn, closes information and uses the existing generation/revision/root/folder
 checked deferred scroll. Read-only inspection does not acquire authoring permission.
+The same current-frame popup ownership snapshot excludes navigation, scene Enter and asset F2
+from underlying Content handlers; closing inspection restores their existing availability gates.
 
 The host takes one owning reimport snapshot after authoring-thread polling for that GUI frame.
 Active progress/cancellation and warning/error diagnostics remain in the panel; routine operation
 identifiers, completed progress and bounded history details appear on demand. Selected-asset import
 failures, dependency cycles and dirty conflicts retain their direct feedback/decision paths.
 Actual 1x/2x widgets, narrow docks and native interaction pass; full Linux qualification passes
-562/562 (6538.33 s), with no failures/skips/retries.
+562/562 (6046.70 s), with no failures/skips/retries.
 See the [Content evidence](../../Tools/Build/evidence/EditorWorkflow/Content-Controls-Linux.md).

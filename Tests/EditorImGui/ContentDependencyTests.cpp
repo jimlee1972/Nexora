@@ -544,6 +544,51 @@ void Toolbar(float dpi) {
           "Content inspection changed authored files, scene or requested IO");
 }
 
+void PopupKeyboardOwnership(float dpi, bool read_only) {
+  Fixture f(dpi);
+  if (read_only)
+    f.active = &f.readonly;
+  const auto files = f.Files();
+  const auto scene = f.world.SaveScene(f.scene_id);
+  auto &browser = f.active->Browser();
+  Require(browser.RevealAsset(f.source), "popup source selection failed");
+  const auto revision = browser.Revision();
+  f.Draw();
+  f.Draw();
+  // These non-text popups belong to Content's window hierarchy but own their keys.
+  for (const auto control : {4U, 3U}) {
+    f.Click(Access::ContentToolbarPosition(f.ui, control));
+    f.Draw();
+    f.Draw();
+    Require(!GImGui->OpenPopupStack.empty(), "Content inspection popup did not open");
+    f.Tap(Nexora::Window::Key::Enter);
+    const bool opened_scene = f.ui.TakeSceneFileRequest().has_value();
+    f.Tap(Nexora::Window::Key::F2);
+    const bool began_rename = Access::ContentRenamePosition(f.ui, 0).has_value();
+    if (opened_scene || began_rename)
+      throw std::runtime_error("Content inspection popup admitted underlying shortcuts: Open=" +
+                               std::to_string(opened_scene) +
+                               " Rename=" + std::to_string(began_rename));
+    Require(!GImGui->OpenPopupStack.empty(), "inspection keys abandoned popup ownership");
+    f.Tap(Nexora::Window::Key::Escape);
+    Require(GImGui->OpenPopupStack.empty(), "Escape did not close Content inspection popup");
+  }
+  // Closing inspection must restore the existing selected-scene and Rename routes.
+  f.Click(Access::ContentAssetPosition(f.ui, f.source));
+  f.Tap(Nexora::Window::Key::Enter);
+  const auto opened = f.ui.TakeSceneFileRequest();
+  Require(opened && opened->action == editor::imgui::SceneFileAction::Open &&
+              opened->path == "Content/Source.scene",
+          "closing inspection did not restore selected-scene Enter");
+  f.Tap(Nexora::Window::Key::F2);
+  Require(Access::ContentRenamePosition(f.ui, 0).has_value() == !read_only,
+          "closing inspection changed writable/read-only Rename availability");
+  Require(f.Files() == files && f.world.SaveScene(f.scene_id) == scene &&
+              browser.Revision() == revision && !f.active->CanUndo() &&
+              browser.Selection() == std::vector{f.source},
+          "popup shortcuts changed authored data, history, revision or selection");
+}
+
 void Run(float dpi) {
   Fixture f(dpi);
   const auto original_files = f.Files();
@@ -719,6 +764,10 @@ int main() {
     MarkerLabels(2);
     Toolbar(1);
     Toolbar(2);
+    PopupKeyboardOwnership(1, false);
+    PopupKeyboardOwnership(2, false);
+    PopupKeyboardOwnership(1, true);
+    PopupKeyboardOwnership(2, true);
     Run(1);
     Run(2);
     std::cout << "Literal Content labels and forward/reverse dependency Reveal contracts passed\n";
