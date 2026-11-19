@@ -27,18 +27,21 @@ def main():
     parser = argparse.ArgumentParser()
     for name in ('editor', 'fixture', 'player', 'xvfb', 'xdotool'):
         parser.add_argument('--' + name, required=True)
+    parser.add_argument('--workflow', action='store_true')
     args = parser.parse_args()
-    evidence = Path.cwd() / 'artifacts/editor-atlas-clip' / str(time.time_ns())
+    evidence = Path.cwd() / ('artifacts/editor-sprite-workflow' if args.workflow else
+                             'artifacts/editor-atlas-clip') / str(time.time_ns())
     evidence.mkdir(parents=True)
     root = evidence / 'project-切片'
     subprocess.run([args.fixture, '--write-native-fixture', str(root)], check=True, timeout=15)
-    scene = root / '.nexora/scenes/Main.scene'
+    scene = root / ('Authored.scene' if args.workflow else '.nexora/scenes/Main.scene')
     original_scene = scene.read_bytes()
     atlas = root / 'Content/Atlas.nx2atlas'
     clip = root / 'Content/Animation.nx2clip'
     old_atlas, old_clip = atlas.read_bytes(), clip.read_bytes()
     xvfb, display = start_xvfb(args.xvfb, '1600x1000x24')
     process = driver = None
+    launch_number = 0
     proof = {'passed': False, 'native_input': True, 'captures': []}
     try:
         require(display, 'Xvfb unavailable')
@@ -47,13 +50,17 @@ def main():
                    NEXORA_SCENE_MERGE_UI_TEST_GEOMETRY='1',
                    NEXORA_SCENE_SPRITE_UI_TEST_EVIDENCE='1',
                    NEXORA_SPRITE_SOURCE_INSPECTOR_TEST_EVIDENCE='1')
+        if args.workflow:
+            env.update(NEXORA_GAME_TWOD_UI_TEST_EVIDENCE='1',
+                       NEXORA_PACKAGED_SPRITE_UI_TEST_EVIDENCE='1',
+                       NEXORA_PROJECT_ASSET_WORKFLOW_EVIDENCE='1')
 
-        def point(name):
+        def point(name, observe=None):
             deadline = time.monotonic() + 8
             previous, stable, first = None, time.monotonic(), 0
             while time.monotonic() < deadline:
                 driver.drain(.05)
-                value = driver.observation().get(name)
+                value = (observe() if observe else driver.observation()).get(name)
                 frames = re.findall(rb'^sprite inspector frame=(\d+)\n', driver.stderr, re.M)
                 frame = int(frames[-1]) if frames else 0
                 if value != previous:
@@ -64,7 +71,8 @@ def main():
             raise RuntimeError('Visible control did not settle: ' + name)
 
         def open_host(readonly=False):
-            nonlocal process, driver
+            nonlocal process, driver, launch_number
+            launch_number += 1
             command = [args.editor, '--graphical', '--native-scene-preview',
                        '--project=' + str(root), '--recent-projects=' + str(evidence / 'recent')]
             if readonly:
@@ -72,9 +80,11 @@ def main():
             process = subprocess.Popen(command, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             window = wait_for_window(args.xdotool, env)
             driver = NativeSceneInput(process, args.xdotool, env, window, evidence,
-                                      2 if readonly else 1, ack_pointer=True)
+                                      launch_number, ack_pointer=True)
             driver.raw('windowfocus', '--sync', window)
             point('sprite_create_atlas')
+            if workflow:
+                workflow.open_scene()
 
         def close_host():
             nonlocal process, driver
@@ -99,7 +109,10 @@ def main():
             return dict(re.findall(r'(\w+)=([^ ]*)', records[-1].decode())) if records else {}
 
         def probe():
-            driver.raw('key', 'ctrl+1')
+            if args.workflow:
+                driver.focus_scene()
+            else:
+                driver.raw('key', 'ctrl+1')
             driver.wait(lambda v: scene_state().get('sources') == '1' and
                         scene_state().get('composed') == '1', 'native Scene source not rendered')
             observed = scene_state()
@@ -115,12 +128,29 @@ def main():
         def capture(name):
             rgb = rendered_pixels(display, driver.window, (0, 0, 1280, 720))
             require(len(set(rgb)) > 16, 'native pixels absent')
-            path = evidence / (name + '.ppm')
-            path.write_bytes(b'P6\n1280 720\n255\n' + bytes(c for p in rgb for c in p))
+            if args.workflow:
+                from LinuxAuthoredPreview import screenshot
+                path = evidence / (name + '.png')
+                screenshot(display, int(driver.window), path)
+            else:
+                path = evidence / (name + '.ppm')
+                path.write_bytes(b'P6\n1280 720\n255\n' + bytes(c for p in rgb for c in p))
             proof['captures'].append({'file': path.name,
                                       'sha256': hashlib.sha256(path.read_bytes()).hexdigest()})
 
+        workflow = None
+        if args.workflow:
+            from SpriteSourceWorkflow import SpriteSourceWorkflow
+            workflow = SpriteSourceWorkflow(root, scene, proof, lambda: driver, point, scene_state,
+                                            probe, capture, lambda rect: native_pixels(
+                                                display, int(driver.window), rect))
         open_host()
+        if workflow:
+            workflow.assign()
+            close_host()
+            open_host()
+            workflow.reopened()
+            workflow.play((240, 20, 20))
         before_pixel = probe()
         require(before_pixel[0] > before_pixel[1] * 2, 'initial red source pixel missing')
         identities = {str(p.relative_to(root)): p.read_bytes() for p in root.rglob('*.meta')}
@@ -138,6 +168,8 @@ def main():
         after_pixel = probe()
         require(after_pixel[1] > after_pixel[0] * 2, 'edited Atlas did not publish green Scene pixel')
         capture('edited-atlas-scene')
+        if workflow:
+            workflow.play((20, 240, 20))
         open_editor(False)
         field(8, '.375')
         field(9, 'impact')
@@ -164,6 +196,11 @@ def main():
         field(8, '.8')
         driver.click(point('asset_edit_14'))
         require(clip.read_bytes() == edited_clip, 'Cancel saved a Clip draft')
+        if workflow:
+            workflow.reimport_roundtrip(old_atlas, edited_atlas)
+            require(identities == {str(p.relative_to(root)): p.read_bytes()
+                                  for p in root.rglob('*.meta')},
+                    'Reimport changed authored identity sidecars')
         close_host()
         saved = {str(p.relative_to(root)): p.read_bytes() for p in root.rglob('*') if p.is_file()}
         open_host(True)
@@ -175,6 +212,13 @@ def main():
         close_host()
         require(saved == {str(p.relative_to(root)): p.read_bytes() for p in root.rglob('*') if p.is_file()},
                 'read-only reopen changed project bytes')
+        if workflow:
+            require(scene.read_bytes() == original_scene, 'Build scene differs from GUI assignment')
+            proof['same_project_workflow']['build_scene_sha256'] = hashlib.sha256(
+                scene.read_bytes()).hexdigest()
+            settings = json.loads((root / 'project.build.json').read_text())
+            require(len(settings['scenes']) == 1 and settings['scenes'][0]['path'] == 'Authored.scene',
+                    'Build did not enroll the exact GUI-saved scene')
         # Export the exact GUI-saved bytes and explicit Clip root, then remove every source.
         built = evidence / 'built-game'
         command = [args.editor, '--build-game=' + str(root), '--output=' + str(built),
@@ -213,6 +257,16 @@ def main():
                     break
             time.sleep(.05)
         require(player_pixel is not None, 'relocated source-free Player lost edited green pixels')
+        if workflow:
+            expected_pixel = proof['same_project_workflow']['play'][-1]['expected_rgb']
+            require(all(abs(a-b) <= 1 for a, b in zip(player_pixel, expected_pixel)),
+                    'relocated Player differs from the same saved source sRGB Play pixels')
+            proof['same_project_workflow']['matching_relocated_player_pixels'] = True
+            from LinuxAuthoredPreview import screenshot
+            player_capture = evidence / 'workflow-relocated-player.png'
+            screenshot(display, int(player_window), player_capture, (960, 640))
+            proof['captures'].append({'file': player_capture.name,
+                                      'sha256': hashlib.sha256(player_capture.read_bytes()).hexdigest()})
         request_window_close(player_window, env)
         stdout, stderr = process.communicate(timeout=15)
         (evidence / 'player.stdout.log').write_bytes(stdout)

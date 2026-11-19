@@ -1,5 +1,15 @@
 # Nexora 圖形化 Editor Roadmap
 
+### ✅ Sprite 來源製作整合驗收
+
+ED-WF-07 已串接真實 Inspector 指派／歷史／儲存重開、Atlas／Clip 編輯、設定式 Play 與 Content
+Reimport，使用同一份 Build 登錄場景及刪除來源後搬移的 Player。獨立原生像素、不變的身分／
+選取，以及失敗匯入的精確上一代像素保留均通過。完整 Linux **560/560**，零失敗／略過／重跑，
+**5913.08 秒**，包含新增整合案例 **191.49 秒**、33 次實際 SDK 替換與 70 次重新匯入發布。
+詳見[正式驗收](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07.md)。workflow 為 **6/9**；
+完整圖形 Editor **0/8**、TwoD **9/11** 與實體／乾淨主機 gate 仍分開驗收。
+下方歷史支援紀錄保留交付當時的進度數字。
+
 ### ✅ Hierarchy 物件右鍵操作
 
 物件列現在可按右鍵開啟 Copy／Cut／Paste／Duplicate／Rename／Delete。右鍵點未選取物件會改選該物件，點已選取物件則保留整組選取。選單持有世代檢查的目標，在沿用既有 Scene 指令前重新驗證選取、焦點與 modal 權限。實際 1x／2x 元件、150 單位窄面板、原生 Duplicate／Undo 與完整 Linux gate 已通過 559/559，沒有失敗、略過或重跑。參閱[限定驗收](../../Tools/Build/evidence/EditorWorkflow/Hierarchy-Context-Linux.md)。workflow5/9、圖形 Editor0/8 與 TwoD9/11 維持不變。

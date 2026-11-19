@@ -2,12 +2,25 @@
 
 [English](../en/Editor_Workflow_Delivery_Plan.md) · [Epic #741](https://github.com/jimlee1972/Nexora/issues/741)
 
-更新：2026-11-12。基線：`8c4aa989ee7443cc0b2129d54f0f0f77c73d2b49`。
+更新：2026-11-19。基線：`8c4aa989ee7443cc0b2129d54f0f0f77c73d2b49`。
 最初文件發布基底：`67db45d23e631b0e05b42c23716245a34ae996d5`。
 ED-WF-04 整合基底：main `a21c1ca2293e4200de8dcaa4b892ffef34687c9c`，包含外觀更新。
-驗收快照：**5/9 工單（55.6%）**；ED-WF-01 已由 [PR #751](https://github.com/jimlee1972/Nexora/pull/751)、ED-WF-02 由 [PR #754](https://github.com/jimlee1972/Nexora/pull/754)、ED-WF-03 由 [PR #756](https://github.com/jimlee1972/Nexora/pull/756)、ED-WF-04 由 [PR #758](https://github.com/jimlee1972/Nexora/pull/758) 合併，ED-WF-06 由 [PR #772](https://github.com/jimlee1972/Nexora/pull/772) 及其前置切片完成驗收。
+驗收快照：**6/9 工單（66.7%）**；ED-WF-01 已由 [PR #751](https://github.com/jimlee1972/Nexora/pull/751)、ED-WF-02 由 [PR #754](https://github.com/jimlee1972/Nexora/pull/754)、ED-WF-03 由 [PR #756](https://github.com/jimlee1972/Nexora/pull/756)、ED-WF-04 由 [PR #758](https://github.com/jimlee1972/Nexora/pull/758) 合併，ED-WF-06 由 [PR #772](https://github.com/jimlee1972/Nexora/pull/772) 及其前置切片完成驗收。
+ED-WF-07 由[整合製作驗收](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07.md)完成驗收。
+下方歷史支援紀錄保留交付當時的進度數字。
 後續已驗收項目及 merged PR／證據記於 Epic。完整圖形化 Editor 驗收維持 **0/8**；
 本計畫不自動驗收實體裝置或乾淨主機 gates。
+
+## ✅ Editor 來源製作整合驗收（2026-11-19）
+
+同一個真實原生專案串接 Build 登錄場景的開啟／Inspector 指派、精確 Undo／Redo／儲存重開、
+Atlas／Clip 編輯、四次設定式 Play 與六次 Content Reimport，包含損壞／缺檔的上一代保留。
+同一份 GUI 儲存場景與資產 Build 後，刪除來源、搬移到 Unicode 路徑的 Player 原生像素符合
+獨立預期。最後凍結來源通過完整 Linux **560/560**，零失敗／略過／重跑，**5913.08 秒**；
+整合案例 **191.49 秒**、實際 SDK 重載 **1684.38 秒**（33 次替換／7 次拒絕）、來源重匯入
+**383.03 秒**（70 次發布）。詳見[驗收矩陣與收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07.md)。
+審查交付後 workflow 為 **6/9（66.7%）**；圖形 Editor **0/8**、TwoD **9/11**、ED-WF-05／08／09
+及實體／乾淨主機 gate 仍分開驗收。例行 CI 維持手動執行。
 
 ## 現有基礎與缺口
 
@@ -32,7 +45,7 @@ SortingGroup、九宮格／Tiled、遮罩及進階動畫狀態機不在本批範
 | ED-WF-04 | [#745](https://github.com/jimlee1972/Nexora/issues/745) | 01 | Runtime／Zig 交易式遷移；替換失敗保留舊模組及 World | ✅ PR #758 |
 | ED-WF-05 | [#746](https://github.com/jimlee1972/Nexora/issues/746) | 02、04 | 背景編譯來源並保留狀態熱重載，不需 Stop／Play | 施工中；整合未驗收 |
 | ED-WF-06 | [#747](https://github.com/jimlee1972/Nexora/issues/747) | 01 | 相容的 C／Zig 來源 API 與 cooked Player 相依閉包 | ✅ PR #767、#769、#770、#772；[驗收](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md) |
-| ED-WF-07 | [#748](https://github.com/jimlee1972/Nexora/issues/748) | 06 | 真實 Editor 來源索引／Inspector／Undo／儲存重開／Play／Build／重匯入 | 施工中；來源索引、Inspector／持久化、模組 Play 與 Build 支援 |
+| ED-WF-07 | [#748](https://github.com/jimlee1972/Nexora/issues/748) | 06 | 真實 Editor 來源索引／Inspector／Undo／儲存重開／Play／Build／重匯入 | ✅ [整合驗收](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07.md) |
 | ED-WF-08 | [#749](https://github.com/jimlee1972/Nexora/issues/749) | 04、06、07 | 替換後保留來源動畫錨點、存活 pool 實例與有效 handle | 待辦 |
 | ED-WF-09 | [#750](https://github.com/jimlee1972/Nexora/issues/750) | 02、03、05、07、08 | 整合原生驗收及實際解壓驗證的 Windows Editor ZIP | 待辦 |
 

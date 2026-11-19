@@ -23,8 +23,9 @@ CYCLES = 32
 OUTPUT_LIMIT = 4 * 1024 * 1024
 
 
-def screenshot(display_name, window, path):
-    """Retain the full native window, including both canvases and product controls."""
+def screenshot(display_name, window, path, size=(1280, 720)):
+    """Retain native window pixels, including canvases and product controls."""
+    width, height = size
     x11 = ctypes.CDLL('libX11.so.6')
     x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
     x11.XOpenDisplay.restype = ctypes.c_void_p
@@ -39,15 +40,15 @@ def screenshot(display_name, window, path):
     if not display:
         raise RuntimeError('Native screenshot display unavailable')
     try:
-        image = x11.XGetImage(display, window, 0, 0, 1280, 720,
+        image = x11.XGetImage(display, window, 0, 0, width, height,
                               ctypes.c_ulong(-1).value, 2)
         if not image:
             raise RuntimeError('Native screenshot readback failed')
         try:
             rows = bytearray()
-            for y in range(720):
+            for y in range(height):
                 rows.append(0)
-                for x in range(1280):
+                for x in range(width):
                     pixel = x11.XGetPixel(image, x, y)
                     rows.extend(channel(pixel, mask) for mask in
                                 (image.contents.red_mask, image.contents.green_mask,
@@ -56,7 +57,7 @@ def screenshot(display_name, window, path):
                 return (struct.pack('!I', len(data)) + kind + data +
                         struct.pack('!I', zlib.crc32(kind + data)))
             path.write_bytes(b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack(
-                '!2I5B', 1280, 720, 8, 2, 0, 0, 0)) + chunk(b'IDAT', zlib.compress(rows)) +
+                '!2I5B', width, height, 8, 2, 0, 0, 0)) + chunk(b'IDAT', zlib.compress(rows)) +
                 chunk(b'IEND', b''))
         finally:
             x11.XDestroyImage(image)
