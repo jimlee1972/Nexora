@@ -261,6 +261,12 @@ public:
   GameInputChoicePosition(const EditorImGuiHost &host, PlayInputControl control) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ContentSearchPosition(const EditorImGuiHost &host) noexcept;
+  // Search, type filter, Undo, asset information, help, type field, import details.
+  static std::optional<std::array<float, 4>> ContentToolbarRect(const EditorImGuiHost &,
+                                                                std::size_t) noexcept;
+  static std::optional<std::array<float, 2>> ContentToolbarPosition(const EditorImGuiHost &,
+                                                                    std::size_t) noexcept;
+
   [[nodiscard]] static std::string_view
   ContentAssetDiagnostic(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>

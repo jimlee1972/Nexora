@@ -11,6 +11,7 @@
 #include <iostream>
 #include <iterator>
 #include <map>
+#include <source_location>
 #include <stdexcept>
 
 namespace {
@@ -102,8 +103,14 @@ struct Fixture final {
     ui.DrawProductShell(shell, &scene, project, active);
     static_cast<void>(ui.EndFrame());
   }
-  void Click(std::optional<std::array<float, 2>> point) {
-    Require(point.has_value(), "expected control is not rendered");
+  void Click(std::optional<std::array<float, 2>> point,
+             std::source_location location = std::source_location::current()) {
+    if (!point) {
+      const auto *window = ImGui::FindWindowByName("Content###nexora.content");
+      throw std::runtime_error("expected control is not rendered at line " +
+                               std::to_string(location.line()) +
+                               " scroll=" + std::to_string(window ? window->Scroll.y : -1.0F));
+    }
     Nexora::Window::WindowEvent pointer, button;
     pointer.type = Nexora::Window::WindowEventType::Pointer;
     pointer.value0 = static_cast<int>((*point)[0] * dpi);
@@ -130,6 +137,30 @@ struct Fixture final {
     ui.ProcessEvents(std::array{key});
     Draw();
   }
+  void Tap(Nexora::Window::Key key) {
+    Nexora::Window::WindowEvent event;
+    event.type = Nexora::Window::WindowEventType::Key;
+    event.value0 = static_cast<int>(key);
+    event.value1 = 1;
+    ui.ProcessEvents(std::array{event});
+    Draw();
+    event.value1 = 0;
+    ui.ProcessEvents(std::array{event});
+    Draw();
+  }
+  void OpenDetails() {
+    if (!Access::ContentDependencyHeaderPosition(ui) &&
+        !Access::ContentDependencyHeaderPosition(ui, true)) {
+      auto *window = ImGui::FindWindowByName("Content###nexora.content");
+      Require(window, "Content window absent");
+      ImGui::SetScrollY(window, 0);
+      Draw();
+      Draw();
+      Click(Access::ContentToolbarPosition(ui, 3));
+      Draw();
+      Draw();
+    }
+  }
   void SelectSource() {
     Require(active->Browser().RevealAsset(source), "source select failed");
     // Bring details into view without changing selection or filters.
@@ -138,8 +169,11 @@ struct Fixture final {
     ImGui::SetScrollY(window, 0);
     Draw();
     Draw();
+    OpenDetails();
     if (!Access::ContentDependencyPosition(ui, target))
       Click(Access::ContentDependencyHeaderPosition(ui));
+    Draw();
+    Draw();
     Require(Access::ContentDependencyPosition(ui, target).has_value(), "forward link missing");
   }
   void CheckTarget() {
@@ -464,6 +498,52 @@ void MarkerLabels(float dpi) {
           "copied root reused marker control ID at same generation");
   Require(f.Files() == files, "scope replacement wrote source files");
 }
+void Toolbar(float dpi) {
+  Fixture f(dpi);
+  const auto files = f.Files();
+  const auto scene = f.world.SaveScene(f.scene_id);
+  auto *window = ImGui::FindWindowByName("Content###nexora.content");
+  Require(window, "Content window missing");
+  ImGui::SetWindowSize(window, {150, 650}, ImGuiCond_Always);
+  ImGui::SetScrollY(window, 0);
+  f.Draw();
+  f.Draw();
+  Require(window->Size.x >= 149 && window->Size.x <= 151, "Content dock width differs");
+  for (const auto index : {0U, 1U, 2U, 3U, 4U, 6U}) {
+    const auto rect = Access::ContentToolbarRect(f.ui, index);
+    Require(rect && (*rect)[0] >= window->InnerRect.Min.x &&
+                (*rect)[2] <= window->InnerRect.Max.x && (*rect)[1] >= window->InnerRect.Min.y &&
+                (*rect)[3] <= window->InnerRect.Max.y,
+            "Content search or toolbar action clipped in a 150-unit/DPI-scaled dock");
+  }
+  Require(!Access::ContentDependencyHeaderPosition(f.ui), "Asset details remained a permanent row");
+  f.Click(Access::ContentToolbarPosition(f.ui, 4));
+  Require(!GImGui->OpenPopupStack.empty() && !Access::ContentToolbarPosition(f.ui, 5),
+          "Content help did not open independently of type filtering");
+  f.Tap(Nexora::Window::Key::Escape);
+  f.active = &f.readonly;
+  f.Draw();
+  f.Draw();
+  f.Click(Access::ContentToolbarPosition(f.ui, 1));
+  f.Draw();
+  f.Draw();
+  f.Click(Access::ContentToolbarPosition(f.ui, 5));
+  for (const char character : std::string(".txt")) {
+    Nexora::Window::WindowEvent event;
+    event.type = Nexora::Window::WindowEventType::Text;
+    event.value0 = static_cast<unsigned char>(character);
+    f.ui.ProcessEvents(std::array{event});
+    f.Draw();
+  }
+  f.Tap(Nexora::Window::Key::Enter);
+  f.Tap(Nexora::Window::Key::Escape);
+  Require(f.readonly.Browser().VisibleCount() == 1 && !f.readonly.CanUndo(),
+          "Read-only type filtering changed content or failed to filter root files");
+  Require(f.Files() == files && f.world.SaveScene(f.scene_id) == scene &&
+              !f.ui.TakeSceneFileRequest(),
+          "Content inspection changed authored files, scene or requested IO");
+}
+
 void Run(float dpi) {
   Fixture f(dpi);
   const auto original_files = f.Files();
@@ -481,6 +561,8 @@ void Run(float dpi) {
   f.CheckTarget();
   Require(f.content.Browser().Revision() == revision, "Reveal changed content revision");
 
+  // Reopen actual information after Reveal returns focus to the browser.
+  f.OpenDetails();
   // Reverse references remain actionable while the target details are scrolled into view.
   auto *window = ImGui::FindWindowByName("Content###nexora.content");
   ImGui::SetScrollY(window, window->ScrollMax.y);
@@ -532,6 +614,7 @@ void Run(float dpi) {
           "Reveal consumed or replaced pending source/sidecar Undo");
   Require(f.Files() == original_files, "inspection changed source or identity sidecar bytes");
   f.SelectSource();
+  f.Tap(Nexora::Window::Key::Escape);
   f.Click(Access::ContentAssetPosition(f.ui, f.source));
   Require(!f.ui.TakeSceneFileRequest(), "single asset click requested a scene Open");
   f.Enter();
@@ -539,6 +622,7 @@ void Run(float dpi) {
   Require(scene_open && scene_open->action == editor::imgui::SceneFileAction::Open &&
               scene_open->path == "Content/Source.scene",
           "dependency Enter routing broke ordinary selected-scene Enter");
+  f.OpenDetails();
   f.Draw();
   Nexora::Window::WindowEvent focus;
   focus.type = Nexora::Window::WindowEventType::FocusChanged;
@@ -551,10 +635,16 @@ void Run(float dpi) {
   focus.value0 = 1;
   f.ui.ProcessEvents(std::array{focus});
   f.Draw();
+  const auto blocked_reveal = Access::ContentDependencyPosition(f.ui, f.target);
+  Require(blocked_reveal.has_value(), "active information did not render its target");
   Require(f.content.Conflicts().Detect(f.source, "editor", "disk", true), "conflict setup failed");
   f.Draw();
   f.Draw();
-  f.Click(Access::ContentDependencyPosition(f.ui, f.target));
+  Require(!Access::ContentDependencyPosition(f.ui, f.target),
+          "modal retained closed popup coordinates");
+  f.Click(blocked_reveal);
+  Require(f.content.Conflicts().Conflicts().front().choice == editor::DirtyConflictChoice::Pending,
+          "stale Reveal coordinates acted on the blocking conflict");
   Require(f.content.Browser().Selection() == std::vector{f.source},
           "blocking conflict modal admitted dependency Reveal");
   Access::QueueContentConflictChoice(f.ui, f.source, editor::DirtyConflictChoice::Keep);
@@ -565,7 +655,8 @@ void Run(float dpi) {
   f.active = nullptr;
   f.Draw();
   Require(!Access::ContentDependencyPosition(f.ui, f.target) &&
-              !Access::ContentDependencyHeaderPosition(f.ui),
+              !Access::ContentDependencyHeaderPosition(f.ui) &&
+              !Access::ContentToolbarPosition(f.ui, 0) && !Access::ContentSearchPosition(f.ui),
           "closed content retained controls");
   window = ImGui::FindWindowByName("Content###nexora.content");
   ImGui::SetScrollY(window, 0);
@@ -626,6 +717,8 @@ int main() {
     FolderClipping(2);
     MarkerLabels(1);
     MarkerLabels(2);
+    Toolbar(1);
+    Toolbar(2);
     Run(1);
     Run(2);
     std::cout << "Literal Content labels and forward/reverse dependency Reveal contracts passed\n";

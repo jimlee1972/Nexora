@@ -702,6 +702,7 @@ struct EditorImGuiHost::State final {
   std::array<char, 64> content_type{};
   std::array<char, 1024> content_rename{};
   std::optional<std::array<float, 2>> content_search_position;
+  std::array<std::optional<std::array<float, 4>>, 7> content_toolbar_rects{};
   struct ContentReveal final {
     runtime::AssetUuid asset;
     std::uint64_t generation, revision;
@@ -712,6 +713,7 @@ struct EditorImGuiHost::State final {
     runtime::AssetUuid asset;
     std::array<float, 2> position;
     ImGuiID widget;
+    ImGuiID window;
   };
   std::array<std::vector<ContentDependencyControl>, 2> content_dependency_controls;
   std::array<std::optional<std::array<float, 2>>, 2> content_dependency_headers;
@@ -4830,6 +4832,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
                         bool selection_commands_allowed) {
   static_cast<void>(content.PollReimport());
   auto &browser = content.Browser();
+  const auto import_status = content.ReimportStatus();
   state.content_visible_items = 0;
   state.content_visible_folders = 0;
   state.content_rendered_folders = 0;
@@ -4845,7 +4848,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   state.content_conflict_visible = false;
   state.content_conflict_compare_visible = false;
   state.content_conflict_choice = DirtyConflictChoice::Pending;
-  if (const auto status = content.ReimportStatus()) {
+  if (const auto &status = import_status) {
     state.content_import_state = status->state;
     state.content_import_diagnostics = static_cast<std::uint32_t>(std::min<std::size_t>(
         status->diagnostics.size(), std::numeric_limits<std::uint32_t>::max()));
@@ -4857,6 +4860,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   state.content_undo_position.reset();
   state.content_reimport_position.reset();
   state.content_search_position.reset();
+  state.content_toolbar_rects = {};
   state.content_focused_folder.reset();
   state.content_focused_asset.reset();
   for (auto &positions : state.content_path_positions)
@@ -4907,26 +4911,82 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
     navigate_to.reset();
   }
 
+  const auto capture = [&](std::size_t index) {
+    if (ImGui::GetCurrentWindow()->Hidden || !ImGui::IsItemVisible())
+      return;
+    const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+    state.content_toolbar_rects[index] = std::array{low.x, low.y, high.x, high.y};
+  };
+  ImGui::SetNextItemWidth(std::max(1.0F, ImGui::GetContentRegionAvail().x));
   bool filter_changed = ImGui::InputTextWithHint(
       "##content-search", "Search assets", state.content_query.data(), state.content_query.size());
-  const auto search_min = ImGui::GetItemRectMin(), search_max = ImGui::GetItemRectMax();
-  state.content_search_position =
-      std::array{(search_min.x + search_max.x) * 0.5F, (search_min.y + search_max.y) * 0.5F};
-  ImGui::SameLine();
-  ImGui::SetNextItemWidth(120.0F);
-  filter_changed |= ImGui::InputTextWithHint("##content-type", "Type", state.content_type.data(),
-                                             state.content_type.size());
+  capture(0);
+  if (state.content_toolbar_rects[0]) {
+    const auto &rect = *state.content_toolbar_rects[0];
+    state.content_search_position =
+        std::array{(rect[0] + rect[2]) * .5F, (rect[1] + rect[3]) * .5F};
+  }
+  if (detail::IconButton("Filter asset type", detail::EditorIcon::Settings,
+                         state.content_type[0] != '\0'))
+    ImGui::OpenPopup("Content type filter");
+  capture(1);
+  const auto filter_item = GImGui->LastItemData;
+  if (ImGui::BeginPopup("Content type filter")) {
+    ImGui::SetNextItemWidth(std::max(1.0F, std::min(ImGui::GetFontSize() * 18.0F,
+                                                    ImGui::GetMainViewport()->WorkSize.x - 48.0F)));
+    filter_changed |= ImGui::InputTextWithHint("##content-type", "Type", state.content_type.data(),
+                                               state.content_type.size());
+    capture(5);
+    ImGui::PushTextWrapPos(ImGui::GetCursorPosX() +
+                           std::max(1.0F, std::min(ImGui::GetFontSize() * 32.0F,
+                                                   ImGui::GetMainViewport()->WorkSize.x - 48.0F)));
+    ImGui::TextUnformatted("For example: .scene or .nx2sprite. Clear to show all types.");
+    ImGui::PopTextWrapPos();
+    ImGui::EndPopup();
+  }
+  GImGui->LastItemData = filter_item;
   if (filter_changed)
     browser.SetFilter(state.content_query.data(), state.content_type.data());
-  ImGui::SameLine();
+  ContinueViewportToolbar();
   ImGui::BeginDisabled(!commands_allowed || !content.CanUndo());
   if (detail::IconButton("Undo content", detail::EditorIcon::Undo))
     static_cast<void>(content.Undo());
-  {
-    const auto lo = ImGui::GetItemRectMin(), hi = ImGui::GetItemRectMax();
-    state.content_undo_position = std::array{(lo.x + hi.x) * 0.5F, (lo.y + hi.y) * 0.5F};
+  capture(2);
+  if (state.content_toolbar_rects[2]) {
+    const auto &rect = *state.content_toolbar_rects[2];
+    state.content_undo_position = std::array{(rect[0] + rect[2]) * .5F, (rect[1] + rect[3]) * .5F};
   }
   ImGui::EndDisabled();
+  ContinueViewportToolbar();
+  if (detail::IconButton("Asset information", detail::EditorIcon::Inspect))
+    ImGui::OpenPopup("Content asset information");
+  capture(3);
+  ContinueViewportToolbar();
+  if (detail::IconButton("Content browser help", detail::EditorIcon::Info))
+    ImGui::OpenPopup("Content browser help");
+  capture(4);
+  const auto help_item = GImGui->LastItemData;
+  if (ImGui::BeginPopup("Content browser help")) {
+    ImGui::PushTextWrapPos(ImGui::GetCursorPosX() +
+                           std::max(1.0F, std::min(ImGui::GetFontSize() * 32.0F,
+                                                   ImGui::GetMainViewport()->WorkSize.x - 48.0F)));
+    ImGui::TextUnformatted("Search names or choose Filter asset type to narrow the browser.");
+    ImGui::TextWrapped(
+        "Inspect a selected asset with Asset information. Dependencies and Referenced "
+        "by reveal their actual files without editing them.");
+    ImGui::TextWrapped("Double-click a scene to open it. F2 renames one asset; Delete removes the "
+                       "selection in a writable project. Alt+Up opens the parent folder.");
+    ImGui::PopTextWrapPos();
+    ImGui::EndPopup();
+  }
+  GImGui->LastItemData = help_item;
+  ContinueViewportToolbar();
+  ImGui::BeginDisabled(!import_status);
+  if (detail::IconButton("Import details", detail::EditorIcon::Import, content.ReimportBusy()))
+    ImGui::OpenPopup("Content import details");
+  capture(6);
+  ImGui::EndDisabled();
+  ContinueViewportToolbar();
 
   const bool keyboard =
       selection_commands_allowed && !state.content_rename_target &&
@@ -5082,7 +5142,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   if (!state.content_scene_error.empty())
     ImGui::TextWrapped("%s", state.content_scene_error.c_str());
 
-  ImGui::SameLine();
+  ContinueViewportToolbar();
   const auto *selected_scene =
       selected_assets.size() == 1 ? browser.Find(selected_assets.front()) : nullptr;
   const bool selected_scene_file = selected_scene && selected_scene->type == ".scene" &&
@@ -5335,13 +5395,12 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   std::optional<runtime::AssetUuid> dependency_reveal;
   const auto selection = browser.Selection();
   state.content_selection = static_cast<std::uint32_t>(selection.size());
-  ImGui::SeparatorText("Asset details");
   if (selection.size() == 1) {
     if (const auto *item = browser.Find(selection.front())) {
-      ImGui::Text("Path: %s", PathLabel(item->path).c_str());
-      ImGui::Text("UUID: %s", item->id.ToString().c_str());
-      ImGui::Text("Type: %s", item->type.c_str());
-      ImGui::Text("Artifact: %s", item->artifact_hash.c_str());
+      state.content_forward_dependencies =
+          static_cast<std::uint32_t>(content.Dependencies().Forward(item->id).size());
+      state.content_reverse_dependencies =
+          static_cast<std::uint32_t>(content.Dependencies().Reverse(item->id).size());
       if (!item->import_diagnostic.empty()) {
         ImGui::TextUnformatted("Import failure:");
         ImGui::PushTextWrapPos(0.0F);
@@ -5350,45 +5409,69 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
         ImGui::PopTextWrapPos();
         state.content_asset_diagnostic = item->import_diagnostic;
       }
-      const auto forward = content.Dependencies().Forward(item->id);
-      const auto reverse = content.Dependencies().Reverse(item->id);
-      state.content_forward_dependencies = static_cast<std::uint32_t>(forward.size());
-      state.content_reverse_dependencies = static_cast<std::uint32_t>(reverse.size());
-      const auto references = [&](const char *label, const auto &ids, std::size_t direction) {
-        const bool open = ImGui::TreeNode(label);
-        const auto min = ImGui::GetItemRectMin(), max = ImGui::GetItemRectMax();
-        state.content_dependency_headers[direction] =
-            std::array{(min.x + max.x) * 0.5F, (min.y + max.y) * 0.5F};
-        if (!open)
-          return;
-        if (ids.empty())
-          ImGui::TextUnformatted("None");
-        for (const auto dependency : ids) {
-          const auto *target = browser.Find(dependency);
-          const auto uuid = dependency.ToString();
-          ImGui::PushID(uuid.c_str());
-          ImGui::BeginDisabled(!target || !selection_commands_allowed ||
-                               state.content_rename_target);
-          if (detail::SmallIconButton("Reveal", detail::EditorIcon::Browse))
-            dependency_reveal = dependency;
-          const auto button_min = ImGui::GetItemRectMin(), button_max = ImGui::GetItemRectMax();
-          state.content_dependency_controls[direction].push_back(
-              {dependency,
-               {(button_min.x + button_max.x) * 0.5F, (button_min.y + button_max.y) * 0.5F},
-               ImGui::GetItemID()});
-          ImGui::EndDisabled();
-          ImGui::SameLine();
-          const auto text = target ? PathLabel(target->path) : "Unavailable: " + uuid;
-          ImGui::TextUnformatted(text.data(), text.data() + text.size());
-          ImGui::PopID();
-        }
-        ImGui::TreePop();
-      };
-      references("Dependencies", forward, 0);
-      references("Referenced by", reverse, 1);
     }
-  } else {
-    ImGui::Text("%zu assets selected", selection.size());
+  }
+  ImGui::SetNextWindowSizeConstraints(
+      {0, 0}, {std::max(1.0F, ImGui::GetMainViewport()->WorkSize.x - 32.0F),
+               std::max(1.0F, ImGui::GetMainViewport()->WorkSize.y - 32.0F)});
+  if (ImGui::BeginPopup("Content asset information")) {
+    ImGui::PushOverrideID(content_scope);
+    ImGui::PushTextWrapPos(ImGui::GetCursorPosX() +
+                           std::max(1.0F, std::min(ImGui::GetFontSize() * 40.0F,
+                                                   ImGui::GetMainViewport()->WorkSize.x - 64.0F)));
+    ImGui::SeparatorText("Asset details");
+    if (selection.size() == 1) {
+      if (const auto *item = browser.Find(selection.front())) {
+        ImGui::Text("Path: %s", PathLabel(item->path).c_str());
+        ImGui::Text("UUID: %s", item->id.ToString().c_str());
+        ImGui::Text("Type: %s", item->type.c_str());
+        ImGui::Text("Artifact: %s", item->artifact_hash.c_str());
+        const auto forward = content.Dependencies().Forward(item->id);
+        const auto reverse = content.Dependencies().Reverse(item->id);
+        const auto references = [&](const char *label, const auto &ids, std::size_t direction) {
+          const bool open = ImGui::TreeNode(label);
+          const auto min = ImGui::GetItemRectMin(), max = ImGui::GetItemRectMax();
+          if (!ImGui::GetCurrentWindow()->Hidden && ImGui::IsItemVisible())
+            state.content_dependency_headers[direction] =
+                std::array{(min.x + max.x) * 0.5F, (min.y + max.y) * 0.5F};
+          if (!open)
+            return;
+          if (ids.empty())
+            ImGui::TextUnformatted("None");
+          for (const auto dependency : ids) {
+            const auto *target = browser.Find(dependency);
+            const auto uuid = dependency.ToString();
+            ImGui::PushID(uuid.c_str());
+            ImGui::BeginDisabled(!target || !selection_commands_allowed ||
+                                 state.content_rename_target);
+            if (detail::SmallIconButton("Reveal", detail::EditorIcon::Browse))
+              dependency_reveal = dependency;
+            const auto button_min = ImGui::GetItemRectMin(), button_max = ImGui::GetItemRectMax();
+            if (!ImGui::GetCurrentWindow()->Hidden && ImGui::IsItemVisible())
+              state.content_dependency_controls[direction].push_back(
+                  {dependency,
+                   {(button_min.x + button_max.x) * 0.5F, (button_min.y + button_max.y) * 0.5F},
+                   ImGui::GetItemID(),
+                   ImGui::GetCurrentWindow()->ID});
+            ImGui::EndDisabled();
+            ImGui::SameLine();
+            const auto text = target ? PathLabel(target->path) : "Unavailable: " + uuid;
+            ImGui::TextUnformatted(text.data(), text.data() + text.size());
+            ImGui::PopID();
+          }
+          ImGui::TreePop();
+        };
+        references("Dependencies", forward, 0);
+        references("Referenced by", reverse, 1);
+      }
+    } else {
+      ImGui::Text("%zu assets selected", selection.size());
+    }
+    ImGui::PopTextWrapPos();
+    ImGui::PopID();
+    if (dependency_reveal)
+      ImGui::CloseCurrentPopup();
+    ImGui::EndPopup();
   }
   // Consume the current-frame UUID only after all borrowed details/rows have been rendered.
   if (dependency_reveal && selection_commands_allowed && !state.content_rename_target &&
@@ -5482,23 +5565,44 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   } else {
     state.content_conflict_choice_request.reset();
   }
-  if (const auto status = content.ReimportStatus()) {
-    ImGui::SeparatorText("Import operation");
-    ImGui::Text("Operation: %llu", static_cast<unsigned long long>(status->operation));
-    if (!status->progress.empty()) {
-      const auto &progress = status->progress.back();
-      const float fraction = progress.total == 0 ? 0.0F
-                                                 : static_cast<float>(progress.completed) /
-                                                       static_cast<float>(progress.total);
-      ImGui::ProgressBar(std::clamp(fraction, 0.0F, 1.0F));
+  if (const auto &status = import_status) {
+    const auto draw_progress = [&] {
+      if (!status->progress.empty()) {
+        const auto &progress = status->progress.back();
+        const float fraction = progress.total == 0 ? 0.0F
+                                                   : static_cast<float>(progress.completed) /
+                                                         static_cast<float>(progress.total);
+        ImGui::ProgressBar(std::clamp(fraction, 0.0F, 1.0F));
+      }
+    };
+    if (content.ReimportBusy()) {
+      ImGui::SeparatorText("Importing assets");
+      draw_progress();
+      if (detail::IconButton("Cancel import", detail::EditorIcon::Cancel))
+        static_cast<void>(content.CancelReimport());
     }
-    if (content.ReimportBusy() && detail::IconButton("Cancel import", detail::EditorIcon::Cancel))
-      static_cast<void>(content.CancelReimport());
     for (const auto &diagnostic : status->diagnostics)
-      ImGui::TextWrapped("[%s] %s", diagnostic.code.c_str(), diagnostic.message.c_str());
-    if (status->dropped_progress != 0 || status->dropped_diagnostics != 0)
-      ImGui::TextDisabled("Bounded history dropped %zu progress and %zu diagnostic events.",
-                          status->dropped_progress, status->dropped_diagnostics);
+      if (diagnostic.severity != ImportDiagnosticSeverity::Info)
+        ImGui::TextWrapped("[%s] %s", diagnostic.code.c_str(), diagnostic.message.c_str());
+    if (status->state == ImportOperationState::Failed ||
+        status->state == ImportOperationState::Stale)
+      ImGui::TextWrapped(
+          "Asset import did not publish. Open Import details or reimport to try again.");
+    if (ImGui::BeginPopup("Content import details")) {
+      ImGui::Text("Operation: %llu", static_cast<unsigned long long>(status->operation));
+      draw_progress();
+      ImGui::PushTextWrapPos(
+          ImGui::GetCursorPosX() +
+          std::max(1.0F, std::min(ImGui::GetFontSize() * 32.0F,
+                                  ImGui::GetMainViewport()->WorkSize.x - 48.0F)));
+      for (const auto &diagnostic : status->diagnostics)
+        ImGui::TextWrapped("[%s] %s", diagnostic.code.c_str(), diagnostic.message.c_str());
+      if (status->dropped_progress != 0 || status->dropped_diagnostics != 0)
+        ImGui::TextWrapped("Bounded history dropped %zu progress and %zu diagnostic events.",
+                           status->dropped_progress, status->dropped_diagnostics);
+      ImGui::PopTextWrapPos();
+      ImGui::EndPopup();
+    }
   }
   if (!content.LastError().empty())
     ImGui::TextWrapped("Content error: %.*s", static_cast<int>(content.LastError().size()),
@@ -6271,6 +6375,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->content_open_scene_position.reset();
   if (!content)
     state_->content_reveal.reset();
+  state_->content_toolbar_rects = {};
+  state_->content_search_position.reset();
   state_->content_dependency_controls = {};
   state_->content_dependency_headers = {};
   state_->content_asset_positions.clear();
@@ -10883,6 +10989,20 @@ EditorImGuiTestAccess::GameInputChoicePosition(const EditorImGuiHost &host,
   return found == host.state_->game_input_choice_positions.end() ? std::nullopt
                                                                  : std::optional{found->second};
 }
+std::optional<std::array<float, 4>>
+EditorImGuiTestAccess::ContentToolbarRect(const EditorImGuiHost &host, std::size_t index) noexcept {
+  return index < host.state_->content_toolbar_rects.size()
+             ? host.state_->content_toolbar_rects[index]
+             : std::nullopt;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ContentToolbarPosition(const EditorImGuiHost &host,
+                                              std::size_t index) noexcept {
+  const auto rect = ContentToolbarRect(host, index);
+  if (!rect)
+    return std::nullopt;
+  return std::array{((*rect)[0] + (*rect)[2]) * .5F, ((*rect)[1] + (*rect)[3]) * .5F};
+}
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::ContentSearchPosition(const EditorImGuiHost &host) noexcept {
   return host.state_->content_search_position;
@@ -10944,7 +11064,7 @@ void EditorImGuiTestAccess::FocusContentDependency(EditorImGuiHost &host, runtim
   const auto &controls = host.state_->content_dependency_controls[reverse ? 1 : 0];
   const auto found =
       std::ranges::find(controls, asset, &EditorImGuiHost::State::ContentDependencyControl::asset);
-  auto *window = ImGui::FindWindowByName(PanelWindowName("nexora.content").c_str());
+  auto *window = found != controls.end() ? ImGui::FindWindowByID(found->window) : nullptr;
   if (window && found != controls.end()) {
     ImGui::FocusWindow(window);
     ImGui::SetFocusID(found->widget, window);

@@ -1,5 +1,14 @@
 # Nexora 圖形化 Editor Roadmap
 
+### ✅ 精簡 Content 控制
+
+Content 面板依面板寬度顯示搜尋、可換行控制，以及按需開啟的資產／依賴／說明／
+匯入細節。可採取行動的匯入／循環／衝突診斷持續直接顯示。模型、權限、身分與檔案／歷史
+行為仍由原有 owner 負責。實際1x／2x／150單位元件與原生畫面檢查已通過；完整 Linux gate 通過 **562/562，6538.33秒**，
+零失敗／略過／重跑，configure／build亦通過。
+詳見[本切片證據](../../Tools/Build/evidence/EditorWorkflow/Content-Controls-Linux.md)。
+此 UI 支援切片不改變 workflow6/9、Editor0/8 或 TwoD9/11。
+
 ### ✅ Editor 按鍵修飾狀態保留
 
 同批原生輸入中較晚的修飾鍵轉換，不再改變新按鍵按下時的修飾狀態。原版 Plugin Manager

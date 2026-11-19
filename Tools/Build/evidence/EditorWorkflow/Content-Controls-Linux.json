@@ -1,0 +1,150 @@
+{
+  "status": "complete local Linux qualification passed; final-head review and own-PR merge pending",
+  "source_sha256": {
+    "Engine/EditorImGui/src/EditorImGui.cpp": "ea119b350ce9de43d424c4aea4bbcb566a2c91163f4932e0089fc540dd4ec015",
+    "Engine/EditorImGui/src/EditorImGuiTestAccess.h": "7b1847ae762d61930f7a7ad90e6e2bb28153cc3e95476ae195f1c3ca9799bc32",
+    "Tests/EditorImGui/ContentDependencyTests.cpp": "964ee18a21519d5e62c4aad5e1de339004e28bb7761215ea4e7a301dd6314c78",
+    "Tests/EditorImGui/ContentShortcutTests.cpp": "cc456fba9266f37b852580c934354e6054434e3987f150eea41dcda5644f5c43",
+    "Tests/EditorImGui/CMakeLists.txt": "5f3d17930948b817254f5a06227394744bbbd31258ac36e96c78d139742cd3f3"
+  },
+  "authored_sha256": {
+    "project.nexora": "092c6b580a8cfb76b517268f370398068fc0e4ab9bc3a1adcb8a9efa8fc0d70e",
+    ".nexora/workspace": "103b92e45253890820db806383c5f4c25ae009d8cbada5f175afac93ddd445d1",
+    ".nexora/scenes/Main.scene": "5e67db6dfffd6136ad491e5f2f70c30c4e8ba129f3474be8131dae3ee43a3605",
+    "Content/Triangle.obj": "fb7dfd56dac77ea4246f2be61e44efed3bba2aab1c8ee9f2cc88b0b1801194a8",
+    "Content/Triangle.obj.meta": "a9460061fd642b519baf974f4cba94395cee0d0f8a73ea99a4eebd82678cef61",
+    "Content/Other.scene": "a70b7cb8ae3111548078753b99558354b34eaff689e7290a7cc489db0b9847d3",
+    "Content/Other.scene.meta": "336b197f369ae6e88683e6d63a25352c84015fdcadfe96aeda4d6480b6dec0c9",
+    "README.txt": "ce15df058e7997c77ed2e07b02c3aca28c4a4b2b7bc54cc94d2e8ad4fb814e89"
+  },
+  "project": "/workspace/work/editor-content-controls/native-project-62547675126214",
+  "binary_sha256": "d534c7934f5b0bb60b5547ea79f1dfd8527d3c70f586562773af139954f474db",
+  "library_sha256": "40fdeb22d4908cbe29f7825a11f06162b81dd59cde9ce04426d8b4dd6bca2987",
+  "display": "1280x720",
+  "exit_code": 0,
+  "captures": [
+    {
+      "file": "Content-Controls/content-browser.png",
+      "sha256": "9092b7380249365d0def8a401069248ed05f294215a4441b09f384e312bb347b"
+    },
+    {
+      "file": "Content-Controls/content-asset-information.png",
+      "sha256": "f447c3dd24758415fbf0a8b679fa175540ec8b00d6a9e1d1ee8ed17c819df1c7"
+    },
+    {
+      "file": "Content-Controls/content-type-filter.png",
+      "sha256": "69fef35019351f715bf6f70a3ea5de56b8c92f194c47d48c374ec5c40039b903"
+    },
+    {
+      "file": "Content-Controls/content-filtered.png",
+      "sha256": "6aef33d68ac49619562264da89c5a620c66893a6027d6e5bf60442f773ad3364"
+    },
+    {
+      "file": "Content-Controls/content-filter-cleared.png",
+      "sha256": "9bd9e8fbaea07f4149f6bbccce8c21f53a5334b63ec86ca330d6d4bfb6113546"
+    },
+    {
+      "file": "Content-Controls/content-help.png",
+      "sha256": "c903e4ef852617d873e8e2e37eb1634e53fdbd45356e450657d774e94a52250e"
+    },
+    {
+      "file": "Content-Controls/content-scene-opened.png",
+      "sha256": "4a1883599274616ab4cb076a5c7014d96b9a0f6c37a0e1cffd047d432fe2ac23"
+    }
+  ],
+  "focused": {
+    "passed": 3,
+    "seconds": 19.5,
+    "dpi": [
+      1,
+      2
+    ],
+    "narrow_width": 150,
+    "tests": [
+      "editor.content_diagnostic_display",
+      "editor.content_keyboard_shortcuts",
+      "editor.content_dependency_reveal"
+    ]
+  },
+  "navigation": {
+    "path": "Content/Other.scene",
+    "acknowledgement": ".nexora/scene-session.ini",
+    "normal_close": true,
+    "exit_code": 0,
+    "file_open_requests_counter_used": false
+  },
+  "history": "Initial focused attempts failed because fixtures assumed permanent or immediately sized controls. Those failures remain non-acceptance; actual visible popup controls and sizing frames were implemented before the final focused run.",
+  "full_gate": {
+    "registered": 562,
+    "passed": 562,
+    "failed": 0,
+    "skipped": 0,
+    "retries": 0,
+    "seconds": 6538.33,
+    "exit_code": 0
+  },
+  "logs_sha256": {
+    "focused-fifth.log": "6bc33345f4caae3c3f9ebf8d2e591f03a56eea352c8d14af6dd9c48280daf919",
+    "focused-fifth-junit.xml": "a7cf045a1131f35e73f87b823b230d1ae865c4f4c4fd2b2d4d4bb080e0be4e91",
+    "native.log": "ef7a1df81b68eb91fcde932fa37371e6d5a8230d2aeeaff0a526caeec0e641fb",
+    "native-commands.jsonl": "37186f563ea241a1e67fd0556ab7e4c20c39bd30ed4c4c106866f51a6fe22ed0",
+    "input.jsonl": "e72aa7e0e842475e41dfdb00dbb1ef279c8ea0f91beb4afa21e0d77769106ca5",
+    "editor-1.stderr.log": "2e5f674223b29ecd88222a856be288e3c1f19a15315a76e88c32db895933d157",
+    "editor-1.stdout.log": "8efcace3cde441692c134d16d058d9dd172f08c9d0cff4528013320b49bf8dc7",
+    "full-configure.log": "8ae94c2c7818f820ecc4376653918a321480b402716f87d4dab41ccf3f3525d4",
+    "full-build.log": "494139a9b09a1733fc2360f3d3211d1d605189cd2cc07fa3c9884bc8533b5e27",
+    "full-ctest.log": "9af86524ab7dc839d4d24685ed863e20ff350c9e158bf6f8d05ef3d5ed550585",
+    "full-inventory.json": "50eefbfcbfae900172648a6b83a861c3417e4d65056e40163182eed832c2a516",
+    "full-junit.xml": "1bbc12ce8914c3124310c29d78f5a7625d9457ef58d5feb043d03ab9771ca193",
+    "full-LastTest.log": "421f27dc591bb0bd64dfdf0f37d0a2a3175de29e4082cbe6faedb0c77c9bdfa9"
+  },
+  "full_gate_cases": {
+    "editor.content_diagnostics": 0.00873154,
+    "editor.content_directory_index": 31.1174,
+    "editor.content_path_sort": 33.0782,
+    "editor.content_search_keys": 1.2203,
+    "editor.content_diagnostic_display": 1.49581,
+    "editor.content_keyboard_shortcuts": 11.0807,
+    "editor.content_dependency_reveal": 7.93052
+  },
+  "validation_input_tree": "cba2381ba21b282e78ce8402747ec9d5050c02d8",
+  "existing_native_regressions": {
+    "reload": {
+      "passed": true,
+      "seconds": 1655.75,
+      "artifact_directory": "/workspace/Nexora/build/linux-development/artifacts/editor-packaged-source-reload/source-services-1795122073620796268",
+      "receipt_sha256": "2aa80f88c491f08e287cebbfaf9fdf8972e74fc6cdbb5df493e7e3272d2eb3d2",
+      "phases": 5,
+      "successful_replacements": 33,
+      "initial_observations": 1,
+      "live_observations": 34,
+      "rejected_cases": 7
+    },
+    "reimport": {
+      "passed": true,
+      "seconds": 383.705,
+      "artifact_directory": "/workspace/Nexora/build/linux-development/artifacts/editor-packaged-source-reimport/source-services-1795123729419774236",
+      "receipt_sha256": "45702366e577502b79eb3aae28b400d3ed489c34057ae8b0a604a6f7810991e7",
+      "phases": 5,
+      "publications": 70,
+      "cycle_observations": 32,
+      "half_frame_clock_preserved": true,
+      "corrupt_and_missing_retained": true
+    },
+    "interleaved": {
+      "passed": true,
+      "seconds": 316.311,
+      "artifact_directory": "/workspace/Nexora/build/linux-development/artifacts/editor-packaged-source-interleaved/source-services-1795124113082881203",
+      "receipt_sha256": "093a8964fec78d7e9486806655c0d57b09f1a0d545ceb4eef8afdc24446556b6",
+      "phases": 5,
+      "cycles": 4,
+      "failed_imports": 2,
+      "successful_replacements": 5,
+      "reimport_publications": 13,
+      "retired_library_finalizers": 6,
+      "identities_unchanged": true,
+      "independent_source_pool_and_3d_pixels": true,
+      "old_module_continued": true
+    }
+  }
+}
