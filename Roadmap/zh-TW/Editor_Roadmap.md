@@ -1,5 +1,15 @@
 # Nexora 圖形化 Editor Roadmap
 
+### ✅ 來源發布與模組替換交錯驗證
+
+同一段真實主 Game Play 已有 SDK 替換期間來源／Atlas 發布的原生證據，包含上一代模組持續
+Update、計數器／身分保留、失敗來源與隱藏 pool 候選拒絕、回復，以及五階段原生場景／動畫。
+最後來源通過完整 Linux **561/561**，零失敗／略過／重跑，**6562.32 秒**；整合原生案例
+**367.14 秒**，五次替換與 13 次發布。詳見
+[限定驗收](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-Interleaved-Linux.md)。
+此支援切片維持 workflow **6/9**、Editor **0/8**、TwoD **9/11**、ED-WF-08 與既有執行者／
+實體主機驗收邊界。
+
 ### ✅ Sprite 來源製作整合驗收
 
 ED-WF-07 已串接真實 Inspector 指派／歷史／儲存重開、Atlas／Clip 編輯、設定式 Play 與 Content

@@ -24,6 +24,18 @@ and source reimport **383.03 s** (70 publications). See the
 Workflow becomes **6/9 (66.7%)** on reviewed delivery; graphical Editor **0/8**, TwoD **9/11**,
 ED-WF-05/08/09 and physical/clean-host gates remain separate. Routine CI stays manual-only.
 
+## ✅ Interleaved main Game source and SDK updates
+
+The independent `nexora-whr.8.3.9` case verifies real Content publication while SDK replacement is
+pending in the same Play session. The final native case passes **367.14 s**: five replacements,
+13 publications, actual old-module dispatch and strictly conserved counters, corrupt/missing
+retention, rejected hidden-pool mutation, recovery, six finalizers and all five scene/animation
+phases. Complete Linux passes **561/561**, zero failures/skips/retries, **6562.32 s**; existing
+33-replacement and 70-publication cases also pass unchanged. See the
+[scoped evidence and receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-Interleaved-Linux.md).
+This accepts only the supporting interleaving slice. ED-WF-08/the 8.3 parent, workflow **6/9**,
+Editor **0/8**, TwoD **9/11**, physical gates and independently owned 8.2/ED-WF-05 claims remain separate.
+
 ## Existing foundations and remaining work
 
 The Editor already exposes a script checkbox/manifest, Build and Cancel through the shared

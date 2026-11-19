@@ -1,5 +1,16 @@
 # Nexora Graphical Editor Roadmap
 
+### ✅ Interleaved source publication and module replacement
+
+One real main Game Play session now has native coverage for source/Atlas publication during SDK
+replacement, with continued old-module Update dispatch, conserved counters/identities, failed source
+and hidden-pool candidate rejection, recovery and all five native scene/animation phases.
+Final source passes full Linux **561/561**, zero failures/skips/retries, **6562.32 s**; the joint
+native case passes **367.14 s**, five replacements and 13 publications. See
+[scoped acceptance](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-Interleaved-Linux.md).
+This supporting slice retains workflow **6/9**, Editor **0/8**, TwoD **9/11**, ED-WF-08 and existing
+actor/physical-host acceptance boundaries.
+
 ### ✅ Integrated Sprite source authoring
 
 ED-WF-07 now connects real Inspector assignment/history/save/reopen, Atlas/Clip edits, configured

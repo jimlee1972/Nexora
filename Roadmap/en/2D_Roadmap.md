@@ -12,6 +12,13 @@ ED-WF-07 ✅ [integrated Editor authoring](../../Tools/Build/evidence/EditorWork
 This does not promote full Editor, physical M6/M7 or advanced Sprite rendering acceptance.
 Historical supporting records below retain their original checkpoint counts.
 
+✅ Configured main Editor source/Atlas publication now has one-session native coverage with
+pending SDK replacement: five replacements, 13 publications, conserved counters/handles,
+negative/recovery paths and five scene/animation phases. The final case passes **367.14 s**;
+complete Linux passes **561/561**, zero failures/skips/retries, **6562.32 s**. See
+[scoped acceptance](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-Interleaved-Linux.md).
+Workflow **6/9**, Editor **0/8**, TwoD **9/11**, complete ED-WF-08 and physical gates remain separate.
+
 > Version: v1.7 | Status: cloud delivery accepted; PC host gates open | Updated: 2026-10-19
 
 > **Progress: 82% capability acceptance** (9/11, rounded; P0 6/8). M0–M5 and M8–M10

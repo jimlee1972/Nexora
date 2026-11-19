@@ -54,12 +54,15 @@ def main():
     scenario = parser.add_mutually_exclusive_group()
     scenario.add_argument('--reimport', action='store_true')
     scenario.add_argument('--reload', action='store_true')
+    scenario.add_argument('--interleaved', action='store_true')
     args = parser.parse_args()
+    writable = args.reimport or args.interleaved
+    observe_authored = writable or args.reload
     evidence = Path(args.evidence_dir).resolve() / ('source-services-' + str(time.time_ns()))
     evidence.mkdir(parents=True)
     root = Path(tempfile.mkdtemp(prefix='nexora-editor-source-services-'))
     proof = dict(passed=False, scope='configured Editor SDK source/animation/pool adoption',
-                 readonly=not args.reimport, phases=[], captures=[], commands=[], reimports=[], reloads=[],
+                 readonly=not writable, phases=[], captures=[], commands=[], reimports=[], reloads=[],
                  rejected_reloads=[])
     server = editor = window = None
     try:
@@ -71,6 +74,12 @@ def main():
         shutil.copyfile(project / 'Title.scene', project / '.nexora/scenes/Main.scene')
         (project / 'Scripts').mkdir()
         shutil.copyfile(ROOT / 'Tests/Editor/GameSourceServices.zig', project / 'Scripts/game.zig')
+        if args.interleaved:
+            script = project / 'Scripts/game.zig'
+            script.write_text(script.read_text().replace(
+                'self.ticks += 1;', 'self.ticks += 1;\n'
+                '        if (self.ticks % 16 == 0) ctx.log("MAIN INTERLEAVED TICK code={d} ticks={d}", '
+                '.{ fixture_generation, self.ticks });'))
         (project / 'Scripts/project.json').write_text(
             '{"schema":1,"module_name":"EditorMainSourceServices","script":"game.zig"}\n')
         settings = json.loads((project / 'project.build.json').read_text())
@@ -90,7 +99,7 @@ def main():
                        'Pos=0,40\nSize=620,640\nCollapsed=0\n' if panel == 'scene' else
                        'Pos=0,700\nSize=100,20\nCollapsed=1\n') + '\n'
         (project / '.nexora/editor-layout.ini').write_text(layout)
-        if args.reimport:
+        if writable:
             layout = layout.replace(
                 '[Window][Game###nexora.game]\nPos=640,40\nSize=620,640\nCollapsed=0',
                 '[Window][Game###nexora.game]\nPos=640,40\nSize=620,430\nCollapsed=0').replace(
@@ -114,13 +123,13 @@ def main():
                                 '.nexora/scenes/Main.scene') or
                     path.startswith(('Content/', 'Scripts/'))}
 
-        original = authored_hashes() if args.reimport or args.reload else hashes(project)
+        original = authored_hashes() if observe_authored else hashes(project)
         server, display = start_xvfb(args.xvfb, '1280x720x24')
         require(display is not None, 'Xvfb unavailable')
         env = dict(os.environ, DISPLAY=display, NEXORA_PACKAGED_SPRITE_UI_TEST_EVIDENCE='1',
                    NEXORA_SCRIPT_RELOAD_EVIDENCE='1',
                    XDG_STATE_HOME=str(root / 'state'))
-        if args.reimport:
+        if writable:
             env.update(NEXORA_SCENE_SPRITE_UI_TEST_EVIDENCE='1',
                        NEXORA_PROJECT_ASSET_WORKFLOW_EVIDENCE='1')
 
@@ -131,7 +140,7 @@ def main():
             command = [args.editor, '--graphical', '--native-scene-preview',
                        '--frames=100000', '--play', '--project=' + str(path),
                        '--recent-projects=' + str(root / (label + '-recent'))]
-            if not args.reimport or label != 'sdk':
+            if not writable or label != 'sdk':
                 command.append('--read-only')
             proof['commands'].append(command)
             with log.open('wb') as err, (evidence / (label + '.stdout.log')).open('wb') as out:
@@ -217,7 +226,7 @@ def main():
             if authored is None:
                 authored = current
             require(current == authored and
-                    (authored_hashes() if args.reimport or args.reload else hashes(project)) == original,
+                    (authored_hashes() if observe_authored else hashes(project)) == original,
                     'gameplay changed readonly authoring pixels/files')
             screenshot(display, window, evidence / f'phase-{phase}.png')
             proof['phases'].append(dict(phase=phase, commits=commits,
@@ -340,7 +349,7 @@ def main():
                     proof['actual_native_replacements'] = 33
                     proof['state_codec_payload_bytes'] = 80
                     state = wait(lambda s: s.get('captured') == '1', 'reload input capture lost')
-                if args.reimport:
+                if writable:
                     def observe(prefix):
                         lines = re.findall(rb'^' + prefix.encode() + rb' (.*)$', log.read_bytes(), re.M)
                         return dict(re.findall(r'(\w+)=([^ ]*)', lines[-1].decode())) if lines else {}
@@ -408,74 +417,85 @@ def main():
 
                     key('Escape')
                     wait(lambda s: s.get('captured') == '0', 'release Game input for Content')
-                    for cycle in range(1, 33):
-                        variant = cycle % 2
-                        for kind, count in [('atlas', 2 * cycle - 1), ('source', 2 * cycle)]:
-                            command = [args.fixture, '--reimport-' + kind, str(project), str(variant)]
-                            proof['commands'].append(command)
-                            subprocess.run(command, check=True, capture_output=True, timeout=10)
+                    if args.interleaved:
+                        from InterleavedSourceUpdates import run_interleaved
+                        original = run_interleaved(
+                            args=args, project=project, root=root, evidence=evidence, proof=proof,
+                            display=display, window=window, viewport=viewport, baseline=baseline,
+                            center=center, log=log, core_text=core_text, wait=wait,
+                            reimport=reimport, observe=observe, authored_hashes=authored_hashes,
+                            original=original, expected_mask=expected_mask,
+                            authoring_pixels=lambda: scene_region_pixels(
+                                display, window, tuple(map(int, rect))))
+                    else:
+                        for cycle in range(1, 33):
+                            variant = cycle % 2
+                            for kind, count in [('atlas', 2 * cycle - 1), ('source', 2 * cycle)]:
+                                command = [args.fixture, '--reimport-' + kind, str(project), str(variant)]
+                                proof['commands'].append(command)
+                                subprocess.run(command, check=True, capture_output=True, timeout=10)
+                                reimport(kind, count)
+                            wanted = expected_mask(viewport[2], viewport[3], 0, pivot=2 + variant)
+                            if variant:
+                                wanted = bytes(0 if v == 0 else ((v - 1) ^ 1) + 1 for v in wanted)
+                            wait(lambda _: source_mask(native_pixels(display, window, viewport)) == wanted,
+                                 'independent live reimport pixels')
+                            actual = native_pixels(display, window, viewport)
+                            require(source_mask(actual) == wanted and
+                                    all(actual[i:i + 3] == baseline[i:i + 3] for i in center),
+                                    'reimport pixels unstable or independent3D changed')
+                            inputs = authored_hashes()
+                            require(all(inputs[path] == value for path, value in original.items()
+                                        if path not in ('Content/Color.nx2atlas', 'Content/Source.nx2sprite')),
+                                    'reimport changed authored scenes/settings/scripts/sidecars')
+                            proof['reimports'].append(dict(cycle=cycle, publications=2 * cycle,
+                                                           pivot=2 + variant, alternate=bool(variant),
+                                                           mask_sha256=hashlib.sha256(wanted).hexdigest(),
+                                                           independent_3d_pixels=len(center)))
+                            if cycle in (1, 32):
+                                screenshot(display, window, evidence / f'reimport-{cycle}.png')
+                        require(authored_hashes() == original, 'restored reimports changed saved inputs')
+                        for kind, count in [('atlas', 65), ('source', 66)]:
+                            subprocess.run([args.fixture, '--reimport-' + kind, str(project), '1'],
+                                           check=True, capture_output=True, timeout=10)
                             reimport(kind, count)
-                        wanted = expected_mask(viewport[2], viewport[3], 0, pivot=2 + variant)
-                        if variant:
-                            wanted = bytes(0 if v == 0 else ((v - 1) ^ 1) + 1 for v in wanted)
-                        wait(lambda _: source_mask(native_pixels(display, window, viewport)) == wanted,
-                             'independent live reimport pixels')
-                        actual = native_pixels(display, window, viewport)
-                        require(source_mask(actual) == wanted and
-                                all(actual[i:i + 3] == baseline[i:i + 3] for i in center),
-                                'reimport pixels unstable or independent3D changed')
-                        inputs = authored_hashes()
-                        require(all(inputs[path] == value for path, value in original.items()
-                                    if path not in ('Content/Color.nx2atlas', 'Content/Source.nx2sprite')),
-                                'reimport changed authored scenes/settings/scripts/sidecars')
-                        proof['reimports'].append(dict(cycle=cycle, publications=2 * cycle,
-                                                       pivot=2 + variant, alternate=bool(variant),
-                                                       mask_sha256=hashlib.sha256(wanted).hexdigest(),
-                                                       independent_3d_pixels=len(center)))
-                        if cycle in (1, 32):
-                            screenshot(display, window, evidence / f'reimport-{cycle}.png')
-                    require(authored_hashes() == original, 'restored reimports changed saved inputs')
-                    for kind, count in [('atlas', 65), ('source', 66)]:
-                        subprocess.run([args.fixture, '--reimport-' + kind, str(project), '1'],
-                                       check=True, capture_output=True, timeout=10)
-                        reimport(kind, count)
-                    output = root / 'reimported Build 來源'
-                    command = [args.editor, '--build-game=' + str(project),
-                               '--output=' + str(output), '--script-project=Scripts/project.json',
-                               '--build-records=' + str(evidence / 'reimport-build-records')]
-                    proof['commands'].append(command)
-                    built = subprocess.run(command, capture_output=True, text=True, timeout=120)
-                    (evidence / 'reimport-build.stdout.log').write_text(built.stdout)
-                    (evidence / 'reimport-build.stderr.log').write_text(built.stderr)
-                    require(built.returncode == 0 and 'PUBLISHED_GAME' in built.stdout,
-                            'Build did not publish reimported saved sources: ' + built.stderr[-4096:])
-                    command = [args.fixture, '--verify-reimported-package', str(output / 'Game.nxgame')]
-                    proof['commands'].append(command)
-                    subprocess.run(command, check=True, capture_output=True, timeout=10)
-                    proof['reimported_sdk_build_verified'] = True
-                    for kind, count in [('atlas', 67), ('source', 68)]:
-                        subprocess.run([args.fixture, '--reimport-' + kind, str(project), '0'],
-                                       check=True, capture_output=True, timeout=10)
-                        reimport(kind, count)
-                    atlas_path = project / 'Content/Color.nx2atlas'
-                    valid_atlas = atlas_path.read_bytes()
-                    atlas_path.write_bytes(b'corrupt Atlas')
-                    reimport('atlas', 68, failed=True)
-                    wait(lambda s: s.get('reimports') == '68', 'failed import published new assets')
-                    require(source_mask(native_pixels(display, window, viewport)) == wanted,
-                            'corrupt reimport replaced the live native frame')
-                    atlas_path.write_bytes(valid_atlas)
-                    reimport('atlas', 69)
-                    require(source_mask(native_pixels(display, window, viewport)) == wanted,
-                            'same-byte reimport changed native pixels')
-                    missing = project / 'missing-atlas'
-                    atlas_path.rename(missing)
-                    reimport('atlas', 69, failed='missing')
-                    require(source_mask(native_pixels(display, window, viewport)) == wanted and
-                            observe('packaged sprite ui').get('reimports') == '69',
-                            'missing reimport lost the published generation')
-                    missing.rename(atlas_path)
-                    reimport('atlas', 70)
+                        output = root / 'reimported Build 來源'
+                        command = [args.editor, '--build-game=' + str(project),
+                                   '--output=' + str(output), '--script-project=Scripts/project.json',
+                                   '--build-records=' + str(evidence / 'reimport-build-records')]
+                        proof['commands'].append(command)
+                        built = subprocess.run(command, capture_output=True, text=True, timeout=120)
+                        (evidence / 'reimport-build.stdout.log').write_text(built.stdout)
+                        (evidence / 'reimport-build.stderr.log').write_text(built.stderr)
+                        require(built.returncode == 0 and 'PUBLISHED_GAME' in built.stdout,
+                                'Build did not publish reimported saved sources: ' + built.stderr[-4096:])
+                        command = [args.fixture, '--verify-reimported-package', str(output / 'Game.nxgame')]
+                        proof['commands'].append(command)
+                        subprocess.run(command, check=True, capture_output=True, timeout=10)
+                        proof['reimported_sdk_build_verified'] = True
+                        for kind, count in [('atlas', 67), ('source', 68)]:
+                            subprocess.run([args.fixture, '--reimport-' + kind, str(project), '0'],
+                                           check=True, capture_output=True, timeout=10)
+                            reimport(kind, count)
+                        atlas_path = project / 'Content/Color.nx2atlas'
+                        valid_atlas = atlas_path.read_bytes()
+                        atlas_path.write_bytes(b'corrupt Atlas')
+                        reimport('atlas', 68, failed=True)
+                        wait(lambda s: s.get('reimports') == '68', 'failed import published new assets')
+                        require(source_mask(native_pixels(display, window, viewport)) == wanted,
+                                'corrupt reimport replaced the live native frame')
+                        atlas_path.write_bytes(valid_atlas)
+                        reimport('atlas', 69)
+                        require(source_mask(native_pixels(display, window, viewport)) == wanted,
+                                'same-byte reimport changed native pixels')
+                        missing = project / 'missing-atlas'
+                        atlas_path.rename(missing)
+                        reimport('atlas', 69, failed='missing')
+                        require(source_mask(native_pixels(display, window, viewport)) == wanted and
+                                observe('packaged sprite ui').get('reimports') == '69',
+                                'missing reimport lost the published generation')
+                        missing.rename(atlas_path)
+                        reimport('atlas', 70)
                     search('')
                     click((x + width // 2, y + height // 2))
                     state = wait(lambda s: s.get('captured') == '1', 'reacquire Game input')
@@ -502,7 +522,7 @@ def main():
                 re.search(r'MAIN SOURCE DESTROY ticks=[1-9]\d* phase=4', text), 'SDK lifecycle cleanup')
         identities = re.findall(r'MAIN SOURCE PHASE \d.*pool=(\d+:\d+:\d+)', text)
         require(len(identities) == 5 and len(set(identities)) == 1, 'pool handle changed')
-        require((authored_hashes() if args.reimport or args.reload else hashes(project)) == original,
+        require((authored_hashes() if observe_authored else hashes(project)) == original,
                 'Play changed saved authored inputs')
         if args.reimport:
             reopened_log, reopened_core, reopened_wait = launch(project, 'reopened')

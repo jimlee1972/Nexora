@@ -22,6 +22,16 @@ Atlas／Clip 編輯、四次設定式 Play 與六次 Content Reimport，包含�
 審查交付後 workflow 為 **6/9（66.7%）**；圖形 Editor **0/8**、TwoD **9/11**、ED-WF-05／08／09
 及實體／乾淨主機 gate 仍分開驗收。例行 CI 維持手動執行。
 
+## ✅ 主 Game 來源與 SDK 交錯更新
+
+獨立的 `nexora-whr.8.3.9` 案例驗證同一段 Play 中，於 SDK 替換尚未接納時執行真實 Content
+發布。最後原生案例通過 **367.14 秒**：五次替換、13 次發布、上一代模組持續執行與嚴格計數器
+保留、損壞／缺檔保留、隱藏 pool 非法修改拒絕、回復、六次 finalizer 與五階段場景／動畫。
+完整 Linux **561/561** 通過，零失敗／略過／重跑，**6562.32 秒**；既有 33 次替換與 70 次發布
+案例也維持原斷言通過。詳見[限定證據與收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-Interleaved-Linux.md)。
+僅驗收這項交錯支援切片；ED-WF-08／parent8.3、workflow **6/9**、Editor **0/8**、TwoD **9/11**、
+實體主機 gate 與獨立 8.2／ED-WF-05 認領仍分開處理。
+
 ## 現有基礎與缺口
 
 Editor 已透過共用 producer 提供腳本勾選、manifest、Build 與 Cancel。Runtime 已擁有 V3

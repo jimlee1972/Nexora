@@ -2115,6 +2115,17 @@ backend failures retain the existing surface recovery/Stop policy and are never 
 drains preparations/modules before releasing catalog/registrations; native resources retire behind
 surface fences. Source-free/custom embeddings retain their existing frozen asset behavior.
 
+Saved script edits can compile while Content Reimport publishes source/Atlas changes in the same
+Play session. Native admission serializes the updates: a ready script result owns its frame, and
+source publication follows on a later frame. The running module continues during compilation;
+valid replacements retain counters, scene/entity/pool identity and the newly published sources.
+`editor.linux_packaged_source_interleaved` verifies five actual SDK replacements and 13 source
+publications, rejected corrupt/missing inputs and hidden-pool candidates, valid recovery,
+retired-library finalizers and all five native scene/animation phases. Its first dispatched counters
+must exceed the old-module ticks observed after source publication while admission was pending.
+See the [scoped native evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-Interleaved-Linux.md).
+Complete ED-WF-08 and physical/clean-host acceptance remain separate.
+
 ## Creating Sprite source assets
 
 In Content, right-click an imported Atlas and choose **Create Sprite source...**. Enter a new
@@ -2132,8 +2143,8 @@ filenames, stale Content versions and invalid geometry reject; no overwrite prom
 Creating an asset does not assign it or dirty the Scene. Choose it in the Inspector and Save the
 Scene to retain that reference. A created file whose import fails remains on disk; feedback states
 that outcome and project reopen retries ordinary import. Read-only projects may inspect the saved
-source details but cannot create assets. Existing-source editing uses the separate action below;
-Atlas slicing remains open.
+source details but cannot create assets. Existing-source editing and Atlas/Clip authoring use
+their separate Content edit commands.
 The [Editor contract](../../Engine/Editor/README.md#new-main-project-sprite-source-files) describes
 publication/error ownership. Opt-in scene UI test geometry copies actual Atlas/menu/modal bounds;
 these observations neither perform actions nor grant write authority.
