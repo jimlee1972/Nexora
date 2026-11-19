@@ -367,6 +367,8 @@ struct EditorImGuiHost::State final {
   int hierarchy_create_kind{};
   bool hierarchy_create_custom_name{};
   std::array<std::optional<std::array<float, 2>>, 17> hierarchy_create_positions{};
+  std::array<std::optional<std::array<float, 2>>, 6> hierarchy_context_positions{};
+  std::vector<SceneDocument::NodeKey> hierarchy_context_keys;
   std::array<char, 256> hierarchy_rename{};
   std::uint32_t hierarchy_visible_rows = 0;
   std::uint32_t hierarchy_rendered_rows = 0;
@@ -1561,6 +1563,7 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
   if (ImGui::IsItemHovered())
     ImGui::SetTooltip("Filter entities. Ctrl+A selects all visible Hierarchy rows.");
   if (scene == nullptr) {
+    state.hierarchy_context_keys.clear();
     ImGui::TextUnformatted("No scene is open.");
     return;
   }
@@ -1676,7 +1679,9 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
   feedback("Duplicate", "Ctrl+D");
   ImGui::EndDisabled();
   if (editable && ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
-      !ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_Delete, false)) {
+      !ImGui::GetIO().WantTextInput &&
+      !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel) &&
+      ImGui::IsKeyPressed(ImGuiKey_Delete, false)) {
     static_cast<void>(shell.RouteCommand("editor.scene.delete"));
     DeleteHierarchySelection(state, *scene);
   }
@@ -1884,6 +1889,10 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
     ImGui::EndDragDropTarget();
   };
 
+  std::optional<SceneDocument::NodeKey> context_open;
+  const bool context_allowed = !interaction_blocked && state.app_focused;
+  if (!context_allowed)
+    state.hierarchy_context_keys.clear();
   ImGuiStorage tree_storage;
   ImGuiListClipper clipper;
   clipper.Begin(static_cast<int>(rows.size()));
@@ -1930,6 +1939,9 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
       if (reveal == key)
         ImGui::SetScrollHereY();
       const bool toggled = ImGui::IsItemToggledOpen();
+      if (context_allowed && ImGui::IsItemHovered() &&
+          ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+        context_open = key;
       if (ImGui::IsItemClicked() && !toggled)
         handle_selection(key);
       if (editable && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
@@ -1966,6 +1978,95 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
   }
   if (visible.empty())
     ImGui::TextDisabled("No matching entities.");
+
+  // Mutating commands run only after row/drag traversal has finished borrowing NodeViews.
+  // Keep owning keys for the popup lifetime so an external selection or reload cannot retarget it.
+  if (context_open) {
+    CancelSceneGestures(state);
+    CancelInspectorDrafts(state);
+    ImGui::ClearActiveID();
+    const bool selected =
+        std::ranges::find(scene->Selection(), context_open->id) != scene->Selection().end();
+    if (selected || ApplyHierarchySelection(state, *scene, visible, *context_open, false, false)) {
+      state.hierarchy_context_keys.clear();
+      for (const auto id : scene->Selection())
+        if (const auto key = scene->Key(id))
+          state.hierarchy_context_keys.push_back(*key);
+      state.hierarchy_navigation_cursor = *context_open;
+      state.inspect_play_selection = false;
+      ImGui::OpenPopup("Entity actions###editor.hierarchy.context");
+    }
+  }
+  enum class ContextAction { Copy, Cut, Paste, Duplicate, Rename, Delete };
+  std::optional<ContextAction> context_action;
+  if (ImGui::BeginPopup("Entity actions###editor.hierarchy.context")) {
+    bool current = context_allowed && !state.hierarchy_context_keys.empty() &&
+                   state.hierarchy_context_keys.size() == scene->Selection().size();
+    if (current)
+      for (std::size_t index = 0; index < state.hierarchy_context_keys.size(); ++index) {
+        const auto key = state.hierarchy_context_keys[index];
+        if (scene->Selection()[index] != key.id || scene->Key(key.id) != key) {
+          current = false;
+          break;
+        }
+      }
+    if (!current) {
+      state.hierarchy_context_keys.clear();
+      ImGui::CloseCurrentPopup();
+    } else {
+      const auto action = [&](const char *label, const char *shortcut, ContextAction command,
+                              bool enabled) {
+        if (ImGui::MenuItem(label, shortcut, false, enabled))
+          context_action = command;
+        const auto minimum = ImGui::GetItemRectMin(), maximum = ImGui::GetItemRectMax();
+        state.hierarchy_context_positions[static_cast<std::size_t>(command)] =
+            std::array{(minimum.x + maximum.x) * .5F, (minimum.y + maximum.y) * .5F};
+      };
+      action("Copy", "Ctrl+C", ContextAction::Copy, true);
+      action("Cut", "Ctrl+X", ContextAction::Cut, editable);
+      action("Paste", "Ctrl+V", ContextAction::Paste, editable);
+      action("Duplicate", "Ctrl+D", ContextAction::Duplicate, editable);
+      ImGui::Separator();
+      action("Rename", "F2", ContextAction::Rename,
+             editable && state.hierarchy_context_keys.size() == 1);
+      action("Delete", "Delete", ContextAction::Delete, editable);
+    }
+    ImGui::EndPopup();
+  }
+  if (context_action) {
+    CancelSceneGestures(state);
+    CancelInspectorDrafts(state);
+    ImGui::ClearActiveID();
+    switch (*context_action) {
+    case ContextAction::Copy:
+      CopyHierarchySelection(state, *scene);
+      break;
+    case ContextAction::Cut:
+      static_cast<void>(shell.RouteCommand("editor.scene.cut"));
+      CutHierarchySelection(state, *scene);
+      break;
+    case ContextAction::Paste:
+      PasteHierarchySelection(state, *scene);
+      break;
+    case ContextAction::Duplicate:
+      static_cast<void>(shell.RouteCommand("editor.scene.duplicate"));
+      DuplicateHierarchySelection(state, *scene);
+      break;
+    case ContextAction::Rename: {
+      const auto target = std::ranges::find(nodes, state.hierarchy_context_keys.front().id,
+                                            &SceneDocument::NodeView::id);
+      if (target != nodes.end())
+        begin_rename(*target);
+      break;
+    }
+    case ContextAction::Delete:
+      static_cast<void>(shell.RouteCommand("editor.scene.delete"));
+      DeleteHierarchySelection(state, *scene);
+      break;
+    }
+  }
+  if (!ImGui::IsPopupOpen("Entity actions###editor.hierarchy.context"))
+    state.hierarchy_context_keys.clear();
 
   if (state.hierarchy_rename_target)
     ImGui::OpenPopup("Rename entity###editor.hierarchy.rename");
@@ -5676,6 +5777,7 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
         CancelSceneGestures(*state_);
         CancelInspectorDrafts(*state_);
         state_->hierarchy_rename_target.reset();
+        state_->hierarchy_context_keys.clear();
         state_->hierarchy_rename_focus_pending = false;
         state_->content_rename_target.reset();
         state_->content_rename_focus = false;
@@ -5697,6 +5799,7 @@ void EditorImGuiHost::BeginFrame(float delta_seconds) {
   state_->scene_tool_shortcuts_allowed = false;
   state_->scene_file_positions = {};
   state_->hierarchy_create_positions = {};
+  state_->hierarchy_context_positions = {};
   state_->scene_canvas_viewport.reset();
   state_->scene_frame_position.reset();
   state_->scene_frame_all_position.reset();
@@ -11154,6 +11257,14 @@ EditorImGuiTestAccess::SceneFilePosition(const EditorImGuiHost &host,
                                          std::size_t control) noexcept {
   return control < host.state_->scene_file_positions.size()
              ? host.state_->scene_file_positions[control]
+             : std::nullopt;
+}
+
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::HierarchyContextPosition(const EditorImGuiHost &host,
+                                                std::size_t control) noexcept {
+  return control < host.state_->hierarchy_context_positions.size()
+             ? host.state_->hierarchy_context_positions[control]
              : std::nullopt;
 }
 
