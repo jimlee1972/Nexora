@@ -1,5 +1,32 @@
 # Nexora Graphical Editor Roadmap
 
+### ✅ Modifier-preserving Editor input
+
+Keyboard presses retain their press-time modifiers when later modifier transitions share a native
+input batch. The original native Plugin Manager passes in 40.87 s and the 128-scenario regression passes in 65.75 s,
+including 1x/2x, writer/read-only, plain-key, focus-loss and text-owner guards. The final eleven-source
+Linux gate passes **562/562 in 7170.52 s**, zero failures/skips/retries, after configure/build.
+See [input evidence](../../Tools/Build/evidence/EditorWorkflow/Modifier-Chord-Linux.md).
+Earlier failed gates remain preserved; historical pointer/F5 causes remain unproven.
+
+### ✅ Compact Project browser
+
+Project uses wrapping Refresh/View/Help icons, managed Scenes navigation and on-demand project,
+recent/export information. Actual 1x/2x widgets and 150-unit docks pass **15.48 s** in the full
+**562/562** Linux gate. Native view/menu/scene navigation closes normally with all eight authored
+hashes unchanged. See [acceptance](../../Tools/Build/evidence/EditorWorkflow/Project-Toolbar-Linux.md).
+
+### ✅ Supporting interleaved source and SDK verification
+
+One configured Game session publishes Atlas/Sprite sources during actual SDK compilation while
+old-module Update continues, retaining counters and scene/entity/pool identities. The final native
+case passes **305.98 s**: five replacements/thirteen publications, negative retention/rejection,
+valid recovery and all five scene/animation phases. The same full Linux gate passes **562/562 in
+7170.52 s**, zero failures/skips/retries, including 33 actual SDK replacements and 70 publications.
+See [scoped evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-Interleaved-Linux.md).
+This accepts the supporting slice only: workflow **6/9**, complete Editor **0/8**, TwoD **9/11**,
+ED-WF-08/parent 8.3, independent 8.2/ED-WF-05 and physical/clean-host gates stay separate.
+
 ### ✅ Integrated Sprite source authoring
 
 ED-WF-07 now connects real Inspector assignment/history/save/reopen, Atlas/Clip edits, configured
@@ -1530,7 +1557,7 @@ creates property widgets; unknown components retain raw data instead of being si
     [Evidence](../../Tools/Build/evidence/EditorEDM4-GraphicalMergeCandidate-Linux-2026-10-21.md).
   - ✅ Explicit graphical file-only merge review/Confirm/Cancel now uses the real scoped publisher,
     with current writer/reference/draft checks, held-click rejection, preserved live history and
-    backup status. Actual1x/2x and X11 success/cancel/stale-source/reopen checks pass; full Linux
+    backup status. Actual 1x/2x and X11 success/cancel/stale-source/reopen checks pass; full Linux
     passes317 registered/305 actual passes/12 environment skips. Live adoption, deletion and complete project/reference reconciliation
     remain open. [Evidence](../../Tools/Build/evidence/EditorEDM4-GraphicalMergePublication-Linux-2026-10-21.md).
   - ✅ The authoring SDK now owns bounded coexisting scene document/file sessions and releases
@@ -1632,7 +1659,7 @@ creates property widgets; unknown components retain raw data instead of being si
     selected-thread synchronous children, including nonmatching names. Iterative bounded context
     reconstruction preserves raw relative durations at large clocks, known B/E coincident nesting,
     begin retention and evicted-slot identity. Async/crossing/ambiguous components retain inclusive
-    values with unavailable self. Core tick-coverage, deep-context, read-only IO and actual1x/2x
+    values with unavailable self. Core tick-coverage, deep-context, read-only IO and actual 1x/2x
     rendered-value controls validate the supporting slice; CPU execution, other formats, physical
     calibration and full ED-M6 remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM6-ChromeSelfElapsed-Linux-2026-10-20.md).
@@ -1774,7 +1801,7 @@ creates property widgets; unknown components retain raw data instead of being si
     import actions to the core schema-1 file. Owning UUID/root requests are consumed once and checked
     again by the application owner; bounded owning static publication rejects stale scope or invalid
     samples without losing prior data. Read-only, closed/detached, focus/modal/recovery/close and
-    project transitions preserve authority; live/static/other imports remain independent. Actual1x/2x
+    project transitions preserve authority; live/static/other imports remain independent. Actual 1x/2x
     pointer-to-owner IO tests and native24-frame no-implicit-export acceptance pass; saved two-series
     views label exact bytes, units, elapsed time, gaps/drops and historical surface/key scope.
     [Evidence](../../Tools/Build/evidence/EditorEDM6-MeshMemoryControls-2026-10-13.md).
@@ -2718,7 +2745,7 @@ the separate Stop investigation and physical/clean-host acceptance stay unchange
 Main Content now edits Atlas Grid/individual rectangles and Clip frames, duration, events, loop,
 source and order through owning drafts, independent draft Undo/Redo and immutable previews.
 Identity-preserving typed publication enforces current baselines, Ready dependency closure,
-writer/idle/stopped-Play admission and unchanged Scene/Runtime. Actual1x/2x UI and native
+writer/idle/stopped-Play admission and unchanged Scene/Runtime. Actual 1x/2x UI and native
 edit/save/read-only reopen/Build/source-deleted relocated Player flows pass.
 Modular and Monolithic native acceptance each completes33 canonical SDK replacements,7 rejected
 candidates and32 reimport cycles/70 publications. Shipping Full edited-assets/SDK flows and actual

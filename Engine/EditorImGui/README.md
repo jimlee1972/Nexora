@@ -55,6 +55,27 @@ units/sec); existing per-scene camera persistence keeps pose and framing, with n
 
 Reference: [Unity Scene view navigation](https://docs.unity3d.com/6000.0/Documentation/Manual/SceneViewNavigation.html).
 
+### Modifier-preserving input frames
+
+Reproduction and focused validation are recorded in the
+[Linux input evidence](../../Tools/Build/evidence/EditorWorkflow/Modifier-Chord-Linux.md);
+the final Linux gate passes 562/562; final-head review and merge guards still apply.
+
+The UI owner keeps the modifier state associated with a keyboard press when native polling batches
+that press with a later modifier transition. With production input trickling enabled, `BeginFrame`
+admits a queue prefix ending before that transition and leaves the untouched tail for the next
+frame. Existing vendor leftovers precede that tail; event IDs and keyboard, text and mouse order
+are preserved. The host adds no synthetic input and changes no third-party source or public ABI.
+The temporary tail contains owning event values, not native/model borrows, and remains in the
+existing context-owned input queue after `NewFrame`. Processing stays on the UI thread.
+
+Both directions matter: releasing Ctrl/Alt after E must retain Ctrl+Alt+E, while pressing them
+after an ordinary E must not retroactively turn that E into a global command. Focus loss retains
+the existing cancellation path without extra chord deferral. Disabled keyboard input and
+explicitly disabled trickling keep their original processing. Text-edit, modal, permission,
+gesture and command-ownership gates continue to decide whether a preserved chord is admitted.
+`editor.modifier_chord_frames` exercises production trickling at 1x/2x in writable/read-only
+projects; the final native/full qualification passes 562/562 on Linux.
 
 ## Icon action buttons and local Transform presentation
 

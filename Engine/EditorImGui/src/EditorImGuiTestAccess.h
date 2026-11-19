@@ -224,6 +224,11 @@ public:
                                                                      bool reimport) noexcept;
   static void FocusContent(EditorImGuiHost &host) noexcept;
   static void FocusProject(EditorImGuiHost &host) noexcept;
+  // Refresh, view options, help, and the actual Show internal files checkbox.
+  static std::optional<std::array<float, 4>> ProjectToolbarRect(const EditorImGuiHost &host,
+                                                                std::size_t index) noexcept;
+  static std::optional<std::array<float, 2>> ProjectToolbarPosition(const EditorImGuiHost &host,
+                                                                    std::size_t index) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ProjectFilePosition(const EditorImGuiHost &host, const std::filesystem::path &path);
   [[nodiscard]] static std::optional<std::uint32_t>

@@ -1,0 +1,153 @@
+{
+  "status": "combined local Linux qualification passed; final-head review and merge pending",
+  "cause": {
+    "status": "reproduced product input batching defect",
+    "failed_trace": "/workspace/work/editor-interleaved-source-updates/plugin-manager-failure/failed-native-chord-trace.json",
+    "original_full_failure_preserved": true,
+    "actual_native_E_down_state": 12,
+    "converted_window_E_down_mods": 5,
+    "gui_frame": 166,
+    "gui_E_pressed": true,
+    "gui_mods_at_pressed_frame": 0,
+    "global_shortcut_result": false,
+    "scene_tool_rotated": true,
+    "fix_direction": "Preserve modifier state for named-key down edges when a later modifier transition shares the same GUI input frame. Use production default trickling and keep original gesture/deadlines.",
+    "fixture_proposal": "superseded; not applied"
+  },
+  "failed_instrumented_diagnostic": {
+    "diagnostic_not_acceptance": true,
+    "result": {
+      "exit_code": 1,
+      "timed_out": false,
+      "seconds": 57.295,
+      "diagnostic_not_acceptance": true
+    },
+    "trace_lines": [
+      "chord native time=50352.446175113 type=2 keycode=37 state=0 native_time=50352438 window=2097153",
+      "chord window time=50352.448933269 key=50 down=1 mods=1",
+      "chord queued time=50352.449066042 key=527 down=1",
+      "chord gui time=50352.449263553 phase=new-frame frame=164 ctrl=1 alt=0 mods=4096 e=0 duration=-1.000000 previous=-1.000000 queue=0 trickle=1 chord=0 result=-1 owner=4294967295",
+      "chord gui time=50352.451832850 phase=shortcut-three frame=164 ctrl=1 alt=0 mods=4096 e=0 duration=-1.000000 previous=-1.000000 queue=0 trickle=1 chord=21030 result=0 owner=4294967295",
+      "chord gui time=50352.451843445 phase=shortcut-two frame=164 ctrl=1 alt=0 mods=4096 e=0 duration=-1.000000 previous=-1.000000 queue=0 trickle=1 chord=21030 result=0 owner=4294967295",
+      "chord native time=50352.525024986 type=2 keycode=64 state=4 native_time=50352493 window=2097153",
+      "chord window time=50352.527468126 key=51 down=1 mods=5",
+      "chord gui time=50352.527607776 phase=after-events frame=164 ctrl=1 alt=0 mods=4096 e=0 duration=-1.000000 previous=-1.000000 queue=2 trickle=1 chord=0 result=-1 owner=4294967295",
+      "chord queued time=50352.527612520 key=529 down=1",
+      "chord gui time=50352.527806150 phase=new-frame frame=165 ctrl=1 alt=1 mods=20480 e=0 duration=-1.000000 previous=-1.000000 queue=0 trickle=1 chord=0 result=-1 owner=59136440",
+      "chord gui time=50352.528116932 phase=shortcut-three frame=165 ctrl=1 alt=1 mods=20480 e=0 duration=-1.000000 previous=-1.000000 queue=0 trickle=1 chord=21030 result=0 owner=59136440",
+      "chord gui time=50352.528121323 phase=shortcut-two frame=165 ctrl=1 alt=1 mods=20480 e=0 duration=-1.000000 previous=-1.000000 queue=0 trickle=1 chord=21030 result=0 owner=59136440",
+      "chord native time=50352.674184135 type=2 keycode=26 state=12 native_time=50352544 window=2097153",
+      "chord native time=50352.674238530 type=3 keycode=37 state=12 native_time=50352632 window=2097153",
+      "chord native time=50352.674242996 type=3 keycode=64 state=8 native_time=50352632 window=2097153",
+      "chord window time=50352.676676828 key=72 down=1 mods=5",
+      "chord window time=50352.676687549 key=50 down=0 mods=4",
+      "chord window time=50352.676688987 key=51 down=0 mods=0",
+      "chord gui time=50352.676702386 phase=after-events frame=165 ctrl=1 alt=1 mods=20480 e=0 duration=-1.000000 previous=-1.000000 queue=5 trickle=1 chord=0 result=-1 owner=59136440",
+      "chord queued time=50352.676705743 key=550 down=1",
+      "chord queued time=50352.676706668 key=527 down=0",
+      "chord queued time=50352.676707610 key=529 down=0",
+      "chord gui time=50352.676820464 phase=new-frame frame=166 ctrl=0 alt=0 mods=0 e=1 duration=0.000000 previous=-1.000000 queue=0 trickle=1 chord=0 result=-1 owner=4294967295",
+      "chord gui time=50352.676996861 phase=shortcut-three frame=166 ctrl=0 alt=0 mods=0 e=1 duration=0.000000 previous=-1.000000 queue=0 trickle=1 chord=21030 result=0 owner=4294967295",
+      "chord gui time=50352.676999420 phase=shortcut-two frame=166 ctrl=0 alt=0 mods=0 e=1 duration=0.000000 previous=-1.000000 queue=0 trickle=1 chord=21030 result=0 owner=4294967295",
+      "chord native time=50352.737489733 type=3 keycode=26 state=0 native_time=50352732 window=2097153",
+      "chord window time=50352.739054729 key=72 down=0 mods=0",
+      "chord gui time=50352.739072630 phase=after-events frame=166 ctrl=0 alt=0 mods=0 e=1 duration=0.000000 previous=-1.000000 queue=1 trickle=1 chord=0 result=-1 owner=4294967295",
+      "chord queued time=50352.739076073 key=550 down=0",
+      "chord gui time=50352.739174955 phase=new-frame frame=167 ctrl=0 alt=0 mods=0 e=0 duration=-1.000000 previous=0.000000 queue=0 trickle=1 chord=0 result=-1 owner=4294967295",
+      "chord gui time=50352.739322567 phase=shortcut-three frame=167 ctrl=0 alt=0 mods=0 e=0 duration=-1.000000 previous=0.000000 queue=0 trickle=1 chord=21030 result=0 owner=4294967295",
+      "chord gui time=50352.739325194 phase=shortcut-two frame=167 ctrl=0 alt=0 mods=0 e=0 duration=-1.000000 previous=0.000000 queue=0 trickle=1 chord=21030 result=0 owner=4294967295",
+      "chord gui time=50352.788287351 phase=after-events frame=167 ctrl=0 alt=0 mods=0 e=0 duration=-1.000000 previous=0.000000 queue=0 trickle=1 chord=0 result=-1 owner=4294967295"
+    ],
+    "sha256": "99957f298a3a0e57fb3bb8a2d51eddb01dd11f82ee2a62ff20d475e00daae317"
+  },
+  "same_probe_baseline": {
+    "status": "unmodified production library reproduces chord-loss and retroactive modifier errors",
+    "exit_code": 1,
+    "probe_sha256": "0792e867b837c252d2afdbb1a0b68d24ee8ac43dd7dabbf2b5ed4fe6b7b47769",
+    "test_source_sha256": "0a8c592d0ecaffb52590d1b95c3fdf4996f77f2ac5e29631c1d6cca3362adb74",
+    "library_sha256": "9e77eac8754b91c603fd5825c2a1ea568cbd7b551ef8a96d9d08832e66018703",
+    "failed_partitions": [
+      "dpi=1 readonly=0 boundaries=1 opens=0 closes=0 tool=0",
+      "dpi=1 readonly=0 boundaries=2 opens=0 closes=0 tool=1",
+      "dpi=1 readonly=0 boundaries=3 opens=0 closes=0 tool=1",
+      "dpi=1 readonly=0 boundaries=9 opens=0 closes=0 tool=0",
+      "dpi=1 readonly=0 boundaries=10 opens=0 closes=0 tool=0",
+      "dpi=1 readonly=0 boundaries=11 opens=0 closes=0 tool=0",
+      "dpi=1 readonly=0 boundaries=17 opens=0 closes=0 tool=0",
+      "dpi=1 readonly=0 boundaries=18 opens=0 closes=0 tool=1",
+      "dpi=1 readonly=0 boundaries=19 opens=0 closes=0 tool=1",
+      "dpi=1 readonly=0 boundaries=25 opens=0 closes=0 tool=0",
+      "dpi=1 readonly=0 boundaries=26 opens=0 closes=0 tool=0",
+      "dpi=1 readonly=0 boundaries=27 opens=0 closes=0 tool=0",
+      "dpi=1 readonly=1 boundaries=1 opens=0 closes=0 tool=0",
+      "dpi=1 readonly=1 boundaries=2 opens=0 closes=0 tool=1",
+      "dpi=1 readonly=1 boundaries=3 opens=0 closes=0 tool=1",
+      "dpi=1 readonly=1 boundaries=9 opens=0 closes=0 tool=0",
+      "dpi=1 readonly=1 boundaries=10 opens=0 closes=0 tool=0",
+      "dpi=1 readonly=1 boundaries=11 opens=0 closes=0 tool=0",
+      "dpi=1 readonly=1 boundaries=17 opens=0 closes=0 tool=0",
+      "dpi=1 readonly=1 boundaries=18 opens=0 closes=0 tool=1",
+      "dpi=1 readonly=1 boundaries=19 opens=0 closes=0 tool=1",
+      "dpi=1 readonly=1 boundaries=25 opens=0 closes=0 tool=0",
+      "dpi=1 readonly=1 boundaries=26 opens=0 closes=0 tool=0",
+      "dpi=1 readonly=1 boundaries=27 opens=0 closes=0 tool=0"
+    ],
+    "plain_press_failure": true,
+    "completed_partition_scenarios": 64,
+    "full_planned_scenarios": 128,
+    "stopped_at_plain_press_negative": true
+  },
+  "same_probe_fixed": {
+    "exit_code": 0,
+    "seconds": 62.043,
+    "probe_sha256": "0792e867b837c252d2afdbb1a0b68d24ee8ac43dd7dabbf2b5ed4fe6b7b47769",
+    "old_library_sha256": "9e77eac8754b91c603fd5825c2a1ea568cbd7b551ef8a96d9d08832e66018703",
+    "new_library_sha256": "a7b4ba1737bcfcdb1241d64d27ca26e76279569eb7976a1b9fb346092cdd0aa0",
+    "same_probe_elf": true
+  },
+  "focused": {
+    "status": "passed focused validation only; full combined gate pending",
+    "tests": {
+      "editor.linux_plugin_manager": 34.8,
+      "editor.scene_file_input": 13.36,
+      "editor.modifier_chord_frames": 64.48
+    },
+    "total_seconds": 112.67,
+    "preload": false,
+    "test_command": "ctest --preset linux-development -R '^(editor.modifier_chord_frames|editor.linux_plugin_manager|editor.scene_file_input)$' --output-on-failure",
+    "source_sha256": {
+      "Tests/EditorImGui/LinuxPluginManager.py": "41a41130d204f60474d579bdd3e93c8240e5282c1fbcea5df6f4c7b02c8d6b35",
+      "Tests/EditorImGui/LinuxExtensionControls.py": "019bbf1a67d70662c35769a901ace231489efc2705c320db01b09b3f016d8ca6",
+      "Engine/EditorImGui/src/ModifierInputFrame.h": "c085558e70a0d3ef5249d029a69f3563bf39132c671a6e3bd860d9137dac5148",
+      "Tests/EditorImGui/ModifierChordTests.cpp": "f2ea187d5a487f1f377b1ebd331254e32fce959cc79495294bd41a06ad19ac9b"
+    },
+    "scope_note": "Executed before Project chrome integration; Plugin Manager producer and gesture deadlines unchanged."
+  },
+  "full_gate": {
+    "registered": 562,
+    "passed": 562,
+    "failed": 0,
+    "skipped": 0,
+    "retries": 0,
+    "seconds": 7170.52,
+    "exit_code": 0
+  },
+  "full_gate_cases": {
+    "editor.modifier_chord_frames": "Passed   65.75 sec",
+    "editor.linux_plugin_manager": "Passed   40.87 sec"
+  },
+  "validation_input_tree": "3866198ac42f48b3205d29ba8b00d6befb6ba0ad",
+  "combined_source_sha256": {
+    "Tests/EditorImGui/CMakeLists.txt": "c2eb79748307e5afc00c600e57f4aa088ab1da0172023f71cb3cf3778fb32a7f",
+    "Tests/EditorImGui/LinuxPackagedSourceServices.py": "db810bfae2bc8b80075feed6b4248135b1112fc2ecfa2c715d2fabb86cc5cbb1",
+    "Tests/EditorImGui/InterleavedSourceUpdates.py": "5b26d0b0a0739b6b14d43271966bbb3b5a5cc66f2dbe4cd07ea6d57cebeda2fe",
+    "Apps/TwoDPlayer/TwoDPlayer.cpp": "a44ba37b040ff21ead7ab0796d4d961d176a9ba62c6462b6941af4457ebad5d2",
+    "Tests/TwoD/ProductAcceptance.py": "4d4735432f87672405a9c545024c6206ccb764b332f46eaf0a8f34955423422c",
+    "Tests/EditorImGui/LinuxAuthoredPreview.py": "b5bd43caa494b841d162347b61b7ea3e2dc3af23ddd5900e768dde21d4623ef2",
+    "Engine/EditorImGui/src/EditorImGui.cpp": "69dc3d3726cb51119a322f2832e6e8757c35f8dd64071cd815fe38524bc00357",
+    "Engine/EditorImGui/src/EditorImGuiTestAccess.h": "9920e29546742e1ce848e6617f9a541bd42bd44fb168a698fdde30a29276ac8d",
+    "Tests/EditorImGui/SceneFileTests.cpp": "2476e192e90b105199fdcd00c42310f663fecf87ecbaebde78f502e0d954ccf0",
+    "Engine/EditorImGui/src/ModifierInputFrame.h": "c085558e70a0d3ef5249d029a69f3563bf39132c671a6e3bd860d9137dac5148",
+    "Tests/EditorImGui/ModifierChordTests.cpp": "f2ea187d5a487f1f377b1ebd331254e32fce959cc79495294bd41a06ad19ac9b"
+  }
+}

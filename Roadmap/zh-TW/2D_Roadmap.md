@@ -1,5 +1,13 @@
 # Nexora 2D 引擎 Roadmap
 
+### ✅ Editor 按鍵修飾狀態保留
+
+同批原生輸入中較晚的修飾鍵轉換，不再改變新按鍵按下時的修飾狀態。原版 Plugin Manager
+原生案例通過40.87秒，128種情境回歸通過65.75秒，包含1x／2x、可寫／唯讀、普通按鍵、失焦
+及文字輸入保護。十一份最終來源通過完整 Linux **562/562，7170.52秒**，零失敗／略過／重跑，
+configure／build亦通過。詳見[輸入證據](../../Tools/Build/evidence/EditorWorkflow/Modifier-Chord-Linux.md)。
+先前失敗紀錄保留；原指標／F5失敗成因仍未證實。
+
 本機 crash/game log 持久化與原生 gameplay callback 捕捉見 [Crash Logging Delivery](Crash_Logging_Delivery_Plan.md)。平台與實體主機 gate 仍分開驗收，此 supporting slice 不代表本 roadmap 的整體里程碑完成。
 
 
@@ -11,6 +19,15 @@ PR #754、ED-WF-03 ✅ PR #756、ED-WF-04 ✅ PR #758、ED-WF-06 ✅
 [Editor 製作整合驗收](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07.md)。
 不因此提高完整 Editor、實體 M6／M7 或進階 Sprite 繪製的驗收完成度。
 下方歷史支援紀錄保留交付當時的進度數字。
+
+同一段設定式 Game 在真實 SDK 編譯期間發布 Atlas／Sprite來源，上一代持續 Update，並保留
+計數器與場景／entity／pool身分。最終原生案例通過 **305.98秒**：五次替換／十三次發布、
+失敗保留／候選拒絕、有效回復及全部五階段場景／動畫。同一輪完整 Linux 通過 **562/562，
+7170.52秒**，零失敗／略過／重跑，包含33次實際 SDK替換及70次發布。
+詳見[限定證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-Interleaved-Linux.md)。
+僅驗收此支援切片：workflow **6/9**、完整 Editor **0/8**、TwoD **9/11**、ED-WF-08／parent8.3、
+獨立8.2／ED-WF-05及實體／乾淨主機gate仍分開處理。
+
 
 > 版本：v1.7 | 狀態：雲端能力交付已驗收，PC 主機 gate 待完成 | 更新：2026-10-19
 

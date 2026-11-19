@@ -1,5 +1,14 @@
 # Nexora 2D Engine Roadmap
 
+### ✅ Modifier-preserving Editor input
+
+Keyboard presses retain their press-time modifiers when later modifier transitions share a native
+input batch. The original native Plugin Manager passes in 40.87 s and the 128-scenario regression passes in 65.75 s,
+including 1x/2x, writer/read-only, plain-key, focus-loss and text-owner guards. The final eleven-source
+Linux gate passes **562/562 in 7170.52 s**, zero failures/skips/retries, after configure/build.
+See [input evidence](../../Tools/Build/evidence/EditorWorkflow/Modifier-Chord-Linux.md).
+Earlier failed gates remain preserved; historical pointer/F5 causes remain unproven.
+
 Local crash/game-log persistence is tracked in [Crash Logging Delivery](Crash_Logging_Delivery_Plan.md). It includes native gameplay callback capture and keeps platform/physical-host gates separate; it does not complete this roadmap’s broader milestones.
 
 
@@ -11,6 +20,16 @@ ED-WF-06 ✅ [acceptance](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md)
 ED-WF-07 ✅ [integrated Editor authoring](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07.md).
 This does not promote full Editor, physical M6/M7 or advanced Sprite rendering acceptance.
 Historical supporting records below retain their original checkpoint counts.
+
+One configured Game session publishes Atlas/Sprite sources during actual SDK compilation while
+old-module Update continues, retaining counters and scene/entity/pool identities. The final native
+case passes **305.98 s**: five replacements/thirteen publications, negative retention/rejection,
+valid recovery and all five scene/animation phases. The same full Linux gate passes **562/562 in
+7170.52 s**, zero failures/skips/retries, including 33 actual SDK replacements and 70 publications.
+See [scoped evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-Interleaved-Linux.md).
+This accepts the supporting slice only: workflow **6/9**, complete Editor **0/8**, TwoD **9/11**,
+ED-WF-08/parent 8.3, independent 8.2/ED-WF-05 and physical/clean-host gates stay separate.
+
 
 > Version: v1.7 | Status: cloud delivery accepted; PC host gates open | Updated: 2026-10-19
 
@@ -1373,7 +1392,7 @@ acceptance stay open/unchanged. The independently owned standalone reload task i
 Main Content now edits Atlas Grid/individual rectangles and Clip frames, duration, events, loop,
 source and order through owning drafts, independent draft Undo/Redo and immutable previews.
 Identity-preserving typed publication enforces current baselines, Ready dependency closure,
-writer/idle/stopped-Play admission and unchanged Scene/Runtime. Actual1x/2x UI and native
+writer/idle/stopped-Play admission and unchanged Scene/Runtime. Actual 1x/2x UI and native
 edit/save/read-only reopen/Build/source-deleted relocated Player flows pass.
 Modular and Monolithic native acceptance each completes33 canonical SDK replacements,7 rejected
 candidates and32 reimport cycles/70 publications. Shipping Full edited-assets/SDK flows and actual

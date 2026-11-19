@@ -1,5 +1,13 @@
 # Editor 腳本工作流程與 Sprite 整合交付計畫
 
+### ✅ Editor 按鍵修飾狀態保留
+
+同批原生輸入中較晚的修飾鍵轉換，不再改變新按鍵按下時的修飾狀態。原版 Plugin Manager
+原生案例通過40.87秒，128種情境回歸通過65.75秒，包含1x／2x、可寫／唯讀、普通按鍵、失焦
+及文字輸入保護。十一份最終來源通過完整 Linux **562/562，7170.52秒**，零失敗／略過／重跑，
+configure／build亦通過。詳見[輸入證據](../../Tools/Build/evidence/EditorWorkflow/Modifier-Chord-Linux.md)。
+先前失敗紀錄保留；原指標／F5失敗成因仍未證實。
+
 [English](../en/Editor_Workflow_Delivery_Plan.md) · [Epic #741](https://github.com/jimlee1972/Nexora/issues/741)
 
 更新：2026-11-19。基線：`8c4aa989ee7443cc0b2129d54f0f0f77c73d2b49`。
@@ -21,6 +29,16 @@ Atlas／Clip 編輯、四次設定式 Play 與六次 Content Reimport，包含�
 **383.03 秒**（70 次發布）。詳見[驗收矩陣與收據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07.md)。
 審查交付後 workflow 為 **6/9（66.7%）**；圖形 Editor **0/8**、TwoD **9/11**、ED-WF-05／08／09
 及實體／乾淨主機 gate 仍分開驗收。例行 CI 維持手動執行。
+
+## ✅ 主 Game 交錯更新支援驗證
+
+同一段設定式 Game 在真實 SDK 編譯期間發布 Atlas／Sprite來源，上一代持續 Update，並保留
+計數器與場景／entity／pool身分。最終原生案例通過 **305.98秒**：五次替換／十三次發布、
+失敗保留／候選拒絕、有效回復及全部五階段場景／動畫。同一輪完整 Linux 通過 **562/562，
+7170.52秒**，零失敗／略過／重跑，包含33次實際 SDK替換及70次發布。
+詳見[限定證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-Interleaved-Linux.md)。
+僅驗收此支援切片：workflow **6/9**、完整 Editor **0/8**、TwoD **9/11**、ED-WF-08／parent8.3、
+獨立8.2／ED-WF-05及實體／乾淨主機gate仍分開處理。
 
 ## 現有基礎與缺口
 

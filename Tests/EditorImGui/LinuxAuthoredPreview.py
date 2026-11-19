@@ -7,7 +7,6 @@ import json
 import os
 from pathlib import Path
 import re
-import select
 import shutil
 import struct
 import subprocess
@@ -15,9 +14,9 @@ import tempfile
 import time
 import zlib
 
-from LinuxDisplayAcceptance import (physical_key_arguments, request_window_close,
-                                    start_xvfb, wait_for_window)
+from LinuxDisplayAcceptance import request_window_close, start_xvfb, wait_for_window
 from LinuxNativeScenePreview import XImage, channel, scene_region_pixels
+from NativeSceneInput import NativeSceneInput
 
 CYCLES = 32
 OUTPUT_LIMIT = 4 * 1024 * 1024
@@ -96,9 +95,10 @@ def main():
     (root / '.nexora/editor-layout.ini').write_text(layout)
     server, display = start_xvfb(args.xvfb, '1280x720x24')
     editor = None
+    driver = None
     window = None
     captured = bytearray()
-    stdout = tempfile.TemporaryFile()
+    passed = False
     started = time.monotonic()
     cycle = 0
     try:
@@ -106,39 +106,44 @@ def main():
             raise RuntimeError('Xvfb did not start')
         env = os.environ.copy()
         env.update(DISPLAY=display, XDG_STATE_HOME=str(state),
-                   NEXORA_GAME_TWOD_UI_TEST_EVIDENCE='1')
+                   NEXORA_GAME_TWOD_UI_TEST_EVIDENCE='1',
+                   NEXORA_SCENE_MERGE_UI_TEST_GEOMETRY='1')
         editor = subprocess.Popen([args.editor, f'--project={root}', '--graphical',
             '--native-scene-preview', '--frames=100000',
             f'--recent-projects={state / "recent"}'],
-            env=env, stdout=stdout, stderr=subprocess.PIPE)
+            env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         window = int(wait_for_window(args.xdotool, env))
+        driver = NativeSceneInput(editor, args.xdotool, env, window, state, 1,
+                                  minimum_wait=0, phase_wait=0)
+        captured = driver.stderr
 
         def pump(duration=.02):
             end = time.monotonic() + duration
             while time.monotonic() < end:
-                if not select.select([editor.stderr], [], [], max(0, end - time.monotonic()))[0]:
-                    break
-                data = os.read(editor.stderr.fileno(), 65536)
-                if not data:
-                    break
-                captured.extend(data)
-                if len(captured) > OUTPUT_LIMIT:
+                driver.drain(max(0, end - time.monotonic()))
+                if len(captured) > OUTPUT_LIMIT or len(driver.stdout) > OUTPUT_LIMIT:
                     raise RuntimeError('Preview output exceeded its budget')
             if editor.poll() is not None:
                 raise RuntimeError(f'Editor exited early: {editor.returncode}')
 
-        def wait(condition, message, timeout=8):
-            end = time.monotonic() + timeout
+        def wait(condition, message, timeout=8, deadline=None):
+            end = time.monotonic() + timeout if deadline is None else deadline
             while time.monotonic() < end:
-                pump(.05)
-                if condition():
+                pump(min(.05, max(0, end - time.monotonic())))
+                if condition() and time.monotonic() < end:
                     return
             raise RuntimeError(message)
 
         def send(*command):
-            subprocess.run([args.xdotool, *map(str, physical_key_arguments(command, env))],
-                           env=env, check=True)
+            driver.raw(*command)
             pump(.05)
+
+        def play_key(key, condition, message):
+            # One physical down/up, acknowledged by the real GUI. Input and the
+            # original runtime oracle share one eight-second deadline.
+            deadline = time.monotonic() + 8
+            driver.play_key(key, deadline=deadline)
+            wait(condition, message, deadline=deadline)
 
         def value(name):
             lines = re.findall(rb'game 2d ui [^\r\n]+', captured)
@@ -166,8 +171,7 @@ def main():
         send('windowfocus', window)
         masks = []
         for cycle in range(1, CYCLES + 1):
-            send('key', '--delay', '30', 'F5')
-            wait(lambda: value('state') == (1,) and value('module') == (0,) and
+            play_key('F5', lambda: value('state') == (1,) and value('module') == (0,) and
                  value('bound') == (1,) and value('combo') is not None,
                  'No-module Play did not bind its authored preview')
             if value('viewport') is not None:
@@ -177,8 +181,7 @@ def main():
             click(value('two'))
             wait(lambda: value('viewport') is not None and value('textures') == (2,),
                  'Authored source Atlases did not reach the Game canvas')
-            send('key', '--delay', '30', 'F6')
-            wait(lambda: value('state') == (2,), 'Preview did not pause')
+            play_key('F6', lambda: value('state') == (2,), 'Preview did not pause')
             wait(lambda: source_mask(game_pixels()).count(1) > 200 and
                  source_mask(game_pixels()).count(2) > 200,
                  'Actual native red/blue authored source pixels missing')
@@ -189,29 +192,25 @@ def main():
             if cycle == 1:
                 screenshot(display, window, evidence / 'paused.png')
                 steps = value('steps')[0]
-                send('key', '--delay', '30', 'F10')
-                wait(lambda: value('steps') == (steps + 1,), 'Paused manual Step missing')
+                play_key('F10', lambda: value('steps') == (steps + 1,),
+                         'Paused manual Step missing')
                 pump(.15)
                 if source_mask(game_pixels()) != mask:
                     raise RuntimeError('No-module Step changed static source geometry')
                 screenshot(display, window, evidence / 'stepped.png')
-                send('key', '--delay', '30', 'F6')
-                wait(lambda: value('state') == (1,), 'Preview did not resume')
+                play_key('F6', lambda: value('state') == (1,), 'Preview did not resume')
             if scene_pixels() != original_scene:
                 raise RuntimeError('Preview changed concurrent authoring Scene pixels')
-            send('key', '--delay', '30', 'F5')
-            wait(lambda: value('state') == (0,) and value('textures') == (0,) and
+            play_key('F5', lambda: value('state') == (0,) and value('textures') == (0,) and
                  value('bound') == (0,) and value('viewport') is None,
                  'Stop retained a preview owner or native Atlas registrations')
             if scene_pixels() != original_scene or any(p.read_bytes() != b for p, b in baseline.items()):
                 raise RuntimeError('Preview changed authoring pixels or source bytes')
         screenshot(display, window, evidence / 'stopped.png')
         request_window_close(str(window), env)
-        _, tail = editor.communicate(timeout=15)
-        captured.extend(tail)
-        stdout.seek(0)
-        output = stdout.read(OUTPUT_LIMIT + 1)
-        if editor.returncode or len(output) > OUTPUT_LIMIT:
+        driver.finish(timeout=15)
+        output = bytes(driver.stdout)
+        if editor.returncode or len(output) > OUTPUT_LIMIT or len(captured) > OUTPUT_LIMIT:
             raise RuntimeError('Editor shutdown/output budget failed')
         if re.search(rb'Validation Error\b|(?:VUID-|SYNC-HAZARD-)[A-Za-z0-9_-]+', captured + output):
             raise RuntimeError('Vulkan validation failed')
@@ -219,11 +218,13 @@ def main():
                       red_pixels=masks[0].count(1), blue_pixels=masks[0].count(2),
                       source_mask_sha256=hashlib.sha256(masks[0]).hexdigest(),
                       pause_step_resume_stop='passed', exact_restart_geometry=True,
+                      acknowledged_play_shortcuts=CYCLES * 3 + 2,
                       authoring_pixels='unchanged', source_bytes='unchanged',
                       validation_errors=0, evidence=str(evidence),
                       elapsed_seconds=round(time.monotonic() - started, 3))
         (evidence / 'acceptance.json').write_text(json.dumps(report, indent=2) + '\n')
         print('Module-free source Play evidence: ' + json.dumps(report, sort_keys=True))
+        passed = True
         return 0
     except Exception as error:
         if editor is not None and editor.poll() is None and window is not None:
@@ -234,15 +235,24 @@ def main():
         raise RuntimeError(f'Authored preview cycle {cycle}: {error}; evidence={evidence}; '
                            f'tail={bytes(captured[-8192:])!r}') from error
     finally:
-        (evidence / 'editor.log').write_bytes(captured)
-        if editor is not None and editor.poll() is None:
+        if driver is not None:
+            driver.abort()
+        elif editor is not None and editor.poll() is None:
             editor.kill()
             editor.communicate(timeout=5)
+        (evidence / 'editor.log').write_bytes(captured)
+        if driver is not None:
+            (evidence / 'editor.stdout.log').write_bytes(driver.stdout)
+            if (state / 'input.jsonl').exists():
+                shutil.copyfile(state / 'input.jsonl', evidence / 'input.jsonl')
         server.terminate()
         server.communicate(timeout=5)
-        stdout.close()
-        shutil.rmtree(root, ignore_errors=True)
-        shutil.rmtree(state, ignore_errors=True)
+        if passed:
+            shutil.rmtree(root, ignore_errors=True)
+            shutil.rmtree(state, ignore_errors=True)
+        else:
+            (evidence / 'retained-paths.json').write_text(json.dumps(
+                dict(project=str(root), state=str(state)), indent=2) + '\n')
 
 
 if __name__ == '__main__':

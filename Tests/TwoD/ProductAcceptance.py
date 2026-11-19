@@ -202,7 +202,14 @@ def native(app, compiler, package, base_env, audio):
         (package / 'native.log').write_text(stdout + stderr, encoding='utf-8')
         assert process.returncode == 0, stderr
         value = json.loads(report.read_text())
-        assert value['native_frames'] == 900 and value['ui_frames'] == 900
+        # A resize may invalidate a submitted image. Reconcile every draw with actual
+        # surface diagnostics; only successful presentations count as delivered frames.
+        assert value['ui_frames'] == value['sprite_instanced_draws'] == 900, value
+        assert value['acquired_frames'] == 900, value
+        assert 0 < value['native_frames'] == value['presented_frames'], value
+        assert value['presented_frames'] + value['recoverable_present_frames'] == 900, value
+        # This Linux/Vulkan case must finish on VK_SUCCESS after the requested resize.
+        assert value['last_platform_result'] == 0, value
         assert value['native_ui_draws'] >= 900 * 4 and value['native_ui_texture_uploads'] >= 2
         assert value['resize_generations'] >= 1 and value['entity_x'] > 0
         assert abs(value['entity_x'] - saved[0]) < 1e-5, \

@@ -28,6 +28,12 @@ claim that `auto` selected a particular API. Reports also retain available nativ
 DPI scale range, focus/key/mouse/wheel event counts and unfocused movement frames. These are
 observations, not an automatic physical-input, appearance or audibility acceptance.
 
+`--frames N` bounds host-loop iterations. `native_frames` counts successful surface presentations;
+recoverable resize results can make it differ from UI updates or Sprite draw totals. Reports expose
+existing `acquired_frames`, `presented_frames`, `recoverable_present_frames` and backend-specific
+`last_platform_result` diagnostics. Vulkan resize recovery is accounted separately from delivered
+frames; these counters do not change presentation behavior. Headless surface observations stay zero.
+
 ## Export a game
 
 Build `NexoraTwoDPlayer` using a target-host Monolithic Shipping preset, and build the Zig DLL

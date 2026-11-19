@@ -759,9 +759,15 @@ add_test(NAME editor.keyboard_rename_lifecycle COMMAND NexoraKeyboardRenameTests
 
 add_executable(NexoraSceneFileInputTests SceneFileTests.cpp)
 target_include_directories(NexoraSceneFileInputTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src" "${PROJECT_SOURCE_DIR}/Apps/Editor")
-target_link_libraries(NexoraSceneFileInputTests PRIVATE Nexora::EditorImGui)
+target_link_libraries(NexoraSceneFileInputTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
 nexora_apply_defaults(NexoraSceneFileInputTests)
 add_test(NAME editor.scene_file_input COMMAND NexoraSceneFileInputTests)
+
+add_executable(NexoraModifierChordTests ModifierChordTests.cpp)
+target_include_directories(NexoraModifierChordTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraModifierChordTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
+nexora_apply_defaults(NexoraModifierChordTests)
+add_test(NAME editor.modifier_chord_frames COMMAND NexoraModifierChordTests)
 
 if(NEXORA_ENABLE_NATIVE_BACKENDS AND
    (WIN32 OR APPLE OR (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_VULKAN_BACKEND)))
@@ -1082,6 +1088,13 @@ if(NEXORA_ENABLE_2D AND NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
           --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/editor-packaged-source-reimport")
       set_tests_properties(editor.linux_packaged_source_reimport PROPERTIES
         TIMEOUT 600 RUN_SERIAL TRUE LABELS "editor;twod;source;reimport;vulkan;virtual-display")
+      add_test(NAME editor.linux_packaged_source_interleaved
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxPackagedSourceServices.py"
+          --interleaved --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraGameSpriteBuildTests>"
+          --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}"
+          --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/editor-packaged-source-interleaved")
+      set_tests_properties(editor.linux_packaged_source_interleaved PROPERTIES
+        TIMEOUT 900 RUN_SERIAL TRUE LABELS "editor;twod;source;reload;reimport;vulkan;virtual-display")
     endif()
   endif()
 endif()

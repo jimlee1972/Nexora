@@ -169,7 +169,9 @@ the current Scene open. Old additive scene-set metadata is preserved but is no l
 by this application; the supporting Core APIs remain available to other hosts.
 
 Project (Window > Project, Ctrl+Alt+J) displays a directory tree rooted at the open project,
-including ordinary files, empty folders and files outside Content. Expand/collapse folders and
+including ordinary files, empty folders and files outside Content. The normal view keeps managed
+scenes under **Scenes**; choose **Project view options > Show internal files** for the complete
+workspace tree. Expand/collapse folders and
 left-double-click a `.scene` file to open it through the same single-Scene decision flow.
 A single click only selects; double-clicking the current Scene does not reload it. The separate
 Content browser retains asset import, rename and dependency tools.
@@ -388,8 +390,8 @@ project-local trash and one-step undo. The real project index creates or validat
 `<asset>.meta` identity records; filesystem mutations move those records with their source,
 preserving UUID and artifact identity across rename, move, undo, and process reopen. It does not
 create a validation-device offscreen target or a full-frame CPU RGBA image. The docked Project panel
-shows the stable project UUID, schema and upgrade result, access mode, canonical root, and bounded
-recent-project list. Schema-1 projects upgrade atomically to schema 2 only while holding the writer
+keeps project information in its view-options menu: stable UUID, schema and upgrade result, access
+mode, canonical root, and bounded recent-project list. Schema-1 projects upgrade atomically to schema 2 only while holding the writer
 lease; a read-only legacy open reports that an upgrade is required.
 
 Dirty external changes now block automatic reload and open a Content-panel decision dialog. Compare
@@ -1443,8 +1445,9 @@ per-pass analysis and broader external capture formats remain open.
 Build > Export StaticView package captures the current managed Content scene, including unsaved
 authoring changes, and cooks/verifies the data package on the application JobSystem. Save an untitled
 scene first. Build > Cancel StaticView export requests cooperative cancellation. The Project panel
-shows bounded copied status and, only after current-state-checked publication, the package path,
-actual byte count/checksum and reproducible verification command. Cancellation, failure, content
+keeps active work and actionable export errors visible. Its view-options menu contains the last
+copied result and, only after current-state-checked publication, the package path, actual byte
+count/checksum and reproducible verification command. Cancellation, failure, content
 changes, project switches and recovery/write-access loss preserve the previous package.
 
 The application owns publication after widget/scene commands and rechecks the request's scene token,
@@ -1972,7 +1975,10 @@ preservation, rejection, retained frame/asset lifetime and source-free/unrelated
 `editor.linux_authored_preview` drives the actual Editor with a saved wrapped scene and no module
 or package configuration. It checks 32 native 3D/2D selections, red/blue source masks, Pause/Step/
 Resume, exact restart geometry and Stop registration cleanup, while concurrent Scene pixels and
-source bytes stay unchanged. Full 1280x720 window captures are retained. This is Linux Vulkan
+source bytes stay unchanged. Play shortcuts use one physically delivered down/up, copied GUI
+admission and exactly-one request acknowledgement within the same eight-second runtime deadline.
+Both output streams retain the 4 MiB limit. Failures retain the project, state and input log;
+successful runs clean up their scratch data. Full 1280x720 window captures are retained. This is Linux Vulkan
 integration evidence, not physical-host or performance acceptance; see the
 [module-free Play evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-ModuleFreePlay-Linux-2026-11-13.md).
 
@@ -2115,6 +2121,17 @@ backend failures retain the existing surface recovery/Stop policy and are never 
 drains preparations/modules before releasing catalog/registrations; native resources retire behind
 surface fences. Source-free/custom embeddings retain their existing frozen asset behavior.
 
+Saved script edits can compile while Content Reimport publishes source/Atlas changes in the same
+Play session. Native admission serializes the updates: a ready script result owns its frame, and
+source publication follows on a later frame. The running module continues during compilation;
+valid replacements retain counters, scene/entity/pool identity and the newly published sources.
+`editor.linux_packaged_source_interleaved` verifies five actual SDK replacements and 13 source
+publications, rejected corrupt/missing inputs and hidden-pool candidates, valid recovery,
+retired-library finalizers and all five native scene/animation phases. Its first dispatched counters
+must exceed the old-module ticks observed after source publication while admission was pending.
+See the [scoped native evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-08-Interleaved-Linux.md).
+Complete ED-WF-08 and physical/clean-host acceptance remain separate.
+
 ## Creating Sprite source assets
 
 In Content, right-click an imported Atlas and choose **Create Sprite source...**. Enter a new
@@ -2132,8 +2149,8 @@ filenames, stale Content versions and invalid geometry reject; no overwrite prom
 Creating an asset does not assign it or dirty the Scene. Choose it in the Inspector and Save the
 Scene to retain that reference. A created file whose import fails remains on disk; feedback states
 that outcome and project reopen retries ordinary import. Read-only projects may inspect the saved
-source details but cannot create assets. Existing-source editing uses the separate action below;
-Atlas slicing remains open.
+source details but cannot create assets. Existing-source editing and Atlas/Clip authoring use
+their separate Content edit commands.
 The [Editor contract](../../Engine/Editor/README.md#new-main-project-sprite-source-files) describes
 publication/error ownership. Opt-in scene UI test geometry copies actual Atlas/menu/modal bounds;
 these observations neither perform actions nor grant write authority.
@@ -2284,3 +2301,24 @@ Delete, Copy, Cut, Paste, Duplicate, Rename, sibling movement and Clear selectio
 wrapping toolbar with named tooltips and available shortcuts. Hover a toolbar action for the
 previous routine operation result. Errors remain visible above the tree. Existing filtering,
 selection, clipboard, drag/drop, permissions, modal and keyboard contracts continue to apply.
+
+
+## Compact Project browser
+
+Use the Project toolbar to **Refresh project files** (`Ctrl+R`), open **Project view options**, or open
+**Project browser help**. The toolbar wraps in narrow docks; hover each icon for its name. A lock
+on the view-options button indicates read-only access. Project information, recent projects and
+the last StaticView export result are available from the view-options menu. Scan errors, required
+upgrades, active exports and actionable export failures remain visible above the tree.
+
+The normal tree shows authored project files and a **Scenes** folder for `.nexora/scenes`.
+Workspace implementation files are available with **Project view options > Show internal files**;
+this displays the complete project tree, including `.nexora`. These are presentation choices and do
+not move or delete files. Hover an entry for its actual relative path. Folder expansion, selection
+and file identities retain their real project root and path when changing views. Double-click a
+scene to open it; dirty changes still require Save, Discard or Cancel, and symlink scene entries
+cannot open a scene. Refresh and view choices remain available in read-only workspaces.
+
+Widget and actual native Project observations are recorded in the
+[scoped Linux evidence](../../Tools/Build/evidence/EditorWorkflow/Project-Toolbar-Linux.md);
+the final Linux gate passes 562/562; final-head review and merge guards still apply.

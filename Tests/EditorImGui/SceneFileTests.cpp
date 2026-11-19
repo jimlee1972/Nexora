@@ -3,6 +3,9 @@
 #include "ProjectFiles.h"
 #include "SceneFileContinuation.h"
 
+#include <imgui.h>
+#include <imgui_internal.h>
+
 #include <chrono>
 #include <fstream>
 #include <iostream>
@@ -920,6 +923,8 @@ void RunProjectTree(float dpi) {
   std::ofstream(f.root / "README.txt") << "project document";
   std::filesystem::create_directories(f.root / ".nexora/scenes");
   std::ofstream(f.root / ".nexora/scenes/TreeFixture.txt") << "nested project file";
+  std::ofstream(f.root / ".nexora/Private.txt") << "internal project file";
+  Require(f.scene.Save(f.root / ".nexora/scenes/Managed.scene"), "Managed scene fixture failed");
   const auto limited = editor::app::CaptureProjectFiles(f.writer.Root(), 1);
   Require(!limited.error.empty() && limited.inspected_entries <= 1 && limited.items.size() <= 1,
           "Project scanner did not bound pending entries before descending");
@@ -942,6 +947,30 @@ void RunProjectTree(float dpi) {
   Require(Access::ProjectFilePosition(f.ui, "Content") &&
               Access::ProjectFilePosition(f.ui, "README.txt"),
           "Project file tree was not rendered");
+  Require(!Access::ProjectFilePosition(f.ui, ".nexora") &&
+              !Access::ProjectFilePosition(f.ui, ".nexora/Private.txt") &&
+              Access::ProjectFilePosition(f.ui, ".nexora/scenes/TreeFixture.txt"),
+          "Default Project view hid managed scenes or exposed internal workspace files");
+  const auto managed_point = Access::ProjectFilePosition(f.ui, ".nexora/scenes/Managed.scene");
+  Require(managed_point.has_value(), "Default Project view hid its managed scene");
+  f.ClickAt(*managed_point);
+  f.ClickAt(*managed_point);
+  auto managed_open = f.Take(Action::Open);
+  Require(managed_open.path == ".nexora/scenes/Managed.scene" &&
+              f.files->Open(managed_open.token, managed_open.path).Applied(),
+          "Default Project scene alias did not preserve real managed-path navigation");
+  f.Draw();
+  f.Draw(.5F);
+  const auto managed_id = Access::ProjectFileWidgetId(f.ui, ".nexora/scenes");
+  const auto content_id = Access::ProjectFileWidgetId(f.ui, "Content");
+  f.ClickAt(*Access::ProjectToolbarPosition(f.ui, 1));
+  Require(Access::ProjectToolbarPosition(f.ui, 3).has_value(), "Project view option unreachable");
+  f.ClickAt(*Access::ProjectToolbarPosition(f.ui, 3));
+  f.Tap(Key::Escape);
+  Require(Access::ProjectFilePosition(f.ui, ".nexora/Private.txt") &&
+              Access::ProjectFileWidgetId(f.ui, ".nexora/scenes") == managed_id &&
+              Access::ProjectFileWidgetId(f.ui, "Content") == content_id,
+          "Full Project view lost internal file access or changed scoped file identities");
   const auto parent = Access::ProjectFilePosition(f.ui, ".nexora");
   const auto folder = Access::ProjectFilePosition(f.ui, ".nexora/scenes");
   const auto child = Access::ProjectFilePosition(f.ui, ".nexora/scenes/TreeFixture.txt");
@@ -1002,6 +1031,77 @@ void RunProjectTree(float dpi) {
   Require(f.files->Open(opened.token, target).status == editor::SceneFileStatus::Rejected,
           "Stale project-tree request replaced a newer scene");
 }
+void RunProjectToolbar(float dpi, bool narrow) {
+  Fixture f(dpi);
+  auto snapshot = editor::app::CaptureProjectFiles(f.writer.Root());
+  f.ui.SetProjectFiles(f.writer.Root(), std::move(snapshot.items));
+  f.Draw();
+  Access::FocusProject(f.ui);
+  f.Draw();
+  f.Draw();
+  auto *window = ImGui::FindWindowByName("Project###nexora.project");
+  Require(window != nullptr, "Project window absent");
+  if (narrow) {
+    ImGui::SetWindowDock(window, 0, ImGuiCond_Always);
+    ImGui::SetWindowPos(window, {40, 80}, ImGuiCond_Always);
+    ImGui::SetWindowSize(window, {150, 650}, ImGuiCond_Always);
+    f.Draw();
+    f.Draw();
+    Require(window->Size.x >= 149 && window->Size.x <= 151,
+            "Project narrow fixture did not retain its 150-unit width");
+  }
+  for (std::size_t index = 0; index < 3; ++index) {
+    const auto rect = Access::ProjectToolbarRect(f.ui, index);
+    Require(rect && (*rect)[0] >= window->InnerRect.Min.x &&
+                (*rect)[2] <= window->InnerRect.Max.x && (*rect)[1] >= window->InnerRect.Min.y &&
+                (*rect)[3] <= window->InnerRect.Max.y,
+            "Project toolbar clipped an action in a narrow/DPI-scaled panel");
+  }
+  f.ClickAt(*Access::ProjectToolbarPosition(f.ui, 0));
+  Require(f.ui.TakeProjectFilesRefresh() && !f.ui.TakeProjectFilesRefresh(),
+          "Project refresh was lost or duplicated");
+  const auto before = f.world.SaveScene(f.id);
+  f.ClickAt(*Access::ProjectToolbarPosition(f.ui, 2));
+  Require(!GImGui->OpenPopupStack.empty() && !Access::ProjectToolbarPosition(f.ui, 3),
+          "Project help did not open independently from view settings");
+  f.Tap(Key::Escape);
+  f.active = &f.reader;
+  Access::FocusProject(f.ui);
+  f.Draw();
+  f.ClickAt(*Access::ProjectToolbarPosition(f.ui, 1));
+  Require(Access::ProjectToolbarPosition(f.ui, 3).has_value(),
+          "Read-only project hid browser view options");
+  f.ClickAt(*Access::ProjectToolbarPosition(f.ui, 3));
+  f.Tap(Key::Escape);
+  Require(Access::ProjectFilePosition(f.ui, ".nexora") && f.world.SaveScene(f.id) == before &&
+              !f.ui.TakeSceneFileRequest(),
+          "Read-only view options changed scene content or requested authoring IO");
+  const auto original_id = Access::ProjectFileWidgetId(f.ui, "Content");
+  f.Draw(.5F);
+  f.ClickAt(*Access::ProjectToolbarPosition(f.ui, 1));
+  f.ClickAt(*Access::ProjectToolbarPosition(f.ui, 3));
+  f.Tap(Key::Escape);
+  Require(!Access::ProjectFilePosition(f.ui, ".nexora") &&
+              Access::ProjectFileWidgetId(f.ui, "Content") == original_id,
+          "Hiding internal files changed a public folder identity");
+  editor::ProjectWorkspace other;
+  Require(other.Create(f.root / "Other", "Other project"), "Project-switch fixture failed");
+  f.active = &other;
+  f.Draw();
+  Require(!Access::ProjectFilePosition(f.ui, "Content"),
+          "Project switch displayed the old project's file snapshot");
+  f.ClickAt(*Access::ProjectToolbarPosition(f.ui, 0));
+  Require(!f.ui.TakeProjectFilesRefresh(), "Refresh admitted an unrelated project's stale index");
+  snapshot = editor::app::CaptureProjectFiles(other.Root());
+  f.ui.SetProjectFiles(other.Root(), std::move(snapshot.items));
+  f.Draw();
+  f.Draw();
+  Require(Access::ProjectFileWidgetId(f.ui, "Content") &&
+              Access::ProjectFileWidgetId(f.ui, "Content") != original_id &&
+              !f.ui.TakeSceneFileRequest(),
+          "Project switch reused file widget identities or issued a stale scene request");
+}
+
 } // namespace
 int main() {
   try {
@@ -1017,6 +1117,8 @@ int main() {
       RunContentPopupObservation(dpi);
       RunContentRename(dpi);
       RunProjectTree(dpi);
+      RunProjectToolbar(dpi, false);
+      RunProjectToolbar(dpi, true);
     }
     std::cout << "Scene file menu, shortcuts and modal lifecycle passed\n";
     return 0;

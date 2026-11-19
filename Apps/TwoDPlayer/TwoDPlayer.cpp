@@ -1212,6 +1212,10 @@ static int RunTwoDPlayerImpl(int argc, char **argv, NexoraGameModuleLoadV3Fn bui
         ",\"effects_peak_textures\":" + std::to_string(gpu.twoDPeakTextureCount) +
         ",\"native_ui_texture_uploads\":" + std::to_string(gpu.nativeUiTextureUploads) +
         ",\"resize_generations\":" + std::to_string(gpu.resizeGenerations) +
+        ",\"acquired_frames\":" + std::to_string(gpu.acquiredFrames) +
+        ",\"presented_frames\":" + std::to_string(gpu.presentedFrames) +
+        ",\"recoverable_present_frames\":" + std::to_string(gpu.recoverablePresentFrames) +
+        ",\"last_platform_result\":" + std::to_string(gpu.lastPlatformResult) +
         ",\"surface_backend_requested\":\"" +
         std::string(native ? Nexora::Presentation::ToString(backend) : "none") + "\"" +
         ",\"render_device_ids_available\":" + (gpu.device.deviceIdsAvailable ? "true" : "false") +
