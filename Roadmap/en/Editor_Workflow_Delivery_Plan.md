@@ -2,12 +2,27 @@
 
 [繁體中文](../zh-TW/Editor_Workflow_Delivery_Plan.md) · [Epic #741](https://github.com/jimlee1972/Nexora/issues/741)
 
-Updated: 2026-11-12. Baseline: `8c4aa989ee7443cc0b2129d54f0f0f77c73d2b49`.
+Updated: 2026-11-19. Baseline: `8c4aa989ee7443cc0b2129d54f0f0f77c73d2b49`.
 Initial documentation publication base: `67db45d23e631b0e05b42c23716245a34ae996d5`.
 ED-WF-04 integration base: main `a21c1ca2293e4200de8dcaa4b892ffef34687c9c`, including the appearance update.
-Acceptance snapshot: **5/9 work orders (55.6%)**; ED-WF-01 merged in [PR #751](https://github.com/jimlee1972/Nexora/pull/751), ED-WF-02 in [PR #754](https://github.com/jimlee1972/Nexora/pull/754), ED-WF-03 in [PR #756](https://github.com/jimlee1972/Nexora/pull/756), ED-WF-04 in [PR #758](https://github.com/jimlee1972/Nexora/pull/758); ED-WF-06 is accepted through [PR #772](https://github.com/jimlee1972/Nexora/pull/772) and its prerequisite slices.
+Acceptance snapshot: **6/9 work orders (66.7%)**; ED-WF-01 merged in [PR #751](https://github.com/jimlee1972/Nexora/pull/751), ED-WF-02 in [PR #754](https://github.com/jimlee1972/Nexora/pull/754), ED-WF-03 in [PR #756](https://github.com/jimlee1972/Nexora/pull/756), ED-WF-04 in [PR #758](https://github.com/jimlee1972/Nexora/pull/758); ED-WF-06 is accepted through [PR #772](https://github.com/jimlee1972/Nexora/pull/772) and its prerequisite slices.
+ED-WF-07 is accepted by the [integrated authoring record](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07.md).
+Historical supporting entries below retain their original checkpoint counts.
 The Epic records subsequent accepted work and its merged PR/evidence. Complete graphical Editor
 acceptance remains **0/8**; this plan does not accept physical-device or clean-host gates.
+
+## ✅ Integrated Editor source authoring accepted (2026-11-19)
+
+One real native project now connects Build-enrolled scene Open/Inspector assignment, exact
+Undo/Redo/save/reopen, Atlas/Clip editing, four configured Play sessions and six Content Reimports,
+including corrupt/missing last-good retention. The same GUI-saved scene/assets Build into a
+Unicode-relocated Player after source deletion, with independently matching native pixels.
+The final frozen source passes full Linux **560/560**, zero failures/skips/retries, **5913.08 s**;
+the joint case passes **191.49 s**, actual SDK reload **1684.38 s** (33 replacements/seven rejects)
+and source reimport **383.03 s** (70 publications). See the
+[acceptance matrix and receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07.md).
+Workflow becomes **6/9 (66.7%)** on reviewed delivery; graphical Editor **0/8**, TwoD **9/11**,
+ED-WF-05/08/09 and physical/clean-host gates remain separate. Routine CI stays manual-only.
 
 ## Existing foundations and remaining work
 
@@ -33,7 +48,7 @@ SortingGroup, nine-slice/Tiled rendering, masks and advanced animation state mac
 | ED-WF-04 | [#745](https://github.com/jimlee1972/Nexora/issues/745) | 01 | Transactional Runtime/Zig migration; failed replacement retains the old module and World | ✅ PR #758 |
 | ED-WF-05 | [#746](https://github.com/jimlee1972/Nexora/issues/746) | 02, 04 | Background source compilation and stateful Play reload without Stop/Play | In progress; integration unaccepted |
 | ED-WF-06 | [#747](https://github.com/jimlee1972/Nexora/issues/747) | 01 | Compatible C/Zig source APIs and cooked Player dependency closure | ✅ PRs #767, #769, #770, #772; [acceptance](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md) |
-| ED-WF-07 | [#748](https://github.com/jimlee1972/Nexora/issues/748) | 06 | Source indexing/Inspector/Undo/save/reopen/Play/Build/reimport in the real Editor | In progress; source index, Inspector/persistence, module Play and Build support |
+| ED-WF-07 | [#748](https://github.com/jimlee1972/Nexora/issues/748) | 06 | Source indexing/Inspector/Undo/save/reopen/Play/Build/reimport in the real Editor | ✅ [Integrated acceptance](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07.md) |
 | ED-WF-08 | [#749](https://github.com/jimlee1972/Nexora/issues/749) | 04, 06, 07 | Source animation anchors, live pool instances and valid handles survive replacement | Pending |
 | ED-WF-09 | [#750](https://github.com/jimlee1972/Nexora/issues/750) | 02, 03, 05, 07, 08 | Integrated native acceptance and a verified, extracted Windows Editor ZIP | Pending |
 

@@ -4,9 +4,13 @@ Local crash/game-log persistence is tracked in [Crash Logging Delivery](Crash_Lo
 
 
 The approved [Editor workflow delivery plan](Editor_Workflow_Delivery_Plan.md) tracks Sprite
-source C/Zig/catalog delivery and the remaining Editor authoring, animation and pool integration in
-[Epic #741](https://github.com/jimlee1972/Nexora/issues/741). Plan acceptance is 5/9 (55.6%): ED-WF-01 ✅ PR #751, ED-WF-02 ✅ PR #754, ED-WF-03 ✅ PR #756, ED-WF-04 ✅ PR #758; ED-WF-06 ✅ [acceptance](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md);
-it does not promote full Editor, physical M6/M7 or advanced Sprite rendering acceptance.
+source C/Zig/catalog and Editor authoring, animation and pool integration in
+[Epic #741](https://github.com/jimlee1972/Nexora/issues/741). Plan acceptance is **6/9 (66.7%)**:
+ED-WF-01 ✅ PR #751, ED-WF-02 ✅ PR #754, ED-WF-03 ✅ PR #756, ED-WF-04 ✅ PR #758,
+ED-WF-06 ✅ [acceptance](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md),
+ED-WF-07 ✅ [integrated Editor authoring](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07.md).
+This does not promote full Editor, physical M6/M7 or advanced Sprite rendering acceptance.
+Historical supporting records below retain their original checkpoint counts.
 
 > Version: v1.7 | Status: cloud delivery accepted; PC host gates open | Updated: 2026-10-19
 

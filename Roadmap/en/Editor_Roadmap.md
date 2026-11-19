@@ -1,5 +1,16 @@
 # Nexora Graphical Editor Roadmap
 
+### ✅ Integrated Sprite source authoring
+
+ED-WF-07 now connects real Inspector assignment/history/save/reopen, Atlas/Clip edits, configured
+Play and Content Reimport to the same Build-enrolled scene and deleted-source relocated Player.
+Independent native pixels, unchanged identities/selection and last-good failed-import pixels pass.
+Full Linux **560/560**, zero failures/skips/retries, **5913.08 s**, includes the new **191.49 s**
+case, 33 actual SDK replacements and 70 reimport publications. See the
+[formal acceptance](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07.md).
+Workflow is **6/9**; complete graphical Editor **0/8**, TwoD **9/11** and physical/clean-host gates
+remain separate. Historical supporting entries below retain their original checkpoint counts.
+
 ### ✅ Hierarchy object context actions
 
 Object rows now offer Copy/Cut/Paste/Duplicate/Rename/Delete on right-click. Clicking an unselected row selects it; clicking a selected row preserves the group. Generation-owned menu targets revalidate selection, focus and modal access before using the existing scene commands. Actual 1x/2x widgets, 150-unit docks, native Duplicate/Undo and the full Linux gate pass 559/559 without failures, skips or retries. See [scoped acceptance](../../Tools/Build/evidence/EditorWorkflow/Hierarchy-Context-Linux.md). Workflow5/9, graphical Editor0/8 and TwoD9/11 remain unchanged.

@@ -934,6 +934,13 @@ if(NEXORA_ENABLE_2D)
           --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
       set_tests_properties(editor.linux_twod_asset_editing PROPERTIES TIMEOUT 240
         LABELS "editor;twod;vulkan;virtual-display" WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+      add_test(NAME editor.linux_sprite_source_workflow
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxTwoDAssetEditing.py" --workflow
+          --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraTwoDAssetEditingUiTests>"
+          --player "$<TARGET_FILE:NexoraProjectPlayer>"
+          --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+      set_tests_properties(editor.linux_sprite_source_workflow PROPERTIES TIMEOUT 480 RUN_SERIAL TRUE
+        LABELS "editor;twod;source;workflow;vulkan;virtual-display" WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
     endif()
     add_test(NAME editor.linux_sprite_source_inspector
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxSpriteSourceInspector.py"

@@ -4,9 +4,13 @@
 
 
 核准的 [Editor 工作流程交付計畫](Editor_Workflow_Delivery_Plan.md)以
-[Epic #741](https://github.com/jimlee1972/Nexora/issues/741) 追蹤 Sprite 來源 C／Zig／catalog 交付，
-以及尚待完成的 Editor 編輯、動畫及 pool 整合。計畫驗收為 5/9（55.6%）：ED-WF-01 ✅ PR #751、ED-WF-02 ✅ PR #754、ED-WF-03 ✅ PR #756、ED-WF-04 ✅ PR #758；ED-WF-06 ✅ [驗收](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md)，不因此提高完整
-Editor、實體 M6／M7 或進階 Sprite 繪製的驗收完成度。
+[Epic #741](https://github.com/jimlee1972/Nexora/issues/741) 追蹤 Sprite 來源 C／Zig／catalog、
+Editor 製作、動畫及 pool 整合。計畫驗收為 **6/9（66.7%）**：ED-WF-01 ✅ PR #751、ED-WF-02 ✅
+PR #754、ED-WF-03 ✅ PR #756、ED-WF-04 ✅ PR #758、ED-WF-06 ✅
+[驗收](../../Tools/Build/evidence/EditorWorkflow/ED-WF-06.md)、ED-WF-07 ✅
+[Editor 製作整合驗收](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07.md)。
+不因此提高完整 Editor、實體 M6／M7 或進階 Sprite 繪製的驗收完成度。
+下方歷史支援紀錄保留交付當時的進度數字。
 
 > 版本：v1.7 | 狀態：雲端能力交付已驗收，PC 主機 gate 待完成 | 更新：2026-10-19
 

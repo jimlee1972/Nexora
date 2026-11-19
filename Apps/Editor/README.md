@@ -1890,8 +1890,10 @@ legacy descriptor strides. Typed project indexing and synchronous/queued reimpor
 `.nx2sprite` metadata. Project/cooked capture freezes and validates its Atlas closure with exact
 source/sidecar provenance; extraction resolves scene/pool source UUIDs from that snapshot. Retained
 snapshots survive later reimport and project/store destruction. The immutable embedding's source-
-content registration service still returns `UNSUPPORTED`. Inspector source assignment, authoring
-persistence, animation/reload and Build acceptance remain ED-WF-07/08 work. See the
+content registration service still returns `UNSUPPORTED`. Integrated Inspector assignment,
+history/save/reopen, Play, Build and reimport are accepted in
+[ED-WF-07](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07.md). Complete source-animation/reload
+and final delivery acceptance remain ED-WF-08/09. See the original
 [executed snapshot/native evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceSnapshots-Linux-2026-11-12.md).
 
 ### Authored source references in module-backed Play
@@ -1960,9 +1962,10 @@ Calls remain serialized on the Editor owner thread; existing separate capture/fr
 budgets apply. No C/Zig ABI, codec, optional-module dependency or shared exported C++ API changes.
 
 This consumer covers the main scene clone when `project.build.json` is absent. Configured package
-Play and main Build export need their own source-reference packaging integration and remain open,
-alongside Scene View and animation/reload. It does not accept complete
-ED-WF-07 or change milestone counts. The 2D-OFF embedding keeps its source-free path.
+Play, main Build export and Scene View use the owning paths documented below. Their integrated
+authoring acceptance is recorded in [ED-WF-07](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07.md);
+complete source-animation/reload acceptance remains ED-WF-08. The 2D-OFF embedding keeps its
+source-free path.
 
 `editor.play_authored_sprites` covers 32 callback-free preview owners, exact Runtime/authoring
 preservation, rejection, retained frame/asset lifetime and source-free/unrelated-asset behavior.
@@ -1991,8 +1994,10 @@ against an independently built source-free SceneOnly baseline. WM close verifies
 Stop/Destroy and native drain; authored and runtime file hashes remain unchanged. Attempts,
 logs, screenshots and receipts live under `artifacts/editor-sprite-sources/build-*`.
 Configured packaged Play now owns a separate one-UI-pass source compositor, documented below.
-Native Scene View source rendering is documented below. Production animation/pool/reload and full
-ED-WF-07 acceptance remain open. See [execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-Linux-2026-11-13.md).
+Native Scene View source rendering is documented below. The same GUI-saved source workflow is
+accepted in [ED-WF-07](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07.md); complete
+animation/pool/reload acceptance remains ED-WF-08. See the original
+[Build execution evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-Linux-2026-11-13.md).
 
 The [main integration evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07-SourceBuild-MainIntegration-Linux-2026-11-13.md)
 validates this producer together with the independently delivered module-free preview on main2e900.
@@ -2062,7 +2067,9 @@ state migration and first published Update, then checks independent Scene/Sprite
 Linux image-finalizer probes. The fixture never counts a provisional `reloaded` hook log as a live
 generation. Its 80-byte payload contains counters, scene/entity/request IDs and pool handles; service
 tables are reacquired by `prepareReload`, never serialized. Source reimport uses the separate
-transaction below. Complete ED-WF-07/08 and physical/clean-host acceptance remain open.
+transaction below. Integrated authoring is accepted in
+[ED-WF-07](../../Tools/Build/evidence/EditorWorkflow/ED-WF-07.md). Complete ED-WF-08 and
+physical/clean-host acceptance remain open.
 
 The configured host's despawn hook routes through `GameplayBridge::ForgetEntity`, clearing
 metadata and animation state and invalidating cached overlap/sweep snapshots immediately. The
