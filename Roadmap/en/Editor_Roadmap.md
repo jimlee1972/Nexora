@@ -66,6 +66,11 @@ The Hierarchy uses a wrapping action toolbar and an on-demand creation form inst
 
 Game now uses wrapping playback/input/view controls with compact state and captured-input indication. The file icon opens stopped-only gameplay-library settings; information opens counters, input help and copied Play entity inspection. Host memory and actionable status remain available. Ordinary and pure 3D packaged native Game images use the existing typed UI composition path to preserve popup order. Actual 1x/2x interaction and narrow-panel controls pass alongside the related input/camera/2D/memory/Scene cases. See [scoped Linux evidence](../../Tools/Build/evidence/EditorWorkflow/Game-Toolbar-Linux.md) and [Game controls](../../Apps/Editor/README.md#compact-game-controls). This supporting presentation slice retains the bounded native canvas/ownership contract and does not change the 5/9 workflow or 0/8 Editor milestone counts.
 
+✅ Game compiler failure presentation passes the full Linux gate, 566/566 (6567.74s): a short visible failure points to
+the existing information action, whose Play diagnostics popup retains the complete compiler output
+in a scrolling area. Console output, stored status and module/reload outcomes remain unchanged.
+See [scoped evidence](../../Tools/Build/evidence/EditorWorkflow/Game-Error-Linux.md).
+
 ### ✅ Compact Scene viewport controls
 
 Scene document/view actions now use wrapping icon toolbars. Axes/pivot/snap settings and navigation help open on demand; routine status leaves the canvas clear, while dirty/read-only indicators and save failures remain available. Actual 1x/2x settings/view interactions and narrow-panel tool bounds pass with existing navigation/history guards. See the [scoped Linux evidence](../../Tools/Build/evidence/EditorWorkflow/Scene-Toolbar-Linux.md). The shared [Editor interface standard](../../Apps/Editor/README.md#editor-interface-standard) and [AGENTS.md conventions](../../AGENTS.md#editor-interface-conventions) preserve this approach for future Editor work. This supporting UI change does not change the 5/9 workflow or 0/8 Editor milestone counts.

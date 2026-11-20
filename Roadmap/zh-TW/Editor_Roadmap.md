@@ -59,6 +59,10 @@ Hierarchy 改用可換行的操作工具列與按需展開的建立表單，取�
 
 ### ✅ 精簡 Game 操作與按需 Play 診斷
 
+✅ Game 編譯失敗呈現通過完整 Linux gate，566/566（6567.74秒）：可見的簡短失敗提示指向既有資訊按鈕，Play 診斷
+彈出視窗以捲動區保留完整編譯輸出。Console、已儲存狀態及模組／重載結果維持不變。
+參閱[限定證據](../../Tools/Build/evidence/EditorWorkflow/Game-Error-Linux.md)。
+
 Game 改用可換行的播放／輸入／視圖控制，並保留精簡狀態與輸入擷取指示。檔案圖示開啟僅停止時可編輯的 gameplay-library 設定；資訊圖示開啟計數、輸入說明及複製的 Play 實體檢查。Host memory 與可採取行動的狀態仍可使用。一般與純 3D 封裝原生 Game 影像沿用既有型別 UI 合成路徑，保留彈出視窗順序。實際 1x／2x 互動與窄面板控制，以及相關輸入／相機／2D／記憶體／Scene 案例均通過。參閱[限定 Linux 證據](../../Tools/Build/evidence/EditorWorkflow/Game-Toolbar-Linux.md)及 [Game 操作文件](../../Apps/Editor/README.md#compact-game-controls)。此支援性呈現切片保留有界原生畫布與所有權約定，不改變 5/9 workflow 或 0/8 Editor 里程碑計數。
 
 ### ✅ 精簡 Scene 視圖控制

@@ -1,5 +1,17 @@
 # Editor Dear ImGui host contract
 
+## Game compiler error presentation
+
+`SetGameplayStatus` still owns the complete native status. Draw recognizes the existing
+`Game build tool failed:` family and shows a fixed concise failure summary in Game; the existing
+information action exposes the complete value in a scrolling eight-line section of Play diagnostics.
+It creates no additional retained status, callbacks, worker requests or public API. Popup ownership,
+Game input release, command/permission checks and current Play/module state retain their existing
+paths. Console keeps its independent output and structured diagnostics. A large compiler transcript
+therefore consumes bounded canvas height while remaining discoverable; other statuses keep their
+current presentation. [Scoped Linux qualification](../../Tools/Build/evidence/EditorWorkflow/Game-Error-Linux.md)
+passes the complete Linux gate, 566/566 (6567.74s).
+
 ## Unity-style Editor input (issue #759)
 
 Implementation is in progress; full Cloud/native validation and delivery remain pending.

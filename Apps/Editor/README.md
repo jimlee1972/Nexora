@@ -2331,6 +2331,16 @@ window. Detailed counts, entity rows and navigation instructions no longer occup
 canvas rows. The existing bounded native 3D/2D preview, camera choice, fallback and input/permission
 contracts remain in effect.
 
+Saved ScriptProject tool failures show **Script build failed** with a short pointer to the
+information button. That button's tooltip names the error details, and its existing Play diagnostics
+popup shows the complete retained compiler status in an eight-line scrolling area. Full output and
+structured Error locations remain available in Console. This rendering-only summary recognizes the
+existing `Game build tool failed:` status family; it does not rewrite the stored status, change
+compiler/reload outcomes, dismiss an active module or affect Play command admission. Opening and
+dismissing details use the existing popup/focus/input ownership. Other actionable feedback remains
+visible. [Linux qualification](../../Tools/Build/evidence/EditorWorkflow/Game-Error-Linux.md) passes the complete
+566/566 Linux gate (6567.74s), zero skips/retries.
+
 Ordinary camera/OBJ and pure 3D packaged Game previews use the existing acquired-frame Scene
 image composition path before GUI completion. This preserves Game content while contextual popups cover it; the native
 image no longer draws over those UI pixels after the GUI pass. Packaged Sprite composition keeps
