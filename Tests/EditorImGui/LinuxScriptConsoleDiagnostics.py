@@ -26,6 +26,7 @@ def main():
     for name in ('editor', 'fixture', 'xvfb', 'xdotool', 'evidence-dir'):
         parser.add_argument('--' + name, required=True)
     parser.add_argument('--capture', action='store_true')
+    parser.add_argument('--capture-game-status', action='store_true')
     args = parser.parse_args()
     evidence = Path(args.evidence_dir).resolve() / ('script-console-' + str(time.time_ns()))
     evidence.mkdir(parents=True)
@@ -92,6 +93,21 @@ def main():
             driver.drain(.05)
         require(failed(), 'real SDK compiler failure did not reach native owner; streams retained')
         require(authored() == original, 'Play/compiler failure changed authored inputs')
+        if args.capture_game_status:
+            # Reuse only observed controls; compiler/Console outcomes remain genuine.
+            observed = driver.wait(lambda s: 'game_diagnostics' in s,
+                                   'actual Play diagnostics control is unavailable')
+            driver.pointer_move(400, 400)
+            screenshot(display, int(window), evidence / 'game-error-summary.png')
+            point = tuple(float(v) for v in observed['game_diagnostics'].split(','))
+            driver.click(point, hold=0)
+            driver.wait(lambda s: 'game_diagnostics_min' in s and
+                        'game_diagnostics_max' in s, 'actual Play diagnostics did not open')
+            driver.drain(.4)
+            screenshot(display, int(window), evidence / 'game-error-details.png')
+            driver.raw('key', 'Escape')
+            driver.wait(lambda s: 'game_diagnostics_min' not in s,
+                        'Play diagnostics did not dismiss')
         if args.capture:
             # Actual default dock Console tab and filter; no helper changes Console records.
             driver.click((330, 550), hold=0)

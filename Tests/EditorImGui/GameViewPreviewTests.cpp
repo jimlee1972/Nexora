@@ -161,6 +161,36 @@ void CheckCompactGame(float dpi) {
           "compact Game hid actionable module feedback");
   ui.SetGameplayStatus("");
   draw();
+  const std::string compiler_output =
+      "Game build tool failed: Build process returned a nonzero exit code.\n"
+      "cmake -P /private/compiler/operation.cmake\n" +
+      std::string(8192, 'x') + "\nScripts/game.zig:1:20: error: expected expression\n";
+  ui.SetGameplayStatus(compiler_output);
+  draw(true);
+  const auto summary_viewport = ui.NativeGameViewport();
+  Require(summary_viewport && before_error && summary_viewport->y - before_error->y < 100 * dpi &&
+              frame_text.find("Script build failed.") != std::string::npos &&
+              frame_text.find("/private/compiler/operation.cmake") == std::string::npos &&
+              frame_text.find("Scripts/game.zig:1:20") == std::string::npos,
+          "narrow Game compiler failure still exposes internal output or consumes its canvas");
+  click(std::array{(summary_viewport->x + summary_viewport->width * .5F) / dpi,
+                   (summary_viewport->y + summary_viewport->height * .5F) / dpi});
+  Require(ui.GameInputFocused(), "compiler summary prevented ordinary Game input capture");
+  control(0);
+  draw(true);
+  Require(!ui.GameInputFocused() && Access::GameDiagnosticsRect(ui) &&
+              frame_text.find("/private/compiler/operation.cmake") != std::string::npos &&
+              frame_text.find("Scripts/game.zig:1:20") != std::string::npos &&
+              frame_text.find(compiler_output) != std::string::npos,
+          "Play diagnostics lost full compiler output or failed to release Game input");
+  escape();
+  Access::FocusGame(ui);
+  draw(true);
+  Require(ui.NativeGameViewport() && ui.NativeGameViewport()->y == summary_viewport->y &&
+              frame_text.find("/private/compiler/operation.cmake") == std::string::npos,
+          "closing diagnostics replayed compiler internals or changed compact status layout");
+  ui.SetGameplayStatus("");
+  draw();
   control(2);
   Require(ui.TakePlayCommand() == imgui::PlayCommand::Stop && play.Stop(),
           "compact Stop did not emit its original command");

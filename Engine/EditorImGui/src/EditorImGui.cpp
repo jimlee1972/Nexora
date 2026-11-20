@@ -7378,10 +7378,14 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       }
       GImGui->LastItemData = library_item;
       ContinueViewportToolbar();
+      const bool script_build_failed =
+          std::string_view(state_->gameplay_status).starts_with("Game build tool failed:");
       ImGui::BeginDisabled(interaction_blocked || !state_->app_focused);
       if (detail::IconButton(
               state_->game_input_focused ? "Play diagnostics: input captured###game.diagnostics"
-                                         : "Play diagnostics and input help###game.diagnostics",
+              : script_build_failed
+                  ? "Play diagnostics: script build error details###game.diagnostics"
+                  : "Play diagnostics and input help###game.diagnostics",
               detail::EditorIcon::Info, state_->game_input_focused, "Escape: release input")) {
         state_->game_input_focused = false;
         ImGui::OpenPopup("Play diagnostics and input help");
@@ -7474,6 +7478,17 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                                std::max(1.0F, std::min(ImGui::GetFontSize() * 28,
                                                        ImGui::GetMainViewport()->WorkSize.x - 48)));
         ImGui::TextUnformatted("Play diagnostics");
+        if (script_build_failed) {
+          ImGui::SeparatorText("Script build error");
+          ImGui::TextWrapped("Complete compiler output is also available in Console.");
+          const float width = std::max(
+              1.0F, std::min(ImGui::GetFontSize() * 36, ImGui::GetMainViewport()->WorkSize.x - 48));
+          ImGui::BeginChild("##play-script-build-error",
+                            {width, ImGui::GetTextLineHeightWithSpacing() * 8},
+                            ImGuiChildFlags_Borders);
+          ImGui::TextWrapped("%s", state_->gameplay_status.c_str());
+          ImGui::EndChild();
+        }
         ImGui::Text("Fixed ticks: %llu | Steps: %llu | Callback failures: %llu",
                     static_cast<unsigned long long>(play->Stats().fixed_ticks),
                     static_cast<unsigned long long>(play->Stats().manual_steps),
@@ -7514,7 +7529,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         ImGui::EndPopup();
       }
       GImGui->LastItemData = toolbar_item;
-      if (!state_->gameplay_status.empty())
+      if (script_build_failed)
+        ImGui::TextWrapped("Script build failed. See the information button for details.");
+      else if (!state_->gameplay_status.empty())
         ImGui::TextWrapped("%s", state_->gameplay_status.c_str());
       if (!state_->game_input_binding_status.empty())
         ImGui::TextWrapped("%s", state_->game_input_binding_status.c_str());
