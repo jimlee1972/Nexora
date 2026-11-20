@@ -475,6 +475,33 @@ retained snapshot in bounded passes before Console teardown. Output can contain 
 private data and remains session-only, just like the existing local Build Console; this adapter
 adds no persistence/transmission, command/environment capture, authoring write or artifact claim.
 
+An independent native-owner adapter also projects complete plain-text Zig/Clang-style
+`path:line:column: error:`, `warning:` and `note:` lines into `BuildDiagnostic` records with
+Error, Warning and Info severity. The owning source contains the process scope/operation and
+the reported location; it is text provenance, not a resolved path or a navigation command.
+Messages must be valid UTF-8 without embedded control bytes (a terminal CR in CRLF is accepted).
+The first severity marker delimits the location; paths containing such markers can be ambiguous
+and remain outside the supported projection. Coordinates must be positive 32-bit decimal values.
+ANSI-colored output, MSVC syntax, multiline context and unrecognized lines remain raw output.
+Neither classification nor a child exit changes artifact verification or authoring authority.
+
+This serialized adapter borrows the same Console and consumes at most 16 KiB per poll, retaining
+one at-most 4096-byte partial line and attempting at most 64 diagnostic admissions. It discards
+an oversized line through its newline and discards an uncertain retained prefix after missing
+raw bytes; operation/scope changes cannot splice partial lines. A terminal unterminated line
+flushes once after all its bytes are consumed. Regressed totals/drop cursors, older operations,
+invalid phases and mutated terminal totals reject before history changes. Foreign/detached/stale
+observations are ignored. Allocation failure keeps the current byte/line retryable; Console
+rejection consumes a derived record once. Known diagnostic suppression (budget or oversized
+source) increments record loss; missing raw bytes and oversized lines have separate counters.
+At most one `BuildDiagnosticStatus` warning per poll reports suppressed records/oversized lines.
+Original `BuildOutput` bytes, Info severity, admission and raw-byte counters stay independent.
+Shutdown drains both adapters before Console teardown; records remain session-only. The
+test-enabled owner can emit retained record evidence only with the explicit
+`NEXORA_BUILD_DIAGNOSTIC_TEST_EVIDENCE` environment switch.
+[Linux qualification](../../Tools/Build/evidence/EditorWorkflow/Build-Diagnostics-Linux.md)
+records the supported slice and its current acceptance status.
+
 The docked Game panel now controls an isolated `PlaySession`: F5 starts or stops, F6 pauses or
 resumes, and F10 advances one paused fixed tick. The panel inspects copied Play World entity
 positions and tick counts. Stop discards the cloned World; the Editor World is not applied back.

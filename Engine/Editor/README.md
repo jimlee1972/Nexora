@@ -2114,6 +2114,15 @@ records with explicit session scope/operation and receipt time, bounded ASCII es
 separate raw-byte loss/record-drop units. The adapter is documented in Apps/Editor; it adds no
 runner callbacks, module dependency, persistence, artifact verification or document authority.
 
+A separate private native-owner projection recognizes bounded complete plain-text compiler
+locations and Error/Warning/Info severity without modifying that raw route. It borrows the same
+Console, retains no project/document references and does not resolve paths, navigate files,
+verify artifacts or alter process outcomes. Partial lines reset on scope/operation change and
+resynchronize after missing bytes; diagnostic-record suppression is distinct from byte loss.
+The supported syntax, UTF-8/control policy, limits and shutdown contract are documented in
+[Apps/Editor](../../Apps/Editor/README.md#scoped-build-output-to-console-ingress). This supporting
+route does not complete all runtime/build producers or native debugger integration.
+
 `BuildProcess` owns one direct executable/working-directory/UTF-8 argv request on its referenced
 Core JobSystem. Owner calls are serialized; the JobSystem outlives the runner and shutdown
 cancels/drains before destruction. Workers retain no document/workspace borrows. Absolute native

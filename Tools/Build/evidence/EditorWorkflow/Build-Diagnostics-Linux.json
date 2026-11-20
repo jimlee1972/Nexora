@@ -1,0 +1,131 @@
+{
+  "status": "complete local Linux qualification passed; final-head review and own-PR merge pending",
+  "task": "nexora-gu7.14.1",
+  "base": "ddbd1f8547f1b216c85b30304f328be9135d4adc",
+  "source_sha256": {
+    "Apps/Editor/BuildDiagnosticIngress.h": "de4053c61b387e2f7c53457232d899a83d43ca39e42bcd3560e1dea257a83c26",
+    "Apps/Editor/BuildConsoleIngress.h": "7ca1c31fa3d682b9c0520fe42099e689e32d54bfacc97a7155863112722190ad",
+    "Apps/Editor/main.cpp": "72dcc49b370edd8be34f26625e155e21be4c7356472ff8227d45d08700a4b882",
+    "Tests/EditorImGui/BuildDiagnosticIngressTests.cpp": "e46b06facf3a122015fed07658ef4fb63e2b036aaf2efd56ad39dad0708aa297",
+    "Tests/EditorImGui/LinuxBuildDiagnostics.py": "fb2fa6b95d8773765c192d0d16e8d37115a6d91b6084daaa373bd1328ce9f282",
+    "Tests/EditorImGui/CMakeLists.txt": "d69cd50fd39a4b3e9b17959479e9fd51e5d59ab07e1145ca63a1cca0de9e836f"
+  },
+  "validation_input_tree": "dda7ac84ce5309b756897820a6b23f231bc6bb70",
+  "focused": {
+    "passed": 2,
+    "failed": 0,
+    "seconds": 0.05
+  },
+  "native": {
+    "records": [
+      {
+        "category": "BuildOutput",
+        "severity": 1,
+        "source": "BuildProcess scope=2 operation=1",
+        "message": "/workspace/work/editor-build-diagnostics/native-reviewed/project/build.zig:1:20: error: expected expression, found ';'\\x0aconst unexpected = ;\\x0a                   ^\\x0a"
+      },
+      {
+        "category": "BuildDiagnostic",
+        "severity": 3,
+        "source": "BuildProcess scope=2 operation=1 | /workspace/work/editor-build-diagnostics/native-reviewed/project/build.zig:1:20",
+        "message": "expected expression, found ';'"
+      }
+    ],
+    "authored_sha256": {
+      "project.nexora": "3a4e5508a09698c656115a00da45b1c4a74bb108576792d4ff09b7ec1820307f",
+      "build.zig": "0f3164d10d4e34dfb1245658d5711bff2e4d01234a79973ca4e0bf59995909f0"
+    },
+    "scene_sha256": "a13702b7cb7381d14fadcaf8bde40c7bc4aa6986389f70b4c7d9d678ec51ca1f",
+    "editor_exit": 0,
+    "compiler_exit": 2,
+    "artifact_verified": false
+  },
+  "native_screenshots_sha256": {
+    "console-raw.png": "afd6c72a558831658809c46be87d535a3068bafcc1321529f86b04d1b1318242",
+    "console-diagnostic.png": "ae2eb73c4993263e7a5e26343dafd6935951de276a671d0436055842277b3371",
+    "build-failed.png": "badb5a127d347a451de23ed0963c2363b22f72ae0f1d5c9170561a5594fe5f89"
+  },
+  "logs_sha256": {
+    "expanded-build.log": "3e81da0882b06465d836f505f35c5be8fbfd80ad0b85ff041b21348137abfad6",
+    "expanded-focused.log": "eddf0b52b3582e031e36e76a677f0145eb062067148b0ed5342615c8e7802736",
+    "expanded-focused-junit.xml": "f67d4ed5d9b2c845a043e95d4fbe386576c0a3500d5b46718c78cdde049933ea",
+    "native-reviewed.log": "f9623153758140bc7db9c34b22c5de11ce8f5ccfe7370c5bd9b5af5549fa13ec",
+    "docs-unit.log": "4eef27d1d4bcf56dc3abc50f68159f1fa5059765c9367636d65aa0a260396b30",
+    "full-configure.log": "a21665aa38cda78486dff920c3abd8364d57b25c60343740335bb9b5d2bc1576",
+    "full-build.log": "175e51c763d4e0b92b265567f11809443177cac14ea6fe29ba70ae716cc6162c",
+    "full-ctest.log": "c79a5742c5f787e87f1463220499ec7628de1b666880dac110efda7cf42ae384",
+    "full-inventory.json": "2f4d887210d89f42b9e6a55bca8162fb4ca7f3a0fae40e977a3ff52d2fbc50b0",
+    "full-junit.xml": "be67220b06f449c88294bac49cea2b2d4b4e410d4048d1a8952891a24511d60b",
+    "full-LastTest.log": "46e3231066d087d7c4e153d983d57540c0d84ff5c160ecad999fa5c0b2f44c8f"
+  },
+  "limits": {
+    "raw_bytes_per_poll": 16384,
+    "partial_line_bytes": 4096,
+    "diagnostic_attempts_per_poll": 64,
+    "source_bytes": 1024
+  },
+  "scope_limits": [
+    "plain-text Zig/Clang path:line:column error/warning/note only",
+    "no ANSI/MSVC/multiline compiler context conversion",
+    "no path resolution/navigation, artifact verification or new producer authority",
+    "parent M3-06 and whole Editor milestone remain open",
+    "first severity marker delimits location; ambiguous marker-bearing paths unsupported; positive uint32 coordinates only"
+  ],
+  "full_gate": {
+    "registered": 564,
+    "passed": 564,
+    "failed": 0,
+    "skipped": 0,
+    "retries": 0,
+    "seconds": 6022.4,
+    "exit_code": 0
+  },
+  "full_gate_cases": {
+    "editor.build_console_ingress": 0.0140771,
+    "editor.build_diagnostic_ingress": 0.0100736,
+    "editor.linux_build_process_console": 12.6889,
+    "editor.linux_build_diagnostics": 8.13712,
+    "editor.linux_packaged_source_reload": 1530.71,
+    "editor.linux_packaged_source_reimport": 352.859,
+    "editor.linux_packaged_source_interleaved": 336.678
+  },
+  "existing_native_regressions": {
+    "reload": {
+      "passed": true,
+      "seconds": 1530.71,
+      "artifact_directory": "/workspace/Nexora/build/linux-development/artifacts/editor-packaged-source-reload/source-services-1795138422851413364",
+      "receipt_sha256": "69aa24ffae17c1e6f6ea8c47cf1417cc92847b8ce98938a4ae3fcf02a8302ba0",
+      "phases": 5,
+      "successful_replacements": 33,
+      "initial_observations": 1,
+      "live_observations": 34,
+      "rejected_cases": 7
+    },
+    "reimport": {
+      "passed": true,
+      "seconds": 352.859,
+      "artifact_directory": "/workspace/Nexora/build/linux-development/artifacts/editor-packaged-source-reimport/source-services-1795139953587126243",
+      "receipt_sha256": "fab03d80b5ef3692ad98065ff80723772fd084b710bb78ad03860f88f58d0893",
+      "phases": 5,
+      "publications": 70,
+      "cycle_observations": 32,
+      "half_frame_clock_preserved": true,
+      "corrupt_and_missing_retained": true
+    },
+    "interleaved": {
+      "passed": true,
+      "seconds": 336.678,
+      "artifact_directory": "/workspace/Nexora/build/linux-development/artifacts/editor-packaged-source-interleaved/source-services-1795140306445686916",
+      "receipt_sha256": "46bd811693d6fe62c144a6cbc3e374ff9878785793d45a4edad5961ce9d6c71d",
+      "phases": 5,
+      "cycles": 4,
+      "failed_imports": 2,
+      "successful_replacements": 5,
+      "reimport_publications": 13,
+      "retired_library_finalizers": 6,
+      "identities_unchanged": true,
+      "independent_source_pool_and_3d_pixels": true,
+      "old_module_continued": true
+    }
+  }
+}

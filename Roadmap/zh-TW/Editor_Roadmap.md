@@ -1253,6 +1253,13 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   shutdown 有界排空 retained bytes，不寫入專案。明確標示接收時間與 scope／operation；
   輸出只保留於 session，exit zero 仍不代表 artifacts 已驗證。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM3-BuildConsoleIngress-Linux-2026-10-12.md)。
+- ✅ 編譯器診斷投影通過 Linux 驗收：完整純文字 Zig／Clang `path:line:column`
+  error／warning／note 會轉成具 owning 嚴重度與來源位置的紀錄，並保留既有 raw BuildOutput。
+  有界半行處理、遺失後重新同步與明確的診斷抑制計數不取得 artifact 或導覽權限。
+  完整 runtime producer 路由、其他編譯器格式及 native debugger 整合仍待完成。
+  此限定範圍要求第一個嚴重度標記沒有歧義，行列為正值 32-bit 整數。
+  完整 Linux configure／build 與 **564/564 CTest（6022.40秒）**通過，零略過／重跑。
+  [Linux 證據](../../Tools/Build/evidence/EditorWorkflow/Build-Diagnostics-Linux.md)。
 - ✅ 點擊 playing Game canvas 現可透過複製的 gameplay input snapshot 路由 user-zero
   WASD／方向鍵位移與 Space／滑鼠／Shift／Ctrl 按鈕。Escape、pointer 離開、隱藏 Game、
   Pause／Stop、提示視窗與 native 失焦會清除擷取及 held state。擷取中的按鍵不會觸發 authoring

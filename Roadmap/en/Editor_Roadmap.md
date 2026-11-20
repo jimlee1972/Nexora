@@ -1353,6 +1353,14 @@ creates property widgets; unknown components retain raw data instead of being si
     duplicate output; shutdown drains bounded retained bytes without publication. Receipt timestamps
     and scope/operation labels are explicit; output is session-only and exit zero never verifies
     artifacts. [Linux evidence](../../Tools/Build/evidence/EditorEDM3-BuildConsoleIngress-Linux-2026-10-12.md).
+  - ✅ Compiler diagnostic projection passes Linux acceptance: complete plain-text
+    Zig/Clang `path:line:column` errors/warnings/notes become owning severity/location records
+    beside unchanged raw BuildOutput. Bounded split-line handling, loss resynchronization and
+    explicit diagnostic suppression do not grant artifact or navigation authority. Full runtime
+    producer routing, other compiler syntaxes and native debugger integration remain open.
+    This slice requires unambiguous first severity markers and positive 32-bit coordinates.
+    Complete Linux configure/build and **564/564 CTest (6022.40 s)** pass without skips/retries.
+    [Linux evidence](../../Tools/Build/evidence/EditorWorkflow/Build-Diagnostics-Linux.md).
   - ✅ Clicking the playing Game canvas now routes user-zero held WASD/arrow movement and
     Space/mouse/Shift/Ctrl buttons through copied gameplay input snapshots. Escape, pointer exit,
     hidden Game, Pause/Stop, prompts, and native blur clear capture and held state. Captured keys
