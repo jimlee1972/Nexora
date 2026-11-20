@@ -7,6 +7,7 @@
 #include "StartupSplash.h"
 #if defined(NEXORA_EDITOR_GRAPHICAL_SHELL)
 #include "BuildConsoleIngress.h"
+#include "BuildDiagnosticIngress.h"
 #include "CoreConsoleIngress.h"
 #include "GameBuildCoordinator.h"
 #include "GameRunCoordinator.h"
@@ -1037,6 +1038,7 @@ int RunGraphical(std::optional<ProjectState> project,
   nexora::runtime::RuntimeConsole console{1024};
   nexora::editor::preview::CoreConsoleIngress console_ingress{core_logs, console, "NexoraEditor"};
   nexora::editor::preview::BuildConsoleIngress build_console_ingress{console};
+  nexora::editor::preview::BuildDiagnosticIngress build_diagnostic_ingress{console};
   nexora::editor::ProfileSession profile{240};
   std::optional<Nexora::Presentation::SceneViewport> native_scene_viewport_reported;
   std::optional<NativeSceneMeshes> native_scene_meshes;
@@ -3968,6 +3970,7 @@ int RunGraphical(std::optional<ProjectState> project,
                      current_git_root, git_refresh_allowed);
     const auto build_observation = build_process.Snapshot();
     static_cast<void>(build_console_ingress.Poll(build_observation, project ? build_scope : 0));
+    static_cast<void>(build_diagnostic_ingress.Poll(build_observation, project ? build_scope : 0));
     if (build_observation.operation != build_reported_operation ||
         build_observation.phase != build_reported_phase) {
       build_reported_operation = build_observation.operation;
@@ -5044,8 +5047,10 @@ int RunGraphical(std::optional<ProjectState> project,
   static_export.Shutdown();
   build_process.Shutdown();
   const auto final_build = build_process.Snapshot();
-  for (std::size_t i = 0; i < nexora::editor::BuildProcess::kMaximumOutputBytes / (16 * 1024); ++i)
+  for (std::size_t i = 0; i < nexora::editor::BuildProcess::kMaximumOutputBytes / (16 * 1024); ++i) {
     static_cast<void>(build_console_ingress.Poll(final_build, project ? build_scope : 0));
+    static_cast<void>(build_diagnostic_ingress.Poll(final_build, project ? build_scope : 0));
+  }
   stop_play();
 #if defined(NEXORA_HAS_2D)
   game_two_d_textures.Clear();
@@ -5062,6 +5067,25 @@ int RunGraphical(std::optional<ProjectState> project,
   core_logs.Stop();
   console_ingress.Poll();
   const auto console_records = console.Snapshot();
+#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+  if (std::getenv("NEXORA_BUILD_DIAGNOSTIC_TEST_EVIDENCE")) {
+    const auto hex = [](std::string_view bytes) {
+      constexpr char digits[] = "0123456789abcdef";
+      for (const unsigned char byte : bytes)
+        std::cerr << digits[byte >> 4] << digits[byte & 15];
+    };
+    for (const auto &record : console_records) {
+      if (record.category != "BuildDiagnostic" && record.category != "BuildOutput")
+        continue;
+      std::cerr << "build console record category=" << record.category
+                << " severity=" << static_cast<unsigned>(record.severity) << " source_hex=";
+      hex(record.source);
+      std::cerr << " message_hex=";
+      hex(record.message);
+      std::cerr << '\n';
+    }
+  }
+#endif
   std::cerr << "console build evidence: records=" << build_console_ingress.ForwardedRecords()
             << " consumed_raw_bytes=" << build_console_ingress.ConsumedRawBytes()
             << " missing_raw_bytes=" << build_console_ingress.MissingRawBytes() << " retained="
