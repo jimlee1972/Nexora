@@ -1260,6 +1260,12 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   此限定範圍要求第一個嚴重度標記沒有歧義，行列為正值 32-bit 整數。
   完整 Linux configure／build 與 **564/564 CTest（6022.40秒）**通過，零略過／重跑。
   [Linux 證據](../../Tools/Build/evidence/EditorWorkflow/Build-Diagnostics-Linux.md)。
+- ✅ SDK ScriptProject 編譯器 Console 投影通過 Linux 驗收。既有 owning 結構化診斷
+  補上目前 project／Play／source 標籤、嚴重度及可選位置，原有 sanitized Info 輸出保留。
+  有界滾動識別避免累積快照重送；上游截斷明確標示未知的遺失單位。Worker 排程、reload
+  admission 與 artifact 權限不變；完整 producer／privacy／platform 驗收仍待完成。
+  完整 Linux configure／build 與 **566/566 CTest（6098.03秒）**通過，零略過／重跑。
+  [Linux 證據](../../Tools/Build/evidence/EditorWorkflow/Script-Console-Linux.md)。
 - ✅ 點擊 playing Game canvas 現可透過複製的 gameplay input snapshot 路由 user-zero
   WASD／方向鍵位移與 Space／滑鼠／Shift／Ctrl 按鈕。Escape、pointer 離開、隱藏 Game、
   Pause／Stop、提示視窗與 native 失焦會清除擷取及 held state。擷取中的按鍵不會觸發 authoring

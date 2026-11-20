@@ -653,6 +653,36 @@ fixture/evidence is private build output; a short smoke does not accept the requ
 Full immutable-head Cloud/Shipping/CI, actual 32 source replacements, cancellation/project-switch
 coverage and subsequent Sprite integration remain required; ED-WF-05 is not accepted.
 
+### Scoped ScriptProject compiler diagnostics
+
+The native owner also projects the existing `GameBuildProgress` diagnostics into owning
+`ScriptDiagnostic` Console records. It consumes the current progress only after the compiler's
+project/Play/source filtering and labels the same post-observation context. Note, Warning and
+Error map to Info, Warning and Error. Reported file/line/column are optional text provenance;
+unlocated tool errors retain the context alone. No path resolution/navigation, worker callback,
+authoring write, artifact verification or gameplay admission is added. The existing sanitized
+`Script Build` Info route and all watcher/compiler/reload decisions remain unchanged.
+
+Each observation admits at most 32 input diagnostics with respective 1024-byte file/message
+limits. Fields use Runtime Console's NUL-free valid UTF-8 policy. The projection does not parse
+or retain output bytes. A successful call remembers only its current unique snapshot (at most
+32 identities); a failed allocation can retain at most 64 committed identities while that same
+observation is retryable. Owning copies precede publication, and committed identity moves cannot
+allocate. Scope changes reset identities; foreign/detached observations are ignored and regressed
+same-Play source epochs or unsafe snapshots reject before changing history. Console rejection
+consumes an identity once. Receipt timestamps are wall-clock observations; the independent async
+Info route provides no cross-route producer ordering guarantee.
+
+Upstream output/diagnostic truncation flags produce `ScriptBuildStatus` Warning feedback once
+per context/flag, with explicitly unknown omitted byte/record counts. No missing count is guessed.
+A valid diagnostic whose labeled source exceeds Console's 1024-byte source budget is suppressed
+once, reported in record units and included in at most one status record per poll. Allocation
+exceptions propagate, retaining committed identities and pending status for a same-context retry.
+The test-enabled owner exposes only real visible-row counts/retained records with the explicit
+`NEXORA_SCRIPT_DIAGNOSTIC_TEST_EVIDENCE` switch. Full routing/privacy/platform acceptance remains
+separate; this supporting route passes the complete Linux gate, 566/566 (6098.03s).
+[Linux qualification](../../Tools/Build/evidence/EditorWorkflow/Script-Console-Linux.md).
+
 ### Bounded 2D Game View
 
 With an attached 2D gameplay bridge, the Game panel offers explicit 3D/2D view selection.

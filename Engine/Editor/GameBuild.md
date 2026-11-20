@@ -26,6 +26,14 @@ the existing propagation contract. Publication, source/project/Play epoch admiss
 World/service transaction ownership remain the Editor's responsibility. The main LiveGameScript owner
 now coordinates those boundaries; native workflow and immutable-head acceptance remain required.
 
+The graphical native owner consumes current-key `GameBuildProgress` diagnostic values into
+the existing Runtime Console through a separate private adapter. It retains owning bounded
+identities only, with project/Play/source labels and optional reported locations. The worker,
+source admission, prepared artifact and Runtime transaction remain unchanged. Existing sanitized
+Info output is retained; upstream truncation is surfaced without inventing missing byte/record
+counts. The adapter's lifetime, deduplication, validation and retry contracts are documented in
+[Apps/Editor](../../Apps/Editor/README.md#scoped-scriptproject-compiler-diagnostics).
+
 `ObserveGameScriptSources` is an owning read-only worker API using the same canonical subtree
 selector as compilation. It detects same-size/time edits, additions, removals and renames by sorted
 relative paths, size and FNV content fingerprints. It also observes the project descriptor and saved
