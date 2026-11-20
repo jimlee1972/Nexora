@@ -1361,6 +1361,13 @@ creates property widgets; unknown components retain raw data instead of being si
     This slice requires unambiguous first severity markers and positive 32-bit coordinates.
     Complete Linux configure/build and **564/564 CTest (6022.40 s)** pass without skips/retries.
     [Linux evidence](../../Tools/Build/evidence/EditorWorkflow/Build-Diagnostics-Linux.md).
+  - ✅ SDK ScriptProject compiler Console projection passes Linux acceptance. Existing owning
+    structured diagnostics gain current project/Play/source labels, severity and optional locations
+    alongside unchanged sanitized Info output. Bounded rolling identities avoid repeated cumulative
+    records; upstream truncation reports unknown loss units explicitly. Worker scheduling, reload
+    admission and artifact authority are unchanged. Full producer/privacy/platform acceptance remains open.
+    Complete Linux configure/build and **566/566 CTest (6098.03s)** pass, zero skips/retries.
+    [Linux evidence](../../Tools/Build/evidence/EditorWorkflow/Script-Console-Linux.md).
   - ✅ Clicking the playing Game canvas now routes user-zero held WASD/arrow movement and
     Space/mouse/Shift/Ctrl buttons through copied gameplay input snapshots. Escape, pointer exit,
     hidden Game, Pause/Stop, prompts, and native blur clear capture and held state. Captured keys

@@ -1,0 +1,201 @@
+{
+  "status": "complete local Linux qualification passed; final-head review and own-PR merge pending",
+  "task": "nexora-gu7.14.2",
+  "base": "125a1fc45b65ff5a0d410bc8333b343abf03ac7f",
+  "source_sha256": {
+    "Apps/Editor/ScriptBuildConsoleIngress.h": "cc1ef96c011b781bb47698b7e8e91d864c2b3696ce8f2b4f2e56f88e78934ea1",
+    "Apps/Editor/main.cpp": "f8fbb0323987d6257cd4f377f8e67c5d56a12ddefd79b54a81c64ede62b9e634",
+    "Tests/EditorImGui/ScriptBuildConsoleIngressTests.cpp": "dcde705ce64b5e7cecf1a955d5009916b5f1bbe7570455b123f881ce1ea508af",
+    "Tests/EditorImGui/LinuxScriptConsoleDiagnostics.py": "a852fa06aa18defcfb4743b9a2b1290bf3fdea1ea40a1849aae76195c0aaf0a0",
+    "Tests/EditorImGui/CMakeLists.txt": "7daac31e9b3426ec6d8de084e6b7e2418a97c365b7125d7bdee9393d520e3675",
+    "Apps/Editor/GameScriptCompiler.h": "09b9ba44a6d821cf4f64f4e83f19eec89797e9913ba24b7b9ff6417a676d684a",
+    "Apps/Editor/LiveGameScript.h": "961e5acf3a06dfd4fc40d5a2575b07a698995a43c50702684e254d0cff4aa34d",
+    "Engine/Editor/include/Nexora/Editor/GameBuildProgress.h": "ce43a979cc9497814563688bd33d476111e99d71627c241b63cc750a03e8d2e9",
+    "Engine/Editor/src/GameBuildProgress.cpp": "02f69c28e03e30ab09600fc6d72ece28ee8a58e7ec3bfed5c44da99663c2bad1"
+  },
+  "validation_input_tree": "eae092951dec1aeb81be30367236964b99ae0cbf",
+  "native": {
+    "passed": true,
+    "scope": "actual ScriptProject compiler-to-Console route",
+    "command": [
+      "build/linux-development/Apps/Editor/NexoraEditor",
+      "--graphical",
+      "--native-scene-preview",
+      "--frames=100000",
+      "--project=/tmp/nexora-script-console-yrxkvd_s/project \u4f86\u6e90",
+      "--read-only",
+      "--recent-projects=/tmp/nexora-script-console-yrxkvd_s/recent"
+    ],
+    "editor_exit": 0,
+    "records": [
+      {
+        "category": "Script Build",
+        "severity": 1,
+        "source": "NexoraEditor",
+        "message": "-- Configuring done (0.0s)\n-- Generating done (0.0s)\n-- Build files have been written to: /tmp/nexora-script-88906527968212-0/compile\n"
+      },
+      {
+        "category": "ScriptDiagnostic",
+        "severity": 3,
+        "source": "ScriptBuild project=1 play=1 source=2 | Scripts/game.zig:1:20",
+        "message": "expected expression, found ';'"
+      },
+      {
+        "category": "ScriptDiagnostic",
+        "severity": 3,
+        "source": "ScriptBuild project=1 play=1 source=2",
+        "message": "CMake Error at nexora-game-cb59bedd528d0ca918a509e853076daa9c8a4216e33c4c6de50c2665bf915187.cmake:33 (message):"
+      },
+      {
+        "category": "Script Build",
+        "severity": 1,
+        "source": "NexoraEditor",
+        "message": "[1/1] cd /tmp/nexora-script-88906527968212-0/compile && /workspace/work/atlas-clip/toolchain/usr/bin/cmake -P /tmp/nexora-script-88906527968212-0/compile/nexora-game-cb59bedd528d0ca918a509e853076daa9c8a4216e33c4c6de50c2665bf915187.cmake\nFAILED: CMakeFiles/GameModule /tmp/nexora-script-88906527968212-0/compile/CMakeFiles/GameModule \ncd /tmp/nexora-script-88906527968212-0/compile && /workspace/work/atlas-clip/toolchain/usr/bin/cmake -P /tmp/nexora-script-88906527968212-0/compile/nexora-game-cb59bedd528d0ca918a509e853076daa9c8a4216e33c4c6de50c2665bf915187.cmake\n/tmp/nexora-script-88906527968212-0/source/Scripts/game.zig:1:20: error: expected expression, found ';'\nconst unexpected = ;\n                   ^\nCMake Error at nexora-game-cb59bedd528d0ca918a509e853076daa9c8a4216e33c4c6de50c2665bf915187.cmake:33 (message):\n  Zig SDK command failed: 1\n\n\nninja: build stopped: subcommand failed.\n"
+      }
+    ],
+    "authored_sha256": {
+      "project.build.json": "dad6c7422ede2766b0619ce0f2e212b74c74c0ea1eec54df2ffdde97219041d8",
+      "Level.scene": "2084bbff51d5f3c986d7e991ab3129f3f1c28255640a2c3fb7c3a837e6235263",
+      "Title.scene": "2084bbff51d5f3c986d7e991ab3129f3f1c28255640a2c3fb7c3a837e6235263",
+      "project.nexora": "956a9d5202b15576781de1dbb149c887f1edc48ba66711b7f02410a038a1c623",
+      "Scripts/project.json": "bdc60cc2fb85812a5733f8bf5d67043b369e65dcca4c7e54061fb9380f3b7e33",
+      "Scripts/game.zig": "0f3164d10d4e34dfb1245658d5711bff2e4d01234a79973ca4e0bf59995909f0",
+      "Content/Unselected.nx2clip.meta": "929168372549ed5d2dc87c5121970599cfc0afdd18cdadc9d664d3179b64cf5b",
+      "Content/Triangle.obj.meta": "af18e903de89c794cc8c2770701f1922027e1dbd20efa1a127548f9b752b560b",
+      "Content/Source.nx2sprite.meta": "34fcf3225d3fbf86a1bfabd5929db3dc9f5c7b061dc56e2f7c66627ef742a163",
+      "Content/Other.nx2sprite.meta": "45d06a5481b84ef822574926268c6420be972f38beeb3027917deb4cbf27aa74",
+      "Content/Other.nx2atlas.meta": "c9c82bca55db2ff1a86b3be32202faa710f870977423244b6c580755d665eac5",
+      "Content/Legacy.nx2clip.meta": "26b9f3aa5993020bf4d7608d5a92b4fd6ce7818be02474aafe782ca87d66a924",
+      "Content/Color.nx2atlas.meta": "cec5e22d41a1fb87a52c7cd3c108bfecf0da558d4976362109dc58fe8c6831b1",
+      "Content/Animation.nx2clip.meta": "0f1b6a3ec081215e5d1d2262e9adebe2aa15832798fd0fa90515648d68c9f8e6",
+      "Content/Triangle.obj": "1f4f01899e25a85c903038f27ee0bdc05be15737690fdf33d3b80d0fd1dc9302",
+      "Content/Unselected.nx2clip": "446ff2ea4a058ddb598d7e90d58d70cf10a8a548c4eb26ae6e3ce0bf246a00bc",
+      "Content/Legacy.nx2clip": "820f15f34b277bf11365fa21459c338918b0631011fd34768a8a3447c467bb0c",
+      "Content/Animation.nx2clip": "c48a4c2975611ee0096d03681b01406f6e05cecf01e874213bdefba5136cfff1",
+      "Content/Other.nx2sprite": "fe1fe3ee8f955a194027d9a0103c7d03c9f6ceafc53b4d6a6a1245446339ef57",
+      "Content/Other.nx2atlas": "9501bb538ff642e05d501c292395ac48945bd4a6862a8d685d1523bd70b07c45",
+      "Content/Source.nx2sprite": "16b9c57fa36162107fbb568fa7a781f23d2baee3d1e59f9debb41e3dde2650a4",
+      "Content/Color.nx2atlas": "6e0cab5487fc3ccba91db7bdefe4ed5b17b33cba3540cfc028c583620a897482",
+      ".nexora/scenes/Main.scene": "2084bbff51d5f3c986d7e991ab3129f3f1c28255640a2c3fb7c3a837e6235263"
+    },
+    "located_errors": 1,
+    "project": "/tmp/nexora-script-console-yrxkvd_s/project \u4f86\u6e90"
+  },
+  "focused": {
+    "compatible_cases": 5,
+    "seconds": 26.03,
+    "failed": 0,
+    "final_adapter_seconds": 0.03
+  },
+  "documentation": {
+    "helper_tests": 16,
+    "final_links": "passed",
+    "markdown_files": 670,
+    "errors": 0
+  },
+  "screenshot_sha256": {
+    "script-error.png": "63ed240d53785563a2ce455622fdb5e832cd4be7fa85325c92474873bdea4bca"
+  },
+  "logs_sha256": {
+    "focused-build.log": "201abe8b052a8106e390c0b789fb39139f02fb600c5c003e280ae529fce2b7b7",
+    "focused.log": "f1650fb97247d7565762a1c282427b3a9fcf8e82c8990fab95c18e37ec23b0ab",
+    "compatible-focused.log": "023ce765c40a32b52fdff86cdd4ed5a45e45fa2ecb937178cdc9fd7af518ad92",
+    "compatible-focused-LastTest.log": "52477d98b3b4b1432c754c164208e8dca6196ca56e423a1e3ac5ca32ac8bd304",
+    "bounds-build.log": "74435f84a6a0135df0fef8e1668bf0fea602c5eb40452c2acc4c5df41f861178",
+    "bounds.log": "364e507c1ee883bd00e301b30fa87229b6c18cbbf4faa4c877c85bdea60fdba6",
+    "native-build.log": "c090af3047bfc537951c81faf2cc71ed7d3252745dd12c3801c110d57edd84fe",
+    "native-first.log": "fed983fb56625e6f08a42a544874978d81a4c61a6723a4d134938ee812eee0ad",
+    "native-capture-build.log": "51d73c1e4194bce7c8cd933e59f22c7daa93c9f3e7b4b53eb6854df9d7d280d3",
+    "native-capture.log": "3aff400c7b4c997ae5a5df296f1872848824b7d371b731a312dc2822011db888",
+    "docs-unit.log": "721b4e13ef7141a47883dc925999c5bcf6b4510277c08713c55dd09b5a0c8e5b",
+    "full-configure.log": "0a00707b4dc1b2d9b5e20ba8695b7d19095b0ec55e9df8ba8261b38c6391d126",
+    "full-build.log": "df70476836366b0872f7339b97e4dfca8bee0a00ba0f16237d39a1581fd49dd9",
+    "full-ctest.log": "4d7207ee58743dd21d8545cbcba45e05532cde093c585011a06c454e630e9b68",
+    "full-inventory.json": "32f398fa2408f9e2a74fb11de7466473f71eb999363093956922cb78fb3451ad",
+    "full-junit.xml": "a45ff12c157838c2a7774fff93bc5cf337d13ac3b95b8a6e2fd2fcea070587ba",
+    "full-LastTest.log": "e2795c41b1380888618ff184c93162305c5c97ff5f2d6dc0c2a063ae1e140581"
+  },
+  "limits": {
+    "diagnostics_per_observation": 32,
+    "file_bytes": 1024,
+    "message_bytes": 1024,
+    "retained_after_success": 32,
+    "retained_during_retry": 64,
+    "console_source_bytes": 1024
+  },
+  "scope_limits": [
+    "existing LiveGameScript typed/current progress only",
+    "no worker/watcher/reload admission changes",
+    "sanitized Info output remains independent",
+    "unknown upstream byte/record loss counts are never guessed",
+    "no file navigation/artifact authority/persistence/transport",
+    "M3-06, ED-WF05/08 and whole Editor/privacy/platform gates remain open"
+  ],
+  "full_gate": {
+    "registered": 566,
+    "passed": 566,
+    "failed": 0,
+    "skipped": 0,
+    "retries": 0,
+    "seconds": 6098.03,
+    "exit_code": 0
+  },
+  "full_gate_cases": {
+    "editor.game_build_progress": 0.0174562,
+    "editor.game_script_compiler": 2.5403,
+    "editor.build_console_ingress": 0.017076,
+    "editor.build_diagnostic_ingress": 0.0105769,
+    "editor.script_build_console_ingress": 0.00989698,
+    "editor.linux_build_process_console": 12.7235,
+    "editor.linux_build_diagnostics": 8.82675,
+    "editor.linux_script_console_diagnostics": 9.25086,
+    "editor.linux_packaged_source_reload": 1523.37,
+    "editor.linux_packaged_source_reimport": 368.668,
+    "editor.linux_packaged_source_interleaved": 322.299
+  },
+  "existing_native_regressions": {
+    "reload": {
+      "passed": true,
+      "seconds": 1523.37,
+      "artifact_directory": "/workspace/Nexora/build/linux-development/artifacts/editor-packaged-source-reload/source-services-1795148484310414007",
+      "receipt_sha256": "2dbb6f50843b76969414b2409ee5a2af39f88444c881fef60d078d122ce8db15",
+      "phases": 5,
+      "successful_replacements": 33,
+      "initial_observations": 1,
+      "live_observations": 34,
+      "rejected_cases": 7
+    },
+    "reimport": {
+      "passed": true,
+      "seconds": 368.668,
+      "artifact_directory": "/workspace/Nexora/build/linux-development/artifacts/editor-packaged-source-reimport/source-services-1795150007861629150",
+      "receipt_sha256": "5771d5fcf87d57efe1e4c933ac5459ea24456fc57deb0f5a90234a717978b4ee",
+      "phases": 5,
+      "publications": 70,
+      "cycle_observations": 32,
+      "half_frame_clock_preserved": true,
+      "corrupt_and_missing_retained": true
+    },
+    "interleaved": {
+      "passed": true,
+      "seconds": 322.299,
+      "artifact_directory": "/workspace/Nexora/build/linux-development/artifacts/editor-packaged-source-interleaved/source-services-1795150376385122269",
+      "receipt_sha256": "d87a538b3acaf8dbd564de721cb7712257f62244dea2bfa4d5273d29d6bde445",
+      "phases": 5,
+      "cycles": 4,
+      "failed_imports": 2,
+      "successful_replacements": 5,
+      "reimport_publications": 13,
+      "retired_library_finalizers": 6,
+      "identities_unchanged": true,
+      "independent_source_pool_and_3d_pixels": true,
+      "old_module_continued": true
+    }
+  },
+  "full_gate_native_script_console": {
+    "directory": "/workspace/Nexora/build/linux-development/artifacts/editor-script-console-diagnostics/script-console-1795147226201525410",
+    "receipt_sha256": "f2d52d2365ef9a8caec452c038dfc8a4d9aca4e3f8f96e0abe067391b99d7220",
+    "authored_files": 23,
+    "located_errors": 1
+  }
+}

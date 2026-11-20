@@ -15,6 +15,7 @@
 #if NEXORA_ASSET_PIPELINE_ENABLED
 #include "LiveGameScript.h"
 #include "PackagedPlayContext.h"
+#include "ScriptBuildConsoleIngress.h"
 #if defined(NEXORA_HAS_2D)
 #include "PackagedSpriteReimport.h"
 #include "PackagedSpriteTextures.h"
@@ -899,6 +900,7 @@ int RunGraphical(std::optional<ProjectState> project,
   std::uint64_t extension_test_revision{};
   std::string play_memory_test_geometry, play_memory_test_text;
   std::string scene_merge_test_geometry, build_console_test_geometry;
+  std::optional<std::size_t> script_console_visible_evidence;
   std::uint64_t scene_merge_test_review{};
   std::optional<std::size_t> scene_merge_test_name;
 #endif
@@ -1039,6 +1041,9 @@ int RunGraphical(std::optional<ProjectState> project,
   nexora::editor::preview::CoreConsoleIngress console_ingress{core_logs, console, "NexoraEditor"};
   nexora::editor::preview::BuildConsoleIngress build_console_ingress{console};
   nexora::editor::preview::BuildDiagnosticIngress build_diagnostic_ingress{console};
+#if NEXORA_ASSET_PIPELINE_ENABLED
+  nexora::editor::preview::ScriptBuildConsoleIngress script_build_console_ingress{console};
+#endif
   nexora::editor::ProfileSession profile{240};
   std::optional<Nexora::Presentation::SceneViewport> native_scene_viewport_reported;
   std::optional<NativeSceneMeshes> native_scene_meshes;
@@ -3233,6 +3238,11 @@ int RunGraphical(std::optional<ProjectState> project,
                                  " in background.");
             if (!progress->output.empty())
               log(nexora::runtime::RuntimeLogSeverity::Info, "Script Build", progress->output);
+            const auto script_key = live_script.Current();
+            const nexora::editor::preview::ScriptBuildConsoleIngress::Context script_context{
+                script_key.project, script_key.play, script_key.source};
+            static_cast<void>(
+                script_build_console_ingress.Poll(*progress, script_context, script_context));
           }
           // Cold/source-free admission precedes gameplay dispatch, including while paused.
           // A source-bearing replacement waits for final native Scene/Sprite/GUI admission.
@@ -3911,6 +3921,13 @@ int RunGraphical(std::optional<ProjectState> project,
                         project ? project->workspace.Root() : std::filesystem::path{},
                         build_allowed);
 #if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+    if (std::getenv("NEXORA_SCRIPT_DIAGNOSTIC_TEST_EVIDENCE")) {
+      const auto visible = nexora::editor::imgui::EditorImGuiTestAccess::ConsoleVisibleCount(ui);
+      if (script_console_visible_evidence != visible) {
+        script_console_visible_evidence = visible;
+        std::cerr << "script console ui visible=" << visible << '\n';
+      }
+    }
     if (const char *path = std::getenv("NEXORA_PROJECT_TREE_TEST_PATH")) {
       if (const auto point =
               nexora::editor::imgui::EditorImGuiTestAccess::ProjectFilePosition(ui, path))
@@ -5068,16 +5085,25 @@ int RunGraphical(std::optional<ProjectState> project,
   console_ingress.Poll();
   const auto console_records = console.Snapshot();
 #if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
-  if (std::getenv("NEXORA_BUILD_DIAGNOSTIC_TEST_EVIDENCE")) {
+  const bool build_record_evidence = std::getenv("NEXORA_BUILD_DIAGNOSTIC_TEST_EVIDENCE");
+  const bool script_record_evidence = std::getenv("NEXORA_SCRIPT_DIAGNOSTIC_TEST_EVIDENCE");
+  if (build_record_evidence || script_record_evidence) {
     const auto hex = [](std::string_view bytes) {
       constexpr char digits[] = "0123456789abcdef";
       for (const unsigned char byte : bytes)
         std::cerr << digits[byte >> 4] << digits[byte & 15];
     };
     for (const auto &record : console_records) {
-      if (record.category != "BuildDiagnostic" && record.category != "BuildOutput")
+      const bool build_record = build_record_evidence && (record.category == "BuildDiagnostic" ||
+                                                          record.category == "BuildOutput");
+      const bool script_record =
+          script_record_evidence &&
+          (record.category == "ScriptDiagnostic" || record.category == "ScriptBuildStatus" ||
+           record.category == "Script Build");
+      if (!build_record && !script_record)
         continue;
-      std::cerr << "build console record category=" << record.category
+      std::cerr << (script_record ? "script" : "build")
+                << " console record category=" << record.category
                 << " severity=" << static_cast<unsigned>(record.severity) << " source_hex=";
       hex(record.source);
       std::cerr << " message_hex=";

@@ -309,6 +309,13 @@ nexora_apply_defaults(NexoraBuildDiagnosticIngressTests)
 add_test(NAME editor.build_diagnostic_ingress COMMAND NexoraBuildDiagnosticIngressTests)
 set_tests_properties(editor.build_diagnostic_ingress PROPERTIES TIMEOUT 30)
 
+add_executable(NexoraScriptBuildConsoleIngressTests ScriptBuildConsoleIngressTests.cpp)
+target_include_directories(NexoraScriptBuildConsoleIngressTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+target_link_libraries(NexoraScriptBuildConsoleIngressTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraScriptBuildConsoleIngressTests)
+add_test(NAME editor.script_build_console_ingress COMMAND NexoraScriptBuildConsoleIngressTests)
+set_tests_properties(editor.script_build_console_ingress PROPERTIES TIMEOUT 30)
+
 add_executable(NexoraCoreConsoleIngressTests CoreConsoleIngressTests.cpp)
 target_include_directories(NexoraCoreConsoleIngressTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
 target_link_libraries(NexoraCoreConsoleIngressTests PRIVATE Nexora::EditorImGui)
@@ -517,6 +524,14 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
         --editor "$<TARGET_FILE:NexoraEditor>" --zig "${NEXORA_ZIG_EXECUTABLE}"
         --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
     set_tests_properties(editor.linux_build_diagnostics PROPERTIES TIMEOUT 90)
+  endif()
+  if(NEXORA_ENABLE_2D AND NEXORA_ENABLE_ASSET_PIPELINE AND NEXORA_ZIG_EXECUTABLE)
+    add_test(NAME editor.linux_script_console_diagnostics
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxScriptConsoleDiagnostics.py"
+        --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraGameSpriteBuildTests>"
+        --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}"
+        --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/editor-script-console-diagnostics")
+    set_tests_properties(editor.linux_script_console_diagnostics PROPERTIES TIMEOUT 120)
   endif()
 
   add_test(NAME editor.linux_single_scene
